@@ -244,7 +244,7 @@ static Status doClientNegotiation(
   const auto* messenger = conn->reactorThread()->reactor()->messenger();
   // Prefer secondary credentials (such as authn token) if permitted by policy.
   const auto authnToken =
-      (conn->credentialsPolicy() == CredentialsPolicy::PRIMARY_CREDENTIALS)
+      (conn->credentialsPolicy() == CredentialsPolicy::PrimaryCredentials)
       ? std::nullopt
       : messenger->authn_token();
   ClientNegotiation clientNegotiation(

@@ -81,8 +81,8 @@ void Proxy::asyncRequest(
   RemoteMethod remoteMethod(serviceName_, method);
   controller->call_.reset(
       new OutboundCall(connId_, remoteMethod, response, controller, callback));
-  controller->SetRequestParam(req);
-  controller->SetMessenger(messenger_.get());
+  controller->setRequestParam(req);
+  controller->setMessenger(messenger_.get());
 
   // If this fails to queue, the callback will get called immediately
   // and the controller will be in an ERROR state.

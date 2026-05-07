@@ -545,7 +545,7 @@ void Connection::setConfidential(bool isConfidential) {
 
 bool Connection::satisfiesCredentialsPolicy(CredentialsPolicy policy) const {
   DCHECK_EQ(direction_, ConnectionDirection::kClient);
-  return (policy == CredentialsPolicy::ANY_CREDENTIALS) ||
+  return (policy == CredentialsPolicy::AnyCredentials) ||
       (policy == credentialsPolicy_);
 }
 

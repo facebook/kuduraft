@@ -40,7 +40,7 @@ bool RpcRetrier::handleResponse(Rpc* rpc, Status* outStatus) {
   // Always retry TOO_BUSY and UNAVAILABLE errors.
   const Status controllerStatus = controller_.status();
   if (controllerStatus.IsRemoteError()) {
-    const ErrorStatusPB* err = controller_.error_response();
+    const ErrorStatusPB* err = controller_.errorResponse();
     if (err && err->has_code() &&
         (err->code() == ErrorStatusPB::ERROR_SERVER_TOO_BUSY ||
          err->code() == ErrorStatusPB::ERROR_UNAVAILABLE)) {

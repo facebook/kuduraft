@@ -522,7 +522,7 @@ class RpcTestBase : public KuduTest {
   Status doTestSyncCall(
       const Proxy& p,
       const char* method,
-      CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS) {
+      CredentialsPolicy policy = CredentialsPolicy::AnyCredentials) {
     AddRequestPB req;
     req.set_x(rand());
     req.set_y(rand());
@@ -542,7 +542,7 @@ class RpcTestBase : public KuduTest {
       AddResponsePB& resp,
       RpcController& controller,
       const ResponseCallback& callback = []() {},
-      CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS) {
+      CredentialsPolicy policy = CredentialsPolicy::AnyCredentials) {
     AddRequestPB req;
     req.set_x(rand());
     req.set_y(rand());
@@ -590,12 +590,12 @@ class RpcTestBase : public KuduTest {
     int idx1;
     std::string s1(size1, 'a');
     CHECK_OK(
-        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s1)), &idx1));
+        controller.addOutboundSidecar(RpcSidecar::fromSlice(Slice(s1)), &idx1));
 
     int idx2;
     std::string s2(size2, 'b');
     CHECK_OK(
-        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &idx2));
+        controller.addOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &idx2));
 
     request.set_sidecar1_idx(idx1);
     request.set_sidecar2_idx(idx2);
@@ -636,7 +636,7 @@ class RpcTestBase : public KuduTest {
     sw.stop();
     ASSERT_FALSE(s.ok());
     if (isNegotiationError != nullptr) {
-      *isNegotiationError = c.negotiation_failed();
+      *isNegotiationError = c.negotiationFailed();
     }
 
     int expectedMillis = timeout.ToMilliseconds();
@@ -702,7 +702,7 @@ class RpcTestBase : public KuduTest {
       int idx,
       int expectedSize) {
     Slice sidecar;
-    CHECK_OK(controller.GetInboundSidecar(idx, &sidecar));
+    CHECK_OK(controller.getInboundSidecar(idx, &sidecar));
     CHECK_EQ(expectedSize, sidecar.size());
     return Slice(sidecar.data(), expectedSize);
   }

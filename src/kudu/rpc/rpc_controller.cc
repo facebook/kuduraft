@@ -40,7 +40,7 @@ namespace rpc {
 
 RpcController::RpcController()
     : timeout_nanos_(MonoDelta::kUninitialized),
-      credentials_policy_(CredentialsPolicy::ANY_CREDENTIALS),
+      credentials_policy_(CredentialsPolicy::AnyCredentials),
       messenger_(nullptr) {
   DVLOG(4) << "RpcController " << this << " constructed";
 }
@@ -77,7 +77,7 @@ void RpcController::Reset() {
   }
   call_.reset();
   required_server_features_.clear();
-  credentials_policy_ = CredentialsPolicy::ANY_CREDENTIALS;
+  credentials_policy_ = CredentialsPolicy::AnyCredentials;
   messenger_ = nullptr;
   outbound_sidecars_total_bytes_ = 0;
 }
@@ -89,7 +89,7 @@ bool RpcController::finished() const {
   return false;
 }
 
-bool RpcController::negotiation_failed() const {
+bool RpcController::negotiationFailed() const {
   if (call_) {
     DCHECK(finished());
     return call_->IsNegotiationError();
@@ -104,14 +104,14 @@ Status RpcController::status() const {
   return Status::OK();
 }
 
-const ErrorStatusPB* RpcController::error_response() const {
+const ErrorStatusPB* RpcController::errorResponse() const {
   if (call_) {
     return call_->error_pb();
   }
   return nullptr;
 }
 
-Status RpcController::GetInboundSidecar(int idx, Slice* sidecar) const {
+Status RpcController::getInboundSidecar(int idx, Slice* sidecar) const {
   return call_->call_response_->GetSidecar(idx, sidecar);
 }
 
@@ -126,7 +126,7 @@ void RpcController::set_deadline(const MonoTime& deadline) {
   set_timeout(deadline - MonoTime::Now());
 }
 
-void RpcController::SetRequestIdPB(std::unique_ptr<RequestIdPB> request_id) {
+void RpcController::setRequestIdPb(std::unique_ptr<RequestIdPB> request_id) {
   request_id_ = std::move(request_id);
 }
 
@@ -139,7 +139,7 @@ const RequestIdPB& RpcController::request_id() const {
   return *request_id_;
 }
 
-void RpcController::RequireServerFeature(uint32_t feature) {
+void RpcController::requireServerFeature(uint32_t feature) {
   DCHECK(!call_ || call_->state() == OutboundCall::READY);
   required_server_features_.insert(feature);
 }
@@ -150,7 +150,7 @@ MonoDelta RpcController::timeout() const {
   return MonoDelta::FromNanoseconds(nanos);
 }
 
-Status RpcController::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
+Status RpcController::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   if (outbound_sidecars_.size() >= TransferLimits::kMaxSidecars) {
     return Status::RuntimeError("All available sidecars already used");
   }
@@ -172,7 +172,7 @@ Status RpcController::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   return Status::OK();
 }
 
-void RpcController::SetRequestParam(const google::protobuf::Message& req) {
+void RpcController::setRequestParam(const google::protobuf::Message& req) {
   DCHECK(call_ != nullptr);
   call_->SetRequestPayload(req, std::move(outbound_sidecars_));
 }

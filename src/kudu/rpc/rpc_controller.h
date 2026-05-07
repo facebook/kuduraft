@@ -51,17 +51,17 @@ class RpcSidecar;
 // type of credentials used for authentication when establishing the connection.
 // The client expecting some particular results from the call should specify
 // the required policy on a per-call basis using RpcController. By default,
-// RpcController uses ANY_CREDENTIALS.
+// RpcController uses AnyCredentials.
 enum class CredentialsPolicy {
   // It's acceptable to use authentication credentials of any type, primary or
   // secondary ones.
-  ANY_CREDENTIALS,
+  AnyCredentials,
 
   // Only primary credentials are acceptable. Primary credentials are Kerberos
   // tickets, TLS certificate. Secondary credentials are authentication tokens:
   // they are 'derived' in the sense that it's possible to acquire them using
   // 'primary' credentials.
-  PRIMARY_CREDENTIALS,
+  PrimaryCredentials,
 };
 
 // Controller for managing properties of a single RPC call, on the client side.
@@ -92,7 +92,7 @@ class RpcController {
   bool finished() const;
 
   // Whether the call failed due to connection negotiation error.
-  bool negotiation_failed() const;
+  bool negotiationFailed() const;
 
   // Return the current status of a call.
   //
@@ -116,7 +116,7 @@ class RpcController {
   //
   // If Status was not a RemoteError, this returns NULL.
   // The returned pointer is only valid as long as the controller object.
-  const ErrorStatusPB* error_response() const;
+  const ErrorStatusPB* errorResponse() const;
 
   // Set the timeout for the call to be made with this RPC controller.
   //
@@ -142,7 +142,7 @@ class RpcController {
   // A request id allows the server to identify each request sent by the client
   // uniquely, in some cases even when sent to multiple servers, enabling
   // exactly once semantics.
-  void SetRequestIdPB(std::unique_ptr<RequestIdPB> request_id);
+  void setRequestIdPb(std::unique_ptr<RequestIdPB> request_id);
 
   // Returns whether a request id has been set on RPC header.
   bool has_request_id() const;
@@ -183,7 +183,7 @@ class RpcController {
   //   In client code:
   //   ---------------
   //   if (dry_run) {
-  //     rpc.RequireServerFeature(DELETE_ACCOUNT_SUPPORTS_DRY_RUN);
+  //     rpc.requireServerFeature(DELETE_ACCOUNT_SUPPORTS_DRY_RUN);
   //     req.set_dry_run(true);
   //   }
   //
@@ -194,7 +194,7 @@ class RpcController {
   // must define its own enum of supported features, and protobuf doesn't
   // support any ability to 'extend' enum types. Implementers should define an
   // enum in the service's protobuf definition as shown above.
-  void RequireServerFeature(uint32_t feature);
+  void requireServerFeature(uint32_t feature);
 
   // Executes the provided function with a reference to the required server
   // features.
@@ -220,13 +220,13 @@ class RpcController {
   // been Reset().
   //
   // May fail if index is invalid.
-  Status GetInboundSidecar(int idx, Slice* sidecar) const;
+  Status getInboundSidecar(int idx, Slice* sidecar) const;
 
   // Adds a sidecar to the outbound request. The index of the sidecar is written
   // to 'idx'. Returns an error if TransferLimits::kMaxSidecars have already
   // been added to this request. Also returns an error if the total size of all
   // sidecars would exceed TransferLimits::kMaxTotalSidecarBytes.
-  Status AddOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
+  Status addOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
 
   // Cancel the call associated with the RpcController. This function should
   // only be called when there is an outstanding outbound call. It's always safe
@@ -248,11 +248,11 @@ class RpcController {
 
   // Set the outbound call_'s request parameter, and transfer ownership of
   // outbound_sidecars_ to call_ in preparation for serialization.
-  void SetRequestParam(const google::protobuf::Message& req);
+  void setRequestParam(const google::protobuf::Message& req);
 
   // Set the messenger which contains the reactor thread handling the outbound
   // call.
-  void SetMessenger(Messenger* messenger) {
+  void setMessenger(Messenger* messenger) {
     messenger_ = messenger;
   }
 

@@ -666,7 +666,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
     // Attach a big sidecar so that we are less likely to be able to send the
     // whole RPC in a single write() call without queueing it.
     int junk;
-    CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::fromSlice(bigString), &junk));
+    CHECK_OK(rpc->addOutboundSidecar(RpcSidecar::fromSlice(bigString), &junk));
     controllers.emplace_back(std::move(rpc));
     p.asyncRequest(
         GenericCalculatorService::kAddMethodName,
@@ -739,10 +739,10 @@ TEST_P(TestRpc, TestReopenOutboundConnections) {
 }
 
 // Test that an outbound connection is closed and a new one is open if going
-// from ANY_CREDENTIALS to PRIMARY_CREDENTIALS policy for RPC calls to the same
+// from AnyCredentials to PrimaryCredentials policy for RPC calls to the same
 // destination.
-// Test that changing from PRIMARY_CREDENTIALS policy to ANY_CREDENTIALS policy
-// re-uses the connection established with PRIMARY_CREDENTIALS policy.
+// Test that changing from PrimaryCredentials policy to AnyCredentials policy
+// re-uses the connection established with PrimaryCredentials policy.
 TEST_P(TestRpc, TestCredentialsPolicy) {
   // Only run one reactor per messenger, so we can grab the metrics from that
   // one without having to check all.
@@ -772,7 +772,7 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
   ASSERT_EQ(0, metrics.totalClientConnections);
   ASSERT_EQ(0, metrics.totalServerConnections);
 
-  // Make an RPC call with ANY_CREDENTIALS policy.
+  // Make an RPC call with AnyCredentials policy.
   ASSERT_OK(doTestSyncCall(p, GenericCalculatorService::kAddMethodName));
   ASSERT_OK(serverMessenger_->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(0, metrics.totalClientConnections);
@@ -786,13 +786,13 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
   // This is to allow all the data to be sent so the connection becomes idle.
   SleepFor(MonoDelta::FromMilliseconds(5));
 
-  // Make an RPC call with PRIMARY_CREDENTIALS policy. Currently open connection
-  // with ANY_CREDENTIALS policy should be closed and a new one established
-  // with PRIMARY_CREDENTIALS policy.
+  // Make an RPC call with PrimaryCredentials policy. Currently open connection
+  // with AnyCredentials policy should be closed and a new one established
+  // with PrimaryCredentials policy.
   ASSERT_OK(doTestSyncCall(
       p,
       GenericCalculatorService::kAddMethodName,
-      CredentialsPolicy::PRIMARY_CREDENTIALS));
+      CredentialsPolicy::PrimaryCredentials));
   ASSERT_OK(serverMessenger_->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(0, metrics.totalClientConnections);
   EXPECT_EQ(2, metrics.totalServerConnections);
@@ -802,9 +802,9 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
   EXPECT_EQ(0, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numClientConnections);
 
-  // Make another RPC call with ANY_CREDENTIALS policy. The already established
-  // connection with PRIMARY_CREDENTIALS policy should be re-used because
-  // the ANY_CREDENTIALS policy satisfies the PRIMARY_CREDENTIALS policy which
+  // Make another RPC call with AnyCredentials policy. The already established
+  // connection with PrimaryCredentials policy should be re-used because
+  // the AnyCredentials policy satisfies the PrimaryCredentials policy which
   // the currently open connection has been established with.
   ASSERT_OK(doTestSyncCall(p, GenericCalculatorService::kAddMethodName));
   ASSERT_OK(serverMessenger_->reactors_[0]->getMetrics(&metrics));
@@ -888,11 +888,11 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     int idx;
     for (int i = 0; i < TransferLimits::kMaxSidecars; ++i) {
       ASSERT_OK(
-          controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s)), &idx));
+          controller.addOutboundSidecar(RpcSidecar::fromSlice(Slice(s)), &idx));
     }
 
     ASSERT_TRUE(
-        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s)), &idx)
+        controller.addOutboundSidecar(RpcSidecar::fromSlice(Slice(s)), &idx)
             .IsRuntimeError());
   }
 
@@ -904,14 +904,14 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     // payload reaches the limit exactly.
     RpcController controller;
     int idx;
-    ASSERT_OK(controller.AddOutboundSidecar(
+    ASSERT_OK(controller.addOutboundSidecar(
         RpcSidecar::fromSlice(Slice(maxString)), &idx));
 
     // Trying to add another byte will fail.
     int dummy = 0;
     string s2(1, 'b');
     Status maxSidecarStatus =
-        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &dummy);
+        controller.addOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &dummy);
     ASSERT_FALSE(maxSidecarStatus.ok());
     ASSERT_STR_MATCHES(maxSidecarStatus.ToString(), "Total size of sidecars");
   }
@@ -953,7 +953,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     // KUDU-2305: Test with a maximal payload to verify that the implementation
     // can handle the limits.
     int idx;
-    ASSERT_OK(controller.AddOutboundSidecar(
+    ASSERT_OK(controller.addOutboundSidecar(
         RpcSidecar::fromSlice(Slice(maxString)), &idx));
 
     PushTwoStringsRequestPB request;
@@ -1536,7 +1536,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
     req.set_y(2);
     AddResponsePB resp;
     RpcController controller;
-    controller.RequireServerFeature(FeatureFlags::FOO);
+    controller.requireServerFeature(FeatureFlags::FOO);
     Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.ok());
@@ -1549,8 +1549,8 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
     req.set_y(2);
     AddResponsePB resp;
     RpcController controller;
-    controller.RequireServerFeature(FeatureFlags::FOO);
-    controller.RequireServerFeature(99);
+    controller.requireServerFeature(FeatureFlags::FOO);
+    controller.requireServerFeature(99);
     Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("unsupported response: {}", s.ToString()));
     ASSERT_TRUE(s.IsRemoteError());
@@ -1583,7 +1583,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
     req.set_y(2);
     AddResponsePB resp;
     RpcController controller;
-    controller.RequireServerFeature(FeatureFlags::FOO);
+    controller.requireServerFeature(FeatureFlags::FOO);
     Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.IsNotSupported());
@@ -1642,8 +1642,8 @@ TEST_P(TestRpc, TestCancellation) {
         req.set_y(2);
         AddResponsePB resp;
         RpcController controller;
-        controller.RequireServerFeature(FeatureFlags::FOO);
-        controller.RequireServerFeature(99);
+        controller.requireServerFeature(FeatureFlags::FOO);
+        controller.requireServerFeature(99);
         Status s = p.syncRequest("Add", req, &resp, &controller);
         ASSERT_TRUE(s.IsRemoteError());
         break;
@@ -1707,7 +1707,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
 
     int idx;
     Slice s(payload.get(), TEST_PAYLOAD_SIZE);
-    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::fromSlice(s), &idx));
+    CHECK_OK(controller.addOutboundSidecar(RpcSidecar::fromSlice(s), &idx));
     req.set_sidecar_idx(idx);
 
     CountDownLatch latch(1);
@@ -1749,9 +1749,9 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
     PushTwoStringsRequestPB request;
     PushTwoStringsResponsePB resp;
     int idx;
-    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::fromSlice(slice), &idx));
+    CHECK_OK(controller.addOutboundSidecar(RpcSidecar::fromSlice(slice), &idx));
     request.set_sidecar1_idx(idx);
-    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::fromSlice(slice), &idx));
+    CHECK_OK(controller.addOutboundSidecar(RpcSidecar::fromSlice(slice), &idx));
     request.set_sidecar2_idx(idx);
 
     CountDownLatch latch(1);

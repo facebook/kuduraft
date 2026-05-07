@@ -149,7 +149,7 @@ class RpcContext {
   //
   // The client side may then retreieve the error by calling:
   //   const MyServiceError& err_details =
-  //     controller->error_response()->GetExtension(MyServiceError::my_service_error_ext);
+  //     controller->errorResponse()->GetExtension(MyServiceError::my_service_error_ext);
   //
   // After this method returns, this RpcContext object is destroyed. The request
   // and response protobufs are also destroyed.

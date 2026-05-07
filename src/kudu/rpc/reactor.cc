@@ -553,7 +553,7 @@ bool ReactorThread::findConnection(
     // * Do not use a connection with a non-compliant credentials policy.
     //   Instead, open a new one, while marking the former as scheduled for
     //   shutdown. This process converges: any connection that satisfies the
-    //   PRIMARY_CREDENTIALS policy automatically satisfies the ANY_CREDENTIALS
+    //   PrimaryCredentials policy automatically satisfies the AnyCredentials
     //   policy as well. The idea is to keep only one usable connection
     //   identified by the specified 'connId'.
     //

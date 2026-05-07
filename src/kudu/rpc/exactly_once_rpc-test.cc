@@ -81,7 +81,7 @@ void AddRequestId(
   request_id->set_seq_no(sequence_number);
   request_id->set_attempt_no(attempt_no);
   request_id->set_first_incomplete_seq_no(sequence_number);
-  controller->SetRequestIdPB(std::move(request_id));
+  controller->setRequestIdPb(std::move(request_id));
 }
 
 class TestServerPicker : public ServerPicker<CalculatorServiceProxy> {
@@ -141,7 +141,7 @@ class CalculatorServiceRpc : public RetriableRpc<
 
     if (!mutableRetrier()->controller().status().ok()) {
       CHECK(mutableRetrier()->controller().status().IsRemoteError());
-      if (mutableRetrier()->controller().error_response()->code() ==
+      if (mutableRetrier()->controller().errorResponse()->code() ==
           ErrorStatusPB::ERROR_REQUEST_STALE) {
         return {
             RetriableRpcStatus::kNonRetriableError,

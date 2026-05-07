@@ -272,7 +272,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::replicaFoundCb(
   requestId->set_first_incomplete_seq_no(requestTracker_->firstIncomplete());
   requestId->set_attempt_no(numAttempts_++);
 
-  mutableRetrier()->mutableController()->SetRequestIdPB(std::move(requestId));
+  mutableRetrier()->mutableController()->setRequestIdPb(std::move(requestId));
 
   DCHECK_EQ(result.result, RetriableRpcStatus::kOk);
   current_ = server;

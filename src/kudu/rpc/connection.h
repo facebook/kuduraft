@@ -87,7 +87,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
       Sockaddr remote,
       std::unique_ptr<Socket> socket,
       ConnectionDirection direction,
-      CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS,
+      CredentialsPolicy policy = CredentialsPolicy::AnyCredentials,
       std::shared_ptr<MetricEntity> metricEntity = nullptr);
 
   // Set underlying socket to non-blocking (or blocking) mode.
@@ -167,9 +167,9 @@ class Connection : public std::enable_shared_from_this<Connection> {
   //       authentication credentials used for connection negotiation might
   //       effectively make the connection to satisfy a stronger policy.
   //       An example: the credentials policy for the connection was set to
-  //       ANY_CREDENTIALS, but since the authn token was not available
+  //       AnyCredentials, but since the authn token was not available
   //       at the time of negotiation, the primary credentials were used, making
-  //       the connection de facto satisfying the PRIMARY_CREDENTIALS policy.
+  //       the connection de facto satisfying the PrimaryCredentials policy.
   bool satisfiesCredentialsPolicy(CredentialsPolicy policy) const;
 
   RpczStore* rpczStore();
@@ -419,10 +419,10 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // the connection to satisfy a stronger/narrower policy.
   //
   // An example:
-  //   The credentials policy for the connection was set to ANY_CREDENTIALS,
+  //   The credentials policy for the connection was set to AnyCredentials,
   //   but since no secondary credentials (such authn token) were available
   //   at the time of negotiation, the primary credentials were used,making the
-  //   connection satisfying the PRIMARY_CREDENTIALS policy de facto.
+  //   connection satisfying the PrimaryCredentials policy de facto.
   const CredentialsPolicy credentialsPolicy_;
 
   // If we're currently in the middle of negotiation.

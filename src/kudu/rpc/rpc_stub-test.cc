@@ -231,7 +231,7 @@ TEST_F(RpcStubTest, TestAuthorization) {
       requestId->set_attempt_no(0);
       requestId->set_seq_no(0);
       requestId->set_first_incomplete_seq_no(-1);
-      controller.SetRequestIdPB(std::move(requestId));
+      controller.setRequestIdPb(std::move(requestId));
 
       ExactlyOnceRequestPB req;
       req.set_value_to_add(1);
@@ -400,7 +400,7 @@ TEST_F(RpcStubTest, TestApplicationError) {
       "[kudu.rpc_test.CalculatorError.app_error_ext] {\n"
       "  extra_error_data: \"some application-specific error data\"\n"
       "}\n",
-      SecureDebugString(*controller.error_response()));
+      SecureDebugString(*controller.errorResponse()));
 }
 
 TEST_F(RpcStubTest, TestRpcPanic) {
@@ -574,7 +574,7 @@ TEST_F(RpcStubTest, TestEarliestDeadlineFirstQueue) {
           // errors are expected.
           CHECK(
               s.IsRemoteError() &&
-              controller.error_response()->code() ==
+              controller.errorResponse()->code() ==
                   rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY)
               << "Unexpected RPC failure: " << s.ToString();
           // Randomized exponential backoff (similar to that done by the
