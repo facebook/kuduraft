@@ -12,61 +12,61 @@ DEFINE_dynamic_timeseries(
 // ---- raft_consensus.cc: existing timeseries (converted to dynamic) ----
 
 DEFINE_dynamic_timeseries(
-    raft_log_truncation_counter,
+    raftLogTruncationCounter,
     "{}.raft_log_truncation_counter",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    follower_memory_pressure_rejections,
+    followerMemoryPressureRejections,
     "{}.follower_memory_pressure_rejections",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_proxy_num_requests_received,
+    raftProxyNumRequestsReceived,
     "{}.raft_proxy_num_requests_received",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_proxy_num_requests_success,
+    raftProxyNumRequestsSuccess,
     "{}.raft_proxy_num_requests_success",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_proxy_num_requests_unknown_dest,
+    raftProxyNumRequestsUnknownDest,
     "{}.raft_proxy_num_requests_unknown_dest",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_proxy_num_requests_log_read_timeout,
+    raftProxyNumRequestsLogReadTimeout,
     "{}.raft_proxy_num_requests_log_read_timeout",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_proxy_num_requests_hops_remaining_exhausted,
+    raftProxyNumRequestsHopsRemainingExhausted,
     "{}.raft_proxy_num_requests_hops_remaining_exhausted",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_num_failed_elections,
+    raftNumFailedElections,
     "{}.raft_num_failed_elections",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    raft_num_leader_heartbeat_received,
+    raftNumLeaderHeartbeatReceived,
     "{}.raft_num_leader_heartbeat_received",
     facebook::fb303::ExportType::SUM);
 
 // ---- raft_consensus.cc: gauges ----
 
 DEFINE_dynamic_quantile_stat(
-    raft_term,
+    raftTerm,
     "{}.raft_term",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    failed_elections_since_stable_leader,
+    failedElectionsSinceStableLeader,
     "{}.failed_elections_since_stable_leader",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -75,28 +75,28 @@ DEFINE_dynamic_quantile_stat(
 // ---- consensus_queue.cc: gauges ----
 
 DEFINE_dynamic_quantile_stat(
-    majority_done_ops,
+    majorityDoneOps,
     "{}.majority_done_ops",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    in_progress_ops,
+    inProgressOps,
     "{}.in_progress_ops",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    ops_behind_leader,
+    opsBehindLeader,
     "{}.ops_behind_leader",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    available_commit_peers,
+    availableCommitPeers,
     "{}.available_commit_peers",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,

@@ -41,25 +41,25 @@ constexpr std::string_view statsFileTag(std::string_view filename) {
 DECLARE_dynamic_timeseries(kuduCheckViolations, 1);
 
 // --- raft_consensus.cc: existing timeseries (converted to dynamic) ---
-DECLARE_dynamic_timeseries(raft_log_truncation_counter, 1);
-DECLARE_dynamic_timeseries(follower_memory_pressure_rejections, 1);
-DECLARE_dynamic_timeseries(raft_proxy_num_requests_received, 1);
-DECLARE_dynamic_timeseries(raft_proxy_num_requests_success, 1);
-DECLARE_dynamic_timeseries(raft_proxy_num_requests_unknown_dest, 1);
-DECLARE_dynamic_timeseries(raft_proxy_num_requests_log_read_timeout, 1);
-DECLARE_dynamic_timeseries(raft_proxy_num_requests_hops_remaining_exhausted, 1);
-DECLARE_dynamic_timeseries(raft_num_failed_elections, 1);
-DECLARE_dynamic_timeseries(raft_num_leader_heartbeat_received, 1);
+DECLARE_dynamic_timeseries(raftLogTruncationCounter, 1);
+DECLARE_dynamic_timeseries(followerMemoryPressureRejections, 1);
+DECLARE_dynamic_timeseries(raftProxyNumRequestsReceived, 1);
+DECLARE_dynamic_timeseries(raftProxyNumRequestsSuccess, 1);
+DECLARE_dynamic_timeseries(raftProxyNumRequestsUnknownDest, 1);
+DECLARE_dynamic_timeseries(raftProxyNumRequestsLogReadTimeout, 1);
+DECLARE_dynamic_timeseries(raftProxyNumRequestsHopsRemainingExhausted, 1);
+DECLARE_dynamic_timeseries(raftNumFailedElections, 1);
+DECLARE_dynamic_timeseries(raftNumLeaderHeartbeatReceived, 1);
 
 // --- raft_consensus.cc: gauges ---
-DECLARE_dynamic_quantile_stat(raft_term, 1);
-DECLARE_dynamic_quantile_stat(failed_elections_since_stable_leader, 1);
+DECLARE_dynamic_quantile_stat(raftTerm, 1);
+DECLARE_dynamic_quantile_stat(failedElectionsSinceStableLeader, 1);
 
 // --- consensus_queue.cc: gauges ---
-DECLARE_dynamic_quantile_stat(majority_done_ops, 1);
-DECLARE_dynamic_quantile_stat(in_progress_ops, 1);
-DECLARE_dynamic_quantile_stat(ops_behind_leader, 1);
-DECLARE_dynamic_quantile_stat(available_commit_peers, 1);
+DECLARE_dynamic_quantile_stat(majorityDoneOps, 1);
+DECLARE_dynamic_quantile_stat(inProgressOps, 1);
+DECLARE_dynamic_quantile_stat(opsBehindLeader, 1);
+DECLARE_dynamic_quantile_stat(availableCommitPeers, 1);
 DECLARE_dynamic_quantile_stat(available_leader_lease_grantors, 1);
 DECLARE_dynamic_quantile_stat(available_bounded_dataloss_window_ackers, 1);
 

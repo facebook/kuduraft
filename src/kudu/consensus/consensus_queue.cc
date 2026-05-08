@@ -2805,11 +2805,11 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
       : 0;
   metrics_.num_majority_done_ops->setValue(
       majorityDoneOpsVal); // needed for tests
-  STATS_majority_done_ops.addValue(majorityDoneOpsVal, KUDU_STATS_TAG);
+  STATS_majorityDoneOps.addValue(majorityDoneOpsVal, KUDU_STATS_TAG);
   auto inProgressOpsVal =
       queueState_.last_appended.index() - queueState_.committed_index;
   metrics_.num_in_progress_ops->setValue(inProgressOpsVal); // needed for tests
-  STATS_in_progress_ops.addValue(inProgressOpsVal, KUDU_STATS_TAG);
+  STATS_inProgressOps.addValue(inProgressOpsVal, KUDU_STATS_TAG);
 
   UpdateLagMetricsUnlocked();
 }
@@ -2821,7 +2821,7 @@ void PeerMessageQueue::UpdateLagMetricsUnlocked() {
       : queueState_.last_idx_appended_to_leader -
           queueState_.last_appended.index();
   metrics_.num_ops_behind_leader->setValue(opsBehindVal); // needed for tests
-  STATS_ops_behind_leader.addValue(opsBehindVal, KUDU_STATS_TAG);
+  STATS_opsBehindLeader.addValue(opsBehindVal, KUDU_STATS_TAG);
 }
 
 void PeerMessageQueue::DumpToStrings(vector<string>* lines) const {
@@ -3111,7 +3111,7 @@ bool PeerMessageQueue::CheckQuorum() {
         return false;
       });
 
-  STATS_available_commit_peers.addValue(results.num_satisfied, KUDU_STATS_TAG);
+  STATS_availableCommitPeers.addValue(results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
     STATS_check_quorum_failures.add(1, KUDU_STATS_TAG);

@@ -1317,7 +1317,7 @@ Status RaftConsensus::truncateCallbackWithRaftLock(
   RETURN_NOT_OK(log_->truncateOpsAfter(-1, index_if_truncated));
 
   if (index_if_truncated && *index_if_truncated != -1) {
-    STATS_raft_log_truncation_counter.add(1, KUDU_STATS_TAG);
+    STATS_raftLogTruncationCounter.add(1, KUDU_STATS_TAG);
   }
 
   return Status::OK();
@@ -2228,7 +2228,7 @@ Status RaftConsensus::updateReplica(
     snoozeGuard.rehire();
     SnoozeFailureDetector({}, updateReplicaSnoozeTimeout());
 
-    STATS_raft_num_leader_heartbeat_received.add(1, KUDU_STATS_TAG);
+    STATS_raftNumLeaderHeartbeatReceived.add(1, KUDU_STATS_TAG);
     lastLeaderCommunicationTimeMicros_ = getMonoTimeMicros();
 
     // Reset the 'failedElectionsSinceStableLeader_' metric now that we've
@@ -2240,7 +2240,7 @@ Status RaftConsensus::updateReplica(
     // the one called by this replica.
     failedElectionsSinceStableLeader_ = 0;
     failedElectionsCandidateNotInConfig_ = 0;
-    STATS_failed_elections_since_stable_leader.addValue(
+    STATS_failedElectionsSinceStableLeader.addValue(
         failedElectionsSinceStableLeader_, KUDU_STATS_TAG);
 
     // We update the lag metrics here in addition to after appending to the
@@ -2323,7 +2323,7 @@ Status RaftConsensus::updateReplica(
       // our memory pressure.
       double capacityPct;
       if (process_memory::softLimitExceeded(&capacityPct)) {
-        STATS_follower_memory_pressure_rejections.add(1, KUDU_STATS_TAG);
+        STATS_followerMemoryPressureRejections.add(1, KUDU_STATS_TAG);
         string msg = fmt::format(
             "Soft memory limit exceeded (at {:.2f}% of capacity)", capacityPct);
         if (capacityPct >= FLAGS_memory_limit_warn_threshold_percentage) {
@@ -3982,7 +3982,7 @@ Status RaftConsensus::setLeaderUuidUnlocked(const string& uuid) {
   DCHECK(lock_.is_locked());
   failedElectionsSinceStableLeader_ = 0;
   failedElectionsCandidateNotInConfig_ = 0;
-  STATS_failed_elections_since_stable_leader.addValue(
+  STATS_failedElectionsSinceStableLeader.addValue(
       failedElectionsSinceStableLeader_, KUDU_STATS_TAG);
   cmeta_->setLeaderUuid(uuid);
 
@@ -4224,9 +4224,9 @@ void RaftConsensus::DoElectionCallback(
 
   if (result.decision == VOTE_DENIED) {
     failedElectionsSinceStableLeader_++;
-    STATS_failed_elections_since_stable_leader.addValue(
+    STATS_failedElectionsSinceStableLeader.addValue(
         failedElectionsSinceStableLeader_, KUDU_STATS_TAG);
-    STATS_raft_num_failed_elections.add(1, KUDU_STATS_TAG);
+    STATS_raftNumFailedElections.add(1, KUDU_STATS_TAG);
 
     // If we called an election and one of the voters had a higher term than
     // we did, we should bump our term before we potentially try again. This
@@ -4742,7 +4742,7 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
 
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Advancing to term " << new_term;
   RETURN_NOT_OK(SetCurrentTermUnlocked(new_term, flush));
-  STATS_raft_term.addValue(new_term, KUDU_STATS_TAG);
+  STATS_raftTerm.addValue(new_term, KUDU_STATS_TAG);
   lastReceivedCurLeader_ = MinimumOpId();
   return Status::OK();
 }
@@ -5249,7 +5249,7 @@ void RaftConsensus::handleProxyRequest(
     active_config = cmeta_->activeConfig();
   }
 
-  STATS_raft_proxy_num_requests_received.add(1, KUDU_STATS_TAG);
+  STATS_raftProxyNumRequestsReceived.add(1, KUDU_STATS_TAG);
 
   // Initial implementation:
   //
@@ -5291,8 +5291,7 @@ void RaftConsensus::handleProxyRequest(
         << "Proxy hops remaining exhausted (possible routing loop?) "
         << "in request to peer " << request->proxy_dest_uuid() << ": "
         << request->ShortDebugString();
-    STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(
-        1, KUDU_STATS_TAG);
+    STATS_raftProxyNumRequestsHopsRemainingExhausted.add(1, KUDU_STATS_TAG);
     context->respondFailure(
         Status::Incomplete(
             "proxy hops remaining exhausted", "possible routing loop"));
@@ -5354,7 +5353,7 @@ void RaftConsensus::handleProxyRequest(
     Status s = routingTableContainer_->nextHop(
         peer_uuid(), request->dest_uuid(), &next_uuid);
     if (PREDICT_FALSE(!s.ok())) {
-      STATS_raft_proxy_num_requests_unknown_dest.add(1, KUDU_STATS_TAG);
+      STATS_raftProxyNumRequestsUnknownDest.add(1, KUDU_STATS_TAG);
     }
     RET_RESPOND_ERROR_NOT_OK(s);
   }
@@ -5459,7 +5458,7 @@ void RaftConsensus::handleProxyRequest(
       // We timed out and got nothing from the log cache. Send a heartbeat to
       // the destination to prevent it from starting (pre) election
       raftProxyNumRequestsLogReadTimeout_->increment(); // needed for tests
-      STATS_raft_proxy_num_requests_log_read_timeout.add(1, KUDU_STATS_TAG);
+      STATS_raftProxyNumRequestsLogReadTimeout.add(1, KUDU_STATS_TAG);
       proxy_error = ServerErrorPB::PROXY_MISSING_LOG_ENTRIES;
     }
 
@@ -5547,7 +5546,7 @@ void RaftConsensus::handleProxyRequest(
   }
 
   raftProxyNumRequestsSuccess_->increment(); // needed for tests
-  STATS_raft_proxy_num_requests_success.add(1, KUDU_STATS_TAG);
+  STATS_raftProxyNumRequestsSuccess.add(1, KUDU_STATS_TAG);
   context->respondSuccess();
 }
 
