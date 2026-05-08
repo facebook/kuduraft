@@ -49,8 +49,8 @@ const int kMaxWidth = 64;
 class TestRle : public KuduTest {};
 
 TEST(BitArray, TestBool) {
-  const int len_bytes = 2;
-  faststring buffer(len_bytes);
+  const int lenBytes = 2;
+  faststring buffer(lenBytes);
 
   BitWriter writer(&buffer);
 
@@ -108,23 +108,23 @@ TEST(BitArray, TestBool) {
   }
 }
 
-// Writes 'num_vals' values with width 'bit_width' and reads them back.
-void TestBitArrayValues(int bit_width, int num_vals) {
-  const int kTestLen = BitUtil::ceil(bit_width * num_vals, 8);
-  const uint64_t mod = bit_width == 64 ? 1 : 1LL << bit_width;
+// Writes 'numVals' values with width 'bitWidth' and reads them back.
+void TestBitArrayValues(int bitWidth, int numVals) {
+  const int kTestLen = BitUtil::ceil(bitWidth * numVals, 8);
+  const uint64_t mod = bitWidth == 64 ? 1 : 1LL << bitWidth;
 
   faststring buffer(kTestLen);
   BitWriter writer(&buffer);
-  for (int i = 0; i < num_vals; ++i) {
-    writer.putValue(i % mod, bit_width);
+  for (int i = 0; i < numVals; ++i) {
+    writer.putValue(i % mod, bitWidth);
   }
   writer.flush();
   EXPECT_EQ(writer.bytesWritten(), kTestLen);
 
   BitReader reader(buffer.data(), kTestLen);
-  for (int i = 0; i < num_vals; ++i) {
+  for (int i = 0; i < numVals; ++i) {
     int64_t val = 0;
-    bool result = reader.getValue(bit_width, &val);
+    bool result = reader.getValue(bitWidth, &val);
     EXPECT_TRUE(result);
     EXPECT_EQ(val, i % mod);
   }
@@ -177,36 +177,35 @@ TEST(BitArray, TestMixed) {
 }
 
 // Validates encoding of values by encoding and decoding them.  If
-// expected_encoding != NULL, also validates that the encoded buffer is
-// exactly 'expected_encoding'.
-// if expected_len is not -1, it will validate the encoded size is correct.
+// expectedEncoding != NULL, also validates that the encoded buffer is
+// exactly 'expectedEncoding'.
+// if expectedLen is not -1, it will validate the encoded size is correct.
 template <typename T>
 void ValidateRle(
     const vector<T>& values,
-    int bit_width,
-    uint8_t* expected_encoding,
-    int expected_len) {
+    int bitWidth,
+    uint8_t* expectedEncoding,
+    int expectedLen) {
   faststring buffer;
-  RleEncoder<T> encoder(&buffer, bit_width);
+  RleEncoder<T> encoder(&buffer, bitWidth);
 
   for (const auto& value : values) {
     encoder.put(value);
   }
-  int encoded_len = encoder.flush();
+  int encodedLen = encoder.flush();
 
-  if (expected_len != -1) {
-    EXPECT_EQ(encoded_len, expected_len);
+  if (expectedLen != -1) {
+    EXPECT_EQ(encodedLen, expectedLen);
   }
-  if (expected_encoding != nullptr) {
-    EXPECT_EQ(memcmp(buffer.data(), expected_encoding, expected_len), 0)
+  if (expectedEncoding != nullptr) {
+    EXPECT_EQ(memcmp(buffer.data(), expectedEncoding, expectedLen), 0)
         << "\n"
-        << "Expected: " << hexDump(Slice(expected_encoding, expected_len))
-        << "\n"
+        << "Expected: " << hexDump(Slice(expectedEncoding, expectedLen)) << "\n"
         << "Got:      " << hexDump(Slice(buffer));
   }
 
   // Verify read
-  RleDecoder<T> decoder(buffer.data(), encoded_len, bit_width);
+  RleDecoder<T> decoder(buffer.data(), encodedLen, bitWidth);
   for (const auto& value : values) {
     T val = 0;
     bool result = decoder.get(&val);
@@ -217,7 +216,7 @@ void ValidateRle(
 
 TEST(Rle, SpecificSequences) {
   const int kTestLen = 1024;
-  uint8_t expected_buffer[kTestLen];
+  uint8_t expectedBuffer[kTestLen];
   vector<uint64_t> values;
 
   // Test 50 0' followed by 50 1's
@@ -229,13 +228,13 @@ TEST(Rle, SpecificSequences) {
     values[i] = 1;
   }
 
-  // expected_buffer valid for bit width <= 1 byte
-  expected_buffer[0] = (50 << 1);
-  expected_buffer[1] = 0;
-  expected_buffer[2] = (50 << 1);
-  expected_buffer[3] = 1;
+  // expectedBuffer valid for bit width <= 1 byte
+  expectedBuffer[0] = (50 << 1);
+  expectedBuffer[1] = 0;
+  expectedBuffer[2] = (50 << 1);
+  expectedBuffer[3] = 1;
   for (int width = 1; width <= 8; ++width) {
-    ValidateRle(values, width, expected_buffer, 4);
+    ValidateRle(values, width, expectedBuffer, 4);
   }
 
   for (int width = 9; width <= kMaxWidth; ++width) {
@@ -246,30 +245,30 @@ TEST(Rle, SpecificSequences) {
   for (int i = 0; i < 100; ++i) {
     values[i] = i % 2;
   }
-  int num_groups = BitUtil::ceil(100, 8);
-  expected_buffer[0] = (num_groups << 1) | 1;
+  int numGroups = BitUtil::ceil(100, 8);
+  expectedBuffer[0] = (numGroups << 1) | 1;
   for (int i = 0; i < 100 / 8; ++i) {
-    expected_buffer[i + 1] = BOOST_BINARY(1 0 1 0 1 0 1 0); // 0xaa
+    expectedBuffer[i + 1] = BOOST_BINARY(1 0 1 0 1 0 1 0); // 0xaa
   }
   // Values for the last 4 0 and 1's
-  expected_buffer[1 + 100 / 8] = BOOST_BINARY(0 0 0 0 1 0 1 0); // 0x0a
+  expectedBuffer[1 + 100 / 8] = BOOST_BINARY(0 0 0 0 1 0 1 0); // 0x0a
 
-  // num_groups and expected_buffer only valid for bit width = 1
-  ValidateRle(values, 1, expected_buffer, 1 + num_groups);
+  // numGroups and expectedBuffer only valid for bit width = 1
+  ValidateRle(values, 1, expectedBuffer, 1 + numGroups);
   for (int width = 2; width <= kMaxWidth; ++width) {
     ValidateRle(values, width, nullptr, 1 + BitUtil::ceil(width * 100, 8));
   }
 }
 
-// ValidateRle on 'num_vals' values with width 'bit_width'. If 'value' != -1,
+// ValidateRle on 'numVals' values with width 'bitWidth'. If 'value' != -1,
 // that value is used, otherwise alternating values are used.
-void TestRleValues(int bit_width, int num_vals, int value = -1) {
-  const uint64_t mod = bit_width == 64 ? 1ULL : 1ULL << bit_width;
+void TestRleValues(int bitWidth, int numVals, int value = -1) {
+  const uint64_t mod = bitWidth == 64 ? 1ULL : 1ULL << bitWidth;
   vector<uint64_t> values;
-  for (uint64_t v = 0; v < num_vals; ++v) {
-    values.push_back((value != -1) ? value : (bit_width == 64 ? v : (v % mod)));
+  for (uint64_t v = 0; v < numVals; ++v) {
+    values.push_back((value != -1) ? value : (bitWidth == 64 ? v : (v % mod)));
   }
-  ValidateRle(values, bit_width, nullptr, -1);
+  ValidateRle(values, bitWidth, nullptr, -1);
 }
 
 TEST(Rle, TestValues) {
@@ -318,8 +317,8 @@ TEST_F(BitRle, Flush) {
 // Test some random bool sequences.
 TEST_F(BitRle, RandomBools) {
   int iters = 0;
-  const int n_iters = AllowSlowTests() ? 1000 : 20;
-  while (iters < n_iters) {
+  const int nIters = AllowSlowTests() ? 1000 : 20;
+  while (iters < nIters) {
     srand(iters++);
     if (iters % 10000 == 0) {
       LOG(ERROR) << "Seed: " << iters;
@@ -327,11 +326,11 @@ TEST_F(BitRle, RandomBools) {
     vector<uint64_t> values;
     bool parity = 0;
     for (int i = 0; i < 1000; ++i) {
-      int group_size = rand() % 20 + 1; // NOLINT(*)
-      if (group_size > 16) {
-        group_size = 1;
+      int groupSize = rand() % 20 + 1; // NOLINT(*)
+      if (groupSize > 16) {
+        groupSize = 1;
       }
-      for (int i_2 = 0; i_2 < group_size; ++i_2) {
+      for (int i2 = 0; i2 < groupSize; ++i2) {
         values.push_back(parity);
       }
       parity = !parity;
@@ -343,22 +342,22 @@ TEST_F(BitRle, RandomBools) {
 // Test some random 64-bit sequences.
 TEST_F(BitRle, Random64Bit) {
   int iters = 0;
-  const int n_iters = AllowSlowTests() ? 1000 : 20;
-  while (iters < n_iters) {
+  const int nIters = AllowSlowTests() ? 1000 : 20;
+  while (iters < nIters) {
     srand(iters++);
     if (iters % 10000 == 0) {
       LOG(ERROR) << "Seed: " << iters;
     }
     vector<uint64_t> values;
     for (int i = 0; i < 1000; ++i) {
-      int group_size = rand() % 20 + 1; // NOLINT(*)
-      uint64_t cur_value =
+      int groupSize = rand() % 20 + 1; // NOLINT(*)
+      uint64_t curValue =
           (static_cast<uint64_t>(rand()) << 32) + static_cast<uint64_t>(rand());
-      if (group_size > 16) {
-        group_size = 1;
+      if (groupSize > 16) {
+        groupSize = 1;
       }
-      for (int i_2 = 0; i_2 < group_size; ++i_2) {
-        values.push_back(cur_value);
+      for (int i2 = 0; i2 < groupSize; ++i2) {
+        values.push_back(curValue);
       }
     }
     ValidateRle(values, 64, nullptr, -1);
@@ -369,10 +368,10 @@ TEST_F(BitRle, Random64Bit) {
 // e.g. 011000111100000
 TEST_F(BitRle, RepeatedPattern) {
   vector<bool> values;
-  const int min_run = 1;
-  const int max_run = 32;
+  const int minRun = 1;
+  const int maxRun = 32;
 
-  for (int i = min_run; i <= max_run; ++i) {
+  for (int i = minRun; i <= maxRun; ++i) {
     int v = i % 2;
     for (int j = 0; j < i; ++j) {
       values.push_back(v);
@@ -380,7 +379,7 @@ TEST_F(BitRle, RepeatedPattern) {
   }
 
   // And go back down again
-  for (int i = max_run; i >= min_run; --i) {
+  for (int i = maxRun; i >= minRun; --i) {
     int v = i % 2;
     for (int j = 0; j < i; ++j) {
       values.push_back(v);
@@ -391,7 +390,7 @@ TEST_F(BitRle, RepeatedPattern) {
 }
 
 TEST_F(TestRle, TestBulkPut) {
-  size_t run_length;
+  size_t runLength;
   bool val = false;
 
   faststring buffer(1);
@@ -403,24 +402,24 @@ TEST_F(TestRle, TestBulkPut) {
   encoder.flush();
 
   RleDecoder<bool> decoder(buffer.data(), encoder.len(), 1);
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
-  ASSERT_EQ(10, run_length);
+  ASSERT_EQ(10, runLength);
 
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_FALSE(val);
-  ASSERT_EQ(7, run_length);
+  ASSERT_EQ(7, runLength);
 
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
-  ASSERT_EQ(20, run_length);
+  ASSERT_EQ(20, runLength);
 
   ASSERT_EQ(0, decoder.getNextRun(&val, MathLimits<size_t>::kMax));
 }
 
 TEST_F(TestRle, TestGetNextRun) {
   // Repeat the test with different number of items
-  for (int num_items = 7; num_items < 200; num_items += 13) {
+  for (int numItems = 7; numItems < 200; numItems += 13) {
     // Test different block patterns
     //    1: 01010101 01010101
     //    2: 00110011 00110011
@@ -429,45 +428,45 @@ TEST_F(TestRle, TestGetNextRun) {
     for (int block = 1; block <= 20; ++block) {
       faststring buffer(1);
       RleEncoder<bool> encoder(&buffer, 1);
-      for (int j = 0; j < num_items; ++j) {
+      for (int j = 0; j < numItems; ++j) {
         encoder.put(!!(j & 1), block);
       }
       encoder.flush();
 
       RleDecoder<bool> decoder(buffer.data(), encoder.len(), 1);
-      size_t count = num_items * block;
-      for (int j = 0; j < num_items; ++j) {
-        size_t run_length;
+      size_t count = numItems * block;
+      for (int j = 0; j < numItems; ++j) {
+        size_t runLength;
         bool val = false;
         DCHECK_GT(count, 0);
-        run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
-        run_length = std::min(run_length, count);
+        runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+        runLength = std::min(runLength, count);
 
         ASSERT_EQ(!!(j & 1), val);
-        ASSERT_EQ(block, run_length);
-        count -= run_length;
+        ASSERT_EQ(block, runLength);
+        count -= runLength;
       }
       DCHECK_EQ(count, 0);
     }
   }
 }
 
-// Generate a random bit string which consists of 'num_runs' runs,
+// Generate a random bit string which consists of 'numRuns' runs,
 // each with a random length between 1 and 100. Returns the number
 // of values encoded (i.e the sum run length).
 static size_t
-GenerateRandomBitString(int num_runs, faststring* enc_buf, string* string_rep) {
-  RleEncoder<bool> enc(enc_buf, 1);
-  int num_bits = 0;
-  for (int i = 0; i < num_runs; i++) {
-    int run_length = random() % 100;
+GenerateRandomBitString(int numRuns, faststring* encBuf, string* stringRep) {
+  RleEncoder<bool> enc(encBuf, 1);
+  int numBits = 0;
+  for (int i = 0; i < numRuns; i++) {
+    int runLength = random() % 100;
     bool value = static_cast<bool>(i & 1);
-    enc.put(value, run_length);
-    string_rep->append(run_length, value ? '1' : '0');
-    num_bits += run_length;
+    enc.put(value, runLength);
+    stringRep->append(runLength, value ? '1' : '0');
+    numBits += runLength;
   }
   enc.flush();
-  return num_bits;
+  return numBits;
 }
 
 TEST_F(TestRle, TestRoundTripRandomSequencesWithRuns) {
@@ -480,22 +479,22 @@ TEST_F(TestRle, TestRoundTripRandomSequencesWithRuns) {
   // through the encode/decode sequence.
   for (int rep = 0; rep < 100; rep++) {
     faststring buf;
-    string string_rep;
-    int num_bits = GenerateRandomBitString(10, &buf, &string_rep);
+    string stringRep;
+    int numBits = GenerateRandomBitString(10, &buf, &stringRep);
     RleDecoder<bool> decoder(buf.data(), buf.size(), 1);
-    string roundtrip_str;
-    int rem_to_read = num_bits;
-    size_t run_len;
+    string roundtripStr;
+    int remToRead = numBits;
+    size_t runLen;
     bool val;
-    while (rem_to_read > 0 &&
-           (run_len = decoder.getNextRun(
-                &val, std::min(kMaxToReadAtOnce, rem_to_read))) != 0) {
-      ASSERT_LE(run_len, kMaxToReadAtOnce);
-      roundtrip_str.append(run_len, val ? '1' : '0');
-      rem_to_read -= run_len;
+    while (remToRead > 0 &&
+           (runLen = decoder.getNextRun(
+                &val, std::min(kMaxToReadAtOnce, remToRead))) != 0) {
+      ASSERT_LE(runLen, kMaxToReadAtOnce);
+      roundtripStr.append(runLen, val ? '1' : '0');
+      remToRead -= runLen;
     }
 
-    ASSERT_EQ(string_rep, roundtrip_str);
+    ASSERT_EQ(stringRep, roundtripStr);
   }
 }
 TEST_F(TestRle, TestSkip) {
@@ -525,32 +524,32 @@ TEST_F(TestRle, TestSkip) {
   encoder.flush();
 
   bool val = false;
-  size_t run_length;
+  size_t runLength;
   RleDecoder<bool> decoder(buffer.data(), encoder.len(), 1);
 
   // position before "A"
   ASSERT_EQ(3, decoder.skip(7));
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
-  ASSERT_EQ(1, run_length);
+  ASSERT_EQ(1, runLength);
 
   // position before "B"
   ASSERT_EQ(7, decoder.skip(14));
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_FALSE(val);
-  ASSERT_EQ(2, run_length);
+  ASSERT_EQ(2, runLength);
 
   // position before "C"
   ASSERT_EQ(18, decoder.skip(46));
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
-  ASSERT_EQ(10, run_length);
+  ASSERT_EQ(10, runLength);
 
   // position before "D"
   ASSERT_EQ(24, decoder.skip(49));
-  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
+  runLength = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_FALSE(val);
-  ASSERT_EQ(11, run_length);
+  ASSERT_EQ(11, runLength);
 
   encoder.flush();
 }
