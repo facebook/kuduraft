@@ -295,12 +295,12 @@ bool isAllZeros(const Slice& s);
 /// @code
 ///   typedef SliceMap<int>::type MySliceMap;
 ///
-///   MySliceMap my_map;
-///   my_map.insert(MySliceMap::value_type(a, 1));
-///   my_map.insert(MySliceMap::value_type(b, 2));
-///   my_map.insert(MySliceMap::value_type(c, 3));
+///   MySliceMap myMap;
+///   myMap.insert(MySliceMap::value_type(a, 1));
+///   myMap.insert(MySliceMap::value_type(b, 2));
+///   myMap.insert(MySliceMap::value_type(c, 3));
 ///
-///   for (const MySliceMap::value_type& pair : my_map) {
+///   for (const MySliceMap::value_type& pair : myMap) {
 ///     ...
 ///   }
 /// @endcode
