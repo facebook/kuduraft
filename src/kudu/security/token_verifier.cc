@@ -76,7 +76,7 @@ Status TokenVerifier::importKeys(const vector<TokenSigningPublicKeyPB>& keys) {
           "token-signing public key message must include an expiration time");
     }
     tsks.emplace_back(new TokenSigningPublicKey{pb});
-    RETURN_NOT_OK(tsks.back()->Init());
+    RETURN_NOT_OK(tsks.back()->init());
   }
 
   std::lock_guard l(lock_);
@@ -138,7 +138,7 @@ VerificationResult TokenVerifier::verifyTokenSignature(
     if (tsk->pb().expire_unix_epoch_seconds() < now) {
       return VerificationResult::ExpiredSigningKey;
     }
-    if (!tsk->VerifySignature(signedToken)) {
+    if (!tsk->verifySignature(signedToken)) {
       return VerificationResult::InvalidSignature;
     }
   }

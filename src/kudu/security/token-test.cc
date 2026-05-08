@@ -624,7 +624,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
       // This direct access is necessary because addKey() does not allow to add
       // an expired key.
       TokenSigningPublicKeyPB tskPublicPb;
-      tsk->ExportPublicKeyPB(&tskPublicPb);
+      tsk->exportPublicKeyPb(&tskPublicPb);
       ASSERT_OK(verifier.importKeys({tskPublicPb}));
       signer.tskDeque_.push_front(std::move(tsk));
     }

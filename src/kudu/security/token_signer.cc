@@ -106,7 +106,7 @@ Status TokenSigner::importKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
     // Need the public part of the key for the TokenVerifier.
     {
       TokenSigningPublicKeyPB publicKeyPb;
-      tsk->ExportPublicKeyPB(&publicKeyPb);
+      tsk->exportPublicKeyPb(&publicKeyPb);
       publicKeysPb.emplace_back(std::move(publicKeyPb));
     }
 
@@ -164,7 +164,7 @@ Status TokenSigner::signToken(SignedTokenPB* token) const {
     return Status::IllegalState("no token signing key");
   }
   const TokenSigningPrivateKey* key = tskDeque_.front().get();
-  RETURN_NOT_OK_PREPEND(key->Sign(token), "could not sign authn token");
+  RETURN_NOT_OK_PREPEND(key->sign(token), "could not sign authn token");
   return Status::OK();
 }
 
@@ -250,7 +250,7 @@ Status TokenSigner::addKey(unique_ptr<TokenSigningPrivateKey> tsk) {
   lastKeySeqNum_ = std::max(lastKeySeqNum_, keySeqNum);
   // Register the public part of the key in TokenVerifier first.
   TokenSigningPublicKeyPB publicKeyPb;
-  tsk->ExportPublicKeyPB(&publicKeyPb);
+  tsk->exportPublicKeyPb(&publicKeyPb);
   RETURN_NOT_OK(verifier_->importKeys({publicKeyPb}));
 
   tskDeque_.emplace_back(std::move(tsk));

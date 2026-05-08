@@ -39,7 +39,7 @@ TokenSigningPublicKey::TokenSigningPublicKey(TokenSigningPublicKeyPB pb)
 
 TokenSigningPublicKey::~TokenSigningPublicKey() {}
 
-Status TokenSigningPublicKey::Init() {
+Status TokenSigningPublicKey::init() {
   // This should be called only once.
   CHECK(!key_.GetRawData());
   if (!pb_.has_rsa_key_der()) {
@@ -49,7 +49,7 @@ Status TokenSigningPublicKey::Init() {
   return Status::OK();
 }
 
-bool TokenSigningPublicKey::VerifySignature(const SignedTokenPB& token) const {
+bool TokenSigningPublicKey::verifySignature(const SignedTokenPB& token) const {
   return key_
       .VerifySignature(
           DigestType::SHA256, token.token_data(), token.signature())
@@ -82,7 +82,7 @@ TokenSigningPrivateKey::TokenSigningPrivateKey(
 
 TokenSigningPrivateKey::~TokenSigningPrivateKey() {}
 
-Status TokenSigningPrivateKey::Sign(SignedTokenPB* token) const {
+Status TokenSigningPrivateKey::sign(SignedTokenPB* token) const {
   string signature;
   RETURN_NOT_OK(
       key_->MakeSignature(DigestType::SHA256, token->token_data(), &signature));
@@ -91,14 +91,14 @@ Status TokenSigningPrivateKey::Sign(SignedTokenPB* token) const {
   return Status::OK();
 }
 
-void TokenSigningPrivateKey::ExportPB(TokenSigningPrivateKeyPB* pb) const {
+void TokenSigningPrivateKey::exportPb(TokenSigningPrivateKeyPB* pb) const {
   pb->Clear();
   pb->set_key_seq_num(keySeqNum_);
   pb->set_rsa_key_der(privateKeyDer_);
   pb->set_expire_unix_epoch_seconds(expireTime_);
 }
 
-void TokenSigningPrivateKey::ExportPublicKeyPB(
+void TokenSigningPrivateKey::exportPublicKeyPb(
     TokenSigningPublicKeyPB* pb) const {
   pb->Clear();
   pb->set_key_seq_num(keySeqNum_);
