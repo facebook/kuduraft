@@ -519,7 +519,7 @@ Status ServerBase::StartMetricsLogging() {
   l->setMetricsLogInterval(
       MonoDelta::FromMilliseconds(options_.metricsLogIntervalMs));
   RETURN_NOT_OK(l->start());
-  diag_log_ = std::move(l);
+  diagLog_ = std::move(l);
   return Status::OK();
 }
 
@@ -578,8 +578,8 @@ void ServerBase::Shutdown() {
 
   // Next, shut down remaining server components.
   stop_background_threads_latch_.countDown();
-  if (diag_log_) {
-    diag_log_->stop();
+  if (diagLog_) {
+    diagLog_->stop();
   }
 
   if (excess_log_deleter_thread_) {
@@ -592,7 +592,7 @@ void ServerBase::UnregisterAllServices() {
 }
 
 void ServerBase::ServiceQueueOverflowed(rpc::ServicePool* service) {
-  if (!diag_log_) {
+  if (!diagLog_) {
     return;
   }
 

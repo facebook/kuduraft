@@ -87,30 +87,30 @@ class DiagnosticsLog::SymbolSet {
   }
 
   // Return true if the addr was added, false if it already existed.
-  bool Add(void* addr) {
+  bool add(void* addr) {
     // We can't add nullptr since that's the 'empty' key. However this
     // also will never have a real symbol, so we'll just pretend it's already
     // present.
     return addr && set_.insert(addr).second;
   }
 
-  void ResetIfLogRolled(int roll_count) {
-    if (roll_count_ != roll_count) {
-      roll_count_ = roll_count;
+  void resetIfLogRolled(int rollCount) {
+    if (rollCount_ != rollCount) {
+      rollCount_ = rollCount;
       set_.clear();
     }
   }
 
  private:
-  int roll_count_ = 0;
+  int rollCount_ = 0;
   google::dense_hash_set<void*> set_;
 };
 
-DiagnosticsLog::DiagnosticsLog(string log_dir, MetricRegistry* metric_registry)
-    : log_dir_(std::move(log_dir)),
-      metric_registry_(metric_registry),
+DiagnosticsLog::DiagnosticsLog(string logDir, MetricRegistry* metricRegistry)
+    : logDir_(std::move(logDir)),
+      metricRegistry_(metricRegistry),
       wake_(&lock_),
-      metrics_log_interval_(MonoDelta::FromSeconds(60)),
+      metricsLogInterval_(MonoDelta::FromSeconds(60)),
       symbols_(new SymbolSet()) {}
 
 DiagnosticsLog::~DiagnosticsLog() {
@@ -119,12 +119,12 @@ DiagnosticsLog::~DiagnosticsLog() {
 
 void DiagnosticsLog::setMetricsLogInterval(MonoDelta interval) {
   MutexLock l(lock_);
-  metrics_log_interval_ = interval;
+  metricsLogInterval_ = interval;
 }
 
 Status DiagnosticsLog::start() {
   unique_ptr<RollingLog> l(
-      new RollingLog(Env::Default(), log_dir_, "diagnostics"));
+      new RollingLog(Env::Default(), logDir_, "diagnostics"));
   // Fewer and smaller raft metric files.
   l->setMaxNumSegments(2); // latest + 2 prev logs
 
@@ -184,7 +184,7 @@ MonoTime DiagnosticsLog::computeNextWakeup(
       }
 
     case WakeupType::Metrics:
-      return MonoTime::Now() + metrics_log_interval_;
+      return MonoTime::Now() + metricsLogInterval_;
   }
   __builtin_unreachable();
 }
@@ -198,13 +198,13 @@ void DiagnosticsLog::runThread() {
   wakeups.emplace(computeNextWakeup(WakeupType::Metrics), WakeupType::Metrics);
 
   while (!stop_) {
-    MonoTime next_log = wakeups.top().first;
-    wake_.waitUntil(next_log);
+    MonoTime nextLog = wakeups.top().first;
+    wake_.waitUntil(nextLog);
 
     string reason;
     WakeupType what;
 
-    if (MonoTime::Now() >= next_log) {
+    if (MonoTime::Now() >= nextLog) {
       what = wakeups.top().second;
       reason = "periodic";
       wakeups.pop();
@@ -248,10 +248,10 @@ Status DiagnosticsLog::logMetrics() {
   buf << "I" << FormatTimestampForLog(now) << " metrics " << now << " ";
 
   // Collect the metrics JSON string.
-  int64_t this_log_epoch = Metric::currentEpoch();
+  int64_t thisLogEpoch = Metric::currentEpoch();
   Metric::incrementEpoch();
   JsonWriter writer(&buf, JsonWriter::kCompact);
-  RETURN_NOT_OK(metric_registry_->writeAsJson(&writer, {"*"}, opts));
+  RETURN_NOT_OK(metricRegistry_->writeAsJson(&writer, {"*"}, opts));
   buf << "\n";
 
   RETURN_NOT_OK(log_->append(buf.str()));
@@ -261,7 +261,7 @@ Status DiagnosticsLog::logMetrics() {
   //
   // NOTE: we only bump this in the successful log case so that if we failed to
   // write above, we wouldn't skip any changes.
-  metrics_epoch_ = this_log_epoch + 1;
+  metricsEpoch_ = thisLogEpoch + 1;
   return Status::OK();
 }
 

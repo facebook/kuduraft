@@ -40,7 +40,7 @@ namespace server {
 
 class DiagnosticsLog {
  public:
-  DiagnosticsLog(std::string log_dir, MetricRegistry* metric_registry);
+  DiagnosticsLog(std::string logDir, MetricRegistry* metricRegistry);
   ~DiagnosticsLog();
 
   void setMetricsLogInterval(MonoDelta interval);
@@ -58,8 +58,8 @@ class DiagnosticsLog {
 
   MonoTime computeNextWakeup(DiagnosticsLog::WakeupType type) const;
 
-  const std::string log_dir_;
-  const MetricRegistry* metric_registry_;
+  const std::string logDir_;
+  const MetricRegistry* metricRegistry_;
 
   std::shared_ptr<Thread> thread_;
   std::unique_ptr<RollingLog> log_;
@@ -68,9 +68,9 @@ class DiagnosticsLog {
   ConditionVariable wake_;
   bool stop_ = false;
 
-  MonoDelta metrics_log_interval_;
+  MonoDelta metricsLogInterval_;
 
-  int64_t metrics_epoch_ = 0;
+  int64_t metricsEpoch_ = 0;
 
   // Out-of-line this internal data to keep the header smaller.
   std::unique_ptr<SymbolSet> symbols_;

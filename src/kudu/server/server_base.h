@@ -210,7 +210,7 @@ class ServerBase {
 
   ServerBaseOptions options_;
 
-  std::unique_ptr<DiagnosticsLog> diag_log_;
+  std::unique_ptr<DiagnosticsLog> diagLog_;
   std::shared_ptr<Thread> excess_log_deleter_thread_;
   CountDownLatch stop_background_threads_latch_;
 
