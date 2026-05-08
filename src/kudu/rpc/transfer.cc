@@ -51,13 +51,13 @@ DEFINE_int64(
 TAG_FLAG(rpc_long_message_size, advanced);
 TAG_FLAG(rpc_long_message_size, runtime);
 
-static bool validateMaxMessageSize(const char* flagname, int64_t value) {
+static bool validateMaxMessageSize(const char* flagName, int64_t value) {
   if (value < 1 * 1024 * 1024) {
-    LOG(ERROR) << flagname << " must be at least 1MB.";
+    LOG(ERROR) << flagName << " must be at least 1MB.";
     return false;
   }
   if (value > std::numeric_limits<int32_t>::max()) {
-    LOG(ERROR) << flagname << " must be less than "
+    LOG(ERROR) << flagName << " must be less than "
                << std::numeric_limits<int32_t>::max() << " bytes.";
   }
 
