@@ -27,15 +27,15 @@
 // Older style trace macros with explicit id and extra data
 // Only these macros result in publishing data to ETW as currently implemented.
 #define TRACE_EVENT_BEGIN_ETW(name, id, extra) \
-  base::debug::TraceLog::AddTraceEventEtw(     \
+  base::debug::TraceLog::addTraceEventEtw(     \
       TRACE_EVENT_PHASE_BEGIN, name, reinterpret_cast<const void*>(id), extra)
 
 #define TRACE_EVENT_END_ETW(name, id, extra) \
-  base::debug::TraceLog::AddTraceEventEtw(   \
+  base::debug::TraceLog::addTraceEventEtw(   \
       TRACE_EVENT_PHASE_END, name, reinterpret_cast<const void*>(id), extra)
 
 #define TRACE_EVENT_INSTANT_ETW(name, id, extra) \
-  base::debug::TraceLog::AddTraceEventEtw(       \
+  base::debug::TraceLog::addTraceEventEtw(       \
       TRACE_EVENT_PHASE_INSTANT,                 \
       name,                                      \
       reinterpret_cast<const void*>(id),         \
@@ -277,7 +277,7 @@ class TraceResultBuffer {
 
   static std::string doFlush(bool leave_intact);
 
-  // Callback for TraceLog::Flush
+  // Callback for TraceLog::flush
   void collect(
       const std::shared_ptr<RefCountedString>& s,
       bool has_more_events);
@@ -399,7 +399,7 @@ class BASE_EXPORT TraceLog {
     ECHO_TO_CONSOLE = 1 << 3,
   };
 
-  // The pointer returned from GetCategoryGroupEnabledInternal() points to a
+  // The pointer returned from getCategoryGroupEnabledInternal() points to a
   // value with zero or more of the following bits. Used in this class only.
   // The TRACE_EVENT macros should only use the value as a bool.
   // These values must be in sync with macro values in TraceEvent.h in Blink.
@@ -408,11 +408,11 @@ class BASE_EXPORT TraceLog {
     ENABLED_FOR_RECORDING = 1 << 0,
     // Category group enabled for the monitoring mode.
     ENABLED_FOR_MONITORING = 1 << 1,
-    // Category group enabled by SetEventCallbackEnabled().
+    // Category group enabled by setEventCallbackEnabled().
     ENABLED_FOR_EVENT_CALLBACK = 1 << 2,
   };
 
-  static TraceLog* GetInstance();
+  static TraceLog* getInstance();
 
   // Get set of known category groups. This can change as new code paths are
   // reached. The known category groups are inserted into |category_groups|.
@@ -430,12 +430,12 @@ class BASE_EXPORT TraceLog {
   // will be traced. If tracing has already been enabled, |category_filter| will
   // be merged into the current category filter.
   void
-  SetEnabled(const CategoryFilter& category_filter, Mode mode, Options options);
+  setEnabled(const CategoryFilter& category_filter, Mode mode, Options options);
 
   // Disables normal tracing for all categories.
-  void SetDisabled();
+  void setDisabled();
 
-  bool IsEnabled() {
+  bool isEnabled() {
     return mode_ != DISABLED;
   }
 
@@ -444,7 +444,7 @@ class BASE_EXPORT TraceLog {
   // recorded a trace. By watching for this number to increment, you can
   // passively discover when a new trace has begun. This is then used to
   // implement the TRACE_EVENT_IS_NEW_TRACE() primitive.
-  int GetNumTracesRecorded();
+  int getNumTracesRecorded();
 
 #if defined(OS_ANDROID)
   void StartATrace();
@@ -465,11 +465,11 @@ class BASE_EXPORT TraceLog {
     EnabledStateObserver& operator=(EnabledStateObserver&&) = delete;
 
     // Called just after the tracing system becomes enabled, outside of the
-    // |lock_|. TraceLog::IsEnabled() is true at this point.
+    // |lock_|. TraceLog::isEnabled() is true at this point.
     virtual void onTraceLogEnabled() = 0;
 
     // Called just after the tracing system disables, outside of the |lock_|.
-    // TraceLog::IsEnabled() is false at this point.
+    // TraceLog::isEnabled() is false at this point.
     virtual void onTraceLogDisabled() = 0;
   };
   void addEnabledStateObserver(EnabledStateObserver* listener);
@@ -482,8 +482,8 @@ class BASE_EXPORT TraceLog {
   // Not using kudu::Callback because of its limited by 7 parameters.
   // Also, using primitive type allows directly passing callback from WebCore.
   // WARNING: It is possible for the previously set callback to be called
-  // after a call to SetEventCallbackEnabled() that replaces or a call to
-  // SetEventCallbackDisabled() that disables the callback.
+  // after a call to setEventCallbackEnabled() that replaces or a call to
+  // setEventCallbackDisabled() that disables the callback.
   // This callback may be invoked on any thread.
   // For TRACE_EVENT_PHASE_COMPLETE events, the client will still receive pairs
   // of TRACE_EVENT_PHASE_BEGIN and TRACE_EVENT_PHASE_END events to keep the
@@ -501,10 +501,10 @@ class BASE_EXPORT TraceLog {
       unsigned char flags);
 
   // Enable tracing for EventCallback.
-  void SetEventCallbackEnabled(
+  void setEventCallbackEnabled(
       const CategoryFilter& category_filter,
       EventCallback cb);
-  void SetEventCallbackDisabled();
+  void setEventCallbackDisabled();
 
   // Flush all collected events to the given output callback. The callback will
   // be called one or more times synchronously from
@@ -518,20 +518,20 @@ class BASE_EXPORT TraceLog {
   using OutputCallback = kudu::Callback<void(
       const std::shared_ptr<kudu::RefCountedString>&,
       bool has_more_events)>;
-  void Flush(const OutputCallback& cb);
-  void FlushButLeaveBufferIntact(const OutputCallback& flush_output_callback);
+  void flush(const OutputCallback& cb);
+  void flushButLeaveBufferIntact(const OutputCallback& flush_output_callback);
 
   // Called by TRACE_EVENT* macros, don't call this directly.
   // The name parameter is a category group for example:
   // TRACE_EVENT0("renderer,webkit", "WebViewImpl::HandleInputEvent")
-  static const unsigned char* GetCategoryGroupEnabled(const char* name);
-  static const char* GetCategoryGroupName(
+  static const unsigned char* getCategoryGroupEnabled(const char* name);
+  static const char* getCategoryGroupName(
       const unsigned char* category_group_enabled);
 
   // Called by TRACE_EVENT* macros, don't call this directly.
   // If |copy| is set, |name|, |arg_name1| and |arg_name2| will be deep copied
   // into the event; see "Memory scoping note" and TRACE_EVENT_COPY_XXX above.
-  TraceEventHandle AddTraceEvent(
+  TraceEventHandle addTraceEvent(
       char phase,
       const unsigned char* category_group_enabled,
       const char* name,
@@ -542,7 +542,7 @@ class BASE_EXPORT TraceLog {
       const uint64_t* arg_values,
       const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
-  TraceEventHandle AddTraceEventWithThreadIdAndTimestamp(
+  TraceEventHandle addTraceEventWithThreadIdAndTimestamp(
       char phase,
       const unsigned char* category_group_enabled,
       const char* name,
@@ -555,41 +555,41 @@ class BASE_EXPORT TraceLog {
       const uint64_t* arg_values,
       const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
-  static void AddTraceEventEtw(
+  static void addTraceEventEtw(
       char phase,
       const char* category_group,
       const void* id,
       const char* extra);
-  static void AddTraceEventEtw(
+  static void addTraceEventEtw(
       char phase,
       const char* category_group,
       const void* id,
       const std::string& extra);
 
-  void UpdateTraceEventDuration(
+  void updateTraceEventDuration(
       const unsigned char* category_group_enabled,
       const char* name,
       TraceEventHandle handle);
 
   // For every matching event, the callback will be called.
   using WatchEventCallback = kudu::Callback<void()>;
-  void SetWatchEvent(
+  void setWatchEvent(
       const std::string& category_name,
       const std::string& event_name,
       const WatchEventCallback& callback);
   // Cancel the watch event. If tracing is enabled, this may race with the
   // watch event notification firing.
-  void CancelWatchEvent();
+  void cancelWatchEvent();
 
   int processId() const {
     return processId_;
   }
 
   // Allow tests to inspect TraceEvents.
-  size_t GetEventsSize() const {
+  size_t getEventsSize() const {
     return loggedEvents_->size();
   }
-  TraceEvent* GetEventByHandle(TraceEventHandle handle);
+  TraceEvent* getEventByHandle(TraceEventHandle handle);
 
   void setProcessId(int process_id);
 
@@ -609,13 +609,13 @@ class BASE_EXPORT TraceLog {
   // Thread sort indices, if set, override the order of a thread will appear
   // within its process in the trace viewer. Threads are sorted first on their
   // sort index, ascending, then by their name, and then tid.
-  void SetThreadSortIndex(int64_t tid, int sort_index);
+  void setThreadSortIndex(int64_t tid, int sort_index);
 
   // Allow setting an offset between the current MicrosecondsInt64 time and the
   // time that should be reported.
-  void SetTimeOffset(kudu::MicrosecondsInt64 offset);
+  void setTimeOffset(kudu::MicrosecondsInt64 offset);
 
-  size_t GetObserverCountForTest() const;
+  size_t getObserverCountForTest() const;
 
  private:
   FRIEND_TEST(TraceEventTestFixture, TraceBufferRingBufferGetReturnChunk);
@@ -631,12 +631,12 @@ class BASE_EXPORT TraceLog {
   // Enable the category group in the enabled mode if category_filter_ matches
   // the category group, or event_callback_ is not null and
   // event_callback_category_filter_ matches the category group.
-  void UpdateCategoryGroupEnabledFlags();
-  void UpdateCategoryGroupEnabledFlag(int category_index);
+  void updateCategoryGroupEnabledFlags();
+  void updateCategoryGroupEnabledFlag(int category_index);
 
   // Configure synthetic delays based on the values set in the current
   // category filter.
-  void UpdateSyntheticDelaysFromCategoryFilter();
+  void updateSyntheticDelaysFromCategoryFilter();
 
   struct PerThreadInfo;
   class OptionalAutoLock;
@@ -646,59 +646,59 @@ class BASE_EXPORT TraceLog {
   ~TraceLog() = default;
   TraceLog(TraceLog&&) = delete;
   TraceLog& operator=(TraceLog&&) = delete;
-  const unsigned char* GetCategoryGroupEnabledInternal(const char* name);
-  void AddMetadataEventsWhileLocked();
+  const unsigned char* getCategoryGroupEnabledInternal(const char* name);
+  void addMetadataEventsWhileLocked();
 
   TraceBuffer* traceBuffer() const {
     return loggedEvents_.get();
   }
-  TraceBuffer* CreateTraceBuffer();
+  TraceBuffer* createTraceBuffer();
 
-  std::string EventToConsoleMessage(
+  std::string eventToConsoleMessage(
       unsigned char phase,
       const kudu::MicrosecondsInt64& timestamp,
       TraceEvent* trace_event);
 
-  TraceEvent* AddEventToThreadSharedChunkWhileLocked(
+  TraceEvent* addEventToThreadSharedChunkWhileLocked(
       TraceEventHandle* handle,
       bool check_buffer_is_full);
-  void CheckIfBufferIsFullWhileLocked();
-  void SetDisabledWhileLocked();
+  void checkIfBufferIsFullWhileLocked();
+  void setDisabledWhileLocked();
 
-  TraceEvent* GetEventByHandleInternal(
+  TraceEvent* getEventByHandleInternal(
       TraceEventHandle handle,
       OptionalAutoLock* lock);
 
-  void ConvertTraceEventsToTraceFormat(
+  void convertTraceEventsToTraceFormat(
       std::unique_ptr<TraceBuffer> logged_events,
       const OutputCallback& flush_output_callback);
-  void FinishFlush(int generation, const OutputCallback& flush_output_callback);
+  void finishFlush(int generation, const OutputCallback& flush_output_callback);
 
   // Called when a thread which has registered trace events is about to exit.
-  void ThreadExiting();
+  void threadExiting();
 
   // The static callback registered as a thread destructor.
-  static void ThreadExitingCB(void* arg);
+  static void threadExitingCb(void* arg);
 
   int generation() const {
     return static_cast<int>(base::subtle::NoBarrier_Load(&generation_));
   }
-  bool CheckGeneration(int generation) const {
+  bool checkGeneration(int generation) const {
     return generation == this->generation();
   }
-  void UseNextTraceBuffer();
+  void useNextTraceBuffer();
 
-  kudu::MicrosecondsInt64 OffsetNow() const {
-    return OffsetTimestamp(getMonoTimeMicros());
+  kudu::MicrosecondsInt64 offsetNow() const {
+    return offsetTimestamp(getMonoTimeMicros());
   }
-  kudu::MicrosecondsInt64 OffsetTimestamp(
+  kudu::MicrosecondsInt64 offsetTimestamp(
       const kudu::MicrosecondsInt64& timestamp) const {
     return timestamp - time_offset_;
   }
 
   // Create a new PerThreadInfo object for the current thread,
   // and register it in the active_threads_ list.
-  PerThreadInfo* SetupThreadLocalBuffer();
+  PerThreadInfo* setupThreadLocalBuffer();
 
   // This lock protects TraceLog member accesses (except for members protected
   // by threadInfoLock_) from arbitrary threads.

@@ -1094,13 +1094,13 @@
 // const unsigned char*
 //     TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(const char* category_group)
 #define TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED \
-  kudu::debug::TraceLog::GetCategoryGroupEnabled
+  kudu::debug::TraceLog::getCategoryGroupEnabled
 
 // Get the number of times traces have been recorded. This is used to implement
 // the TRACE_EVENT_IS_NEW_TRACE facility.
 // unsigned int TRACE_EVENT_API_GET_NUM_TRACES_RECORDED()
 #define TRACE_EVENT_API_GET_NUM_TRACES_RECORDED \
-  kudu::debug::TraceLog::GetInstance()->GetNumTracesRecorded
+  kudu::debug::TraceLog::getInstance()->getNumTracesRecorded
 
 // Add a trace event to the platform tracing system.
 // kudu::debug::TraceEventHandle TRACE_EVENT_API_ADD_TRACE_EVENT(
@@ -1114,7 +1114,7 @@
 //                    const uint64_t* arg_values,
 //                    unsigned char flags)
 #define TRACE_EVENT_API_ADD_TRACE_EVENT \
-  kudu::debug::TraceLog::GetInstance()->AddTraceEvent
+  kudu::debug::TraceLog::getInstance()->addTraceEvent
 
 // Add a trace event to the platform tracing system.
 // kudu::debug::TraceEventHandle TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_TIMESTAMP(
@@ -1130,7 +1130,7 @@
 //                    const uint64_t* arg_values,
 //                    unsigned char flags)
 #define TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP \
-  kudu::debug::TraceLog::GetInstance()->AddTraceEventWithThreadIdAndTimestamp
+  kudu::debug::TraceLog::getInstance()->addTraceEventWithThreadIdAndTimestamp
 
 // Set the duration field of a COMPLETE trace event.
 // void TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
@@ -1138,7 +1138,7 @@
 //     const char* name,
 //     kudu::debug::TraceEventHandle id)
 #define TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION \
-  kudu::debug::TraceLog::GetInstance()->UpdateTraceEventDuration
+  kudu::debug::TraceLog::getInstance()->updateTraceEventDuration
 
 // Defines atomic operations used internally by the tracing system.
 #define TRACE_EVENT_API_ATOMIC_WORD AtomicWord
