@@ -674,7 +674,7 @@ void Histogram::incrementBy(int64_t value, int64_t amount) {
 Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
   HistogramSnapshotPB snapshot;
-  RETURN_NOT_OK(getHistogramSnapshotPB(&snapshot, opts));
+  RETURN_NOT_OK(getHistogramSnapshotPb(&snapshot, opts));
   writer->protobuf(snapshot);
   if (opts.refreshHistogramMetrics) {
     histogram_->ResetHistogram();
@@ -682,7 +682,7 @@ Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
   return Status::OK();
 }
 
-Status Histogram::getHistogramSnapshotPB(
+Status Histogram::getHistogramSnapshotPb(
     HistogramSnapshotPB* snapshotPb,
     const MetricJsonOptions& opts) const {
   snapshotPb->set_name(prototype_->name());

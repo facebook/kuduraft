@@ -1028,7 +1028,7 @@ class FunctionGauge : public Gauge,
   // Gauge, use a normal Gauge instead of a FunctionGauge.
   void detachToConstant(T v) {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    function_ = Bind(&FunctionGauge::Return, v);
+    function_ = Bind(&FunctionGauge::returnValue, v);
   }
 
   // Get the current value of the gauge, and detach so that it continues to
@@ -1080,7 +1080,7 @@ class FunctionGauge : public Gauge,
     mEpoch_ = std::numeric_limits<decltype(mEpoch_.load())>::max();
   }
 
-  static T Return(T v) {
+  static T returnValue(T v) {
     return v;
   }
 
@@ -1179,7 +1179,7 @@ class Histogram : public Metric {
 
   // Returns a snapshot of this histogram including the bucketed values and
   // counts.
-  Status getHistogramSnapshotPB(
+  Status getHistogramSnapshotPb(
       HistogramSnapshotPB* snapshotPb,
       const MetricJsonOptions& opts) const;
 
