@@ -27,7 +27,7 @@ namespace debug {
 // so due to the dlopen, issue turning this whole functionality off.
 // We can revisit this soon. But reimplementing dlopen does not seem
 // like something that will work when kuduraft is a library
-bool SafeToUnwindStack() {
+bool safeToUnwindStack() {
   return false;
 }
 

@@ -540,7 +540,7 @@ string getLogFormatStackTraceHex() {
 void CouldNotCollectStackTraceBecauseInsideLibDl() {}
 
 void StackTrace::collect(int skipFrames) {
-  if (!debug::SafeToUnwindStack()) {
+  if (!debug::safeToUnwindStack()) {
     // Build a fake stack so that the user sees an appropriate message upon
     // symbolizing rather than seeing an empty stack.
     uintptr_t f_ptr = reinterpret_cast<uintptr_t>(

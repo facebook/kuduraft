@@ -34,8 +34,8 @@
 
 #include "kudu/gutil/port.h"
 
-#define CALL_ORIG(func_name, ...) \
-  ((decltype(&func_name))g_orig_##func_name)(__VA_ARGS__)
+#define CALL_ORIG(orig_ptr, func_name, ...) \
+  ((decltype(&func_name))orig_ptr)(__VA_ARGS__)
 
 // Don't hook dl_iterate_phdr in TSAN builds since TSAN already instruments this
 // function and blocks signals while calling it. And skip it for macOS; it
@@ -44,34 +44,34 @@
 #define HOOK_DL_ITERATE_PHDR 1
 #endif
 
-typedef int (*dl_iterate_phdr_cbtype)(struct dl_phdr_info*, size_t, void*);
+typedef int (*DlIteratePhdrCbtype)(struct dl_phdr_info*, size_t, void*);
 
 namespace {
 
 // Whether InitializeIfNecessary() has been called.
-bool g_initted;
+bool gInitted;
 
 // The original versions of our wrapped functions.
-void* g_orig_dlopen;
-void* g_orig_dlclose;
+void* gOrigDlopen;
+void* gOrigDlclose;
 #ifdef HOOK_DL_ITERATE_PHDR
-void* g_orig_dl_iterate_phdr;
+void* gOrigDlIteratePhdr;
 #endif
 
 // The depth of calls into libdl.
-__thread int g_unsafeness_depth;
+__thread int gUnsafenessDepth;
 
 // Scoped helper to track the recursion depth of calls into libdl
 struct ScopedBumpDepth {
   ScopedBumpDepth() {
-    g_unsafeness_depth++;
+    gUnsafenessDepth++;
   }
   ~ScopedBumpDepth() {
-    g_unsafeness_depth--;
+    gUnsafenessDepth--;
   }
 };
 
-void* dlsym_or_die(const char* sym) {
+void* dlsymOrDie(const char* sym) {
   dlerror();
   void* ret = dlsym(RTLD_NEXT, sym);
   char* error = dlerror();
@@ -94,14 +94,14 @@ void* dlsym_or_die(const char* sym) {
 // its
 //    initialization.
 // 2) OpenSSL in FIPS mode calls dlopen() within its constructor.
-__attribute__((constructor)) void InitIfNecessary() {
+__attribute__((constructor)) void initIfNecessary() {
   // Dynamic library initialization is always single-threaded, so there's no
   // need for any synchronization here.
-  if (g_initted)
+  if (gInitted)
     return;
 
-  g_orig_dlopen = dlsym_or_die("dlopen");
-  g_orig_dlclose = dlsym_or_die("dlclose");
+  gOrigDlopen = dlsymOrDie("dlopen");
+  gOrigDlclose = dlsymOrDie("dlclose");
 #ifdef HOOK_DL_ITERATE_PHDR
   // Failing to hook dl_iterate_phdr is non-fatal.
   //
@@ -115,7 +115,7 @@ __attribute__((constructor)) void InitIfNecessary() {
   // All Ubuntu releases since Natty[1] behave in this way, except that many
   // of them are also vulnerable to a glibc bug[2] that'll cause such a
   // failure to go unreported by dlerror(). In newer releases, the failure
-  // is reported and dlsym_or_die() crashes the process.
+  // is reported and dlsymOrDie() crashes the process.
   //
   // Given that the subset of affected binaries is small, and given that
   // dynamic linkage isn't used in production anyway, we'll just treat the
@@ -125,9 +125,9 @@ __attribute__((constructor)) void InitIfNecessary() {
   //
   // 1. https://wiki.ubuntu.com/NattyNarwhal/ToolchainTransition
   // 2. https://sourceware.org/bugzilla/show_bug.cgi?id=19509
-  g_orig_dl_iterate_phdr = dlsym(RTLD_NEXT, "dl_iterate_phdr");
+  gOrigDlIteratePhdr = dlsym(RTLD_NEXT, "dl_iterate_phdr");
 #endif
-  g_initted = true;
+  gInitted = true;
 }
 
 } // anonymous namespace
@@ -135,8 +135,8 @@ __attribute__((constructor)) void InitIfNecessary() {
 namespace kudu {
 namespace debug {
 
-bool SafeToUnwindStack() {
-  return g_unsafeness_depth == 0;
+bool safeToUnwindStack() {
+  return gUnsafenessDepth == 0;
 }
 
 } // namespace debug
@@ -145,22 +145,22 @@ bool SafeToUnwindStack() {
 extern "C" {
 
 void* dlopen(const char* filename, int flag) { // NOLINT
-  InitIfNecessary();
+  initIfNecessary();
   ScopedBumpDepth d;
-  return CALL_ORIG(dlopen, filename, flag);
+  return CALL_ORIG(gOrigDlopen, dlopen, filename, flag);
 }
 
 int dlclose(void* handle) { // NOLINT
-  InitIfNecessary();
+  initIfNecessary();
   ScopedBumpDepth d;
-  return CALL_ORIG(dlclose, handle);
+  return CALL_ORIG(gOrigDlclose, dlclose, handle);
 }
 
 #ifdef HOOK_DL_ITERATE_PHDR
-int dl_iterate_phdr(dl_iterate_phdr_cbtype callback, void* data) { // NOLINT
-  InitIfNecessary();
+int dl_iterate_phdr(DlIteratePhdrCbtype callback, void* data) { // NOLINT
+  initIfNecessary();
   ScopedBumpDepth d;
-  return CALL_ORIG(dl_iterate_phdr, callback, data);
+  return CALL_ORIG(gOrigDlIteratePhdr, dl_iterate_phdr, callback, data);
 }
 #endif
 }
