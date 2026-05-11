@@ -366,17 +366,17 @@ Status ConsensusMetadata::flush(FlushMode flush_mode) {
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
       WARNING, 500, LogPrefix(), "flushing consensus metadata");
 
-  flush_count_for_tests_++;
+  flushCountForTests_++;
   // Sanity test to ensure we never write out a bad configuration.
   RETURN_NOT_OK_PREPEND(
       verifyRaftConfig(pb_.committed_config()),
       "Invalid config in ConsensusMetadata, cannot flush to disk");
 
   // Create directories if needed.
-  string dir = fs_manager_->GetConsensusMetadataDir();
+  string dir = fsManager_->GetConsensusMetadataDir();
   bool created_dir = false;
   RETURN_NOT_OK_PREPEND(
-      env_util::createDirIfMissing(fs_manager_->env(), dir, &created_dir),
+      env_util::createDirIfMissing(fsManager_->env(), dir, &created_dir),
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(created_dir)) {
@@ -386,17 +386,17 @@ Status ConsensusMetadata::flush(FlushMode flush_mode) {
         "Unable to fsync consensus parent dir " + parent_dir);
   }
 
-  string meta_file_path = fs_manager_->GetConsensusMetadataPath(tablet_id_);
+  string meta_file_path = fsManager_->GetConsensusMetadataPath(tabletId_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
-          fs_manager_->env(),
+          fsManager_->env(),
           meta_file_path,
           pb_,
           flush_mode == kOverwrite ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
           pb_util::SYNC),
       fmt::format(
           "Unable to write consensus meta file for tablet {} to path {}",
-          tablet_id_,
+          tabletId_,
           meta_file_path));
   RETURN_NOT_OK(updateOnDiskSize());
   return Status::OK();
@@ -406,12 +406,12 @@ ConsensusMetadata::ConsensusMetadata(
     FsManager* fs_manager,
     std::string tablet_id,
     std::string peer_uuid)
-    : fs_manager_(CHECK_NOTNULL(fs_manager)),
-      tablet_id_(std::move(tablet_id)),
-      peer_uuid_(std::move(peer_uuid)),
+    : fsManager_(CHECK_NOTNULL(fs_manager)),
+      tabletId_(std::move(tablet_id)),
+      peerUuid_(std::move(peer_uuid)),
       hasPendingConfig_(false),
-      flush_count_for_tests_(0),
-      on_disk_size_(0) {
+      flushCountForTests_(0),
+      onDiskSize_(0) {
   // This is not really required as default values but specifying explicitly
   // since correctness is dependent on it.
   pb_.mutable_last_known_leader()->set_uuid("");
@@ -419,7 +419,7 @@ ConsensusMetadata::ConsensusMetadata(
   pb_.set_last_pruned_term(-1);
 }
 
-Status ConsensusMetadata::Create(
+Status ConsensusMetadata::create(
     FsManager* fs_manager,
     const string& tablet_id,
     const std::string& peer_uuid,
@@ -433,7 +433,7 @@ Status ConsensusMetadata::Create(
   cmeta->setCurrentTerm(current_term);
 
   if (create_mode == ConsensusMetadataCreateMode::FlushOnCreate) {
-    RETURN_NOT_OK(cmeta->flush(kNoOverwrite)); // Create() should not clobber.
+    RETURN_NOT_OK(cmeta->flush(kNoOverwrite)); // create() should not clobber.
   } else {
     // Sanity check: ensure that there is no cmeta file currently on disk.
     const string& path = fs_manager->GetConsensusMetadataPath(tablet_id);
@@ -448,7 +448,7 @@ Status ConsensusMetadata::Create(
   return Status::OK();
 }
 
-Status ConsensusMetadata::Load(
+Status ConsensusMetadata::load(
     FsManager* fs_manager,
     const std::string& tablet_id,
     const std::string& peer_uuid,
@@ -470,7 +470,7 @@ Status ConsensusMetadata::Load(
   return Status::OK();
 }
 
-Status ConsensusMetadata::DeleteOnDiskData(
+Status ConsensusMetadata::deleteOnDiskData(
     FsManager* fs_manager,
     const string& tablet_id) {
   string cmeta_path = fs_manager->GetConsensusMetadataPath(tablet_id);
@@ -483,12 +483,12 @@ Status ConsensusMetadata::DeleteOnDiskData(
 
 std::string ConsensusMetadata::LogPrefix() const {
   // No need to lock to read const members.
-  return fmt::format("T {} P {}: ", tablet_id_, peer_uuid_);
+  return fmt::format("T {} P {}: ", tabletId_, peerUuid_);
 }
 
 void ConsensusMetadata::updateActiveRole() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  activeRole_ = getConsensusRole(peer_uuid_, leaderUuid_, activeConfig());
+  activeRole_ = getConsensusRole(peerUuid_, leaderUuid_, activeConfig());
   VLOG_WITH_PREFIX(1) << "Updating active role to "
                       << RaftPeerPB::Role_Name(activeRole_)
                       << ". Consensus state: "
@@ -496,10 +496,10 @@ void ConsensusMetadata::updateActiveRole() {
 }
 
 Status ConsensusMetadata::updateOnDiskSize() {
-  string path = fs_manager_->GetConsensusMetadataPath(tablet_id_);
+  string path = fsManager_->GetConsensusMetadataPath(tabletId_);
   uint64_t on_disk_size;
-  RETURN_NOT_OK(fs_manager_->env()->GetFileSize(path, &on_disk_size));
-  on_disk_size_ = on_disk_size;
+  RETURN_NOT_OK(fsManager_->env()->GetFileSize(path, &on_disk_size));
+  onDiskSize_ = on_disk_size;
   return Status::OK();
 }
 
@@ -510,10 +510,10 @@ void ConsensusMetadata::insertIntoRemovedPeersList(
   for (const auto& peer_uuid : removed_peers) {
     // Sanity check again to ensure that the peer is not in active config
     if (!isMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
-      if (removed_peers_.size() == kMaxRemovedPeers) {
-        removed_peers_.pop_front();
+      if (removedPeers_.size() == kMaxRemovedPeers) {
+        removedPeers_.pop_front();
       }
-      removed_peers_.push_back(peer_uuid);
+      removedPeers_.push_back(peer_uuid);
     }
   }
 }
@@ -526,19 +526,19 @@ bool ConsensusMetadata::isPeerRemoved(const std::string& peer_uuid) {
     return false;
   }
 
-  auto removed = std::find(
-      std::begin(removed_peers_), std::end(removed_peers_), peer_uuid);
+  auto removed =
+      std::find(std::begin(removedPeers_), std::end(removedPeers_), peer_uuid);
 
-  return (removed != std::end(removed_peers_));
+  return (removed != std::end(removedPeers_));
 }
 
 void ConsensusMetadata::deleteFromRemovedPeersList(
     const std::string& peer_uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
-  for (auto it = removed_peers_.begin(); it != removed_peers_.end();) {
+  for (auto it = removedPeers_.begin(); it != removedPeers_.end();) {
     if (peer_uuid == *it) {
-      removed_peers_.erase(it);
+      removedPeers_.erase(it);
     } else {
       it++;
     }
@@ -556,13 +556,13 @@ void ConsensusMetadata::deleteFromRemovedPeersList(
 
 void ConsensusMetadata::clearRemovedPeersList() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  removed_peers_.clear();
+  removedPeers_.clear();
 }
 
 std::vector<std::string> ConsensusMetadata::removedPeersList() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   std::vector<std::string> removed_peers(
-      removed_peers_.begin(), removed_peers_.end());
+      removedPeers_.begin(), removedPeers_.end());
   return removed_peers;
 }
 

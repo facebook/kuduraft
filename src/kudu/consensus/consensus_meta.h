@@ -180,36 +180,36 @@ class ConsensusMetadata {
   // Persist current state of the protobuf to disk.
   Status flush(FlushMode flush_mode = kOverwrite);
 
-  int64_t flush_count_for_tests() const {
-    return flush_count_for_tests_;
+  int64_t flushCountForTests() const {
+    return flushCountForTests_;
   }
 
   // The on-disk size of the consensus metadata, as of the last call to
-  // Load() or flush(). This method is thread-safe.
-  int64_t on_disk_size() const {
-    return on_disk_size_.load(std::memory_order_relaxed);
+  // load() or flush(). This method is thread-safe.
+  int64_t onDiskSize() const {
+    return onDiskSize_.load(std::memory_order_relaxed);
   }
 
   // Adds all the peer_uuid's in 'removed_peers' to the internal list
-  // (removed_peers_) tracking peers that have been removed from the active
-  // config. 'removed_peers_' can only track 'max_removed_peers' peers. So, the
+  // (removedPeers_) tracking peers that have been removed from the active
+  // config. 'removedPeers_' can only track 'max_removed_peers' peers. So, the
   // earliest peers are evicted from the list (if needed)
   void insertIntoRemovedPeersList(
       const std::vector<std::string>& removed_peers);
 
-  // Returns true if 'peer_uuid' is present in 'removed_peers_' list
+  // Returns true if 'peer_uuid' is present in 'removedPeers_' list
   bool isPeerRemoved(const std::string& peer_uuid);
 
-  // Deletes all the uuids in 'peer_uuids' from 'removed_peers_' list
+  // Deletes all the uuids in 'peer_uuids' from 'removedPeers_' list
   void deleteFromRemovedPeersList(const std::vector<std::string>& peer_uuids);
 
-  // Deletes 'peer_uuid' frpm 'removed_peers_' list
+  // Deletes 'peer_uuid' frpm 'removedPeers_' list
   void deleteFromRemovedPeersList(const std::string& peer_uuid);
 
-  // Clears the 'removed_peers_' list
+  // Clears the 'removedPeers_' list
   void clearRemovedPeersList();
 
-  // Returns a copy of 'removed_peers_' list
+  // Returns a copy of 'removedPeers_' list
   std::vector<std::string> removedPeersList();
 
  private:
@@ -234,9 +234,9 @@ class ConsensusMetadata {
   // Create a ConsensusMetadata object with provided initial state.
   // If 'create_mode' is set to FlushOnCreate, the encoded PB is flushed to
   // disk before returning. Otherwise, if 'create_mode' is set to
-  // NoFlushOnCreate, the caller must explicitly call Flush() on the
+  // NoFlushOnCreate, the caller must explicitly call flush() on the
   // returned object to get the bytes onto disk.
-  static Status Create(
+  static Status create(
       FsManager* fs_manager,
       const std::string& tablet_id,
       const std::string& peer_uuid,
@@ -249,7 +249,7 @@ class ConsensusMetadata {
   // Load a ConsensusMetadata object from disk.
   // Returns Status::NotFound if the file could not be found. May return other
   // Status codes if unable to read the file.
-  static Status Load(
+  static Status load(
       FsManager* fs_manager,
       const std::string& tablet_id,
       const std::string& peer_uuid,
@@ -257,7 +257,7 @@ class ConsensusMetadata {
 
   // Delete the ConsensusMetadata file associated with the given tablet from
   // disk. Returns Status::NotFound if the on-disk data is not found.
-  static Status DeleteOnDiskData(
+  static Status deleteOnDiskData(
       FsManager* fs_manager,
       const std::string& tablet_id);
 
@@ -275,9 +275,9 @@ class ConsensusMetadata {
   // Updates the cached on-disk size of the consensus metadata.
   Status updateOnDiskSize();
 
-  FsManager* const fs_manager_;
-  const std::string tablet_id_;
-  const std::string peer_uuid_;
+  FsManager* const fsManager_;
+  const std::string tabletId_;
+  const std::string peerUuid_;
 
   // This fake mutex helps ensure that this ConsensusMetadata object stays
   // externally synchronized.
@@ -292,26 +292,26 @@ class ConsensusMetadata {
   // operation.
   RaftConfigPB pendingConfig_;
 
-  // Cached role of the peer_uuid_ within the active configuration.
+  // Cached role of the peerUuid_ within the active configuration.
   RaftPeerPB::Role activeRole_;
 
   // The number of times the metadata has been flushed to disk.
-  int64_t flush_count_for_tests_;
+  int64_t flushCountForTests_;
 
   // Durable fields.
   ConsensusMetadataPB pb_;
 
   // The on-disk size of the consensus metadata, as of the last call to
-  // Load() or Flush().
+  // load() or flush().
   // The type is int64_t for consistency with other on-disk size metrics,
   // as opposed to uint64_t, which is the return type of the underlying function
   // used to populate this value.
-  std::atomic<int64_t> on_disk_size_;
+  std::atomic<int64_t> onDiskSize_;
 
   // Tracks the last 'kMaxRemovedPeers' peers that have been removed
   // from the config
   static const int kMaxRemovedPeers = 30;
-  std::deque<std::string> removed_peers_;
+  std::deque<std::string> removedPeers_;
 
   DISALLOW_COPY_AND_ASSIGN(ConsensusMetadata);
 };

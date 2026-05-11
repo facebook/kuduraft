@@ -97,7 +97,7 @@ TEST_F(ConsensusMetadataTest, TestCreateLoad) {
   // Create the file.
   {
     ASSERT_OK(
-        ConsensusMetadata::Create(
+        ConsensusMetadata::create(
             &fs_manager_,
             kTabletId,
             fs_manager_.uuid(),
@@ -108,11 +108,11 @@ TEST_F(ConsensusMetadataTest, TestCreateLoad) {
   // Load the file.
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
-      ConsensusMetadata::Load(
+      ConsensusMetadata::load(
           &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta));
   NO_FATALS(assertValuesEqual(
       cmeta, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
-  ASSERT_GT(cmeta->on_disk_size(), 0);
+  ASSERT_GT(cmeta->onDiskSize(), 0);
 }
 
 // Test deferred creation.
@@ -120,7 +120,7 @@ TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
   // Create the cmeta object, but not the file.
   std::shared_ptr<ConsensusMetadata> writer;
   ASSERT_OK(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           &fs_manager_,
           kTabletId,
           fs_manager_.uuid(),
@@ -131,27 +131,27 @@ TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
 
   // Try to load the file: it should not be there.
   std::shared_ptr<ConsensusMetadata> reader;
-  Status s = ConsensusMetadata::Load(
+  Status s = ConsensusMetadata::load(
       &fs_manager_, kTabletId, fs_manager_.uuid(), &reader);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
   // Flush; now the file will be there.
   ASSERT_OK(writer->flush());
   ASSERT_OK(
-      ConsensusMetadata::Load(
+      ConsensusMetadata::load(
           &fs_manager_, kTabletId, fs_manager_.uuid(), &reader));
   NO_FATALS(assertValuesEqual(
       reader, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
 }
 
-// Ensure that Create() will not overwrite an existing file.
+// Ensure that create() will not overwrite an existing file.
 TEST_F(ConsensusMetadataTest, TestCreateNoOverwrite) {
   // Create the consensus metadata file.
   ASSERT_OK(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           &fs_manager_, kTabletId, fs_manager_.uuid(), config_, kInitialTerm));
   // Try to create it again.
-  Status s = ConsensusMetadata::Create(
+  Status s = ConsensusMetadata::create(
       &fs_manager_, kTabletId, fs_manager_.uuid(), config_, kInitialTerm);
   ASSERT_TRUE(s.IsAlreadyPresent()) << s.ToString();
   ASSERT_STR_MATCHES(
@@ -161,7 +161,7 @@ TEST_F(ConsensusMetadataTest, TestCreateNoOverwrite) {
 // Ensure that we get an error when loading a file that doesn't exist.
 TEST_F(ConsensusMetadataTest, TestFailedLoad) {
   Status s =
-      ConsensusMetadata::Load(&fs_manager_, kTabletId, fs_manager_.uuid());
+      ConsensusMetadata::load(&fs_manager_, kTabletId, fs_manager_.uuid());
   ASSERT_TRUE(s.IsNotFound()) << "Unexpected status: " << s.ToString();
   LOG(INFO) << "Expected failure: " << s.ToString();
 }
@@ -171,7 +171,7 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
   const int64_t kNewTerm = 4;
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           &fs_manager_,
           kTabletId,
           fs_manager_.uuid(),
@@ -187,24 +187,24 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
   {
     std::shared_ptr<ConsensusMetadata> cmetaRead;
     ASSERT_OK(
-        ConsensusMetadata::Load(
+        ConsensusMetadata::load(
             &fs_manager_, kTabletId, fs_manager_.uuid(), &cmetaRead));
     NO_FATALS(assertValuesEqual(
         cmetaRead, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
-    ASSERT_GT(cmeta->on_disk_size(), 0);
+    ASSERT_GT(cmeta->onDiskSize(), 0);
   }
 
   ASSERT_OK(cmeta->flush());
-  size_t cmetaSize = cmeta->on_disk_size();
+  size_t cmetaSize = cmeta->onDiskSize();
 
   {
     std::shared_ptr<ConsensusMetadata> cmetaRead;
     ASSERT_OK(
-        ConsensusMetadata::Load(
+        ConsensusMetadata::load(
             &fs_manager_, kTabletId, fs_manager_.uuid(), &cmetaRead));
     NO_FATALS(assertValuesEqual(
         cmetaRead, kInvalidOpIdIndex, fs_manager_.uuid(), kNewTerm));
-    ASSERT_EQ(cmetaSize, cmetaRead->on_disk_size());
+    ASSERT_EQ(cmetaSize, cmetaRead->onDiskSize());
   }
 }
 
@@ -231,7 +231,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
 
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           &fs_manager_,
           kTabletId,
           peerUuid,
@@ -304,7 +304,7 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   committedConfig.set_opid_index(1);
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           &fs_manager_,
           kTabletId,
           peerUuid,
@@ -370,7 +370,7 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   committedConfig.set_opid_index(1);
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           &fs_manager_,
           kTabletId,
           "e",

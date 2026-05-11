@@ -5158,7 +5158,7 @@ string RaftConsensus::ToStringUnlocked() const {
 }
 
 int64_t RaftConsensus::metadataOnDiskSize() const {
-  return cmeta_->on_disk_size();
+  return cmeta_->onDiskSize();
 }
 
 ConsensusMetadata* RaftConsensus::consensus_metadata_for_tests() const {

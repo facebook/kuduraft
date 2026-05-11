@@ -989,7 +989,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
     // This will force an election in which we expect to make the last
     // non-shutdown peer in the list become leader.
     int64_t flush_count_before =
-        new_leader->consensus_metadata_for_tests()->flush_count_for_tests();
+        new_leader->consensus_metadata_for_tests()->flushCountForTests();
     LOG(INFO) << "Running election for future leader with index "
               << (current_config_size - 1);
     ASSERT_OK(new_leader->startElection(
@@ -999,7 +999,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
     waitUntilLeaderForTests(new_leader.get());
     LOG(INFO) << "Election won";
     int64_t flush_count_after =
-        new_leader->consensus_metadata_for_tests()->flush_count_for_tests();
+        new_leader->consensus_metadata_for_tests()->flushCountForTests();
     ASSERT_EQ(flush_count_after, flush_count_before + 1)
         << "Expected only one consensus metadata flush for a leader election";
 
@@ -1125,7 +1125,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   shared_ptr<RaftConsensus> peer;
   CHECK_OK(peers_->GetPeerByIdx(kPeerIndex, &peer));
   auto flush_count = [&]() {
-    return peer->consensus_metadata_for_tests()->flush_count_for_tests();
+    return peer->consensus_metadata_for_tests()->flushCountForTests();
   };
 
   VoteRequestPB request;

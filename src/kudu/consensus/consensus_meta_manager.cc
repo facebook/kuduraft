@@ -45,7 +45,7 @@ Status ConsensusMetadataManager::createCMeta(
     std::shared_ptr<ConsensusMetadata>* cmetaOut) {
   std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK_PREPEND(
-      ConsensusMetadata::Create(
+      ConsensusMetadata::create(
           fsManager_,
           tabletId,
           fsManager_->uuid(),
@@ -88,7 +88,7 @@ Status ConsensusMetadataManager::loadCMeta(
   // If it's not yet cached, drop the lock before we load it.
   std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK_PREPEND(
-      ConsensusMetadata::Load(fsManager_, tabletId, fsManager_->uuid(), &cmeta),
+      ConsensusMetadata::load(fsManager_, tabletId, fsManager_->uuid(), &cmeta),
       fmt::format("Unable to load consensus metadata for tablet {}", tabletId));
 
   // Cache and return the loaded ConsensusMetadata.
@@ -127,7 +127,7 @@ Status ConsensusMetadataManager::deleteCMeta(const string& tabletId) {
         tabletId); // OK to delete an uncached cmeta; ignore the return value.
   }
   RETURN_NOT_OK_PREPEND(
-      ConsensusMetadata::DeleteOnDiskData(fsManager_, tabletId),
+      ConsensusMetadata::deleteOnDiskData(fsManager_, tabletId),
       fmt::format(
           "Unable to delete consensus metadata for tablet {}", tabletId));
   return Status::OK();
