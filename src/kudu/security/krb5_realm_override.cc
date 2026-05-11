@@ -52,55 +52,61 @@ int krb5_realm_override_loaded = 1;
 // Save the original function from the Kerberos library itself.
 // We use dlsym() to load all of them, since this file gets linked into
 // some test binaries that themselves may not link against libkrb5.so at all.
-static void* g_orig_krb5_get_host_realm;
-static void* g_orig_krb5_get_default_realm;
-static void* g_orig_krb5_free_default_realm;
+static void* gOrigKrb5GetHostRealm;
+static void* gOrigKrb5GetDefaultRealm;
+static void* gOrigKrb5FreeDefaultRealm;
 
 // We only enable our workaround if this environment variable is set.
 constexpr static const char* kEnvVar = "KUDU_ENABLE_KRB5_REALM_FIX";
 
-#define CALL_ORIG(func_name, ...) \
-  ((decltype(&func_name))g_orig_##func_name)(__VA_ARGS__)
+#define CALL_ORIG(func_name, orig_ptr, ...) \
+  ((decltype(&func_name))orig_ptr)(__VA_ARGS__)
 
-__attribute__((constructor)) static void init_orig_func() {
-  g_orig_krb5_get_host_realm = dlsym(RTLD_NEXT, "krb5_get_host_realm");
-  g_orig_krb5_get_default_realm = dlsym(RTLD_NEXT, "krb5_get_default_realm");
-  g_orig_krb5_free_default_realm = dlsym(RTLD_NEXT, "krb5_free_default_realm");
+__attribute__((constructor)) static void initOrigFunc() {
+  gOrigKrb5GetHostRealm = dlsym(RTLD_NEXT, "krb5_get_host_realm");
+  gOrigKrb5GetDefaultRealm = dlsym(RTLD_NEXT, "krb5_get_default_realm");
+  gOrigKrb5FreeDefaultRealm = dlsym(RTLD_NEXT, "krb5_free_default_realm");
 }
 
 krb5_error_code
 krb5_get_host_realm(krb5_context context, const char* host, char*** realmsp) {
-  CHECK(g_orig_krb5_get_host_realm);
-  CHECK(g_orig_krb5_get_default_realm);
-  CHECK(g_orig_krb5_free_default_realm);
+  CHECK(gOrigKrb5GetHostRealm);
+  CHECK(gOrigKrb5GetDefaultRealm);
+  CHECK(gOrigKrb5FreeDefaultRealm);
 
-  krb5_error_code rc = CALL_ORIG(krb5_get_host_realm, context, host, realmsp);
+  krb5_error_code rc = CALL_ORIG(
+      krb5_get_host_realm, gOrigKrb5GetHostRealm, context, host, realmsp);
   if (rc != KRB5_ERR_NUMERIC_REALM || getenv(kEnvVar) == nullptr) {
     return rc;
   }
   // If we get KRB5_ERR_NUMERIC_REALM, this is indicative of a Kerberos version
   // which has not provided support for numeric addresses as service host names
   // So, we fill in the default realm instead.
-  char* default_realm;
-  rc = CALL_ORIG(krb5_get_default_realm, context, &default_realm);
+  char* defaultRealm;
+  rc = CALL_ORIG(
+      krb5_get_default_realm, gOrigKrb5GetDefaultRealm, context, &defaultRealm);
   if (rc != 0) {
     return rc;
   }
 
-  char** ret_realms;
-  ret_realms = static_cast<char**>(malloc(2 * sizeof(*ret_realms)));
-  if (ret_realms == nullptr) {
+  char** retRealms;
+  retRealms = static_cast<char**>(malloc(2 * sizeof(*retRealms)));
+  if (retRealms == nullptr) {
     return ENOMEM;
   }
-  ret_realms[0] = strdup(default_realm);
-  if (ret_realms[0] == nullptr) {
-    free(ret_realms);
+  retRealms[0] = strdup(defaultRealm);
+  if (retRealms[0] == nullptr) {
+    free(retRealms);
     return ENOMEM;
   }
-  ret_realms[1] = 0;
-  *realmsp = ret_realms;
+  retRealms[1] = 0;
+  *realmsp = retRealms;
 
-  CALL_ORIG(krb5_free_default_realm, context, default_realm);
+  CALL_ORIG(
+      krb5_free_default_realm,
+      gOrigKrb5FreeDefaultRealm,
+      context,
+      defaultRealm);
   return 0;
 }
 
