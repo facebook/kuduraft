@@ -247,7 +247,7 @@ void TimeManager::makeWaiterTimeoutMessageUnlocked(
 Status TimeManager::waitUntilSafe(
     Timestamp timestamp,
     const MonoTime& deadline) {
-  string error_message;
+  string errorMessage;
 
   // Pre-flight checks:
   // - If this timestamp is before the last safe time return.
@@ -260,12 +260,12 @@ Status TimeManager::waitUntilSafe(
     }
 
     if (mode_ == kNonLeader) {
-      if (isSafeTimeLaggingUnlocked(timestamp, &error_message)) {
-        return Status::TimedOut(error_message);
+      if (isSafeTimeLaggingUnlocked(timestamp, &errorMessage)) {
+        return Status::TimedOut(errorMessage);
       }
 
-      if (!hasAdvancedSafeTimeRecentlyUnlocked(&error_message)) {
-        return Status::TimedOut(error_message);
+      if (!hasAdvancedSafeTimeRecentlyUnlocked(&errorMessage)) {
+        return Status::TimedOut(errorMessage);
       }
     }
   }
@@ -306,8 +306,8 @@ Status TimeManager::waitUntilSafe(
 
     waiters_.erase(std::find(waiters_.begin(), waiters_.end(), &waiter));
 
-    makeWaiterTimeoutMessageUnlocked(waiter.timestamp, &error_message);
-    return Status::TimedOut(error_message);
+    makeWaiterTimeoutMessageUnlocked(waiter.timestamp, &errorMessage);
+    return Status::TimedOut(errorMessage);
   }
 }
 

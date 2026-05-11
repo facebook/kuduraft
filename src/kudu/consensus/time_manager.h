@@ -49,7 +49,7 @@ class ITimeManager {
   virtual Status assignTimestamp(ReplicateMsg* message) = 0;
   virtual Status messageReceivedFromLeader(const ReplicateMsg& message) = 0;
   virtual void advanceSafeTimeWithMessage(const ReplicateMsg& message) = 0;
-  virtual void advanceSafeTime(Timestamp safe_time) = 0;
+  virtual void advanceSafeTime(Timestamp safeTime) = 0;
   virtual Status waitUntilSafe(
       Timestamp timestamp,
       const MonoTime& deadline) = 0;
@@ -75,7 +75,7 @@ class TimeManagerDummy : public ITimeManager {
 
   void advanceSafeTimeWithMessage(const ReplicateMsg& message) override {}
 
-  void advanceSafeTime(Timestamp safe_time) override {}
+  void advanceSafeTime(Timestamp safeTime) override {}
 
   Status waitUntilSafe(Timestamp timestamp, const MonoTime& deadline) override {
     return Status::OK();
@@ -173,7 +173,7 @@ class TimeManager : public ITimeManager {
 
   // Same as above but for a specific timestamp.
   //
-  // This only moves safe time if 'safe_time' is higher than the currently known
+  // This only moves safe time if 'safeTime' is higher than the currently known
   // one.
   //
   // Requires non-leader mode (CHECK failure if it isn't).
@@ -249,7 +249,7 @@ class TimeManager : public ITimeManager {
   bool isTimestampSafeUnlocked(Timestamp timestamp);
 
   // Advances safe time and wakes up any waiters.
-  void advanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safe_time);
+  void advanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime);
 
   // Internal, unlocked implementation of getSerialTimestamp().
   Timestamp getSerialTimestampUnlocked();
