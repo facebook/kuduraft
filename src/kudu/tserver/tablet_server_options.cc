@@ -58,7 +58,7 @@ namespace kudu {
 namespace tserver {
 
 TabletServerOptions::TabletServerOptions() {
-  rpcOpts.default_port = TabletServer::kDefaultPort;
+  rpcOpts.defaultPort = TabletServer::kDefaultPort;
 
   if (!FLAGS_tserver_addresses.empty()) {
     Status s = HostPort::parseStrings(

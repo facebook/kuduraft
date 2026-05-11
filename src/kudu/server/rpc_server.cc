@@ -90,31 +90,31 @@ TAG_FLAG(rpc_server_allow_ephemeral_ports, unsafe);
 namespace kudu {
 
 RpcServerOptions::RpcServerOptions()
-    : rpc_bind_addresses(FLAGS_rpc_bind_addresses),
-      rpc_advertised_addresses(FLAGS_rpc_advertised_addresses),
-      num_acceptors_per_address(FLAGS_rpc_num_acceptors_per_address),
-      num_service_threads(FLAGS_rpc_num_service_threads),
-      default_port(0),
-      service_queue_length(FLAGS_rpc_service_queue_length) {}
+    : rpcBindAddresses(FLAGS_rpc_bind_addresses),
+      rpcAdvertisedAddresses(FLAGS_rpc_advertised_addresses),
+      numAcceptorsPerAddress(FLAGS_rpc_num_acceptors_per_address),
+      numServiceThreads(FLAGS_rpc_num_service_threads),
+      defaultPort(0),
+      serviceQueueLength(FLAGS_rpc_service_queue_length) {}
 
 RpcServer::RpcServer(RpcServerOptions opts)
     : serverState_(kUninitialized), options_(std::move(opts)) {}
 
 RpcServer::~RpcServer() {
-  Shutdown();
+  shutdown();
 }
 
-string RpcServer::ToString() const {
+string RpcServer::toString() const {
   // TODO: include port numbers, etc.
   return "RpcServer";
 }
 
-Status RpcServer::Init(const shared_ptr<Messenger>& messenger) {
+Status RpcServer::init(const shared_ptr<Messenger>& messenger) {
   CHECK_EQ(serverState_, kUninitialized);
   messenger_ = messenger;
 
   RETURN_NOT_OK(parseAddressList(
-      options_.rpc_bind_addresses, options_.default_port, &rpcBindAddresses_));
+      options_.rpcBindAddresses, options_.defaultPort, &rpcBindAddresses_));
   for (const Sockaddr& addr : rpcBindAddresses_) {
     if (isPrivilegedPort(addr.port())) {
       LOG(WARNING) << "May be unable to bind to privileged port for address "
@@ -130,10 +130,10 @@ Status RpcServer::Init(const shared_ptr<Messenger>& messenger) {
     }
   }
 
-  if (!options_.rpc_advertised_addresses.empty()) {
+  if (!options_.rpcAdvertisedAddresses.empty()) {
     RETURN_NOT_OK(parseAddressList(
-        options_.rpc_advertised_addresses,
-        options_.default_port,
+        options_.rpcAdvertisedAddresses,
+        options_.defaultPort,
         &rpcAdvertisedAddresses_));
 
     for (const Sockaddr& addr : rpcAdvertisedAddresses_) {
@@ -149,15 +149,15 @@ Status RpcServer::Init(const shared_ptr<Messenger>& messenger) {
   return Status::OK();
 }
 
-Status RpcServer::RegisterService(unique_ptr<rpc::ServiceIf> service) {
+Status RpcServer::registerService(unique_ptr<rpc::ServiceIf> service) {
   CHECK(serverState_ == kInitialized || serverState_ == kBound)
       << "bad state: " << serverState_;
   string service_name = service->serviceName();
   std::shared_ptr<rpc::ServicePool> service_pool(new rpc::ServicePool(
       std::move(service),
       messenger_->metric_entity(),
-      options_.service_queue_length));
-  RETURN_NOT_OK(service_pool->init(options_.num_service_threads));
+      options_.serviceQueueLength));
+  RETURN_NOT_OK(service_pool->init(options_.numServiceThreads));
   auto* service_pool_raw_ptr = service_pool.get();
   service_pool->setTooBusyHook([this, service_pool_raw_ptr]() {
     if (tooBusyHook_) {
@@ -168,7 +168,7 @@ Status RpcServer::RegisterService(unique_ptr<rpc::ServiceIf> service) {
   return Status::OK();
 }
 
-Status RpcServer::Bind() {
+Status RpcServer::bind() {
   CHECK_EQ(serverState_, kInitialized);
 
   // Create the Acceptor pools (one per bind address)
@@ -192,19 +192,19 @@ Status RpcServer::Bind() {
   return Status::OK();
 }
 
-Status RpcServer::Start() {
+Status RpcServer::start() {
   if (serverState_ == kInitialized) {
-    RETURN_NOT_OK(Bind());
+    RETURN_NOT_OK(bind());
   }
   CHECK_EQ(serverState_, kBound);
   serverState_ = kStarted;
 
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
-    RETURN_NOT_OK(pool->start(options_.num_acceptors_per_address));
+    RETURN_NOT_OK(pool->start(options_.numAcceptorsPerAddress));
   }
 
   vector<Sockaddr> bound_addrs;
-  RETURN_NOT_OK(GetBoundAddresses(&bound_addrs));
+  RETURN_NOT_OK(getBoundAddresses(&bound_addrs));
   string bound_addrs_str;
   for (const Sockaddr& bind_addr : bound_addrs) {
     if (!bound_addrs_str.empty()) {
@@ -217,7 +217,7 @@ Status RpcServer::Start() {
   return Status::OK();
 }
 
-void RpcServer::Shutdown() {
+void RpcServer::shutdown() {
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
     pool->shutdown();
   }
@@ -228,7 +228,7 @@ void RpcServer::Shutdown() {
   }
 }
 
-Status RpcServer::GetBoundAddresses(vector<Sockaddr>* addresses) const {
+Status RpcServer::getBoundAddresses(vector<Sockaddr>* addresses) const {
   if (serverState_ != kBound && serverState_ != kStarted) {
     return Status::ServiceUnavailable(
         fmt::format("bad state: {}", serverState_));
@@ -243,22 +243,22 @@ Status RpcServer::GetBoundAddresses(vector<Sockaddr>* addresses) const {
   return Status::OK();
 }
 
-Status RpcServer::GetAdvertisedAddresses(vector<Sockaddr>* addresses) const {
+Status RpcServer::getAdvertisedAddresses(vector<Sockaddr>* addresses) const {
   if (serverState_ != kBound && serverState_ != kStarted) {
     return Status::ServiceUnavailable(
         fmt::format("bad state: {}", serverState_));
   }
   if (rpcAdvertisedAddresses_.empty()) {
-    return GetBoundAddresses(addresses);
+    return getBoundAddresses(addresses);
   }
   *addresses = rpcAdvertisedAddresses_;
   return Status::OK();
 }
 
 const rpc::ServicePool* RpcServer::servicePool(
-    const string& service_name) const {
+    const string& serviceName) const {
   return kudu::down_cast<rpc::ServicePool*>(
-      messenger_->rpc_service(service_name).get());
+      messenger_->rpc_service(serviceName).get());
 }
 
 } // namespace kudu

@@ -46,13 +46,13 @@ class ServicePool;
 struct RpcServerOptions {
   RpcServerOptions();
 
-  std::string rpc_bind_addresses;
-  std::string rpc_advertised_addresses;
-  uint32_t num_acceptors_per_address;
-  uint32_t num_service_threads;
-  uint16_t default_port;
-  size_t service_queue_length;
-  uint32_t num_reactor_threads;
+  std::string rpcBindAddresses;
+  std::string rpcAdvertisedAddresses;
+  uint32_t numAcceptorsPerAddress;
+  uint32_t numServiceThreads;
+  uint16_t defaultPort;
+  size_t serviceQueueLength;
+  uint32_t numReactorThreads;
 };
 
 class RpcServer {
@@ -70,44 +70,44 @@ class RpcServer {
     tooBusyHook_ = std::move(hook);
   }
 
-  Status Init(const std::shared_ptr<rpc::Messenger>& messenger)
+  Status init(const std::shared_ptr<rpc::Messenger>& messenger)
       WARN_UNUSED_RESULT;
-  // Services need to be registered after Init'ing, but before Start'ing.
+  // Services need to be registered after init'ing, but before start'ing.
   // The service's ownership will be given to a ServicePool.
-  Status RegisterService(std::unique_ptr<rpc::ServiceIf> service)
+  Status registerService(std::unique_ptr<rpc::ServiceIf> service)
       WARN_UNUSED_RESULT;
-  Status Bind() WARN_UNUSED_RESULT;
-  Status Start() WARN_UNUSED_RESULT;
-  void Shutdown();
+  Status bind() WARN_UNUSED_RESULT;
+  Status start() WARN_UNUSED_RESULT;
+  void shutdown();
 
-  std::string ToString() const;
+  std::string toString() const;
 
   // Return the addresses that this server has successfully
-  // bound to. Requires that the server has been Start()ed.
-  Status GetBoundAddresses(std::vector<Sockaddr>* addresses) const
+  // bound to. Requires that the server has been start()ed.
+  Status getBoundAddresses(std::vector<Sockaddr>* addresses) const
       WARN_UNUSED_RESULT;
 
   // Return the addresses that this server is advertising externally
-  // to the world. Requires that the server has been Start()ed.
-  Status GetAdvertisedAddresses(std::vector<Sockaddr>* addresses) const
+  // to the world. Requires that the server has been start()ed.
+  Status getAdvertisedAddresses(std::vector<Sockaddr>* addresses) const
       WARN_UNUSED_RESULT;
 
-  const rpc::ServicePool* servicePool(const std::string& service_name) const;
+  const rpc::ServicePool* servicePool(const std::string& serviceName) const;
 
   // Return all of the currently-registered service pools.
   //
-  // This is not thread-safe against concurrent calls to RegisterService().
+  // This is not thread-safe against concurrent calls to registerService().
   std::vector<std::shared_ptr<rpc::ServicePool>> servicePools() const;
 
  private:
   enum ServerState {
     // Default state when the rpc server is constructed.
     kUninitialized,
-    // State after Init() was called.
+    // State after init() was called.
     kInitialized,
-    // State after Bind().
+    // State after bind().
     kBound,
-    // State after Start() was called.
+    // State after start() was called.
     kStarted
   };
   ServerState serverState_;
@@ -115,10 +115,10 @@ class RpcServer {
   const RpcServerOptions options_;
   std::shared_ptr<rpc::Messenger> messenger_;
 
-  // Parsed addresses to bind RPC to. Set by Init()
+  // Parsed addresses to bind RPC to. Set by init()
   std::vector<Sockaddr> rpcBindAddresses_;
 
-  // Parsed addresses to advertise. Set by Init(). Empty if rpcBindAddresses_
+  // Parsed addresses to advertise. Set by init(). Empty if rpcBindAddresses_
   // should be advertised.
   std::vector<Sockaddr> rpcAdvertisedAddresses_;
 

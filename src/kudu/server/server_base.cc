@@ -264,7 +264,7 @@ ServerBase::~ServerBase() {
 Sockaddr ServerBase::firstRpcAddress() const {
   vector<Sockaddr> addrs;
   WARN_NOT_OK(
-      rpc_server_->GetBoundAddresses(&addrs), "Couldn't get bound RPC address");
+      rpc_server_->getBoundAddresses(&addrs), "Couldn't get bound RPC address");
   CHECK(!addrs.empty()) << "Not bound";
   return addrs[0];
 }
@@ -355,8 +355,8 @@ Status ServerBase::Init() {
 
   // If rpcOpts explicitly specify the number of reactor threads, then use it
   // to override FLAGS_num_reactor_threads
-  if (options_.rpcOpts.num_reactor_threads != 0) {
-    builder.set_num_reactors(options_.rpcOpts.num_reactor_threads);
+  if (options_.rpcOpts.numReactorThreads != 0) {
+    builder.set_num_reactors(options_.rpcOpts.numReactorThreads);
   }
 
   RETURN_NOT_OK(builder.Build(&messenger_));
@@ -364,11 +364,11 @@ Status ServerBase::Init() {
       std::bind(
           &ServerBase::ServiceQueueOverflowed, this, std::placeholders::_1));
 
-  RETURN_NOT_OK(rpc_server_->Init(messenger_));
+  RETURN_NOT_OK(rpc_server_->init(messenger_));
 
   // Bind the RPC server so that the
   // local raft peer can be initialized
-  RETURN_NOT_OK(rpc_server_->Bind());
+  RETURN_NOT_OK(rpc_server_->bind());
   clock_->registerMetrics(metric_entity_);
 
   RETURN_NOT_OK_PREPEND(
@@ -423,7 +423,7 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
   {
     vector<Sockaddr> addrs;
     RETURN_NOT_OK_PREPEND(
-        rpc_server_->GetBoundAddresses(&addrs),
+        rpc_server_->getBoundAddresses(&addrs),
         "could not get bound RPC addresses");
     for (const Sockaddr& addr : addrs) {
       HostPort hp;
@@ -494,7 +494,7 @@ Status ServerBase::DumpServerInfo(const string& path, const string& format)
 }
 
 Status ServerBase::RegisterService(unique_ptr<rpc::ServiceIf> rpc_impl) {
-  return rpc_server_->RegisterService(std::move(rpc_impl));
+  return rpc_server_->registerService(std::move(rpc_impl));
 }
 
 Status ServerBase::StartMetricsLogging() {
@@ -553,7 +553,7 @@ void ServerBase::ExcessLogFileDeleterThread() {
 Status ServerBase::Start() {
   GenerateInstanceID();
 
-  RETURN_NOT_OK(rpc_server_->Start());
+  RETURN_NOT_OK(rpc_server_->start());
 
   if (!options_.dumpInfoPath.empty()) {
     RETURN_NOT_OK_PREPEND(
@@ -571,7 +571,7 @@ void ServerBase::Shutdown() {
   // Note: prior to Messenger::Shutdown, it is assumed that any incoming RPCs
   // deferred from reactor threads have already been cleaned up.
 
-  rpc_server_->Shutdown();
+  rpc_server_->shutdown();
   if (messenger_) {
     messenger_->Shutdown();
   }

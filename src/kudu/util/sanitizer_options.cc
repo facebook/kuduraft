@@ -159,9 +159,9 @@ SANITIZER_HOOK_ATTRIBUTE const char* __tsan_default_suppressions() {
       "race:kudu::consensus::LocalTestPeerProxy::~LocalTestPeerProxy\n"
 
       // KUDU-569: unsynchronized access to 'state_', 'acceptorPools_', in
-      // GetBoundAddresses()
+      // getBoundAddresses()
       "race:kudu::Webserver::GetBoundAddresses\n"
-      "race:kudu::RpcServer::GetBoundAddresses\n"
+      "race:kudu::RpcServer::getBoundAddresses\n"
 
       // KUDU-2439: OpenSSL 1.1's atexit() handler may destroy global state
       // while a Messenger is shutting down and still accessing that state. See
