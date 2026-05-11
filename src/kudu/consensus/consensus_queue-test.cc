@@ -83,45 +83,45 @@ static const char* kLeaderQuorumId = "r0";
 class ConsensusQueueTest : public KuduTest {
  public:
   ConsensusQueueTest()
-      : metric_entity_(
-            METRIC_ENTITY_server.instantiate(&metric_registry_, "queue-test")),
+      : metricEntity_(
+            METRIC_ENTITY_server.instantiate(&metricRegistry_, "queue-test")),
         registry_(new log::LogAnchorRegistry) {}
 
   virtual void SetUp() override {
     KuduTest::SetUp();
-    fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
-    ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
-    ASSERT_OK(fs_manager_->Open());
+    fsManager_.reset(new FsManager(env_, GetTestPath("fs_root")));
+    ASSERT_OK(fsManager_->CreateInitialFileSystemLayout());
+    ASSERT_OK(fsManager_->Open());
 
     log_ = std::make_shared<StrictMock<StatefulMockLog>>(
-        log::LogOptions(), fs_manager_.get(), "", kTestTablet, nullptr);
+        log::LogOptions(), fsManager_.get(), "", kTestTablet, nullptr);
 
     RaftConfigPB raft_config;
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kPeerUuid);
     ASSERT_OK(
         DurableRoutingTable::create(
-            fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
+            fsManager_.get(), kTestTablet, raft_config, {}, &routingTable_));
 
     persistentVarsManager_ =
-        std::make_shared<PersistentVarsManager>(fs_manager_.get());
+        std::make_shared<PersistentVarsManager>(fsManager_.get());
     ASSERT_OK(persistentVarsManager_->createPersistentVars(kTestTablet));
 
-    routing_table_container_ = std::make_shared<RoutingTableContainer>(
+    routingTableContainer_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DurableRoutingPolicy,
         fakeRaftPeerPb(kLeaderUuid),
         raft_config,
-        routing_table_,
+        routingTable_,
         std::vector<std::unordered_set<std::string>>());
 
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->init());
 
-    ASSERT_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));
-    CloseAndReopenQueue(MinimumOpId(), MinimumOpId());
+    ASSERT_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
+    closeAndReopenQueue(MinimumOpId(), MinimumOpId());
   }
 
-  void CloseAndReopenQueue(
+  void closeAndReopenQueue(
       const OpId& replicated_opid,
       const OpId& committed_opid) {
     std::shared_ptr<clock::Clock> clock =
@@ -131,14 +131,14 @@ class ConsensusQueueTest : public KuduTest {
         std::make_shared<TimeManager>(clock, Timestamp::kMin);
 
     queue_.reset(new PeerMessageQueue(
-        metric_entity_,
+        metricEntity_,
         log_,
         time_manager,
         persistentVarsManager_,
         fakeRaftPeerPb(kLeaderUuid),
-        routing_table_container_,
+        routingTableContainer_,
         kTestTablet,
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::Serial),
+        raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
         replicated_opid,
         committed_opid));
   }
@@ -147,13 +147,13 @@ class ConsensusQueueTest : public KuduTest {
     queue_->Close();
   }
 
-  Status AppendReplicateMsg(int term, int index, int payload_size) {
+  Status appendReplicateMsg(int term, int index, int payload_size) {
     return queue_->AppendOperation(makeScopedRefptrReplicate(
         createDummyReplicate(term, index, clock_->now(), payload_size),
         Source::Memory));
   }
 
-  RaftPeerPB MakePeer(
+  RaftPeerPB makePeer(
       const std::string& peer_uuid,
       RaftPeerPB::MemberType member_type) {
     RaftPeerPB peer_pb;
@@ -166,14 +166,14 @@ class ConsensusQueueTest : public KuduTest {
   // the operation we want, since the queue always assumes that
   // when a peer gets tracked it's always tracked starting at the
   // last operation in the queue
-  void UpdatePeerWatermarkToOp(
+  void updatePeerWatermarkToOp(
       ConsensusRequestPB* request,
       ConsensusResponsePB* response,
       const OpId& last_received,
       const OpId& last_received_current_leader,
       int last_committed_idx,
       bool* send_more_immediately) {
-    queue_->TrackPeer(MakePeer(kPeerUuid, RaftPeerPB::VOTER));
+    queue_->TrackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
     response->set_responder_uuid(kPeerUuid);
 
     // Ask for a request. The queue assumes the peer is up-to-date so
@@ -193,7 +193,7 @@ class ConsensusQueueTest : public KuduTest {
 
     // Refuse saying that the log matching property check failed and
     // that our last operation is actually 'last_received'.
-    RefuseWithLogPropertyMismatch(
+    refuseWithLogPropertyMismatch(
         response, last_received, last_received_current_leader);
     response->mutable_status()->set_last_committed_idx(last_committed_idx);
     *send_more_immediately =
@@ -203,13 +203,13 @@ class ConsensusQueueTest : public KuduTest {
   }
 
   // Like the above but uses the last received index as the commtited index.
-  void UpdatePeerWatermarkToOp(
+  void updatePeerWatermarkToOp(
       ConsensusRequestPB* request,
       ConsensusResponsePB* response,
       const OpId& last_received,
       const OpId& last_received_current_leader,
       bool* send_more_immediately) {
-    return UpdatePeerWatermarkToOp(
+    return updatePeerWatermarkToOp(
         request,
         response,
         last_received,
@@ -218,7 +218,7 @@ class ConsensusQueueTest : public KuduTest {
         send_more_immediately);
   }
 
-  void RefuseWithLogPropertyMismatch(
+  void refuseWithLogPropertyMismatch(
       ConsensusResponsePB* response,
       const OpId& last_received,
       const OpId& last_received_current_leader) {
@@ -231,7 +231,7 @@ class ConsensusQueueTest : public KuduTest {
     statusToPb(Status::IllegalState("LMP failed."), error->mutable_status());
   }
 
-  void WaitForLocalPeerToAckIndex(int index) {
+  void waitForLocalPeerToAckIndex(int index) {
     while (true) {
       const auto leader = queue_->GetTrackedPeerForTests(kLeaderUuid);
       if (leader.lastReceived.index() >= index) {
@@ -243,7 +243,7 @@ class ConsensusQueueTest : public KuduTest {
 
   // Sets the last received op on the response, as well as the last committed
   // index.
-  void SetLastReceivedAndLastCommitted(
+  void setLastReceivedAndLastCommitted(
       ConsensusResponsePB* response,
       const OpId& last_received,
       const OpId& last_received_current_leader,
@@ -255,33 +255,33 @@ class ConsensusQueueTest : public KuduTest {
   }
 
   // Like the above but uses the same last_received for current term.
-  void SetLastReceivedAndLastCommitted(
+  void setLastReceivedAndLastCommitted(
       ConsensusResponsePB* response,
       const OpId& last_received,
       int last_committed_idx) {
-    SetLastReceivedAndLastCommitted(
+    setLastReceivedAndLastCommitted(
         response, last_received, last_received, last_committed_idx);
   }
 
   // Like the above but just sets the last committed index to have the same
   // index as the last received op.
-  void SetLastReceivedAndLastCommitted(
+  void setLastReceivedAndLastCommitted(
       ConsensusResponsePB* response,
       const OpId& last_received) {
-    SetLastReceivedAndLastCommitted(
+    setLastReceivedAndLastCommitted(
         response, last_received, last_received.index());
   }
 
  protected:
-  unique_ptr<FsManager> fs_manager_;
-  MetricRegistry metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
+  unique_ptr<FsManager> fsManager_;
+  MetricRegistry metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
   std::shared_ptr<log::Log> log_;
-  unique_ptr<ThreadPool> raft_pool_;
-  unique_ptr<TimeManager> time_manager_;
-  shared_ptr<DurableRoutingTable> routing_table_;
+  unique_ptr<ThreadPool> raftPool_;
+  unique_ptr<TimeManager> timeManager_;
+  shared_ptr<DurableRoutingTable> routingTable_;
   std::shared_ptr<PersistentVarsManager> persistentVarsManager_;
-  shared_ptr<RoutingTableContainer> routing_table_container_;
+  shared_ptr<RoutingTableContainer> routingTableContainer_;
   unique_ptr<PeerMessageQueue> queue_;
   std::shared_ptr<log::LogAnchorRegistry> registry_;
   std::shared_ptr<clock::Clock> clock_;
@@ -305,7 +305,7 @@ TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
   OpId last_received = MakeOpId(7, 50);
   OpId last_received_current_leader = MinimumOpId();
 
-  UpdatePeerWatermarkToOp(
+  updatePeerWatermarkToOp(
       &request,
       &response,
       last_received,
@@ -327,7 +327,7 @@ TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
   ASSERT_FALSE(needs_tablet_copy);
   ASSERT_EQ(50, request.ops_size());
 
-  SetLastReceivedAndLastCommitted(&response, request.ops(49).id());
+  setLastReceivedAndLastCommitted(&response, request.ops(49).id());
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
   ASSERT_FALSE(send_more_immediately) << "Queue still had requests pending";
@@ -388,7 +388,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
   response.set_responder_uuid(kPeerUuid);
   bool send_more_immediately = false;
 
-  UpdatePeerWatermarkToOp(
+  updatePeerWatermarkToOp(
       &request,
       &response,
       MinimumOpId(),
@@ -417,7 +417,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
     ASSERT_FALSE(needs_tablet_copy);
     ASSERT_EQ(kOpsPerRequest, request.ops_size());
     last = request.ops(request.ops_size() - 1).id();
-    SetLastReceivedAndLastCommitted(&response, last);
+    setLastReceivedAndLastCommitted(&response, last);
     VLOG(1) << "Faking received up through " << last;
     send_more_immediately =
         queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -436,7 +436,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
   ASSERT_FALSE(needs_tablet_copy);
   ASSERT_EQ(1, request.ops_size());
   last = request.ops(request.ops_size() - 1).id();
-  SetLastReceivedAndLastCommitted(&response, last);
+  setLastReceivedAndLastCommitted(&response, last);
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
   ASSERT_FALSE(send_more_immediately);
@@ -452,7 +452,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
 
   // Wait for the local peer to append all messages
-  WaitForLocalPeerToAckIndex(100);
+  waitForLocalPeerToAckIndex(100);
 
   ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
   // Since we're tracking a single peer still this should have moved the all
@@ -468,7 +468,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   response.set_responder_uuid(kPeerUuid);
   bool send_more_immediately = false;
 
-  UpdatePeerWatermarkToOp(
+  updatePeerWatermarkToOp(
       &request, &response, first_msg, MinimumOpId(), &send_more_immediately);
   ASSERT_TRUE(send_more_immediately);
 
@@ -492,7 +492,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
 
   appendReplicateMessagesToQueue(queue_.get(), clock_, 101, 100);
 
-  SetLastReceivedAndLastCommitted(&response, request.ops(49).id());
+  setLastReceivedAndLastCommitted(&response, request.ops(49).id());
   response.set_responder_term(28);
 
   send_more_immediately =
@@ -517,14 +517,14 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
 
   OpId expected = request.ops(99).id();
 
-  SetLastReceivedAndLastCommitted(&response, expected);
+  setLastReceivedAndLastCommitted(&response, expected);
   response.set_responder_term(expected.term());
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
   ASSERT_FALSE(send_more_immediately)
       << "Queue didn't have anymore requests pending";
 
-  WaitForLocalPeerToAckIndex(expected.index());
+  waitForLocalPeerToAckIndex(expected.index());
 
   ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), expected.index());
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), expected.index());
@@ -538,15 +538,15 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   queue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(5));
   // Track 4 additional peers (in addition to the local peer)
-  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 10 messages to the queue.
   // This should add messages 0.1 -> 0.7, 1.8 -> 1.10 to the queue.
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
-  WaitForLocalPeerToAckIndex(10);
+  waitForLocalPeerToAckIndex(10);
 
   // Since only the local log has ACKed at this point,
   // the committed_index should be MinimumOpId().
@@ -562,7 +562,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
 
   // Ack the first five operations for peer-1.
   response.set_responder_uuid("peer-1");
-  SetLastReceivedAndLastCommitted(&response, last_sent, MinimumOpId().index());
+  setLastReceivedAndLastCommitted(&response, last_sent, MinimumOpId().index());
 
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -589,7 +589,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   // Ack all operations for peer-3.
   response.set_responder_uuid("peer-3");
   last_sent = MakeOpId(1, 10);
-  SetLastReceivedAndLastCommitted(&response, last_sent, MinimumOpId().index());
+  setLastReceivedAndLastCommitted(&response, last_sent, MinimumOpId().index());
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
 
@@ -629,8 +629,8 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
           /*numVoters=*/2,
           /*numNonVoters=*/1));
   // Track 2 additional peers (in addition to the local peer)
-  queue_->TrackPeer(MakePeer(kOtherVoterPeer, RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer(kNonVoterPeer, RaftPeerPB::NON_VOTER));
+  queue_->TrackPeer(makePeer(kOtherVoterPeer, RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer(kNonVoterPeer, RaftPeerPB::NON_VOTER));
 
   // 2. Add some writes. Only the local leader immediately acks them, which is
   // not enough to commit in a 2-voter + 1 non-voter config.
@@ -643,7 +643,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
       clock_,
       /*first=*/1,
       /*count=*/kNumMessages);
-  WaitForLocalPeerToAckIndex(kNumMessages);
+  waitForLocalPeerToAckIndex(kNumMessages);
 
   // Since only the local log has acked at this point, the committed_index
   // should be 0.
@@ -656,7 +656,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   response.set_responder_uuid(kNonVoterPeer);
   const int64_t kCurrentTerm = 1;
   response.set_responder_term(kCurrentTerm);
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response,
       /*last_received=*/MakeOpId(kCurrentTerm, kNumMessages),
       /*last_committed_idx=*/kNoneCommittedIndex);
@@ -678,7 +678,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   // The committed index should include the full set of ops now.
   ASSERT_EQ(kNumMessages, queue_->GetCommittedIndex());
 
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response,
       /*last_received=*/MakeOpId(kCurrentTerm, kNumMessages),
       /*last_committed_idx=*/kNumMessages);
@@ -709,7 +709,7 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
 
   // Now reset the queue so that we can pass a new committed index,
   // the last operation in the log.
-  CloseAndReopenQueue(last_logged_opid, last_logged_opid);
+  closeAndReopenQueue(last_logged_opid, last_logged_opid);
 
   queue_->SetLeaderMode(
       last_logged_opid.index(),
@@ -729,7 +729,7 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
 
   // Now we start tracking the peer, this negotiation round should let
   // the queue know how far along the peer is.
-  ASSERT_NO_FATAL_FAILURE(UpdatePeerWatermarkToOp(
+  ASSERT_NO_FATAL_FAILURE(updatePeerWatermarkToOp(
       &request,
       &response,
       peers_last_op,
@@ -791,7 +791,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   int64_t committed_index = 15;
 
   // Now reset the queue so that we can pass a new committed index (15).
-  CloseAndReopenQueue(last_in_log, MakeOpId(2, committed_index));
+  closeAndReopenQueue(last_in_log, MakeOpId(2, committed_index));
 
   queue_->SetLeaderMode(
       committed_index, last_in_log.term(), buildRaftConfigPbForTests(3));
@@ -806,7 +806,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   response.set_responder_uuid(kPeerUuid);
   bool send_more_immediately = false;
 
-  queue_->TrackPeer(MakePeer(kPeerUuid, RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
 
   // Ask for a request. The queue assumes the peer is up-to-date so
   // this should contain no operations.
@@ -855,7 +855,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   ASSERT_OK(queue_->AppendOperation(
       std::make_shared<RefCountedReplicate>(
           createDummyReplicate(2, 21, clock_->now(), 0), Source::Memory)));
-  WaitForLocalPeerToAckIndex(21);
+  waitForLocalPeerToAckIndex(21);
 
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
 
@@ -874,7 +874,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
 
   // Now when we respond the watermarks should advance.
   response.mutable_status()->clear_error();
-  SetLastReceivedAndLastCommitted(&response, MakeOpId(2, 21), 5);
+  setLastReceivedAndLastCommitted(&response, MakeOpId(2, 21), 5);
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
   ASSERT_TRUE(send_more_immediately);
@@ -943,15 +943,15 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
       kMinimumTerm,
       kMinimumOpIdIndex,
       buildTransitionalRaftConfigPbForTests(3, 5));
-  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
-  WaitForLocalPeerToAckIndex(5);
+  waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant
   ASSERT_EQ(queue_->GetCommittedIndex(), 0);
@@ -964,7 +964,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
   ConsensusResponsePB response;
   response.set_responder_term(0);
   response.set_responder_uuid("peer-1");
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response, last_sent, (int)MinimumOpId().index());
   bool send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -1024,15 +1024,15 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 
   // Note that the voter type in the TrackedPeers below is not used
   // for watermark calculation, which directly uses the peers in config.
-  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::NON_VOTER));
-  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::NON_VOTER));
+  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::NON_VOTER));
+  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::NON_VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
-  WaitForLocalPeerToAckIndex(5);
+  waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
   ASSERT_EQ(queue_->GetCommittedIndex(), 0);
@@ -1045,7 +1045,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
   ConsensusResponsePB response;
   response.set_responder_term(0);
   response.set_responder_uuid("peer-1");
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response, last_sent, (int)MinimumOpId().index());
   bool send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -1100,15 +1100,15 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
           /*numNewVoters=*/5,
           /*numOldNonVoters=*/2,
           /*numNewNonVoters=*/0));
-  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
-  WaitForLocalPeerToAckIndex(5);
+  waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
   ASSERT_EQ(queue_->GetCommittedIndex(), 0);
@@ -1121,7 +1121,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
   ConsensusResponsePB response;
   response.set_responder_term(0);
   response.set_responder_uuid("peer-1");
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response, last_sent, (int)MinimumOpId().index());
   bool send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -1172,15 +1172,15 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
           /*numNewVoters=*/5,
           /*numOldNonVoters=*/2,
           /*numNewNonVoters=*/0));
-  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
-  WaitForLocalPeerToAckIndex(5);
+  waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
   ASSERT_EQ(queue_->GetCommittedIndex(), 0);
@@ -1193,7 +1193,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
   ConsensusResponsePB response;
   response.set_responder_term(0);
   response.set_responder_uuid("peer-3");
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response, last_sent, (int)MinimumOpId().index());
   bool send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -1244,16 +1244,16 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
       buildTransitionalRaftConfigPbForTests(
           /*numOldVoters=*/4,
           /*numNewVoters=*/6));
-  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
-  queue_->TrackPeer(MakePeer("peer-5", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->TrackPeer(makePeer("peer-5", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
-  WaitForLocalPeerToAckIndex(5);
+  waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
   ASSERT_EQ(queue_->GetCommittedIndex(), 0);
@@ -1265,7 +1265,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
   ConsensusResponsePB response;
   response.set_responder_term(0);
   response.set_responder_uuid("peer-1");
-  SetLastReceivedAndLastCommitted(
+  setLastReceivedAndLastCommitted(
       &response, last_sent, (int)MinimumOpId().index());
   bool send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
@@ -1352,7 +1352,7 @@ TEST_F(
   FLAGS_consensus_max_batch_size_bytes = 1024 * 10;
 
   const int kInitialCommittedIndex = 30;
-  CloseAndReopenQueue(MakeOpId(72, 30), MakeOpId(82, 30));
+  closeAndReopenQueue(MakeOpId(72, 30), MakeOpId(82, 30));
   queue_->SetLeaderMode(
       kInitialCommittedIndex, 76, buildRaftConfigPbForTests(3));
 
@@ -1373,7 +1373,7 @@ TEST_F(
       expected_majority_replicated);
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), expected_all_replicated);
 
-  UpdatePeerWatermarkToOp(
+  updatePeerWatermarkToOp(
       &request,
       &response,
       MakeOpId(75, 49),
@@ -1384,17 +1384,17 @@ TEST_F(
 
   for (int i = 31; i <= 53; i++) {
     if (i <= 45) {
-      AppendReplicateMsg(72, i, 1024);
+      appendReplicateMsg(72, i, 1024);
       continue;
     }
     if (i <= 51) {
-      AppendReplicateMsg(73, i, 1024);
+      appendReplicateMsg(73, i, 1024);
       continue;
     }
-    AppendReplicateMsg(76, i, 1024);
+    appendReplicateMsg(76, i, 1024);
   }
 
-  WaitForLocalPeerToAckIndex(53);
+  waitForLocalPeerToAckIndex(53);
 
   // When we get operations for this peer we should get them starting
   // immediately after the committed index, for a total of 9 operations.
@@ -1414,7 +1414,7 @@ TEST_F(
 
   // When the peer acks that it received an operation that is not in our current
   // term, it gets ignored in terms of watermark advancement.
-  SetLastReceivedAndLastCommitted(&response, MakeOpId(75, 49), *last_op, 31);
+  setLastReceivedAndLastCommitted(&response, MakeOpId(75, 49), *last_op, 31);
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
   ASSERT_TRUE(send_more_immediately);
@@ -1443,7 +1443,7 @@ TEST_F(
   ASSERT_OPID_EQ(request.ops(0).id(), MakeOpId(72, 41));
   last_op = &request.ops(request.ops_size() - 1).id();
 
-  SetLastReceivedAndLastCommitted(&response, MakeOpId(75, 49), *last_op, 31);
+  setLastReceivedAndLastCommitted(&response, MakeOpId(75, 49), *last_op, 31);
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
 
@@ -1473,7 +1473,7 @@ TEST_F(
   // We're done, both watermarks should be at the end.
   expected_majority_replicated = expected_all_replicated = 53;
 
-  SetLastReceivedAndLastCommitted(&response, MakeOpId(76, 53), 31);
+  setLastReceivedAndLastCommitted(&response, MakeOpId(76, 53), 31);
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);
 
@@ -1492,7 +1492,7 @@ TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
   // Emulate a follower sending a request to replicate 10 messages.
   queue_->UpdateLastIndexAppendedToLeader(10);
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
-  WaitForLocalPeerToAckIndex(10);
+  waitForLocalPeerToAckIndex(10);
 
   // The committed_index should be MinimumOpId() since
   // UpdateFollowerCommittedIndex has not been called.
@@ -1532,7 +1532,7 @@ TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
 
   // Wait for the local peer to append all messages
-  WaitForLocalPeerToAckIndex(10);
+  waitForLocalPeerToAckIndex(10);
 
   EXPECT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 10);
 }
