@@ -40,7 +40,7 @@ using std::vector;
 // Use this instead of gmtime_r if you want to build for Windows.
 // Windows doesn't have a 'gmtime_r', but it has the similar 'gmtime_s'.
 // TODO(user): Probably belongs in //base:time_support.{cc|h}.
-static struct tm* PortableSafeGmtime(const time_t* timep, struct tm* result) {
+static struct tm* portableSafeGmtime(const time_t* timep, struct tm* result) {
 #ifdef OS_WINDOWS
   return gmtime_s(result, timep) == 0 ? result : NULL;
 #else
@@ -48,20 +48,20 @@ static struct tm* PortableSafeGmtime(const time_t* timep, struct tm* result) {
 #endif // OS_WINDOWS
 }
 
-char* strnstr(const char* haystack, const char* needle, size_t haystack_len) {
+char* strnstr(const char* haystack, const char* needle, size_t haystackLen) {
   if (*needle == '\0') {
     return const_cast<char*>(haystack);
   }
-  size_t needle_len = strlen(needle);
+  size_t needleLen = strlen(needle);
   char* where;
-  while ((where = strnchr(haystack, *needle, haystack_len)) != nullptr) {
-    if (where - haystack + needle_len > haystack_len) {
+  while ((where = strnchr(haystack, *needle, haystackLen)) != nullptr) {
+    if (where - haystack + needleLen > haystackLen) {
       return nullptr;
     }
-    if (strncmp(where, needle, needle_len) == 0) {
+    if (strncmp(where, needle, needleLen) == 0) {
       return where;
     }
-    haystack_len -= where + 1 - haystack;
+    haystackLen -= where + 1 - haystack;
     haystack = where + 1;
   }
   return nullptr;
@@ -69,14 +69,14 @@ char* strnstr(const char* haystack, const char* needle, size_t haystack_len) {
 
 const char* strnprefix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size) {
-  if (needle_size > haystack_size) {
+    int needleSize) {
+  if (needleSize > haystackSize) {
     return nullptr;
   } else {
-    if (strncmp(haystack, needle, needle_size) == 0) {
-      return haystack + needle_size;
+    if (strncmp(haystack, needle, needleSize) == 0) {
+      return haystack + needleSize;
     } else {
       return nullptr;
     }
@@ -85,14 +85,14 @@ const char* strnprefix(
 
 const char* strncaseprefix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size) {
-  if (needle_size > haystack_size) {
+    int needleSize) {
+  if (needleSize > haystackSize) {
     return nullptr;
   } else {
-    if (strncasecmp(haystack, needle, needle_size) == 0) {
-      return haystack + needle_size;
+    if (strncasecmp(haystack, needle, needleSize) == 0) {
+      return haystack + needleSize;
     } else {
       return nullptr;
     }
@@ -113,14 +113,14 @@ char* strcasesuffix(char* str, const char* suffix) {
 
 const char* strnsuffix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size) {
-  if (needle_size > haystack_size) {
+    int needleSize) {
+  if (needleSize > haystackSize) {
     return nullptr;
   } else {
-    const char* start = haystack + haystack_size - needle_size;
-    if (strncmp(start, needle, needle_size) == 0) {
+    const char* start = haystack + haystackSize - needleSize;
+    if (strncmp(start, needle, needleSize) == 0) {
       return start;
     } else {
       return nullptr;
@@ -130,14 +130,14 @@ const char* strnsuffix(
 
 const char* strncasesuffix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size) {
-  if (needle_size > haystack_size) {
+    int needleSize) {
+  if (needleSize > haystackSize) {
     return nullptr;
   } else {
-    const char* start = haystack + haystack_size - needle_size;
-    if (strncasecmp(start, needle, needle_size) == 0) {
+    const char* start = haystack + haystackSize - needleSize;
+    if (strncasecmp(start, needle, needleSize) == 0) {
       return start;
     } else {
       return nullptr;
@@ -202,9 +202,9 @@ string stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
-    bool replace_all) {
+    bool replaceAll) {
   string ret;
-  stringReplace(s, oldsub, newsub, replace_all, &ret);
+  stringReplace(s, oldsub, newsub, replaceAll, &ret);
   return ret;
 }
 
@@ -219,26 +219,26 @@ void stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
-    bool replace_all,
+    bool replaceAll,
     string* res) {
   if (oldsub.empty()) {
     res->append(s.data(), s.length()); // If empty, append the given string.
     return;
   }
 
-  StringPiece::size_type start_pos = 0;
+  StringPiece::size_type startPos = 0;
   StringPiece::size_type pos;
   do {
-    pos = s.find(oldsub, start_pos);
+    pos = s.find(oldsub, startPos);
     if (pos == StringPiece::kNpos) {
       break;
     }
-    res->append(s.data() + start_pos, pos - start_pos);
+    res->append(s.data() + startPos, pos - startPos);
     res->append(newsub.data(), newsub.length());
     // Start searching again after the "old".
-    start_pos = pos + oldsub.length();
-  } while (replace_all);
-  res->append(s.data() + start_pos, s.length() - start_pos);
+    startPos = pos + oldsub.length();
+  } while (replaceAll);
+  res->append(s.data() + startPos, s.length() - startPos);
 }
 
 // ----------------------------------------------------------------------
@@ -257,25 +257,25 @@ int globalReplaceSubstring(
   if (s->empty() || substring.empty())
     return 0;
   string tmp;
-  int num_replacements = 0;
+  int numReplacements = 0;
   size_t pos = 0;
-  for (size_t match_pos = s->find(substring.data(), pos, substring.length());
-       match_pos != string::npos;
-       pos = match_pos + substring.length(),
-              match_pos = s->find(substring.data(), pos, substring.length())) {
-    ++num_replacements;
+  for (size_t matchPos = s->find(substring.data(), pos, substring.length());
+       matchPos != string::npos;
+       pos = matchPos + substring.length(),
+              matchPos = s->find(substring.data(), pos, substring.length())) {
+    ++numReplacements;
     // Append the original content before the match.
-    tmp.append(*s, pos, match_pos - pos);
+    tmp.append(*s, pos, matchPos - pos);
     // Append the replacement for the match.
     tmp.append(replacement.begin(), replacement.end());
   }
   // Append the content after the last match. If no replacements were made, the
   // original string is left untouched.
-  if (num_replacements > 0) {
+  if (numReplacements > 0) {
     tmp.append(*s, pos, s->length() - pos);
     s->swap(tmp);
   }
-  return num_replacements;
+  return numReplacements;
 }
 
 //---------------------------------------------------------------------------
@@ -343,13 +343,13 @@ const char* gstrncasestr(const char* haystack, const char* needle, size_t len) {
 
   if ((c = *needle++) != 0) {
     c = asciiToLower(c);
-    size_t needle_len = strlen(needle);
+    size_t needleLen = strlen(needle);
     do {
       do {
-        if (len-- <= needle_len || 0 == (sc = *haystack++))
+        if (len-- <= needleLen || 0 == (sc = *haystack++))
           return nullptr;
       } while (asciiToLower(sc) != c);
-    } while (strncasecmp(haystack, needle, needle_len) != 0);
+    } while (strncasecmp(haystack, needle, needleLen) != 0);
     haystack--;
   }
   return haystack;
@@ -497,7 +497,7 @@ strstr_delimited(const char* haystack, const char* needle, char delim) {
   if (*needle == '\0')
     return haystack;
 
-  int needle_len = strlen(needle);
+  int needleLen = strlen(needle);
 
   while (true) {
     // Skip any leading delimiters.
@@ -505,9 +505,9 @@ strstr_delimited(const char* haystack, const char* needle, char delim) {
       ++haystack;
 
     // Walk down the haystack, matching every character in the needle.
-    const char* this_match = haystack;
+    const char* thisMatch = haystack;
     int i = 0;
-    for (; i < needle_len; i++) {
+    for (; i < needleLen; i++) {
       if (*haystack != needle[i]) {
         // We ran out of haystack or found a non-matching character.
         break;
@@ -516,8 +516,8 @@ strstr_delimited(const char* haystack, const char* needle, char delim) {
     }
 
     // If we matched the whole needle, ensure that it's properly delimited.
-    if (i == needle_len && (*haystack == '\0' || *haystack == delim)) {
-      return this_match;
+    if (i == needleLen && (*haystack == '\0' || *haystack == delim)) {
+      return thisMatch;
     }
 
     // No match. Consume non-delimiter characters until we run out of them.
@@ -571,9 +571,9 @@ void fastStringAppend(string* s, const char* data, int len) {
 //
 // Several converters use this table to reduce
 // division and modulo operations.
-extern const char two_ASCII_digits[100][2];
+extern const char kTwoAsciiDigits[100][2];
 
-const char two_ASCII_digits[100][2] = {
+const char kTwoAsciiDigits[100][2] = {
     {'0', '0'}, {'0', '1'}, {'0', '2'}, {'0', '3'}, {'0', '4'}, {'0', '5'},
     {'0', '6'}, {'0', '7'}, {'0', '8'}, {'0', '9'}, {'1', '0'}, {'1', '1'},
     {'1', '2'}, {'1', '3'}, {'1', '4'}, {'1', '5'}, {'1', '6'}, {'1', '7'},
@@ -592,11 +592,11 @@ const char two_ASCII_digits[100][2] = {
     {'9', '0'}, {'9', '1'}, {'9', '2'}, {'9', '3'}, {'9', '4'}, {'9', '5'},
     {'9', '6'}, {'9', '7'}, {'9', '8'}, {'9', '9'}};
 
-static inline void PutTwoDigits(int i, char* p) {
+static inline void putTwoDigits(int i, char* p) {
   DCHECK_GE(i, 0);
   DCHECK_LT(i, 100);
-  p[0] = two_ASCII_digits[i][0];
-  p[1] = two_ASCII_digits[i][1];
+  p[0] = kTwoAsciiDigits[i][0];
+  p[1] = kTwoAsciiDigits[i][1];
 }
 
 char* fastTimeToBuffer(time_t s, char* buffer) {
@@ -605,7 +605,7 @@ char* fastTimeToBuffer(time_t s, char* buffer) {
   }
 
   struct tm tm;
-  if (PortableSafeGmtime(&s, &tm) == nullptr) {
+  if (portableSafeGmtime(&s, &tm) == nullptr) {
     // Error message must fit in 30-char buffer.
     memcpy(buffer, "Invalid:", sizeof("Invalid:"));
     fastInt64ToBufferLeft(s, buffer + strlen(buffer));
@@ -616,101 +616,101 @@ char* fastTimeToBuffer(time_t s, char* buffer) {
   // but strftime does locale stuff which we do not want
   // plus strftime takes > 10x the time of hard code
 
-  const char* weekday_name = "Xxx";
+  const char* weekdayName = "Xxx";
   switch (tm.tm_wday) {
     default: {
       LOG(FATAL) << "tm.tm_wday: " << tm.tm_wday;
     }
     case 0:
-      weekday_name = "Sun";
+      weekdayName = "Sun";
       break;
     case 1:
-      weekday_name = "Mon";
+      weekdayName = "Mon";
       break;
     case 2:
-      weekday_name = "Tue";
+      weekdayName = "Tue";
       break;
     case 3:
-      weekday_name = "Wed";
+      weekdayName = "Wed";
       break;
     case 4:
-      weekday_name = "Thu";
+      weekdayName = "Thu";
       break;
     case 5:
-      weekday_name = "Fri";
+      weekdayName = "Fri";
       break;
     case 6:
-      weekday_name = "Sat";
+      weekdayName = "Sat";
       break;
   }
 
-  const char* month_name = "Xxx";
+  const char* monthName = "Xxx";
   switch (tm.tm_mon) {
     default: {
       LOG(FATAL) << "tm.tm_mon: " << tm.tm_mon;
     }
     case 0:
-      month_name = "Jan";
+      monthName = "Jan";
       break;
     case 1:
-      month_name = "Feb";
+      monthName = "Feb";
       break;
     case 2:
-      month_name = "Mar";
+      monthName = "Mar";
       break;
     case 3:
-      month_name = "Apr";
+      monthName = "Apr";
       break;
     case 4:
-      month_name = "May";
+      monthName = "May";
       break;
     case 5:
-      month_name = "Jun";
+      monthName = "Jun";
       break;
     case 6:
-      month_name = "Jul";
+      monthName = "Jul";
       break;
     case 7:
-      month_name = "Aug";
+      monthName = "Aug";
       break;
     case 8:
-      month_name = "Sep";
+      monthName = "Sep";
       break;
     case 9:
-      month_name = "Oct";
+      monthName = "Oct";
       break;
     case 10:
-      month_name = "Nov";
+      monthName = "Nov";
       break;
     case 11:
-      month_name = "Dec";
+      monthName = "Dec";
       break;
   }
 
   // Write out the buffer.
 
-  memcpy(buffer + 0, weekday_name, 3);
+  memcpy(buffer + 0, weekdayName, 3);
   buffer[3] = ',';
   buffer[4] = ' ';
 
-  PutTwoDigits(tm.tm_mday, buffer + 5);
+  putTwoDigits(tm.tm_mday, buffer + 5);
   buffer[7] = ' ';
 
-  memcpy(buffer + 8, month_name, 3);
+  memcpy(buffer + 8, monthName, 3);
   buffer[11] = ' ';
 
   int32_t year = tm.tm_year + 1900;
-  PutTwoDigits(year / 100, buffer + 12);
-  PutTwoDigits(year % 100, buffer + 14);
+  putTwoDigits(year / 100, buffer + 12);
+  putTwoDigits(year % 100, buffer + 14);
   buffer[16] = ' ';
 
-  PutTwoDigits(tm.tm_hour, buffer + 17);
+  putTwoDigits(tm.tm_hour, buffer + 17);
   buffer[19] = ':';
 
-  PutTwoDigits(tm.tm_min, buffer + 20);
+  putTwoDigits(tm.tm_min, buffer + 20);
   buffer[22] = ':';
 
-  PutTwoDigits(tm.tm_sec, buffer + 23);
+  putTwoDigits(tm.tm_sec, buffer + 23);
 
   // includes ending NUL
   memcpy(buffer + 25, " GMT", 5);
@@ -817,21 +817,21 @@ bool isIdentifier(const char* str) {
   return end && *end == '\0';
 }
 
-static bool IsWildcard(Rune character) {
+static bool isWildcard(Rune character) {
   return character == '*' || character == '?';
 }
 
 // Move the strings pointers to the point where they start to differ.
 template <typename CHAR, typename NEXT>
-static void EatSameChars(
+static void eatSameChars(
     const CHAR** pattern,
-    const CHAR* pattern_end,
+    const CHAR* patternEnd,
     const CHAR** string,
-    const CHAR* string_end,
+    const CHAR* stringEnd,
     NEXT next) {
   const CHAR* escape = nullptr;
-  while (*pattern != pattern_end && *string != string_end) {
-    if (!escape && IsWildcard(**pattern)) {
+  while (*pattern != patternEnd && *string != stringEnd) {
+    if (!escape && isWildcard(**pattern)) {
       // We don't want to match wildcard here, except if it's escaped.
       return;
     }
@@ -840,18 +840,18 @@ static void EatSameChars(
     // next character.
     if (!escape && **pattern == '\\') {
       escape = *pattern;
-      next(pattern, pattern_end);
+      next(pattern, patternEnd);
       continue;
     }
 
     // Check if the chars match, if so, increment the ptrs.
-    const CHAR* pattern_next = *pattern;
-    const CHAR* string_next = *string;
-    Rune pattern_char = next(&pattern_next, pattern_end);
-    if (pattern_char == next(&string_next, string_end) &&
-        pattern_char != Runeerror && pattern_char <= Runemax) {
-      *pattern = pattern_next;
-      *string = string_next;
+    const CHAR* patternNext = *pattern;
+    const CHAR* stringNext = *string;
+    Rune patternChar = next(&patternNext, patternEnd);
+    if (patternChar == next(&stringNext, stringEnd) &&
+        patternChar != Runeerror && patternChar <= Runemax) {
+      *pattern = patternNext;
+      *string = stringNext;
     } else {
       // Uh ho, it did not match, we are done. If the last char was an
       // escapement, that means that it was an error to advance the ptr here,
@@ -869,20 +869,20 @@ static void EatSameChars(
 }
 
 template <typename CHAR, typename NEXT>
-static void EatWildcard(const CHAR** pattern, const CHAR* end, NEXT next) {
+static void eatWildcard(const CHAR** pattern, const CHAR* end, NEXT next) {
   while (*pattern != end) {
-    if (!IsWildcard(**pattern))
+    if (!isWildcard(**pattern))
       return;
     next(pattern, end);
   }
 }
 
 template <typename CHAR, typename NEXT>
-static bool MatchPatternT(
+static bool matchPatternT(
     const CHAR* eval,
-    const CHAR* eval_end,
+    const CHAR* evalEnd,
     const CHAR* pattern,
-    const CHAR* pattern_end,
+    const CHAR* patternEnd,
     int depth,
     NEXT next) {
   const int kMaxDepth = 16;
@@ -890,31 +890,30 @@ static bool MatchPatternT(
     return false;
 
   // Eat all the matching chars.
-  EatSameChars(&pattern, pattern_end, &eval, eval_end, next);
+  eatSameChars(&pattern, patternEnd, &eval, evalEnd, next);
 
   // If the string is empty, then the pattern must be empty too, or contains
   // only wildcards.
-  if (eval == eval_end) {
-    EatWildcard(&pattern, pattern_end, next);
-    return pattern == pattern_end;
+  if (eval == evalEnd) {
+    eatWildcard(&pattern, patternEnd, next);
+    return pattern == patternEnd;
   }
 
   // Pattern is empty but not string, this is not a match.
-  if (pattern == pattern_end)
+  if (pattern == patternEnd)
     return false;
 
   // If this is a question mark, then we need to compare the rest with
   // the current string or the string with one character eaten.
-  const CHAR* next_pattern = pattern;
-  next(&next_pattern, pattern_end);
+  const CHAR* nextPattern = pattern;
+  next(&nextPattern, patternEnd);
   if (pattern[0] == '?') {
-    if (MatchPatternT(
-            eval, eval_end, next_pattern, pattern_end, depth + 1, next))
+    if (matchPatternT(eval, evalEnd, nextPattern, patternEnd, depth + 1, next))
       return true;
-    const CHAR* next_eval = eval;
-    next(&next_eval, eval_end);
-    if (MatchPatternT(
-            next_eval, eval_end, next_pattern, pattern_end, depth + 1, next))
+    const CHAR* nextEval = eval;
+    next(&nextEval, evalEnd);
+    if (matchPatternT(
+            nextEval, evalEnd, nextPattern, patternEnd, depth + 1, next))
       return true;
   }
 
@@ -923,20 +922,20 @@ static bool MatchPatternT(
   if (pattern[0] == '*') {
     // Collapse duplicate wild cards (********** into *) so that the
     // method does not recurse unnecessarily. http://crbug.com/52839
-    EatWildcard(&next_pattern, pattern_end, next);
+    eatWildcard(&nextPattern, patternEnd, next);
 
-    while (eval != eval_end) {
-      if (MatchPatternT(
-              eval, eval_end, next_pattern, pattern_end, depth + 1, next))
+    while (eval != evalEnd) {
+      if (matchPatternT(
+              eval, evalEnd, nextPattern, patternEnd, depth + 1, next))
         return true;
       eval++;
     }
 
     // We reached the end of the string, let see if the pattern contains only
     // wildcards.
-    if (eval == eval_end) {
-      EatWildcard(&pattern, pattern_end, next);
-      if (pattern != pattern_end)
+    if (eval == evalEnd) {
+      eatWildcard(&pattern, patternEnd, next);
+      if (pattern != patternEnd)
         return false;
       return true;
     }
@@ -945,7 +944,7 @@ static bool MatchPatternT(
   return false;
 }
 
-struct NextCharUTF8 {
+struct NextCharUtf8 {
   Rune operator()(const char** p, const char* end) {
     Rune c;
     int offset = charntorune(&c, *p, static_cast<int>(end - *p));
@@ -955,13 +954,13 @@ struct NextCharUTF8 {
 };
 
 bool matchPattern(const StringPiece& eval, const StringPiece& pattern) {
-  return MatchPatternT(
+  return matchPatternT(
       eval.data(),
       eval.data() + eval.size(),
       pattern.data(),
       pattern.data() + pattern.size(),
       0,
-      NextCharUTF8());
+      NextCharUtf8());
 }
 
 // ----------------------------------------------------------------------

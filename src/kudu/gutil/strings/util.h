@@ -91,7 +91,7 @@ inline char* strnchr(const char* buf, char c, int sz) {
 // haystack_len bytes of haystack. Returns NULL if needle is not found. Returns
 // haystack if needle is empty.
 // WARNING: Removes const-ness of string argument!
-char* strnstr(const char* haystack, const char* needle, size_t haystack_len);
+char* strnstr(const char* haystack, const char* needle, size_t haystackLen);
 
 // Matches a prefix (which must be a char* literal!) against the beginning of
 // str. Returns a pointer past the prefix, or NULL if the prefix wasn't matched.
@@ -130,9 +130,9 @@ char* strnstr(const char* haystack, const char* needle, size_t haystack_len);
 #endif
 const char* strnprefix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size);
+    int needleSize);
 
 // Matches a case-insensitive prefix (up to the first needle_size bytes of
 // needle) in the first haystack_size byte of haystack. Returns a pointer past
@@ -141,9 +141,9 @@ const char* strnprefix(
 // Always returns either NULL or haystack + needle_size.
 const char* strncaseprefix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size);
+    int needleSize);
 
 // Matches a prefix; returns a pointer past the prefix, or NULL if not found.
 // (Like strprefix() and strcaseprefix() but not restricted to searching for
@@ -209,14 +209,14 @@ inline const char* strcasesuffix(const char* str, const char* suffix) {
 
 const char* strnsuffix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size);
+    int needleSize);
 const char* strncasesuffix(
     const char* haystack,
-    int haystack_size,
+    int haystackSize,
     const char* needle,
-    int needle_size);
+    int needleSize);
 
 // Returns the number of times a character occurs in a string for a null
 // terminated string.
@@ -360,12 +360,12 @@ std::string stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
-    bool replace_all);
+    bool replaceAll);
 void stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
-    bool replace_all,
+    bool replaceAll,
     std::string* res);
 
 // Replaces all occurrences of substring in s with replacement. Returns the

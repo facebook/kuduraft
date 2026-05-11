@@ -945,11 +945,11 @@ char* fastHex32ToBuffer(uint32_t value, char* buffer) {
   return internalFastHexToBuffer(value, buffer, 8);
 }
 
-// TODO(user): revisit the two_ASCII_digits optimization.
+// TODO(user): revisit the kTwoAsciiDigits optimization.
 //
 // Several converters use this table to reduce
 // division and modulo operations.
-extern const char two_ASCII_digits[100][2]; // from strutil.cc
+extern const char kTwoAsciiDigits[100][2]; // from strutil.cc
 
 // ----------------------------------------------------------------------
 // FastInt32ToBufferLeft()
@@ -978,7 +978,7 @@ char* fastUInt32ToBufferLeft(uint32_t u, char* buffer) {
   // branches into it from below.
   if (u >= 1000000000) { // >= 1,000,000,000
     digits = u / 100000000; // 100,000,000
-    ASCII_digits = two_ASCII_digits[digits];
+    ASCII_digits = kTwoAsciiDigits[digits];
     buffer[0] = ASCII_digits[0];
     buffer[1] = ASCII_digits[1];
     buffer += 2;
@@ -986,7 +986,7 @@ char* fastUInt32ToBufferLeft(uint32_t u, char* buffer) {
     u -= digits * 100000000; // 100,000,000
   lt100_000_000:
     digits = u / 1000000; // 1,000,000
-    ASCII_digits = two_ASCII_digits[digits];
+    ASCII_digits = kTwoAsciiDigits[digits];
     buffer[0] = ASCII_digits[0];
     buffer[1] = ASCII_digits[1];
     buffer += 2;
@@ -994,7 +994,7 @@ char* fastUInt32ToBufferLeft(uint32_t u, char* buffer) {
     u -= digits * 1000000; // 1,000,000
   lt1_000_000:
     digits = u / 10000; // 10,000
-    ASCII_digits = two_ASCII_digits[digits];
+    ASCII_digits = kTwoAsciiDigits[digits];
     buffer[0] = ASCII_digits[0];
     buffer[1] = ASCII_digits[1];
     buffer += 2;
@@ -1002,7 +1002,7 @@ char* fastUInt32ToBufferLeft(uint32_t u, char* buffer) {
     u -= digits * 10000; // 10,000
   lt10_000:
     digits = u / 100;
-    ASCII_digits = two_ASCII_digits[digits];
+    ASCII_digits = kTwoAsciiDigits[digits];
     buffer[0] = ASCII_digits[0];
     buffer[1] = ASCII_digits[1];
     buffer += 2;
@@ -1010,7 +1010,7 @@ char* fastUInt32ToBufferLeft(uint32_t u, char* buffer) {
     u -= digits * 100;
   lt100:
     digits = u;
-    ASCII_digits = two_ASCII_digits[digits];
+    ASCII_digits = kTwoAsciiDigits[digits];
     buffer[0] = ASCII_digits[0];
     buffer[1] = ASCII_digits[1];
     buffer += 2;
@@ -1076,25 +1076,25 @@ char* fastUInt64ToBufferLeft(uint64_t u64, char* buffer) {
 
   digits = u / 10000000; // 10,000,000
   DCHECK_LT(digits, 100);
-  ASCII_digits = two_ASCII_digits[digits];
+  ASCII_digits = kTwoAsciiDigits[digits];
   buffer[0] = ASCII_digits[0];
   buffer[1] = ASCII_digits[1];
   buffer += 2;
   u -= digits * 10000000; // 10,000,000
   digits = u / 100000; // 100,000
-  ASCII_digits = two_ASCII_digits[digits];
+  ASCII_digits = kTwoAsciiDigits[digits];
   buffer[0] = ASCII_digits[0];
   buffer[1] = ASCII_digits[1];
   buffer += 2;
   u -= digits * 100000; // 100,000
   digits = u / 1000; // 1,000
-  ASCII_digits = two_ASCII_digits[digits];
+  ASCII_digits = kTwoAsciiDigits[digits];
   buffer[0] = ASCII_digits[0];
   buffer[1] = ASCII_digits[1];
   buffer += 2;
   u -= digits * 1000; // 1,000
   digits = u / 10;
-  ASCII_digits = two_ASCII_digits[digits];
+  ASCII_digits = kTwoAsciiDigits[digits];
   buffer[0] = ASCII_digits[0];
   buffer[1] = ASCII_digits[1];
   buffer += 2;
