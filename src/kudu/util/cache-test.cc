@@ -30,12 +30,12 @@ DECLARE_double(cache_memtracker_approximation_ratio);
 namespace kudu {
 
 // Conversions between numeric keys/values and the types expected by Cache.
-static std::string EncodeInt(int k) {
+static std::string encodeInt(int k) {
   faststring result;
   putFixed32(&result, k);
   return result.ToString();
 }
-static int DecodeInt(const Slice& k) {
+static int decodeInt(const Slice& k) {
   assert(k.size() == 4);
   return DecodeFixed32(k.data());
 }
@@ -46,14 +46,14 @@ class CacheTest : public KuduTest,
  public:
   // Implementation of the EvictionCallback interface
   void evictedEntry(Slice key, Slice val) override {
-    evicted_keys_.push_back(DecodeInt(key));
-    evicted_values_.push_back(DecodeInt(val));
+    evictedKeys.push_back(decodeInt(key));
+    evictedValues.push_back(decodeInt(val));
   }
-  std::vector<int> evicted_keys_;
-  std::vector<int> evicted_values_;
-  std::shared_ptr<MemTracker> mem_tracker_;
-  std::unique_ptr<Cache> cache_;
-  MetricRegistry metric_registry_;
+  std::vector<int> evictedKeys;
+  std::vector<int> evictedValues;
+  std::shared_ptr<MemTracker> memTracker;
+  std::unique_ptr<Cache> cache;
+  MetricRegistry metricRegistry;
 
   static const int kCacheSize = 14 * 1024 * 1024;
 
@@ -69,42 +69,42 @@ class CacheTest : public KuduTest,
     // assertions on the MemTracker in this test.
     FLAGS_cache_memtracker_approximation_ratio = 0;
 
-    cache_.reset(newLruCache(GetParam(), kCacheSize, "cache_test"));
+    cache.reset(newLruCache(GetParam(), kCacheSize, "cache_test"));
 
-    MemTracker::findTracker("cache_test-sharded_lru_cache", &mem_tracker_);
+    MemTracker::findTracker("cache_test-sharded_lru_cache", &memTracker);
     // Since nvm cache does not have memtracker due to the use of
     // tcmalloc for this we only check for it in the DRAM case.
     if (GetParam() == kDramCache) {
-      ASSERT_TRUE(mem_tracker_.get());
+      ASSERT_TRUE(memTracker.get());
     }
 
     std::shared_ptr<MetricEntity> entity =
-        METRIC_ENTITY_server.instantiate(&metric_registry_, "test");
-    cache_->SetMetrics(entity);
+        METRIC_ENTITY_server.instantiate(&metricRegistry, "test");
+    cache->SetMetrics(entity);
   }
 
   int Lookup(int key) {
     Cache::Handle* handle =
-        cache_->Lookup(EncodeInt(key), Cache::kExpectInCache);
-    const int r = (handle == nullptr) ? -1 : DecodeInt(cache_->Value(handle));
+        cache->Lookup(encodeInt(key), Cache::kExpectInCache);
+    const int r = (handle == nullptr) ? -1 : decodeInt(cache->Value(handle));
     if (handle != nullptr) {
-      cache_->Release(handle);
+      cache->Release(handle);
     }
     return r;
   }
 
   void Insert(int key, int value, int charge = 1) {
-    std::string key_str = EncodeInt(key);
-    std::string val_str = EncodeInt(value);
+    std::string keyStr = encodeInt(key);
+    std::string valStr = encodeInt(value);
     Cache::PendingHandle* handle =
-        CHECK_NOTNULL(cache_->Allocate(key_str, val_str.size(), charge));
-    memcpy(cache_->MutableValue(handle), val_str.data(), val_str.size());
+        CHECK_NOTNULL(cache->Allocate(keyStr, valStr.size(), charge));
+    memcpy(cache->MutableValue(handle), valStr.data(), valStr.size());
 
-    cache_->Release(cache_->Insert(handle, this));
+    cache->Release(cache->Insert(handle, this));
   }
 
   void Erase(int key) {
-    cache_->Erase(EncodeInt(key));
+    cache->Erase(encodeInt(key));
   }
 };
 
@@ -119,12 +119,12 @@ INSTANTIATE_TEST_CASE_P(CacheTypes, CacheTest, ::testing::Values(kDramCache));
 #endif // defined(__linux__)
 
 TEST_P(CacheTest, TrackMemory) {
-  if (mem_tracker_) {
+  if (memTracker) {
     Insert(100, 100, 1);
-    ASSERT_EQ(1, mem_tracker_->consumption());
+    ASSERT_EQ(1, memTracker->consumption());
     Erase(100);
-    ASSERT_EQ(0, mem_tracker_->consumption());
-    ASSERT_EQ(1, mem_tracker_->peakConsumption());
+    ASSERT_EQ(0, memTracker->consumption());
+    ASSERT_EQ(1, memTracker->peakConsumption());
   }
 }
 
@@ -146,53 +146,53 @@ TEST_P(CacheTest, HitAndMiss) {
   ASSERT_EQ(201, Lookup(200));
   ASSERT_EQ(-1, Lookup(300));
 
-  ASSERT_EQ(1, evicted_keys_.size());
-  ASSERT_EQ(100, evicted_keys_[0]);
-  ASSERT_EQ(101, evicted_values_[0]);
+  ASSERT_EQ(1, evictedKeys.size());
+  ASSERT_EQ(100, evictedKeys[0]);
+  ASSERT_EQ(101, evictedValues[0]);
 }
 
 TEST_P(CacheTest, Erase) {
   Erase(200);
-  ASSERT_EQ(0, evicted_keys_.size());
+  ASSERT_EQ(0, evictedKeys.size());
 
   Insert(100, 101);
   Insert(200, 201);
   Erase(100);
   ASSERT_EQ(-1, Lookup(100));
   ASSERT_EQ(201, Lookup(200));
-  ASSERT_EQ(1, evicted_keys_.size());
-  ASSERT_EQ(100, evicted_keys_[0]);
-  ASSERT_EQ(101, evicted_values_[0]);
+  ASSERT_EQ(1, evictedKeys.size());
+  ASSERT_EQ(100, evictedKeys[0]);
+  ASSERT_EQ(101, evictedValues[0]);
 
   Erase(100);
   ASSERT_EQ(-1, Lookup(100));
   ASSERT_EQ(201, Lookup(200));
-  ASSERT_EQ(1, evicted_keys_.size());
+  ASSERT_EQ(1, evictedKeys.size());
 }
 
 TEST_P(CacheTest, EntriesArePinned) {
   Insert(100, 101);
-  Cache::Handle* h1 = cache_->Lookup(EncodeInt(100), Cache::kExpectInCache);
-  ASSERT_EQ(101, DecodeInt(cache_->Value(h1)));
+  Cache::Handle* h1 = cache->Lookup(encodeInt(100), Cache::kExpectInCache);
+  ASSERT_EQ(101, decodeInt(cache->Value(h1)));
 
   Insert(100, 102);
-  Cache::Handle* h2 = cache_->Lookup(EncodeInt(100), Cache::kExpectInCache);
-  ASSERT_EQ(102, DecodeInt(cache_->Value(h2)));
-  ASSERT_EQ(0, evicted_keys_.size());
+  Cache::Handle* h2 = cache->Lookup(encodeInt(100), Cache::kExpectInCache);
+  ASSERT_EQ(102, decodeInt(cache->Value(h2)));
+  ASSERT_EQ(0, evictedKeys.size());
 
-  cache_->Release(h1);
-  ASSERT_EQ(1, evicted_keys_.size());
-  ASSERT_EQ(100, evicted_keys_[0]);
-  ASSERT_EQ(101, evicted_values_[0]);
+  cache->Release(h1);
+  ASSERT_EQ(1, evictedKeys.size());
+  ASSERT_EQ(100, evictedKeys[0]);
+  ASSERT_EQ(101, evictedValues[0]);
 
   Erase(100);
   ASSERT_EQ(-1, Lookup(100));
-  ASSERT_EQ(1, evicted_keys_.size());
+  ASSERT_EQ(1, evictedKeys.size());
 
-  cache_->Release(h2);
-  ASSERT_EQ(2, evicted_keys_.size());
-  ASSERT_EQ(100, evicted_keys_[1]);
-  ASSERT_EQ(102, evicted_values_[1]);
+  cache->Release(h2);
+  ASSERT_EQ(2, evictedKeys.size());
+  ASSERT_EQ(100, evictedKeys[1]);
+  ASSERT_EQ(102, evictedValues[1]);
 }
 
 TEST_P(CacheTest, EvictionPolicy) {
@@ -230,16 +230,16 @@ TEST_P(CacheTest, HeavyEntries) {
     index++;
   }
 
-  int cached_weight = 0;
+  int cachedWeight = 0;
   for (int i = 0; i < index; i++) {
     const int weight = (i & 1 ? kLight : kHeavy);
     int r = Lookup(i);
     if (r >= 0) {
-      cached_weight += weight;
+      cachedWeight += weight;
       ASSERT_EQ(1000 + i, r);
     }
   }
-  ASSERT_LE(cached_weight, kCacheSize + kCacheSize / 10);
+  ASSERT_LE(cachedWeight, kCacheSize + kCacheSize / 10);
 }
 
 } // namespace kudu
