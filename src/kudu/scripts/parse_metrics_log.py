@@ -86,9 +86,9 @@ HISTOGRAM_METRICS = [
 ]
 
 # Get the set of metrics we actuall want to bother parsing from the log.
-PARSE_METRIC_KEYS = set(
+PARSE_METRIC_KEYS = {
     key for (key, _) in (SIMPLE_METRICS + RATE_METRICS + HISTOGRAM_METRICS)
-)
+}
 
 # The script always reports cache-hit metrics.
 PARSE_METRIC_KEYS.add("server.block_cache_hits_caching")
