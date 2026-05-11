@@ -115,7 +115,7 @@ RaftConsensusServer::RaftConsensusServer(const ConsensusServerOptions& opts)
       initted_(false),
       started_(false),
       opts_(opts),
-      consensus_manager_(new RaftConsensusManager(this)) {}
+      consensusManager_(new RaftConsensusManager(this)) {}
 
 RaftConsensusServer::~RaftConsensusServer() {
   Shutdown();
@@ -140,16 +140,16 @@ Status RaftConsensusServer::Init() {
   RETURN_NOT_OK(KuduServer::Init());
 
   std::unique_ptr<ServiceIf> consensusService(
-      new ConsensusServiceImpl(this, *consensus_manager_));
+      new ConsensusServiceImpl(this, *consensusManager_));
   RETURN_NOT_OK(RegisterService(std::move(consensusService)));
   RETURN_NOT_OK(KuduServer::Start());
 
-  if (consensus_manager_->IsInitialized()) {
+  if (consensusManager_->IsInitialized()) {
     return Status::IllegalState("Consensus manager is already initialized");
   }
 
   RETURN_NOT_OK_PREPEND(
-      consensus_manager_->Init(is_first_run_),
+      consensusManager_->Init(is_first_run_),
       "Unable to initialize consensus manager");
 
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
@@ -167,12 +167,12 @@ Status RaftConsensusServer::Start() {
 
   LOG(INFO) << "Starting RaftConsensusServer";
 
-  if (!consensus_manager_->IsInitialized()) {
+  if (!consensusManager_->IsInitialized()) {
     return Status::IllegalState("Consensus manager is not initialized");
   }
 
   RETURN_NOT_OK_PREPEND(
-      consensus_manager_->Start(is_first_run_),
+      consensusManager_->Start(is_first_run_),
       "Unable to start consensus manager");
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   started_ = true;
@@ -192,7 +192,7 @@ void RaftConsensusServer::Shutdown() {
   UnregisterAllServices();
 
   // 2. Stop consensus
-  consensus_manager_->Shutdown();
+  consensusManager_->Shutdown();
 
   // 3. Shut down generic subsystems.
   KuduServer::Shutdown();
@@ -203,13 +203,13 @@ void RaftConsensusServer::Shutdown() {
 RaftConsensusInstance::RaftConsensusInstance(
     const std::string& id,
     RaftConsensusServer* server,
-    std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager,
+    std::shared_ptr<consensus::ConsensusMetadataManager> cmetaManager,
     std::shared_ptr<consensus::PersistentVarsManager> persistentVarsManager)
     : id_(id),
       state_(MANAGER_INITIALIZING),
       server_(server),
-      fs_manager_(server->fsManager()),
-      cmeta_manager_(std::move(cmeta_manager)),
+      fsManager_(server->fsManager()),
+      cmetaManager_(std::move(cmetaManager)),
       persistentVarsManager_(std::move(persistentVarsManager)) {}
 
 RaftConsensusInstance::~RaftConsensusInstance() {
@@ -222,11 +222,11 @@ RaftConsensusInstance::~RaftConsensusInstance() {
   }
 }
 
-Status RaftConsensusInstance::Init(bool is_first_run) {
+Status RaftConsensusInstance::Init(bool isFirstRun) {
   LOG_WITH_PREFIX(INFO) << "Initializing RaftConsensusInstance";
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
-  if (is_first_run) {
+  if (isFirstRun) {
     LOG_WITH_PREFIX(INFO)
         << "RaftConsensusInstance::Init: is_first_run detected. Calling createNew";
     RETURN_NOT_OK_PREPEND(
@@ -248,7 +248,7 @@ Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->loadCMeta(id_, &cmeta);
+  Status s = cmetaManager_->loadCMeta(id_, &cmeta);
 
   std::shared_ptr<PersistentVars> persistentVars;
   s = persistentVarsManager_->loadPersistentVars(id_, &persistentVars);
@@ -290,9 +290,9 @@ Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
   // may invoke TabletReplica::StartFollowerTransaction() during startup,
   // causing a self-deadlock. We take a ref to members protected by 'lock_'
   // before unlocking.
-  auto bootstrap_info = log_->getRecoveryInfo();
+  auto bootstrapInfo = log_->getRecoveryInfo();
   RETURN_NOT_OK(consensus_->start(
-      bootstrap_info,
+      bootstrapInfo,
       std::move(peerProxyFactory),
       log_,
       std::move(timeManager),
@@ -350,12 +350,12 @@ void RaftConsensusInstance::Shutdown() {
 }
 
 std::shared_ptr<consensus::RaftConsensus>
-RaftConsensusInstance::shared_consensus() const {
+RaftConsensusInstance::sharedConsensus() const {
   return consensus_;
 }
 
 std::string RaftConsensusInstance::LogPrefix() const {
-  DCHECK(fs_manager_ != nullptr);
+  DCHECK(fsManager_ != nullptr);
   return fmt::format("[{}] ", id_);
 }
 
@@ -377,12 +377,12 @@ Status RaftConsensusInstance::createNew(FsManager* fsManager) {
   }
 
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->createCMeta(id_, config, consensus::kMinimumTerm),
+      cmetaManager_->createCMeta(id_, config, consensus::kMinimumTerm),
       "Unable to persist consensus metadata for tablet " + id_);
   // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation
   // time. For now, we initialize with an empty proxy graph.
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->createDrt(id_, config, {}),
+      cmetaManager_->createDrt(id_, config, {}),
       "Unable to create new durable routing table for tablet " + id_);
   // Note that we are intentionally not creating Persistent Vars here because we
   // do it in setupRaft() anyway if the file does not exist
@@ -395,7 +395,7 @@ Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
-        cmeta_manager_->loadCMeta(id_, &cmeta),
+        cmetaManager_->loadCMeta(id_, &cmeta),
         "Unable to load consensus metadata for tablet " + id_);
     const ConsensusStatePB& cstate = cmeta->toConsensusStatePB();
     RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
@@ -540,8 +540,8 @@ Status RaftConsensusInstance::setupRaft() {
   RETURN_NOT_OK(
       RaftConsensus::Create(
           std::move(options),
-          local_peer_pb_,
-          cmeta_manager_,
+          localPeerPb_,
+          cmetaManager_,
           persistentVarsManager_,
           server_->raftPool(),
           &consensus));
@@ -573,14 +573,14 @@ Status RaftConsensusInstance::setupRaft() {
 
   // Not sure these 2 lines are required
   std::shared_ptr<ConsensusMetadata> cmeta;
-  RETURN_NOT_OK(cmeta_manager_->loadCMeta(id_, &cmeta));
+  RETURN_NOT_OK(cmetaManager_->loadCMeta(id_, &cmeta));
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.
   LogOptions logOptions;
   logOptions.logFactory = opts.logFactory;
   RETURN_NOT_OK(
-      Log::Open(logOptions, fs_manager_, id_, server_->metricEntity(), &log_));
+      Log::Open(logOptions, fsManager_, id_, server_->metricEntity(), &log_));
 
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
@@ -607,10 +607,10 @@ Status RaftConsensusInstance::setupRaft() {
   // logBootstrapOnFirstRun in options.
   if (opts.logFactory &&
       (!server_->is_first_run_ || opts.logBootstrapOnFirstRun)) {
-    auto bootstrap_info = log_->getRecoveryInfo();
-    if (bootstrap_info &&
-        bootstrap_info->last_id.term() > consensus_->currentTerm()) {
-      consensus_->setCurrentTermBootstrap(bootstrap_info->last_id.term());
+    auto bootstrapInfo = log_->getRecoveryInfo();
+    if (bootstrapInfo &&
+        bootstrapInfo->last_id.term() > consensus_->currentTerm()) {
+      consensus_->setCurrentTermBootstrap(bootstrapInfo->last_id.term());
     }
   }
   return Status::OK();
@@ -618,18 +618,18 @@ Status RaftConsensusInstance::setupRaft() {
 
 void RaftConsensusInstance::initLocalRaftPeerPb() {
   DCHECK_EQ(state(), MANAGER_INITIALIZING);
-  local_peer_pb_.set_permanent_uuid(fs_manager_->uuid());
+  localPeerPb_.set_permanent_uuid(fsManager_->uuid());
   const Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
   CHECK_OK(hostPortFromSockaddrReplaceWildcard(addr, &hp));
-  CHECK_OK(hostPortToPb(hp, local_peer_pb_.mutable_last_known_addr()));
+  CHECK_OK(hostPortToPb(hp, localPeerPb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
   // attr. We assumed that on plugin side, topologyConfig->server_config
   // is well formed. We use it directly here.
   if (FLAGS_enable_flexi_raft &&
       server_->opts(id_).topologyConfig.has_server_config()) {
-    local_peer_pb_ = server_->opts(id_).topologyConfig.server_config();
+    localPeerPb_ = server_->opts(id_).topologyConfig.server_config();
   }
 }
 
@@ -680,17 +680,17 @@ Status RaftConsensusInstance::waitUntilRunning() {
 }
 
 RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
-    : fs_manager_(server->fsManager()),
-      cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
+    : fsManager_(server->fsManager()),
+      cmetaManager_(std::make_shared<ConsensusMetadataManager>(fsManager_)),
       persistentVarsManager_(
-          std::make_shared<PersistentVarsManager>(fs_manager_)),
+          std::make_shared<PersistentVarsManager>(fsManager_)),
       server_(server) {
-  const std::unique_lock lock(map_lock_);
+  const std::unique_lock lock(mapLock_);
   std::vector<std::string> ids;
   server_->opts_.getIds(ids);
   for (const auto& id : ids) {
     auto instanceManager = std::make_shared<RaftConsensusInstance>(
-        id, server_, cmeta_manager_, persistentVarsManager_);
+        id, server_, cmetaManager_, persistentVarsManager_);
     map_[id] = instanceManager;
   }
 }
@@ -702,17 +702,17 @@ const NodeInstancePB& RaftConsensusManager::NodeInstance() const {
 
 std::shared_ptr<consensus::RaftConsensus>
 RaftConsensusManager::shared_consensus(const std::string& id) const {
-  const std::shared_lock lock(map_lock_);
+  const std::shared_lock lock(mapLock_);
   auto itr = map_.find(id);
   if (itr == map_.end()) {
     return nullptr;
   }
-  return itr->second->shared_consensus();
+  return itr->second->sharedConsensus();
 }
 
 Status RaftConsensusManager::Init(bool isFirstRun) {
   LOG(INFO) << "Initializing RaftConsensusManager";
-  const std::shared_lock lock(map_lock_);
+  const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
     RETURN_NOT_OK(entry.second->Init(isFirstRun));
   }
@@ -721,7 +721,7 @@ Status RaftConsensusManager::Init(bool isFirstRun) {
 
 Status RaftConsensusManager::Start(bool isFirstRun) {
   LOG(INFO) << "Starting RaftConsensusManager";
-  const std::shared_lock lock(map_lock_);
+  const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
     RETURN_NOT_OK(entry.second->Start(isFirstRun));
   }
@@ -729,7 +729,7 @@ Status RaftConsensusManager::Start(bool isFirstRun) {
 }
 
 bool RaftConsensusManager::IsInitialized() const {
-  const std::shared_lock lock(map_lock_);
+  const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
     if (!entry.second->IsInitialized()) {
       return false;
@@ -740,7 +740,7 @@ bool RaftConsensusManager::IsInitialized() const {
 
 void RaftConsensusManager::Shutdown() {
   LOG(INFO) << "Shutting down RaftConsensusManager";
-  const std::shared_lock lock(map_lock_);
+  const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
     entry.second->Shutdown();
   }

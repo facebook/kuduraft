@@ -100,7 +100,7 @@ class RaftConsensusServer : public RaftConsensusServerIf {
   std::string ToString() const override;
 
   TabletManagerIf* tabletManager() override {
-    return consensus_manager_.get();
+    return consensusManager_.get();
   }
 
   const TabletServerOptions& opts(const std::string& id) {
@@ -122,7 +122,7 @@ class RaftConsensusServer : public RaftConsensusServerIf {
   const ConsensusServerOptions opts_;
 
   // Manager for tablets which are available on this server.
-  std::unique_ptr<TabletManagerIf> consensus_manager_;
+  std::unique_ptr<TabletManagerIf> consensusManager_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensusServer);
   RaftConsensusServer(RaftConsensusServer&&) = delete;
@@ -137,20 +137,20 @@ class RaftConsensusInstance {
   RaftConsensusInstance(
       const std::string& id,
       RaftConsensusServer* server,
-      std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager,
+      std::shared_ptr<consensus::ConsensusMetadataManager> cmetaManager,
       std::shared_ptr<consensus::PersistentVarsManager> persistentVarsManager);
 
   ~RaftConsensusInstance();
 
-  Status Init(bool is_first_run);
+  Status Init(bool isFirstRun);
 
-  Status Start(bool is_first_run);
+  Status Start(bool isFirstRun);
 
   bool IsInitialized() const;
 
   void Shutdown();
 
-  std::shared_ptr<consensus::RaftConsensus> shared_consensus() const;
+  std::shared_ptr<consensus::RaftConsensus> sharedConsensus() const;
 
   std::shared_ptr<kudu::log::Log> getLog() const {
     return log_;
@@ -191,13 +191,13 @@ class RaftConsensusInstance {
 
   RaftConsensusServer* server_;
 
-  FsManager* const fs_manager_;
+  FsManager* const fsManager_;
 
-  std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
+  std::shared_ptr<consensus::ConsensusMetadataManager> cmetaManager_;
 
   std::shared_ptr<consensus::PersistentVarsManager> persistentVarsManager_;
 
-  consensus::RaftPeerPB local_peer_pb_;
+  consensus::RaftPeerPB localPeerPb_;
 
   mutable folly::SharedMutexTracked lock_;
 
@@ -219,9 +219,9 @@ class RaftConsensusManager : public TabletManagerIf {
 
   ~RaftConsensusManager() override = default;
 
-  Status Init(bool is_first_run) override;
+  Status Init(bool isFirstRun) override;
 
-  Status Start(bool is_first_run) override;
+  Status Start(bool isFirstRun) override;
 
   bool IsInitialized() const override;
 
@@ -234,13 +234,13 @@ class RaftConsensusManager : public TabletManagerIf {
 
  private:
   // TODO (abhinavsharma): Consider making the map const and getting rid of
-  // map_lock_
+  // mapLock_
   std::unordered_map<std::string, std::shared_ptr<RaftConsensusInstance>> map_;
-  mutable folly::SharedMutexReadPriority map_lock_;
+  mutable folly::SharedMutexReadPriority mapLock_;
 
-  FsManager* const fs_manager_;
+  FsManager* const fsManager_;
 
-  std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
+  std::shared_ptr<consensus::ConsensusMetadataManager> cmetaManager_;
 
   std::shared_ptr<consensus::PersistentVarsManager> persistentVarsManager_;
 
