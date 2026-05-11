@@ -163,21 +163,21 @@ int64_t ConsensusMetadata::getConfigOpIdIndex(RaftConfigState type) {
 
 const RaftConfigPB& ConsensusMetadata::committedConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return getConfig(COMMITTED_CONFIG);
+  return getConfig(kCommittedConfig);
 }
 
 const RaftConfigPB& ConsensusMetadata::getConfig(RaftConfigState type) const {
   switch (type) {
-    case ACTIVE_CONFIG:
+    case kActiveConfig:
       if (hasPendingConfig_) {
         return pendingConfig_;
       }
       DCHECK(pb_.has_committed_config());
       return pb_.committed_config();
-    case COMMITTED_CONFIG:
+    case kCommittedConfig:
       DCHECK(pb_.has_committed_config());
       return pb_.committed_config();
-    case PENDING_CONFIG:
+    case kPendingConfig:
       CHECK(hasPendingConfig_) << LogPrefix() << "There is no pending config";
       return pendingConfig_;
     default:
@@ -218,7 +218,7 @@ bool ConsensusMetadata::hasPendingConfig() const {
 
 const RaftConfigPB& ConsensusMetadata::pendingConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return getConfig(PENDING_CONFIG);
+  return getConfig(kPendingConfig);
   ;
 }
 
@@ -247,7 +247,7 @@ void ConsensusMetadata::setActiveConfig(const RaftConfigPB& config) {
 
 const RaftConfigPB& ConsensusMetadata::activeConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return getConfig(ACTIVE_CONFIG);
+  return getConfig(kActiveConfig);
 }
 
 const string& ConsensusMetadata::leaderUuid() const {
@@ -509,7 +509,7 @@ void ConsensusMetadata::insertIntoRemovedPeersList(
 
   for (const auto& peer_uuid : removed_peers) {
     // Sanity check again to ensure that the peer is not in active config
-    if (!isMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
+    if (!isMemberInConfig(peer_uuid, kActiveConfig)) {
       if (removedPeers_.size() == kMaxRemovedPeers) {
         removedPeers_.pop_front();
       }
@@ -522,7 +522,7 @@ bool ConsensusMetadata::isPeerRemoved(const std::string& peer_uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
   // Sanity check in active config too
-  if (isMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
+  if (isMemberInConfig(peer_uuid, kActiveConfig)) {
     return false;
   }
 

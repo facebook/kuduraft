@@ -338,7 +338,7 @@ void FlexibleVoteCounter::FetchTopologyInfo() {
   CHECK(config_.has_commit_rule());
 
   // Step 1: Populate number of voters in each region.
-  GetVoterDistributionForQuorumId(config_, &voter_distribution_);
+  getVoterDistributionForQuorumId(config_, &voter_distribution_);
 
   // Step 2: Populate mapping from UUID to quorum_id.
   bool use_quorum_id = isUseQuorumId(config_.commit_rule());
@@ -356,13 +356,13 @@ void FlexibleVoteCounter::FetchTopologyInfo() {
     // As voter distribution provided in topology config can lag,
     // we need to take into account the active voters as well due to
     // membership changes.
-    AdjustVoterDistributionWithCurrentVoters(config_, &voter_distribution_);
+    adjustVoterDistributionWithCurrentVoters(config_, &voter_distribution_);
 
     // We assume that there are no voters in config_.peers() who
     // are in present in regions not covered by voter_distribution_
     // That is enforced via bootstrap and add-member
     // The reverse is not true and has been handled in
-    // AdjustVoterDistributionWithCurrentVoters
+    // adjustVoterDistributionWithCurrentVoters
   }
 }
 

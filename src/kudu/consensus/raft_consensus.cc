@@ -1406,7 +1406,7 @@ Status RaftConsensus::AddPendingOperationUnlocked(
     // config. If so, this is a replay at startup in which the COMMIT
     // messages were delayed.
     int64_t committed_config_opid_index =
-        cmeta_->getConfigOpIdIndex(COMMITTED_CONFIG);
+        cmeta_->getConfigOpIdIndex(kCommittedConfig);
     if (round->replicate_msg()->id().index() > committed_config_opid_index) {
       RETURN_NOT_OK(SetPendingConfigUnlocked(new_config));
       if (cmeta_->activeRole() == RaftPeerPB::LEADER) {
@@ -1795,8 +1795,8 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
 bool RaftConsensus::IsSingleVoterConfig() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return cmeta_->countVotersInConfig(COMMITTED_CONFIG) == 1 &&
-      cmeta_->isVoterInConfig(peer_uuid(), COMMITTED_CONFIG);
+  return cmeta_->countVotersInConfig(kCommittedConfig) == 1 &&
+      cmeta_->isVoterInConfig(peer_uuid(), kCommittedConfig);
 }
 
 std::string RaftConsensus::LeaderRequest::opsRangeString() const {
@@ -2206,7 +2206,7 @@ Status RaftConsensus::updateReplica(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RETURN_NOT_OK(CheckRunningUnlocked());
-    if (!cmeta_->isMemberInConfig(peer_uuid(), ACTIVE_CONFIG)) {
+    if (!cmeta_->isMemberInConfig(peer_uuid(), kActiveConfig)) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Allowing update even though not a member of the config";
     }
@@ -2654,7 +2654,7 @@ Status RaftConsensus::requestVote(
   if (FLAGS_enable_flexi_raft &&
       !cmeta_->isMemberInConfigWithDetail(
           request->candidate_uuid(),
-          ACTIVE_CONFIG,
+          kActiveConfig,
           &hostnamePort,
           &isCandidateVoter,
           &candidateQuorumId)) {
@@ -3142,7 +3142,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
             // A map from quorum id to actual number of backed_by_db voters in
             // config
             std::map<std::string, int> actualBbdVoterCounts;
-            GetActualVoterCountsFromConfig(
+            getActualVoterCountsFromConfig(
                 committedConfig,
                 leaderUuidUnused,
                 &actualBbdVoterCounts,
@@ -3201,13 +3201,13 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
             // write availability.
             if (FLAGS_enable_flexi_raft) {
               std::map<std::string, int> vdMap;
-              GetVoterDistributionForQuorumId(committedConfig, &vdMap);
+              getVoterDistributionForQuorumId(committedConfig, &vdMap);
 
               std::map<std::string, int> votersInConfigPerQuorum;
               std::string unusedLeaderQuorum;
               std::string unusedLeaderUuid;
               // Get number of voters in each region
-              GetActualVoterCountsFromConfig(
+              getActualVoterCountsFromConfig(
                   committedConfig,
                   unusedLeaderUuid,
                   &votersInConfigPerQuorum,
@@ -4267,7 +4267,7 @@ void RaftConsensus::DoElectionCallback(
     return;
   }
 
-  if (!cmeta_->isVoterInConfig(peer_uuid(), ACTIVE_CONFIG)) {
+  if (!cmeta_->isVoterInConfig(peer_uuid(), kActiveConfig)) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Leader " << electionType << " decision while not in active config. "
         << "Result: Term " << electionTerm << ": "
@@ -4449,7 +4449,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
     // If the config change being aborted is the current pending one, abort
     // it.
     if (cmeta_->hasPendingConfig() &&
-        cmeta_->getConfigOpIdIndex(PENDING_CONFIG) == opId.index()) {
+        cmeta_->getConfigOpIdIndex(kPendingConfig) == opId.index()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO) << "Aborting config change with OpId "
                                      << opId << ": " << status.ToString();
       cmeta_->clearPendingConfig();
@@ -4496,7 +4496,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
   // config. If so, this is a replay at startup in which the COMMIT
   // messages were delayed.
   int64_t committedConfigOpIdIndex =
-      cmeta_->getConfigOpIdIndex(COMMITTED_CONFIG);
+      cmeta_->getConfigOpIdIndex(kCommittedConfig);
   if (newConfig.opid_index() > committedConfigOpIdIndex) {
     std::vector<std::string> removedPeers;
     std::string configDiff =
@@ -4586,7 +4586,7 @@ void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
   DCHECK(lock_.is_locked());
   const auto& uuid = peer_uuid();
   if (uuid != cmeta_->leaderUuid() &&
-      cmeta_->isVoterInConfig(uuid, ACTIVE_CONFIG)) {
+      cmeta_->isVoterInConfig(uuid, kActiveConfig)) {
     // A voter that is not the leader should run the failure detector.
     enableFailureDetector(std::move(delta));
   } else {

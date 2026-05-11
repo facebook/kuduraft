@@ -639,7 +639,7 @@ bool ShouldAddReplica(
   // replica if the configuration change cannot be committed.
   const bool should_add_replica = is_under_replicated &&
       (num_voters_healthy >= majoritySize(num_voters_total) ||
-       policy == MajorityHealthPolicy::IGNORE);
+       policy == MajorityHealthPolicy::Ignore);
 
   VLOG(2) << "decision: the config is" << (is_under_replicated ? " " : " not ")
           << "under-replicated; should" << (should_add_replica ? " " : " not ")
@@ -883,7 +883,7 @@ bool ShouldEvictReplica(
   // to commit the Raft configuration change.
   const bool should_evict_non_voter = need_to_evict_non_voter &&
       (num_voters_healthy >= majoritySize(num_voters_total) ||
-       policy == MajorityHealthPolicy::IGNORE);
+       policy == MajorityHealthPolicy::Ignore);
 
   bool need_to_evict_voter = false;
 
@@ -932,7 +932,7 @@ bool ShouldEvictReplica(
       (num_voters_total > replication_factor ||
        has_voter_failed_unrecoverable) &&
       (num_voters_healthy >= majoritySize(num_voters_total - 1) ||
-       policy == MajorityHealthPolicy::IGNORE);
+       policy == MajorityHealthPolicy::Ignore);
 
   const bool should_evict = should_evict_non_voter || should_evict_voter;
   // When we have the same type of failures between voters and non-voters
@@ -979,7 +979,7 @@ bool ShouldEvictReplica(
   return should_evict;
 }
 
-void GetActualVoterCountsFromConfig(
+void getActualVoterCountsFromConfig(
     const RaftConfigPB& config,
     const std::string& leader_uuid,
     std::map<std::string, int>* actual_voter_counts,
@@ -1009,7 +1009,7 @@ void GetActualVoterCountsFromConfig(
   }
 }
 
-void AdjustVoterDistributionWithCurrentVoters(
+void adjustVoterDistributionWithCurrentVoters(
     const RaftConfigPB& config,
     std::map<std::string, int>* voter_distribution) {
   CHECK(voter_distribution);
@@ -1020,7 +1020,7 @@ void AdjustVoterDistributionWithCurrentVoters(
   std::map<std::string, int> voters_in_config_per_quorum;
   std::string unused_leader_region;
   std::string unused_leader_uuid;
-  GetActualVoterCountsFromConfig(
+  getActualVoterCountsFromConfig(
       config,
       unused_leader_uuid,
       &voters_in_config_per_quorum,
@@ -1045,7 +1045,7 @@ void AdjustVoterDistributionWithCurrentVoters(
   }
 }
 
-void GetVoterDistributionForQuorumId(
+void getVoterDistributionForQuorumId(
     const RaftConfigPB& config,
     std::map<std::string, int>* quorum_id_vd) {
   if (isUseQuorumId(config.commit_rule())) {
@@ -1077,7 +1077,7 @@ void GetVoterDistributionForQuorumId(
   }
 }
 
-std::optional<int> GetTotalVotersFromVoterDistribution(
+std::optional<int> getTotalVotersFromVoterDistribution(
     const RaftConfigPB& config,
     const std::string& quorum_id) {
   const auto& vd = config.voter_distribution();

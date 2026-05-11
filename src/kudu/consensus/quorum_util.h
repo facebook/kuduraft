@@ -27,9 +27,9 @@
 namespace kudu::consensus {
 
 enum RaftConfigState {
-  PENDING_CONFIG,
-  COMMITTED_CONFIG,
-  ACTIVE_CONFIG,
+  kPendingConfig,
+  kCommittedConfig,
+  kActiveConfig,
 };
 
 // Policy for attempted Raft configuration change when replacing replicas
@@ -38,11 +38,11 @@ enum class MajorityHealthPolicy {
   // While trying to replace a replica, attempt to change the Raft configuration
   // only if the majority of voter replicas is reported as on-line/healthy
   // (this applies to the resulting configuration).
-  HONOR,
+  Honor,
 
   // While trying to replace a replica, attempt to change the Raft configuration
   // even if the majority of voter replicas is not reported as on-line/healthy.
-  IGNORE,
+  Ignore,
 };
 
 bool isRaftConfigMember(const std::string& uuid, const RaftConfigPB& config);
@@ -52,7 +52,7 @@ bool getRaftConfigMemberRegion(
     const RaftConfigPB& config,
     bool* is_voter,
     std::string* region);
-bool GetRaftConfigMemberQuorumId(
+bool getRaftConfigMemberQuorumId(
     const std::string& uuid,
     const RaftConfigPB& config,
     bool* is_voter,
@@ -192,7 +192,7 @@ bool ShouldEvictReplica(
 
 // Helper function to compute the actual voter count from the config. If the
 // leader_uuid is present, it also figures out the quorum_id of the leader.
-void GetActualVoterCountsFromConfig(
+void getActualVoterCountsFromConfig(
     const RaftConfigPB& config,
     const std::string& leader_uuid,
     std::map<std::string, int>* actual_voter_counts,
@@ -201,18 +201,18 @@ void GetActualVoterCountsFromConfig(
 
 // Make each regions voter count, the max of voter distribution and current
 // voters
-void AdjustVoterDistributionWithCurrentVoters(
+void adjustVoterDistributionWithCurrentVoters(
     const RaftConfigPB& config,
     std::map<std::string, int>* voter_distribution);
 
 // For QuorumType = Region, it returns the current VD. For QuorumType =
 // QuorumID, it returns default quorum size with current voter quorums, and
 // overrided by current VD.
-void GetVoterDistributionForQuorumId(
+void getVoterDistributionForQuorumId(
     const RaftConfigPB& config,
     std::map<std::string, int>* quorum_id_vd);
 
-std::optional<int> GetTotalVotersFromVoterDistribution(
+std::optional<int> getTotalVotersFromVoterDistribution(
     const RaftConfigPB& config,
     const std::string& quorum_id);
 

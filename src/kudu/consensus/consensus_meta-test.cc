@@ -240,13 +240,13 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
           ConsensusMetadataCreateMode::FlushOnCreate,
           &cmeta));
 
-  ASSERT_EQ(4, cmeta->countVotersInConfig(COMMITTED_CONFIG));
-  ASSERT_EQ(0, cmeta->getConfigOpIdIndex(COMMITTED_CONFIG));
+  ASSERT_EQ(4, cmeta->countVotersInConfig(kCommittedConfig));
+  ASSERT_EQ(0, cmeta->getConfigOpIdIndex(kCommittedConfig));
 
   // Not a participant.
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
-  ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, COMMITTED_CONFIG));
-  ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, kCommittedConfig));
+  ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, kCommittedConfig));
 
   // Follower.
   uuids.push_back(peerUuid);
@@ -254,26 +254,26 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
   config2.set_opid_index(1);
   cmeta->setCommittedConfig(config2);
 
-  ASSERT_EQ(5, cmeta->countVotersInConfig(COMMITTED_CONFIG));
-  ASSERT_EQ(1, cmeta->getConfigOpIdIndex(COMMITTED_CONFIG));
+  ASSERT_EQ(5, cmeta->countVotersInConfig(kCommittedConfig));
+  ASSERT_EQ(1, cmeta->getConfigOpIdIndex(kCommittedConfig));
 
   ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->activeRole());
-  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, kCommittedConfig));
 
   // Pending should mask committed.
   cmeta->setPendingConfig(config1);
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
 
-  ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, COMMITTED_CONFIG));
-  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
-  for (auto configState : {ACTIVE_CONFIG, PENDING_CONFIG}) {
+  ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, kCommittedConfig));
+  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, kCommittedConfig));
+  for (auto configState : {kActiveConfig, kPendingConfig}) {
     ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, configState));
     ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, configState));
   }
   cmeta->clearPendingConfig();
   ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->activeRole());
-  ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, ACTIVE_CONFIG));
-  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, ACTIVE_CONFIG));
+  ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, kActiveConfig));
+  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, kActiveConfig));
 
   // Leader.
   cmeta->setLeaderUuid(peerUuid);

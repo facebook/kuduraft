@@ -48,9 +48,9 @@ constexpr auto U =
 constexpr auto V = RaftPeerPB::VOTER; // NOLINT(readability-identifier-naming)
 
 constexpr auto MHP_H =
-    MajorityHealthPolicy::HONOR; // NOLINT(readability-identifier-naming)
+    MajorityHealthPolicy::Honor; // NOLINT(readability-identifier-naming)
 constexpr auto MHP_I =
-    MajorityHealthPolicy::IGNORE; // NOLINT(readability-identifier-naming)
+    MajorityHealthPolicy::Ignore; // NOLINT(readability-identifier-naming)
 
 // The various possible health statuses.
 constexpr auto kHealthStatuses = {'?', '-', 'x', '+'};
@@ -78,11 +78,11 @@ static void setOverallHealth(HealthReportPB* healthReport, char overallHealth) {
 
 std::ostream& operator<<(std::ostream& os, MajorityHealthPolicy policy) {
   switch (policy) {
-    case MajorityHealthPolicy::HONOR:
-      os << "MajorityHealthPolicy::HONOR";
+    case MajorityHealthPolicy::Honor:
+      os << "MajorityHealthPolicy::Honor";
       break;
-    case MajorityHealthPolicy::IGNORE:
-      os << "MajorityHealthPolicy::IGNORE";
+    case MajorityHealthPolicy::Ignore:
+      os << "MajorityHealthPolicy::Ignore";
       break;
     default:
       os << policy << ": unsupported health policy";
@@ -1632,7 +1632,7 @@ TEST(QuorumUtilTest, ShouldEvictReplicaNonVoters) {
 // address scenarios like of KUDU-2342.
 TEST(QuorumUtilTest, NewlyAddedNonVoterFallsBehindLogGC) {
   constexpr auto kReplicationFactor = 3;
-  constexpr auto kPolicy = MajorityHealthPolicy::HONOR;
+  constexpr auto kPolicy = MajorityHealthPolicy::Honor;
 
   RaftConfigPB config;
   addPeer(&config, "A", V, '+');
@@ -1723,7 +1723,7 @@ TEST(QuorumUtilTest, NewlyAddedNonVoterFallsBehindLogGC) {
 // replicas.
 TEST(QuorumUtilTest, NewlyPromotedReplicaCrashes) {
   constexpr auto kReplicationFactor = 3;
-  constexpr auto kPolicy = MajorityHealthPolicy::HONOR;
+  constexpr auto kPolicy = MajorityHealthPolicy::Honor;
 
   RaftConfigPB config;
   addPeer(&config, "A", V, '+');
@@ -1806,7 +1806,7 @@ TEST(QuorumUtilTest, NewlyPromotedReplicaCrashes) {
 // between HEALTHY and UNKNOWN (e.g., when leader replica changes).
 TEST(QuorumUtilTest, ReplicaHealthFlapping) {
   constexpr auto kReplicationFactor = 3;
-  constexpr auto kPolicy = MajorityHealthPolicy::HONOR;
+  constexpr auto kPolicy = MajorityHealthPolicy::Honor;
 
   // The initial tablet report after the tablet replica A has started and
   // become the leader.
@@ -1903,7 +1903,7 @@ TEST(QuorumUtilTest, ReplicaHealthFlapping) {
 // possible scenario when decommissioning multiple tablet servers/nodes at once.
 TEST(QuorumUtilTest, ReplaceAllTabletReplicas) {
   constexpr auto kReplicationFactor = 3;
-  constexpr auto kPolicy = MajorityHealthPolicy::HONOR;
+  constexpr auto kPolicy = MajorityHealthPolicy::Honor;
 
   // The initial tablet report after the tablet replica 'A' has started and
   // become the leader.

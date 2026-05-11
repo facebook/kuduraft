@@ -1609,7 +1609,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   const std::string& peer_quorum_id = getQuorumIdUsingCommitRule(peer);
 
   // Compute total number of voters in each region.
-  std::optional<int> total_from_vd = GetTotalVotersFromVoterDistribution(
+  std::optional<int> total_from_vd = getTotalVotersFromVoterDistribution(
       *(queueState_.active_config), peer_quorum_id);
 
   int total_voters_from_voter_distribution = total_from_vd.value_or(0);
@@ -1618,7 +1618,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   // As voter distribution provided in topology config can lag,
   // we need to take into account the active voters as well due to
   // membership changes.
-  // Check for more comments in AdjustVoterDistributionWithCurrentVoters() which
+  // Check for more comments in adjustVoterDistributionWithCurrentVoters() which
   // does the same for static mode watermark calculation
   int total_voters_from_active_config = 0;
   for (const RaftPeerPB& peer_pb : queueState_.active_config->peers()) {
@@ -3197,7 +3197,7 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
     quorum_id_health.primary = leader_quorum_id == quorum_id;
 
     quorum_id_health.num_vd_voters =
-        GetTotalVotersFromVoterDistribution(
+        getTotalVotersFromVoterDistribution(
             *(queueState_.active_config), quorum_id)
             .value_or(0);
     quorum_id_health.quorum_size = majoritySize(quorum_id_health.num_vd_voters);
@@ -3335,7 +3335,7 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
       // Voter distribution is not used for VanillaRaft, we use total voters.
       health_detail.num_vd_voters = health_detail.total_voters;
     } else {
-      health_detail.num_vd_voters = GetTotalVotersFromVoterDistribution(
+      health_detail.num_vd_voters = getTotalVotersFromVoterDistribution(
                                         *queueState_.active_config, quorum_id)
                                         .value_or(0);
     }
