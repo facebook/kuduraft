@@ -422,7 +422,7 @@ class BASE_EXPORT TraceLog {
   CategoryFilter getCurrentCategoryFilter();
 
   Options traceOptions() const {
-    return static_cast<Options>(base::subtle::NoBarrier_Load(&trace_options_));
+    return static_cast<Options>(base::subtle::NoBarrier_Load(&traceOptions_));
   }
 
   // Enables normal tracing (recording trace events in the trace buffer).
@@ -627,10 +627,10 @@ class BASE_EXPORT TraceLog {
   friend class Singleton<TraceLog>;
 
   // Enable/disable each category group based on the current mode_,
-  // category_filter_, event_callback_ and event_callback_category_filter_.
-  // Enable the category group in the enabled mode if category_filter_ matches
+  // categoryFilter_, event_callback_ and eventCallbackCategoryFilter_.
+  // Enable the category group in the enabled mode if categoryFilter_ matches
   // the category group, or event_callback_ is not null and
-  // event_callback_category_filter_ matches the category group.
+  // eventCallbackCategoryFilter_ matches the category group.
   void updateCategoryGroupEnabledFlags();
   void updateCategoryGroupEnabledFlag(int category_index);
 
@@ -693,11 +693,11 @@ class BASE_EXPORT TraceLog {
   }
   kudu::MicrosecondsInt64 offsetTimestamp(
       const kudu::MicrosecondsInt64& timestamp) const {
-    return timestamp - time_offset_;
+    return timestamp - timeOffset_;
   }
 
   // Create a new PerThreadInfo object for the current thread,
-  // and register it in the active_threads_ list.
+  // and register it in the activeThreads_ list.
   PerThreadInfo* setupThreadLocalBuffer();
 
   // This lock protects TraceLog member accesses (except for members protected
@@ -730,42 +730,42 @@ class BASE_EXPORT TraceLog {
 
   int processId_;
 
-  kudu::MicrosecondsInt64 time_offset_;
+  kudu::MicrosecondsInt64 timeOffset_;
 
   // Allow tests to wake up when certain events occur.
-  WatchEventCallback watch_event_callback_;
-  AtomicWord /* const unsigned char* */ watch_category_;
-  std::string watch_event_name_;
+  WatchEventCallback watchEventCallback_;
+  AtomicWord /* const unsigned char* */ watchCategory_;
+  std::string watchEventName_;
 
-  AtomicWord /* Options */ trace_options_;
+  AtomicWord /* Options */ traceOptions_;
 
   // Sampling thread handles.
-  std::unique_ptr<TraceSamplingThread> sampling_thread_;
-  std::shared_ptr<kudu::Thread> sampling_thread_handle_;
+  std::unique_ptr<TraceSamplingThread> samplingThread_;
+  std::shared_ptr<kudu::Thread> samplingThreadHandle_;
 
-  CategoryFilter category_filter_;
-  CategoryFilter event_callback_category_filter_;
+  CategoryFilter categoryFilter_;
+  CategoryFilter eventCallbackCategoryFilter_;
 
   struct PerThreadInfo {
-    ThreadLocalEventBuffer* event_buffer_;
-    base::subtle::Atomic32 is_in_trace_event_;
+    ThreadLocalEventBuffer* eventBuffer_;
+    base::subtle::Atomic32 isInTraceEvent_;
 
-    // Atomically take the event_buffer_ member, setting it to NULL.
+    // Atomically take the eventBuffer_ member, setting it to NULL.
     // Returns the old value of the member.
     ThreadLocalEventBuffer* atomicTakeBuffer();
   };
   static __thread PerThreadInfo* thread_local_info_;
 
-  Mutex active_threads_lock_;
+  Mutex activeThreadsLock_;
   // Map of PID -> PerThreadInfo
-  // Protected by active_threads_lock_.
+  // Protected by activeThreadsLock_.
   using ActiveThreadMap = std::unordered_map<int64_t, PerThreadInfo*>;
-  ActiveThreadMap active_threads_;
+  ActiveThreadMap activeThreads_;
 
   // For events which can't be added into the thread local buffer, e.g. events
   // from threads without a message loop.
-  std::unique_ptr<TraceBufferChunk> thread_shared_chunk_;
-  size_t thread_shared_chunk_index_;
+  std::unique_ptr<TraceBufferChunk> threadSharedChunk_;
+  size_t threadSharedChunkIndex_;
 
   // The generation is incremented whenever tracing is enabled, and incremented
   // again when the buffers are flushed. This ensures that trace events logged

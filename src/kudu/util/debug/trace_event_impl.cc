@@ -460,7 +460,7 @@ class MarkFlagInScope {
 TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::atomicTakeBuffer() {
   return reinterpret_cast<TraceLog::ThreadLocalEventBuffer*>(
       base::subtle::acquireAtomicExchange(
-          reinterpret_cast<AtomicWord*>(&event_buffer_), 0));
+          reinterpret_cast<AtomicWord*>(&eventBuffer_), 0));
 }
 
 void TraceBufferChunk::reset(uint32_t new_seq) {
@@ -1199,14 +1199,14 @@ TraceLog::TraceLog()
       processSortIndex_(0),
       processIdHash_(0),
       processId_(0),
-      time_offset_(0),
-      watch_category_(0),
-      trace_options_(RECORD_UNTIL_FULL),
-      sampling_thread_handle_(nullptr),
-      category_filter_(CategoryFilter::kDefaultCategoryFilterString),
-      event_callback_category_filter_(
+      timeOffset_(0),
+      watchCategory_(0),
+      traceOptions_(RECORD_UNTIL_FULL),
+      samplingThreadHandle_(nullptr),
+      categoryFilter_(CategoryFilter::kDefaultCategoryFilterString),
+      eventCallbackCategoryFilter_(
           CategoryFilter::kDefaultCategoryFilterString),
-      thread_shared_chunk_index_(0),
+      threadSharedChunkIndex_(0),
       generation_(0) {
   // Trace is enabled or disabled on one thread while other threads are
   // accessing the enabled flag. We don't care whether edge-case events are
@@ -1261,15 +1261,15 @@ void TraceLog::updateCategoryGroupEnabledFlag(int category_index) {
   unsigned char enabled_flag = 0;
   const char* category_group = gCategoryGroups[category_index];
   if (mode_ == RECORDING_MODE &&
-      category_filter_.isCategoryGroupEnabled(category_group)) {
+      categoryFilter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_RECORDING;
   } else if (
       mode_ == MONITORING_MODE &&
-      category_filter_.isCategoryGroupEnabled(category_group)) {
+      categoryFilter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_MONITORING;
   }
   if (eventCallback_ &&
-      event_callback_category_filter_.isCategoryGroupEnabled(category_group)) {
+      eventCallbackCategoryFilter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_EVENT_CALLBACK;
   }
   gCategoryGroupEnabled[category_index] = enabled_flag;
@@ -1285,7 +1285,7 @@ void TraceLog::updateCategoryGroupEnabledFlags() {
 void TraceLog::updateSyntheticDelaysFromCategoryFilter() {
   resetTraceEventSyntheticDelays();
   const CategoryFilter::StringList& delays =
-      category_filter_.getSyntheticDelayValues();
+      categoryFilter_.getSyntheticDelayValues();
   CategoryFilter::StringList::const_iterator ci;
   for (ci = delays.begin(); ci != delays.end(); ++ci) {
     std::list<string> tokens = strings::Split(*ci, ";");
@@ -1396,7 +1396,7 @@ void TraceLog::setEnabled(
         DLOG(ERROR) << "Attempting to re-enable tracing with a different mode.";
       }
 
-      category_filter_.merge(category_filter);
+      categoryFilter_.merge(category_filter);
       updateCategoryGroupEnabledFlags();
       return;
     }
@@ -1410,27 +1410,27 @@ void TraceLog::setEnabled(
     mode_ = mode;
 
     if (options != old_options) {
-      base::subtle::NoBarrier_Store(&trace_options_, options);
+      base::subtle::NoBarrier_Store(&traceOptions_, options);
       useNextTraceBuffer();
     }
 
     numTracesRecorded_++;
 
-    category_filter_ = CategoryFilter(category_filter);
+    categoryFilter_ = CategoryFilter(category_filter);
     updateCategoryGroupEnabledFlags();
     updateSyntheticDelaysFromCategoryFilter();
 
     if (options & ENABLE_SAMPLING) {
-      sampling_thread_.reset(new TraceSamplingThread);
-      sampling_thread_->registerSampleBucket(
+      samplingThread_.reset(new TraceSamplingThread);
+      samplingThread_->registerSampleBucket(
           &gTraceState[0],
           "bucket0",
           Bind(&TraceSamplingThread::defaultSamplingCallback));
-      sampling_thread_->registerSampleBucket(
+      samplingThread_->registerSampleBucket(
           &gTraceState[1],
           "bucket1",
           Bind(&TraceSamplingThread::defaultSamplingCallback));
-      sampling_thread_->registerSampleBucket(
+      samplingThread_->registerSampleBucket(
           &gTraceState[2],
           "bucket2",
           Bind(&TraceSamplingThread::defaultSamplingCallback));
@@ -1439,8 +1439,8 @@ void TraceLog::setEnabled(
           "tracing",
           "sampler",
           &TraceSamplingThread::threadMain,
-          sampling_thread_.get(),
-          &sampling_thread_handle_);
+          samplingThread_.get(),
+          &samplingThreadHandle_);
       if (!s.ok()) {
         LOG(DFATAL) << "failed to create trace sampling thread: "
                     << s.ToString();
@@ -1463,7 +1463,7 @@ void TraceLog::setEnabled(
 
 CategoryFilter TraceLog::getCurrentCategoryFilter() {
   SpinLockHolder lock(lock_);
-  return category_filter_;
+  return categoryFilter_;
 }
 
 void TraceLog::setDisabled() {
@@ -1486,19 +1486,19 @@ void TraceLog::setDisabledWhileLocked() {
 
   mode_ = DISABLED;
 
-  if (sampling_thread_.get()) {
+  if (samplingThread_.get()) {
     // Stop the sampling thread.
-    sampling_thread_->stop();
+    samplingThread_->stop();
     lock_.unlock();
-    sampling_thread_handle_->join();
+    samplingThreadHandle_->join();
     lock_.lock();
-    sampling_thread_handle_.reset();
-    sampling_thread_.reset();
+    samplingThreadHandle_.reset();
+    samplingThread_.reset();
   }
 
-  category_filter_.clear();
-  base::subtle::NoBarrier_Store(&watch_category_, 0);
-  watch_event_name_ = "";
+  categoryFilter_.clear();
+  base::subtle::NoBarrier_Store(&watchCategory_, 0);
+  watchEventName_ = "";
   updateCategoryGroupEnabledFlags();
   addMetadataEventsWhileLocked();
 
@@ -1575,27 +1575,27 @@ TraceEvent* TraceLog::addEventToThreadSharedChunkWhileLocked(
     bool check_buffer_is_full) {
   DCHECK(lock_.isHeld());
 
-  if (thread_shared_chunk_ && thread_shared_chunk_->isFull()) {
+  if (threadSharedChunk_ && threadSharedChunk_->isFull()) {
     loggedEvents_->returnChunk(
-        thread_shared_chunk_index_, std::move(thread_shared_chunk_));
+        threadSharedChunkIndex_, std::move(threadSharedChunk_));
   }
 
-  if (!thread_shared_chunk_) {
-    thread_shared_chunk_ = loggedEvents_->getChunk(&thread_shared_chunk_index_);
+  if (!threadSharedChunk_) {
+    threadSharedChunk_ = loggedEvents_->getChunk(&threadSharedChunkIndex_);
     if (check_buffer_is_full) {
       checkIfBufferIsFullWhileLocked();
     }
   }
-  if (!thread_shared_chunk_) {
+  if (!threadSharedChunk_) {
     return nullptr;
   }
 
   size_t event_index;
-  TraceEvent* trace_event = thread_shared_chunk_->addTraceEvent(&event_index);
+  TraceEvent* trace_event = threadSharedChunk_->addTraceEvent(&event_index);
   if (trace_event && handle) {
     makeHandle(
-        thread_shared_chunk_->seq(),
-        thread_shared_chunk_index_,
+        threadSharedChunk_->seq(),
+        threadSharedChunkIndex_,
         event_index,
         handle);
   }
@@ -1615,7 +1615,7 @@ void TraceLog::setEventCallbackEnabled(
   SpinLockHolder lock(lock_);
   base::subtle::NoBarrier_Store(
       &eventCallback_, reinterpret_cast<AtomicWord>(cb));
-  event_callback_category_filter_ = category_filter;
+  eventCallbackCategoryFilter_ = category_filter;
   updateCategoryGroupEnabledFlags();
 };
 
@@ -1641,9 +1641,9 @@ void TraceLog::setEventCallbackDisabled() {
 // don't have to worry about it in the current flush().
 //
 // However, the swap doesn't ensure that the thread doesn't already have a local
-// copy of the 'event_buffer_' that we are trying to flush. So, if the thread is
+// copy of the 'eventBuffer_' that we are trying to flush. So, if the thread is
 // in the middle of a Trace call, we have to wait until it exits. We do that by
-// spinning on the 'is_in_trace_event_' member of that thread's thread-local
+// spinning on the 'isInTraceEvent_' member of that thread's thread-local
 // structure.
 //
 // After we've swapped the buffer pointer and waited on the thread to exit any
@@ -1668,8 +1668,8 @@ void TraceLog::flush(const TraceLog::OutputCallback& cb) {
   {
     // Holding the active threads lock ensures that no thread will exit and
     // delete its own PerThreadInfo object.
-    MutexLock l(active_threads_lock_);
-    for (const ActiveThreadMap::value_type& entry : active_threads_) {
+    MutexLock l(activeThreadsLock_);
+    for (const ActiveThreadMap::value_type& entry : activeThreads_) {
       int64_t tid = entry.first;
       PerThreadInfo* thr_info = entry.second;
 
@@ -1689,9 +1689,9 @@ void TraceLog::flush(const TraceLog::OutputCallback& cb) {
       //
       // It's important that we do not hold 'lock_' here, because otherwise we
       // can get a deadlock: a thread may be in the middle of a trace event
-      // (is_in_trace_event_ == true) and waiting to take lock_, while we are
+      // (isInTraceEvent_ == true) and waiting to take lock_, while we are
       // holding the lock and waiting for it to not be in the trace event.
-      while (base::subtle::Acquire_Load(&thr_info->is_in_trace_event_)) {
+      while (base::subtle::Acquire_Load(&thr_info->isInTraceEvent_)) {
         sched_yield();
       }
 
@@ -1706,9 +1706,9 @@ void TraceLog::flush(const TraceLog::OutputCallback& cb) {
   {
     SpinLockHolder lock(lock_);
 
-    if (thread_shared_chunk_) {
+    if (threadSharedChunk_) {
       loggedEvents_->returnChunk(
-          thread_shared_chunk_index_, std::move(thread_shared_chunk_));
+          threadSharedChunkIndex_, std::move(threadSharedChunk_));
     }
   }
 
@@ -1773,7 +1773,7 @@ void TraceLog::flushButLeaveBufferIntact(
   unique_ptr<TraceBuffer> previous_logged_events;
   {
     SpinLockHolder lock(lock_);
-    if (mode_ == DISABLED || (trace_options_ & RECORD_CONTINUOUSLY) == 0) {
+    if (mode_ == DISABLED || (traceOptions_ & RECORD_CONTINUOUSLY) == 0) {
       std::shared_ptr<RefCountedString> empty_result =
           std::make_shared<RefCountedString>();
       flush_output_callback.Run(empty_result, false);
@@ -1783,10 +1783,10 @@ void TraceLog::flushButLeaveBufferIntact(
     }
 
     addMetadataEventsWhileLocked();
-    if (thread_shared_chunk_) {
+    if (threadSharedChunk_) {
       // Return the chunk to the main buffer to flush the sampling data.
       loggedEvents_->returnChunk(
-          thread_shared_chunk_index_, std::move(thread_shared_chunk_));
+          threadSharedChunkIndex_, std::move(threadSharedChunk_));
     }
     previous_logged_events = loggedEvents_->cloneForIteration();
   }
@@ -1798,8 +1798,8 @@ void TraceLog::flushButLeaveBufferIntact(
 void TraceLog::useNextTraceBuffer() {
   loggedEvents_.reset(createTraceBuffer());
   base::subtle::NoBarrier_AtomicIncrement(&generation_, 1);
-  thread_shared_chunk_.reset();
-  thread_shared_chunk_index_ = 0;
+  threadSharedChunk_.reset();
+  threadSharedChunkIndex_ = 0;
 }
 
 TraceEventHandle TraceLog::addTraceEvent(
@@ -1834,15 +1834,15 @@ TraceLog::PerThreadInfo* TraceLog::setupThreadLocalBuffer() {
   int64_t cur_tid = Thread::uniqueThreadId();
 
   auto thr_info = new PerThreadInfo();
-  thr_info->event_buffer_ = nullptr;
-  thr_info->is_in_trace_event_ = 0;
+  thr_info->eventBuffer_ = nullptr;
+  thr_info->isInTraceEvent_ = 0;
   thread_local_info_ = thr_info;
 
   threadlocal::internal::addDestructor(&TraceLog::threadExitingCb, this);
 
   {
-    MutexLock lock(active_threads_lock_);
-    auto [it, inserted] = active_threads_.insert({cur_tid, thr_info});
+    MutexLock lock(activeThreadsLock_);
+    auto [it, inserted] = activeThreads_.insert({cur_tid, thr_info});
     CHECK(inserted);
   }
   return thr_info;
@@ -1872,8 +1872,8 @@ void TraceLog::threadExiting() {
   delete buf;
 
   {
-    MutexLock lock(active_threads_lock_);
-    active_threads_.erase(cur_tid);
+    MutexLock lock(activeThreadsLock_);
+    activeThreads_.erase(cur_tid);
   }
   delete thr_info;
 }
@@ -1913,15 +1913,15 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
   // ECHO_TO_CONSOLE is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
-  if (base::subtle::NoBarrier_Load(&thr_info->is_in_trace_event_)) {
+  if (base::subtle::NoBarrier_Load(&thr_info->isInTraceEvent_)) {
     return handle;
   }
 
-  MarkFlagInScope thread_is_in_trace_event(&thr_info->is_in_trace_event_);
+  MarkFlagInScope thread_is_in_trace_event(&thr_info->isInTraceEvent_);
 
   ThreadLocalEventBuffer* thread_local_event_buffer =
       reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
-          reinterpret_cast<AtomicWord*>(&thr_info->event_buffer_)));
+          reinterpret_cast<AtomicWord*>(&thr_info->eventBuffer_)));
 
   // If we have an event buffer, but it's a left-over from a previous trace,
   // delete it.
@@ -1940,7 +1940,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
     thread_local_event_buffer = new ThreadLocalEventBuffer(this);
 
     base::subtle::NoBarrier_Store(
-        reinterpret_cast<AtomicWord*>(&thr_info->event_buffer_),
+        reinterpret_cast<AtomicWord*>(&thr_info->eventBuffer_),
         reinterpret_cast<AtomicWord>(thread_local_event_buffer));
   }
 
@@ -2024,13 +2024,13 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
 
   if (PREDICT_FALSE(
           reinterpret_cast<const unsigned char*>(base::subtle::NoBarrier_Load(
-              &watch_category_)) == category_group_enabled)) {
+              &watchCategory_)) == category_group_enabled)) {
     bool event_name_matches;
     WatchEventCallback watch_event_callback_copy;
     {
       SpinLockHolder lock(lock_);
-      event_name_matches = watch_event_name_ == name;
-      watch_event_callback_copy = watch_event_callback_;
+      event_name_matches = watchEventName_ == name;
+      watch_event_callback_copy = watchEventCallback_;
     }
     if (event_name_matches) {
       if (!watch_event_callback_copy.is_null()) {
@@ -2164,10 +2164,10 @@ void TraceLog::updateTraceEventDuration(
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
   // ECHO_TO_CONSOLE is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
-  if (base::subtle::NoBarrier_Load(&thr_info->is_in_trace_event_)) {
+  if (base::subtle::NoBarrier_Load(&thr_info->isInTraceEvent_)) {
     return;
   }
-  MarkFlagInScope thread_is_in_trace_event(&thr_info->is_in_trace_event_);
+  MarkFlagInScope thread_is_in_trace_event(&thr_info->isInTraceEvent_);
 
   kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
   kudu::MicrosecondsInt64 now = offsetNow();
@@ -2222,16 +2222,16 @@ void TraceLog::setWatchEvent(
       getCategoryGroupEnabled(category_name.c_str());
   SpinLockHolder lock(lock_);
   base::subtle::NoBarrier_Store(
-      &watch_category_, reinterpret_cast<AtomicWord>(category));
-  watch_event_name_ = event_name;
-  watch_event_callback_ = callback;
+      &watchCategory_, reinterpret_cast<AtomicWord>(category));
+  watchEventName_ = event_name;
+  watchEventCallback_ = callback;
 }
 
 void TraceLog::cancelWatchEvent() {
   SpinLockHolder lock(lock_);
-  base::subtle::NoBarrier_Store(&watch_category_, 0);
-  watch_event_name_ = "";
-  watch_event_callback_.Reset();
+  base::subtle::NoBarrier_Store(&watchCategory_, 0);
+  watchEventName_ = "";
+  watchEventCallback_.Reset();
 }
 
 void TraceLog::addMetadataEventsWhileLocked() {
@@ -2322,11 +2322,10 @@ TraceEvent* TraceLog::getEventByHandleInternal(
   if (thr_info) {
     ThreadLocalEventBuffer* buf =
         reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
-            reinterpret_cast<AtomicWord*>(&thr_info->event_buffer_)));
+            reinterpret_cast<AtomicWord*>(&thr_info->eventBuffer_)));
 
     if (buf) {
-      DCHECK_EQ(
-          1, KUDU_ANNONTATE_UNPROTECTED_READ(thr_info->is_in_trace_event_));
+      DCHECK_EQ(1, KUDU_ANNONTATE_UNPROTECTED_READ(thr_info->isInTraceEvent_));
 
       TraceEvent* trace_event = buf->getEventByHandle(handle);
       if (trace_event) {
@@ -2341,9 +2340,9 @@ TraceEvent* TraceLog::getEventByHandleInternal(
     lock->ensureAcquired();
   }
 
-  if (thread_shared_chunk_ && handle.chunkIndex == thread_shared_chunk_index_) {
-    return handle.chunkSeq == thread_shared_chunk_->seq()
-        ? thread_shared_chunk_->getEventAt(handle.eventIndex)
+  if (threadSharedChunk_ && handle.chunkIndex == threadSharedChunkIndex_) {
+    return handle.chunkSeq == threadSharedChunk_->seq()
+        ? threadSharedChunk_->getEventAt(handle.eventIndex)
         : nullptr;
   }
 
@@ -2398,7 +2397,7 @@ void TraceLog::setThreadSortIndex(int64_t thread_id, int sort_index) {
 }
 
 void TraceLog::setTimeOffset(kudu::MicrosecondsInt64 offset) {
-  time_offset_ = offset;
+  timeOffset_ = offset;
 }
 
 size_t TraceLog::getObserverCountForTest() const {
