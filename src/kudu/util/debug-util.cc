@@ -160,7 +160,7 @@ class CompletionFlag {
           reinterpret_cast<int32_t*>(&complete_),
           FUTEX_WAIT | FUTEX_PRIVATE_FLAG,
           0, // wait if value is still 0
-          reinterpret_cast<struct kernel_timespec*>(&ts),
+          reinterpret_cast<struct KernelTimespec*>(&ts),
           nullptr,
           0);
       if (complete_) {

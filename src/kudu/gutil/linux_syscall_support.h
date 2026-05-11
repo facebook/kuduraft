@@ -206,7 +206,7 @@ extern "C" {
  */
 
 /* include/linux/dirent.h                                                    */
-struct kernel_dirent64 {
+struct KernelDirent64 {
   unsigned long long d_ino;
   long long d_off;
   unsigned short d_reclen;
@@ -217,9 +217,9 @@ struct kernel_dirent64 {
 /* include/linux/dirent.h                                                    */
 #if !defined(__NR_getdents)
 // when getdents is not available, getdents64 is used for both.
-#define kernel_dirent kernel_dirent64
+#define KernelDirent KernelDirent64
 #else
-struct kernel_dirent {
+struct KernelDirent {
   long d_ino;
   long d_off;
   unsigned short d_reclen;
@@ -228,16 +228,16 @@ struct kernel_dirent {
 #endif
 
 /* include/linux/uio.h                                                       */
-struct kernel_iovec {
+struct KernelIovec {
   void* iov_base;
   unsigned long iov_len;
 };
 
 /* include/linux/socket.h                                                    */
-struct kernel_msghdr {
+struct KernelMsghdr {
   void* msg_name;
   int msg_namelen;
-  struct kernel_iovec* msg_iov;
+  struct KernelIovec* msg_iov;
   unsigned long msg_iovlen;
   void* msg_control;
   unsigned long msg_controllen;
@@ -245,34 +245,34 @@ struct kernel_msghdr {
 };
 
 /* include/asm-generic/poll.h                                                */
-struct kernel_pollfd {
+struct KernelPollfd {
   int fd;
   short events;
   short revents;
 };
 
 /* include/linux/resource.h                                                  */
-struct kernel_rlimit {
+struct KernelRlimit {
   unsigned long rlim_cur;
   unsigned long rlim_max;
 };
 
 /* include/linux/time.h                                                      */
-struct kernel_timespec {
+struct KernelTimespec {
   long tv_sec;
   long tv_nsec;
 };
 
 /* include/linux/time.h                                                      */
-struct kernel_timeval {
+struct KernelTimeval {
   long tv_sec;
   long tv_usec;
 };
 
 /* include/linux/resource.h                                                  */
-struct kernel_rusage {
-  struct kernel_timeval ru_utime;
-  struct kernel_timeval ru_stime;
+struct KernelRusage {
+  struct KernelTimeval ru_utime;
+  struct KernelTimeval ru_stime;
   long ru_maxrss;
   long ru_ixrss;
   long ru_idrss;
@@ -351,7 +351,7 @@ struct kernel_sigaction {
 };
 
 /* include/linux/socket.h                                                    */
-struct kernel_sockaddr {
+struct KernelSockaddr {
   unsigned short sa_family;
   char sa_data[14];
 };
@@ -3889,8 +3889,8 @@ LSS_INLINE int LSS_NAME(clone)(
 LSS_INLINE _syscall1(void*, brk, void*, e) LSS_INLINE
     _syscall1(int, chdir, const char*, p) LSS_INLINE
     _syscall1(int, close, int, f) LSS_INLINE
-    _syscall2(int, clock_getres, int, c, struct kernel_timespec*, t) LSS_INLINE
-    _syscall2(int, clock_gettime, int, c, struct kernel_timespec*, t) LSS_INLINE
+    _syscall2(int, clock_getres, int, c, struct KernelTimespec*, t) LSS_INLINE
+    _syscall2(int, clock_gettime, int, c, struct KernelTimespec*, t) LSS_INLINE
     _syscall1(int, dup, int, f)
 #if defined(__NR_dup2)
     // dup2 is polyfilled below when not available.
@@ -3934,15 +3934,15 @@ LSS_INLINE _syscall6(
     o,
     int,
     v,
-    struct kernel_timespec*,
+    struct KernelTimespec*,
     t,
     int*,
     u2,
     int,
     v2) LSS_INLINE
-    _syscall3(int, getdents, int, f, struct kernel_dirent*, d, int, c)
+    _syscall3(int, getdents, int, f, struct KernelDirent*, d, int, c)
         LSS_INLINE
-    _syscall3(int, getdents64, int, f, struct kernel_dirent64*, d, int, c)
+    _syscall3(int, getdents64, int, f, struct KernelDirent64*, d, int, c)
         LSS_INLINE _syscall0(gid_t, getegid) LSS_INLINE
     _syscall0(uid_t, geteuid)
 #if defined(__NR_getpgrp)
@@ -3954,11 +3954,11 @@ LSS_INLINE _syscall6(
     _syscall3(int, getresgid, gid_t*, r, gid_t*, e, gid_t*, s) LSS_INLINE
     _syscall3(int, getresuid, uid_t*, r, uid_t*, e, uid_t*, s)
 #if !defined(__ARM_EABI__)
-        LSS_INLINE _syscall2(int, getrlimit, int, r, struct kernel_rlimit*, l)
+        LSS_INLINE _syscall2(int, getrlimit, int, r, struct KernelRlimit*, l)
 #endif
             LSS_INLINE _syscall1(pid_t, getsid, pid_t, p) LSS_INLINE
     _syscall0(pid_t, _gettid) LSS_INLINE
-    _syscall2(pid_t, gettimeofday, struct kernel_timeval*, t, void*, tz)
+    _syscall2(pid_t, gettimeofday, struct KernelTimeval*, t, void*, tz)
         LSS_INLINE _syscall5(
             int,
             setxattr,
@@ -4066,17 +4066,17 @@ LSS_INLINE _syscall2(int, munmap, void*, s, size_t, l) LSS_INLINE _syscall6(
 #if defined(__NR_poll)
     // poll is polyfilled below when not available.
     LSS_INLINE
-    _syscall3(int, poll, struct kernel_pollfd*, u, unsigned int, n, int, t)
+    _syscall3(int, poll, struct KernelPollfd*, u, unsigned int, n, int, t)
 #endif
 #if defined(__NR_ppoll)
         LSS_INLINE _syscall5(
             int,
             ppoll,
-            struct kernel_pollfd*,
+            struct KernelPollfd*,
             u,
             unsigned int,
             n,
-            const struct kernel_timespec*,
+            const struct KernelTimespec*,
             t,
             const struct kernel_sigset_t*,
             sigmask,
@@ -4182,7 +4182,7 @@ LSS_INLINE _syscall2(int, munmap, void*, s, size_t, l) LSS_INLINE _syscall6(
     _syscall3(int, setpriority, int, a, int, b, int, p) LSS_INLINE
     _syscall3(int, setresgid, gid_t, r, gid_t, e, gid_t, s) LSS_INLINE
     _syscall3(int, setresuid, uid_t, r, uid_t, e, uid_t, s) LSS_INLINE
-    _syscall2(int, setrlimit, int, r, const struct kernel_rlimit*, l) LSS_INLINE
+    _syscall2(int, setrlimit, int, r, const struct KernelRlimit*, l) LSS_INLINE
     _syscall0(pid_t, setsid) LSS_INLINE
     _syscall2(int, sigaltstack, const stack_t*, s, const stack_t*, o)
 #if defined(__NR_sigreturn)
@@ -4202,15 +4202,15 @@ LSS_INLINE _syscall2(int, munmap, void*, s, size_t, l) LSS_INLINE _syscall6(
 #endif
         LSS_INLINE
     _syscall3(ssize_t, write, int, f, const void*, b, size_t, c) LSS_INLINE
-    _syscall3(ssize_t, writev, int, f, const struct kernel_iovec*, v, size_t, c)
+    _syscall3(ssize_t, writev, int, f, const struct KernelIovec*, v, size_t, c)
 #if defined(__NR_getcpu)
         LSS_INLINE
     _syscall3(long, getcpu, unsigned*, cpu, unsigned*, node, void*, unused)
 #endif
 #if defined(__x86_64__) || (defined(__mips__) && _MIPS_SIM != _MIPS_SIM_ABI32)
         LSS_INLINE
-    _syscall3(int, recvmsg, int, s, struct kernel_msghdr*, m, int, f) LSS_INLINE
-    _syscall3(int, sendmsg, int, s, const struct kernel_msghdr*, m, int, f)
+    _syscall3(int, recvmsg, int, s, struct KernelMsghdr*, m, int, f) LSS_INLINE
+    _syscall3(int, sendmsg, int, s, const struct KernelMsghdr*, m, int, f)
         LSS_INLINE _syscall6(
             int,
             sendto,
@@ -4222,7 +4222,7 @@ LSS_INLINE _syscall2(int, munmap, void*, s, size_t, l) LSS_INLINE _syscall6(
             l,
             int,
             f,
-            const struct kernel_sockaddr*,
+            const struct KernelSockaddr*,
             a,
             int,
             t) LSS_INLINE _syscall2(int, shutdown, int, s, int, h) LSS_INLINE
@@ -4426,7 +4426,7 @@ LSS_INLINE int LSS_NAME(sigtimedwait)(
 #endif
 #if defined(__NR_wait4)
 LSS_INLINE
-_syscall4(pid_t, wait4, pid_t, p, int*, s, int, o, struct kernel_rusage*, r)
+_syscall4(pid_t, wait4, pid_t, p, int*, s, int, o, struct KernelRusage*, r)
 #endif
 #if defined(__NR_openat)
     LSS_INLINE _syscall4(int, openat, int, d, const char*, p, int, f, int, m)
@@ -4444,7 +4444,7 @@ _syscall4(pid_t, wait4, pid_t, p, int*, s, int, o, struct kernel_rusage*, r)
 #define __NR__setresuid32 __NR_setresuid32
 #if defined(__ARM_EABI__)
             LSS_INLINE
-    _syscall2(int, ugetrlimit, int, r, struct kernel_rlimit*, l)
+    _syscall2(int, ugetrlimit, int, r, struct KernelRlimit*, l)
 #endif
         LSS_INLINE
     _syscall3(int, _getresgid32, gid_t*, r, gid_t*, e, gid_t*, s) LSS_INLINE
@@ -4854,12 +4854,12 @@ LSS_INLINE _syscall6(
   LSS_RETURN(type, __sc_ret, __sc_err)
 
 LSS_INLINE ssize_t
-LSS_NAME(recvmsg)(int s, struct kernel_msghdr* msg, int flags) {
+LSS_NAME(recvmsg)(int s, struct KernelMsghdr* msg, int flags) {
   LSS_SC_BODY(3, ssize_t, 17, s, msg, flags);
 }
 
 LSS_INLINE ssize_t
-LSS_NAME(sendmsg)(int s, const struct kernel_msghdr* msg, int flags) {
+LSS_NAME(sendmsg)(int s, const struct KernelMsghdr* msg, int flags) {
   LSS_SC_BODY(3, ssize_t, 16, s, msg, flags);
 }
 
@@ -4867,7 +4867,7 @@ LSS_NAME(sendmsg)(int s, const struct kernel_msghdr* msg, int flags) {
 #if 0
     LSS_INLINE ssize_t LSS_NAME(sendto)(int s, const void *buf, size_t len,
                                         int flags,
-                                        const struct kernel_sockaddr *to,
+                                        const struct KernelSockaddr *to,
                                         unsigned int tolen) {
       LSS_BODY(6, ssize_t, 11, s, buf, len, flags, to, tolen);
     }
@@ -4887,13 +4887,13 @@ LSS_INLINE int LSS_NAME(socketpair)(int d, int type, int protocol, int sv[2]) {
 #endif
 #if defined(__ARM_EABI__) || defined(__aarch64__)
 LSS_INLINE
-_syscall3(ssize_t, recvmsg, int, s, struct kernel_msghdr*, msg, int, flags)
+_syscall3(ssize_t, recvmsg, int, s, struct KernelMsghdr*, msg, int, flags)
     LSS_INLINE _syscall3(
         ssize_t,
         sendmsg,
         int,
         s,
-        const struct kernel_msghdr*,
+        const struct KernelMsghdr*,
         msg,
         int,
         flags) LSS_INLINE
@@ -4908,7 +4908,7 @@ _syscall3(ssize_t, recvmsg, int, s, struct kernel_msghdr*, msg, int, flags)
         len,
         int,
         flags,
-        const struct kernel_sockaddr*,
+        const struct KernelSockaddr*,
         to,
         unsigned int,
         tolen) LSS_INLINE _syscall2(int, shutdown, int, s, int, how) LSS_INLINE
@@ -4929,12 +4929,12 @@ _syscall3(ssize_t, recvmsg, int, s, struct kernel_msghdr*, msg, int, flags)
 }
 
 LSS_INLINE ssize_t
-LSS_NAME(recvmsg)(int s, struct kernel_msghdr* msg, int flags) {
+LSS_NAME(recvmsg)(int s, struct KernelMsghdr* msg, int flags) {
   return (ssize_t)LSS_NAME(socketcall)(17, s, msg, flags);
 }
 
 LSS_INLINE ssize_t
-LSS_NAME(sendmsg)(int s, const struct kernel_msghdr* msg, int flags) {
+LSS_NAME(sendmsg)(int s, const struct KernelMsghdr* msg, int flags) {
   return (ssize_t)LSS_NAME(socketcall)(16, s, msg, flags);
 }
 
@@ -4943,7 +4943,7 @@ LSS_INLINE ssize_t LSS_NAME(sendto)(
     const void* buf,
     size_t len,
     int flags,
-    const struct kernel_sockaddr* to,
+    const struct KernelSockaddr* to,
     unsigned int tolen) {
   return (ssize_t)LSS_NAME(socketcall)(11, s, buf, len, flags, to, tolen);
 }
@@ -5286,9 +5286,9 @@ LSS_INLINE int LSS_NAME(pipe)(int* pipefd) {
 
 #if !defined(__NR_poll)
 LSS_INLINE int LSS_NAME(
-    poll)(struct kernel_pollfd* fds, unsigned int nfds, int timeout) {
-  struct kernel_timespec timeout_ts;
-  struct kernel_timespec* timeout_ts_p = nullptr;
+    poll)(struct KernelPollfd* fds, unsigned int nfds, int timeout) {
+  struct KernelTimespec timeout_ts;
+  struct KernelTimespec* timeout_ts_p = nullptr;
 
   if (timeout >= 0) {
     timeout_ts.tv_sec = timeout / 1000;
