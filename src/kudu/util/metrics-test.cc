@@ -193,8 +193,8 @@ TEST_F(MetricsTest, SimpleHistogramTest) {
   ASSERT_EQ(2, hist->histogram_->MinValue());
   ASSERT_EQ(3, hist->histogram_->MeanValue());
   ASSERT_EQ(4, hist->histogram_->MaxValue());
-  ASSERT_EQ(2, hist->histogram_->TotalCount());
-  ASSERT_EQ(6, hist->histogram_->TotalSum());
+  ASSERT_EQ(2, hist->histogram_->totalCount());
+  ASSERT_EQ(6, hist->histogram_->totalSum());
   // TODO: Test coverage needs to be improved a lot.
 }
 

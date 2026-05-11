@@ -82,52 +82,52 @@ class HdrHistogram {
   explicit HdrHistogram(const HdrHistogram& other);
 
   // Validate your params before trying to construct the object.
-  static bool IsValidHighestTrackableValue(uint64_t highest_trackable_value);
-  static bool IsValidNumSignificantDigits(int num_significant_digits);
+  static bool isValidHighestTrackableValue(uint64_t highest_trackable_value);
+  static bool isValidNumSignificantDigits(int num_significant_digits);
 
   // Record new data.
-  void Increment(int64_t value);
-  void IncrementBy(int64_t value, int64_t count);
+  void increment(int64_t value);
+  void incrementBy(int64_t value, int64_t count);
 
   // Record new data, correcting for "coordinated omission".
   //
   // See
   // https://groups.google.com/d/msg/mechanical-sympathy/icNZJejUHfE/BfDekfBEs_sJ
   // for more details.
-  void IncrementWithExpectedInterval(
+  void incrementWithExpectedInterval(
       int64_t value,
       int64_t expected_interval_between_samples);
 
   // Fetch configuration params.
-  uint64_t highest_trackable_value() const {
+  uint64_t highestTrackableValue() const {
     return highest_trackable_value_;
   }
-  int num_significant_digits() const {
+  int numSignificantDigits() const {
     return num_significant_digits_;
   }
 
   // Get indexes into histogram based on value.
-  int BucketIndex(uint64_t value) const;
-  int SubBucketIndex(uint64_t value, int bucket_index) const;
+  int bucketIndex(uint64_t value) const;
+  int subBucketIndex(uint64_t value, int bucket_index) const;
 
   // Count of all events recorded.
-  uint64_t TotalCount() const {
+  uint64_t totalCount() const {
     return base::subtle::NoBarrier_Load(&total_count_);
   }
 
   // Sum of all events recorded.
-  uint64_t TotalSum() const {
+  uint64_t totalSum() const {
     return base::subtle::NoBarrier_Load(&total_sum_);
   }
 
   // Return number of items at index.
-  uint64_t CountAt(int bucket_index, int sub_bucket_index) const;
+  uint64_t countAt(int bucket_index, int sub_bucket_index) const;
 
   // Return count of values in bucket with values equivalent to value.
-  uint64_t CountInBucketForValue(uint64_t) const;
+  uint64_t countInBucketForValue(uint64_t) const;
 
   // Return representative value based on index.
-  static uint64_t ValueFromIndex(int bucket_index, int sub_bucket_index);
+  static uint64_t valueFromIndex(int bucket_index, int sub_bucket_index);
 
   // Get the size (in value units) of the range of values that are equivalent
   // to the given value within the histogram's resolution. Where "equivalent"
@@ -188,8 +188,8 @@ class HdrHistogram {
   static const int kMinValidNumSignificantDigits = 1;
   static const int kMaxValidNumSignificantDigits = 5;
 
-  void Init();
-  int CountsArrayIndex(int bucket_index, int sub_bucket_index) const;
+  void init();
+  int countsArrayIndex(int bucket_index, int sub_bucket_index) const;
 
   uint64_t highest_trackable_value_;
   int num_significant_digits_;

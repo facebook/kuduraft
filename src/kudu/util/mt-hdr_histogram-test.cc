@@ -37,7 +37,7 @@ DEFINE_int32(
 DEFINE_uint64(
     histogram_test_num_increments_per_thread,
     100000LU,
-    "Number of times to call Increment() per thread in mt-hdr_histogram test");
+    "Number of times to call increment() per thread in mt-hdr_histogram test");
 
 using std::vector;
 
@@ -59,7 +59,7 @@ class MtHdrHistogramTest : public KuduTest {
 static void
 incrementSameHistValue(HdrHistogram* hist, uint64_t value, uint64_t times) {
   for (uint64_t i = 0; i < times; i++) {
-    hist->Increment(value);
+    hist->increment(value);
   }
 }
 
@@ -85,7 +85,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
   }
 
   HdrHistogram snapshot(hist);
-  ASSERT_EQ(numThreads_ * numTimes_, snapshot.CountInBucketForValue(kValue));
+  ASSERT_EQ(numThreads_ * numTimes_, snapshot.countInBucketForValue(kValue));
 
   delete[] threads;
 }

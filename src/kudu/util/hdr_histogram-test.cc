@@ -33,21 +33,21 @@ TEST_F(HdrHistogramTest, SimpleTest) {
   uint64_t highestVal = 10000LU;
 
   HdrHistogram hist(highestVal, kSigDigits);
-  ASSERT_EQ(0, hist.CountInBucketForValue(1));
-  hist.Increment(1);
-  ASSERT_EQ(1, hist.CountInBucketForValue(1));
-  hist.IncrementBy(1, 3);
-  ASSERT_EQ(4, hist.CountInBucketForValue(1));
-  hist.Increment(10);
-  ASSERT_EQ(1, hist.CountInBucketForValue(10));
-  hist.Increment(20);
-  ASSERT_EQ(1, hist.CountInBucketForValue(20));
-  ASSERT_EQ(0, hist.CountInBucketForValue(1000));
-  hist.Increment(1000);
-  hist.Increment(1001);
-  ASSERT_EQ(2, hist.CountInBucketForValue(1000));
+  ASSERT_EQ(0, hist.countInBucketForValue(1));
+  hist.increment(1);
+  ASSERT_EQ(1, hist.countInBucketForValue(1));
+  hist.incrementBy(1, 3);
+  ASSERT_EQ(4, hist.countInBucketForValue(1));
+  hist.increment(10);
+  ASSERT_EQ(1, hist.countInBucketForValue(10));
+  hist.increment(20);
+  ASSERT_EQ(1, hist.countInBucketForValue(20));
+  ASSERT_EQ(0, hist.countInBucketForValue(1000));
+  hist.increment(1000);
+  hist.increment(1001);
+  ASSERT_EQ(2, hist.countInBucketForValue(1000));
 
-  ASSERT_EQ(1 + 1 * 3 + 10 + 20 + 1000 + 1001, hist.TotalSum());
+  ASSERT_EQ(1 + 1 * 3 + 10 + 20 + 1000 + 1001, hist.totalSum());
 }
 
 TEST_F(HdrHistogramTest, TestCoordinatedOmission) {
@@ -60,13 +60,13 @@ TEST_F(HdrHistogramTest, TestCoordinatedOmission) {
     // omission were this loop to sleep on 'interval'.
     int64_t value = (i % normalValue == 0) ? interval * 10 : normalValue;
 
-    hist.IncrementWithExpectedInterval(value, interval);
+    hist.incrementWithExpectedInterval(value, interval);
   }
   ASSERT_EQ(
       loopIters - (loopIters / normalValue),
-      hist.CountInBucketForValue(normalValue));
+      hist.countInBucketForValue(normalValue));
   for (int i = interval; i <= interval * 10; i += interval) {
-    ASSERT_EQ(loopIters / normalValue, hist.CountInBucketForValue(i));
+    ASSERT_EQ(loopIters / normalValue, hist.countInBucketForValue(i));
   }
 }
 
@@ -76,12 +76,12 @@ static const int kExpectedMax = 1000000;
 static const int kExpectedCount = 100;
 static const int kExpectedMin = 10;
 static void loadPercentiles(HdrHistogram* hist) {
-  hist->IncrementBy(10, 80);
-  hist->IncrementBy(100, 10);
-  hist->IncrementBy(1000, 5);
-  hist->IncrementBy(10000, 3);
-  hist->IncrementBy(100000, 1);
-  hist->IncrementBy(1000000, 1);
+  hist->incrementBy(10, 80);
+  hist->incrementBy(100, 10);
+  hist->incrementBy(1000, 5);
+  hist->incrementBy(10000, 3);
+  hist->incrementBy(100000, 1);
+  hist->incrementBy(1000000, 1);
 }
 
 static void validatePercentiles(HdrHistogram* hist, uint64_t specifiedMax) {
@@ -90,9 +90,9 @@ static void validatePercentiles(HdrHistogram* hist, uint64_t specifiedMax) {
 
   ASSERT_EQ(kExpectedMin, hist->MinValue());
   ASSERT_EQ(kExpectedMax, hist->MaxValue());
-  ASSERT_EQ(kExpectedSum, hist->TotalSum());
+  ASSERT_EQ(kExpectedSum, hist->totalSum());
   ASSERT_NEAR(expectedMean, hist->MeanValue(), 0.001);
-  ASSERT_EQ(kExpectedCount, hist->TotalCount());
+  ASSERT_EQ(kExpectedCount, hist->totalCount());
   ASSERT_EQ(10, hist->ValueAtPercentile(80));
   ASSERT_EQ(kExpectedCount, hist->ValueAtPercentile(90));
   ASSERT_EQ(
@@ -113,7 +113,7 @@ TEST_F(HdrHistogramTest, PercentileAndCopyTest) {
   HdrHistogram copy(hist);
   NO_FATALS(validatePercentiles(&copy, specifiedMax));
 
-  ASSERT_EQ(hist.TotalSum(), copy.TotalSum());
+  ASSERT_EQ(hist.totalSum(), copy.totalSum());
 }
 
 } // namespace kudu

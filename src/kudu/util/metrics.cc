@@ -635,12 +635,12 @@ HistogramPrototype::HistogramPrototype(
       maxTrackableValue_(maxTrackableValue),
       numSigDigits_(numSigDigits) {
   // Better to crash at definition time that at instantiation time.
-  CHECK(HdrHistogram::IsValidHighestTrackableValue(maxTrackableValue))
+  CHECK(HdrHistogram::isValidHighestTrackableValue(maxTrackableValue))
       << fmt::format(
              "Invalid max trackable value on histogram {}: {}",
              args.name,
              maxTrackableValue);
-  CHECK(HdrHistogram::IsValidNumSignificantDigits(numSigDigits)) << fmt::format(
+  CHECK(HdrHistogram::isValidNumSignificantDigits(numSigDigits)) << fmt::format(
       "Invalid number of significant digits on histogram {}: {}",
       args.name,
       numSigDigits);
@@ -663,12 +663,12 @@ Histogram::Histogram(const HistogramPrototype* proto)
 
 void Histogram::increment(int64_t value) {
   updateModificationEpoch();
-  histogram_->Increment(value);
+  histogram_->increment(value);
 }
 
 void Histogram::incrementBy(int64_t value, int64_t amount) {
   updateModificationEpoch();
-  histogram_->IncrementBy(value, amount);
+  histogram_->incrementBy(value, amount);
 }
 
 Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
@@ -691,14 +691,13 @@ Status Histogram::getHistogramSnapshotPb(
     snapshotPb->set_label(prototype_->label());
     snapshotPb->set_unit(MetricUnit::name(prototype_->unit()));
     snapshotPb->set_description(prototype_->description());
-    snapshotPb->set_max_trackable_value(histogram_->highest_trackable_value());
-    snapshotPb->set_num_significant_digits(
-        histogram_->num_significant_digits());
+    snapshotPb->set_max_trackable_value(histogram_->highestTrackableValue());
+    snapshotPb->set_num_significant_digits(histogram_->numSignificantDigits());
   }
   // Fast-path for a reasonably common case of an empty histogram. This occurs
   // when a histogram is tracking some information about a feature not in
   // use, for example.
-  if (histogram_->TotalCount() == 0) {
+  if (histogram_->totalCount() == 0) {
     snapshotPb->set_total_count(0);
     snapshotPb->set_total_sum(0);
     snapshotPb->set_min(0);
@@ -711,8 +710,8 @@ Status Histogram::getHistogramSnapshotPb(
     snapshotPb->set_max(0);
   } else {
     HdrHistogram snapshot(*histogram_);
-    snapshotPb->set_total_count(snapshot.TotalCount());
-    snapshotPb->set_total_sum(snapshot.TotalSum());
+    snapshotPb->set_total_count(snapshot.totalCount());
+    snapshotPb->set_total_sum(snapshot.totalSum());
     snapshotPb->set_min(snapshot.MinValue());
     snapshotPb->set_mean(snapshot.MeanValue());
     snapshotPb->set_percentile_75(snapshot.ValueAtPercentile(75));
@@ -736,11 +735,11 @@ Status Histogram::getHistogramSnapshotPb(
 }
 
 uint64_t Histogram::countInBucketForValueForTests(uint64_t value) const {
-  return histogram_->CountInBucketForValue(value);
+  return histogram_->countInBucketForValue(value);
 }
 
 uint64_t Histogram::totalCount() const {
-  return histogram_->TotalCount();
+  return histogram_->totalCount();
 }
 
 uint64_t Histogram::minValueForTests() const {

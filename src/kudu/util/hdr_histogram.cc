@@ -63,7 +63,7 @@ HdrHistogram::HdrHistogram(
       total_sum_(0),
       min_value_(std::numeric_limits<Atomic64>::max()),
       max_value_(0) {
-  Init();
+  init();
 }
 
 HdrHistogram::HdrHistogram(const HdrHistogram& other)
@@ -79,7 +79,7 @@ HdrHistogram::HdrHistogram(const HdrHistogram& other)
       total_sum_(0),
       min_value_(std::numeric_limits<Atomic64>::max()),
       max_value_(0) {
-  Init();
+  init();
 
   // Not a consistent snapshot but we try to roughly keep it close.
   // Copy the sum and min first.
@@ -99,21 +99,21 @@ HdrHistogram::HdrHistogram(const HdrHistogram& other)
   NoBarrier_Store(&total_count_, total_copied_count);
 }
 
-bool HdrHistogram::IsValidHighestTrackableValue(
+bool HdrHistogram::isValidHighestTrackableValue(
     uint64_t highest_trackable_value) {
   return highest_trackable_value >= kMinHighestTrackableValue;
 }
 
-bool HdrHistogram::IsValidNumSignificantDigits(int num_significant_digits) {
+bool HdrHistogram::isValidNumSignificantDigits(int num_significant_digits) {
   return num_significant_digits >= kMinValidNumSignificantDigits &&
       num_significant_digits <= kMaxValidNumSignificantDigits;
 }
 
-void HdrHistogram::Init() {
+void HdrHistogram::init() {
   // Verify parameter validity
-  CHECK(IsValidHighestTrackableValue(highest_trackable_value_)) << fmt::format(
+  CHECK(isValidHighestTrackableValue(highest_trackable_value_)) << fmt::format(
       "highest_trackable_value must be >= {}", kMinHighestTrackableValue);
-  CHECK(IsValidNumSignificantDigits(num_significant_digits_)) << fmt::format(
+  CHECK(isValidNumSignificantDigits(num_significant_digits_)) << fmt::format(
       "num_significant_digits must be between {} and {}",
       kMinValidNumSignificantDigits,
       kMaxValidNumSignificantDigits);
@@ -155,20 +155,20 @@ void HdrHistogram::Init() {
   counts_.reset(new Atomic64[counts_array_length_]()); // value-initialized
 }
 
-void HdrHistogram::Increment(int64_t value) {
-  IncrementBy(value, 1);
+void HdrHistogram::increment(int64_t value) {
+  incrementBy(value, 1);
 }
 
-void HdrHistogram::IncrementBy(int64_t value, int64_t count) {
+void HdrHistogram::incrementBy(int64_t value, int64_t count) {
   shared_lock<rw_spinlock> lock(histogram_mutex_);
   DCHECK_GE(value, 0);
   DCHECK_GE(count, 0);
 
   // Dissect the value into bucket and sub-bucket parts, and derive index into
   // counts array:
-  int bucket_index = BucketIndex(value);
-  int sub_bucket_index = SubBucketIndex(value, bucket_index);
-  int counts_index = CountsArrayIndex(bucket_index, sub_bucket_index);
+  int bucket_index = bucketIndex(value);
+  int sub_bucket_index = subBucketIndex(value, bucket_index);
+  int counts_index = countsArrayIndex(bucket_index, sub_bucket_index);
 
   // Increment bucket, total, and sum.
   NoBarrier_AtomicIncrement(&counts_[counts_index], count);
@@ -198,23 +198,23 @@ void HdrHistogram::IncrementBy(int64_t value, int64_t count) {
   }
 }
 
-void HdrHistogram::IncrementWithExpectedInterval(
+void HdrHistogram::incrementWithExpectedInterval(
     int64_t value,
     int64_t expected_interval_between_samples) {
-  Increment(value);
+  increment(value);
   if (expected_interval_between_samples <= 0) {
     return;
   }
   for (int64_t missing_value = value - expected_interval_between_samples;
        missing_value >= expected_interval_between_samples;
        missing_value -= expected_interval_between_samples) {
-    Increment(missing_value);
+    increment(missing_value);
   }
 }
 
 ////////////////////////////////////
 
-int HdrHistogram::BucketIndex(uint64_t value) const {
+int HdrHistogram::bucketIndex(uint64_t value) const {
   if (PREDICT_FALSE(value > highest_trackable_value_)) {
     value = highest_trackable_value_;
   }
@@ -225,7 +225,7 @@ int HdrHistogram::BucketIndex(uint64_t value) const {
   return pow2ceiling - (sub_bucket_half_count_magnitude_ + 1);
 }
 
-int HdrHistogram::SubBucketIndex(uint64_t value, int bucket_index) const {
+int HdrHistogram::subBucketIndex(uint64_t value, int bucket_index) const {
   if (PREDICT_FALSE(value > highest_trackable_value_)) {
     value = highest_trackable_value_;
   }
@@ -234,7 +234,7 @@ int HdrHistogram::SubBucketIndex(uint64_t value, int bucket_index) const {
   return static_cast<int>(value >> bucket_index);
 }
 
-int HdrHistogram::CountsArrayIndex(int bucket_index, int sub_bucket_index)
+int HdrHistogram::countsArrayIndex(int bucket_index, int sub_bucket_index)
     const {
   DCHECK(sub_bucket_index < sub_bucket_count_);
   DCHECK(bucket_index < bucket_count_);
@@ -249,25 +249,25 @@ int HdrHistogram::CountsArrayIndex(int bucket_index, int sub_bucket_index)
   return bucket_base_index + offset_in_bucket;
 }
 
-uint64_t HdrHistogram::CountAt(int bucket_index, int sub_bucket_index) const {
-  return counts_[CountsArrayIndex(bucket_index, sub_bucket_index)];
+uint64_t HdrHistogram::countAt(int bucket_index, int sub_bucket_index) const {
+  return counts_[countsArrayIndex(bucket_index, sub_bucket_index)];
 }
 
-uint64_t HdrHistogram::CountInBucketForValue(uint64_t value) const {
-  int bucket_index = BucketIndex(value);
-  int sub_bucket_index = SubBucketIndex(value, bucket_index);
-  return CountAt(bucket_index, sub_bucket_index);
+uint64_t HdrHistogram::countInBucketForValue(uint64_t value) const {
+  int bucket_index = bucketIndex(value);
+  int sub_bucket_index = subBucketIndex(value, bucket_index);
+  return countAt(bucket_index, sub_bucket_index);
 }
 
-uint64_t HdrHistogram::ValueFromIndex(int bucket_index, int sub_bucket_index) {
+uint64_t HdrHistogram::valueFromIndex(int bucket_index, int sub_bucket_index) {
   return static_cast<uint64_t>(sub_bucket_index) << bucket_index;
 }
 
 ////////////////////////////////////
 
 uint64_t HdrHistogram::SizeOfEquivalentValueRange(uint64_t value) const {
-  int bucket_index = BucketIndex(value);
-  int sub_bucket_index = SubBucketIndex(value, bucket_index);
+  int bucket_index = bucketIndex(value);
+  int sub_bucket_index = subBucketIndex(value, bucket_index);
   uint64_t distance_to_next_value =
       (1
        << ((sub_bucket_index >= sub_bucket_count_) ? (bucket_index + 1)
@@ -276,10 +276,10 @@ uint64_t HdrHistogram::SizeOfEquivalentValueRange(uint64_t value) const {
 }
 
 uint64_t HdrHistogram::LowestEquivalentValue(uint64_t value) const {
-  int bucket_index = BucketIndex(value);
-  int sub_bucket_index = SubBucketIndex(value, bucket_index);
+  int bucket_index = bucketIndex(value);
+  int sub_bucket_index = subBucketIndex(value, bucket_index);
   uint64_t this_value_base_level =
-      ValueFromIndex(bucket_index, sub_bucket_index);
+      valueFromIndex(bucket_index, sub_bucket_index);
   return this_value_base_level;
 }
 
@@ -301,29 +301,29 @@ bool HdrHistogram::ValuesAreEquivalent(uint64_t value1, uint64_t value2) const {
 }
 
 uint64_t HdrHistogram::MinValue() const {
-  if (PREDICT_FALSE(TotalCount() == 0)) {
+  if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
   return NoBarrier_Load(&min_value_);
 }
 
 uint64_t HdrHistogram::MaxValue() const {
-  if (PREDICT_FALSE(TotalCount() == 0)) {
+  if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
   return NoBarrier_Load(&max_value_);
 }
 
 double HdrHistogram::MeanValue() const {
-  uint64_t count = TotalCount();
+  uint64_t count = totalCount();
   if (PREDICT_FALSE(count == 0)) {
     return 0.0;
   }
-  return static_cast<double>(TotalSum()) / count;
+  return static_cast<double>(totalSum()) / count;
 }
 
 uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
-  uint64_t count = TotalCount();
+  uint64_t count = totalCount();
   if (PREDICT_FALSE(count == 0)) {
     return 0;
   }
@@ -341,9 +341,9 @@ uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
   for (int i = 0; i < bucket_count_; i++) {
     int j = (i == 0) ? 0 : (sub_bucket_count_ / 2);
     for (; j < sub_bucket_count_; j++) {
-      total_to_current_iJ += CountAt(i, j);
+      total_to_current_iJ += countAt(i, j);
       if (total_to_current_iJ >= count_at_percentile) {
-        uint64_t valueAtIndex = ValueFromIndex(i, j);
+        uint64_t valueAtIndex = valueFromIndex(i, j);
         return valueAtIndex;
       }
     }
@@ -371,7 +371,7 @@ AbstractHistogramIterator::AbstractHistogramIterator(
     const HdrHistogram* histogram)
     : histogram_(CHECK_NOTNULL(histogram)),
       cur_iter_val_(),
-      histogram_total_count_(histogram_->TotalCount()),
+      histogram_total_count_(histogram_->totalCount()),
       current_bucket_index_(0),
       current_sub_bucket_index_(0),
       current_value_at_index_(0),
@@ -390,7 +390,7 @@ bool AbstractHistogramIterator::HasNext() const {
 }
 
 Status AbstractHistogramIterator::Next(HistogramIterationValue* value) {
-  if (histogram_->TotalCount() != histogram_total_count_) {
+  if (histogram_->totalCount() != histogram_total_count_) {
     return Status::IllegalState(
         "Concurrently modified histogram while traversing it");
   }
@@ -399,7 +399,7 @@ Status AbstractHistogramIterator::Next(HistogramIterationValue* value) {
   // level:
   while (!ExhaustedSubBuckets()) {
     count_at_this_value_ =
-        histogram_->CountAt(current_bucket_index_, current_sub_bucket_index_);
+        histogram_->countAt(current_bucket_index_, current_sub_bucket_index_);
     if (fresh_sub_bucket_) { // Don't add unless we've incremented since last
                              // bucket...
       total_count_to_current_index_ += count_at_this_value_;
@@ -467,7 +467,7 @@ void AbstractHistogramIterator::IncrementSubBucket() {
     next_bucket_index_++;
   }
   next_value_at_index_ =
-      HdrHistogram::ValueFromIndex(next_bucket_index_, next_sub_bucket_index_);
+      HdrHistogram::valueFromIndex(next_bucket_index_, next_sub_bucket_index_);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -486,7 +486,7 @@ void RecordedValuesIterator::IncrementIterationLevel() {
 
 bool RecordedValuesIterator::ReachedIterationLevel() const {
   uint64_t current_ij_count =
-      histogram_->CountAt(current_bucket_index_, current_sub_bucket_index_);
+      histogram_->countAt(current_bucket_index_, current_sub_bucket_index_);
   return current_ij_count != 0 &&
       ((visited_sub_bucket_index_ != current_sub_bucket_index_) ||
        (visited_bucket_index_ != current_bucket_index_));
