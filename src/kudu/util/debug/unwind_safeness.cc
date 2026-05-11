@@ -44,7 +44,7 @@
 #define HOOK_DL_ITERATE_PHDR 1
 #endif
 
-typedef int (*DlIteratePhdrCbtype)(struct dl_phdr_info*, size_t, void*);
+typedef int (*DlIteratePhdrCbType)(struct dl_phdr_info*, size_t, void*);
 
 namespace {
 
@@ -157,7 +157,7 @@ int dlclose(void* handle) { // NOLINT
 }
 
 #ifdef HOOK_DL_ITERATE_PHDR
-int dl_iterate_phdr(DlIteratePhdrCbtype callback, void* data) { // NOLINT
+int dl_iterate_phdr(DlIteratePhdrCbType callback, void* data) { // NOLINT
   initIfNecessary();
   ScopedBumpDepth d;
   return CALL_ORIG(gOrigDlIteratePhdr, dl_iterate_phdr, callback, data);
