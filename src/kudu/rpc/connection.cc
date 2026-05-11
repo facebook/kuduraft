@@ -816,15 +816,15 @@ class NegotiationCompletedTask : public ReactorTask {
  public:
   NegotiationCompletedTask(
       std::shared_ptr<Connection> conn,
-      Status negotiation_status,
-      std::unique_ptr<ErrorStatusPB> rpc_error)
+      Status negotiationStatus,
+      std::unique_ptr<ErrorStatusPB> rpcError)
       : conn_(std::move(conn)),
-        negotiation_status_(std::move(negotiation_status)),
-        rpc_error_(std::move(rpc_error)) {}
+        negotiationStatus_(std::move(negotiationStatus)),
+        rpcError_(std::move(rpcError)) {}
 
   void run(ReactorThread* rthread) override {
     rthread->completeConnectionNegotiation(
-        conn_, negotiation_status_, std::move(rpc_error_));
+        conn_, negotiationStatus_, std::move(rpcError_));
     delete this;
   }
 
@@ -837,8 +837,8 @@ class NegotiationCompletedTask : public ReactorTask {
 
  private:
   std::shared_ptr<Connection> conn_;
-  const Status negotiation_status_;
-  std::unique_ptr<ErrorStatusPB> rpc_error_;
+  const Status negotiationStatus_;
+  std::unique_ptr<ErrorStatusPB> rpcError_;
 };
 
 void Connection::completeNegotiation(
