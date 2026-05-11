@@ -117,18 +117,18 @@ class Env {
       const std::string& fname,
       std::unique_ptr<WritableFile>* result) = 0;
 
-  // Creates a new WritableFile provided the name_template parameter.
-  // The last six characters of name_template must be "XXXXXX" and these are
+  // Creates a new WritableFile provided the nameTemplate parameter.
+  // The last six characters of nameTemplate must be "XXXXXX" and these are
   // replaced with a string that makes the filename unique.
   // The resulting created filename, if successful, will be stored in the
-  // created_filename out parameter.
+  // createdFilename out parameter.
   // The file is created with permissions 0600, that is, read plus write for
   // owner only. The implementation will create the file in a secure manner,
   // and will return an error Status if it is unable to open the file.
   virtual Status NewTempWritableFile(
       const WritableFileOptions& opts,
-      const std::string& name_template,
-      std::string* created_filename,
+      const std::string& nameTemplate,
+      std::string* createdFilename,
       std::unique_ptr<WritableFile>* result) = 0;
 
   // Creates a new readable and writable file. If a file with the same name
@@ -149,8 +149,8 @@ class Env {
   // Same as abovoe for NewTempWritableFile(), but for an RWFile.
   virtual Status NewTempRWFile(
       const RWFileOptions& opts,
-      const std::string& name_template,
-      std::string* created_filename,
+      const std::string& nameTemplate,
+      std::string* createdFilename,
       std::unique_ptr<RWFile>* res) = 0;
 
   // Returns true iff the named file exists.
@@ -185,23 +185,23 @@ class Env {
   // This should operate safely, not following any symlinks, etc.
   virtual Status DeleteRecursively(const std::string& dirname) = 0;
 
-  // Store the logical size of fname in *file_size.
-  virtual Status GetFileSize(const std::string& fname, uint64_t* file_size) = 0;
+  // Store the logical size of fname in *fileSize.
+  virtual Status GetFileSize(const std::string& fname, uint64_t* fileSize) = 0;
 
-  // Store the physical size of fname in *file_size.
+  // Store the physical size of fname in *fileSize.
   //
   // This differs from GetFileSize() in that it returns the actual amount
   // of space consumed by the file, not the user-facing file size.
   virtual Status GetFileSizeOnDisk(
       const std::string& fname,
-      uint64_t* file_size) = 0;
+      uint64_t* fileSize) = 0;
 
   // Walk 'root' recursively, looking up the amount of space used by each file
   // as reported by GetFileSizeOnDisk(), storing the grand total in
-  // 'bytes_used'.
+  // 'bytesUsed'.
   virtual Status GetFileSizeOnDiskRecursively(
       const std::string& root,
-      uint64_t* bytes_used) = 0;
+      uint64_t* bytesUsed) = 0;
 
   // Returns the modified time of the file in microseconds.
   //
@@ -215,17 +215,17 @@ class Env {
       int64_t* timestamp) = 0;
 
   // Store the block size of the filesystem where fname resides in
-  // *block_size. fname must exist but it may be a file or a directory.
+  // *blockSize. fname must exist but it may be a file or a directory.
   virtual Status GetBlockSize(
       const std::string& fname,
-      uint64_t* block_size) = 0;
+      uint64_t* blockSize) = 0;
 
   // Determine the capacity and number of bytes free on the filesystem
   // specified by 'path'. "Free space" accounting on the underlying filesystem
   // may be more coarse than single bytes.
   virtual Status GetSpaceInfo(
       const std::string& path,
-      SpaceInfo* space_info) = 0;
+      SpaceInfo* spaceInfo) = 0;
 
   // Rename file src to target.
   virtual Status RenameFile(
@@ -273,8 +273,8 @@ class Env {
   virtual Status GetExecutablePath(std::string* path) = 0;
 
   // Checks if the file is a directory. Returns an error if it doesn't
-  // exist, otherwise writes true or false into 'is_dir' appropriately.
-  virtual Status IsDirectory(const std::string& path, bool* is_dir) = 0;
+  // exist, otherwise writes true or false into 'isDir' appropriately.
+  virtual Status IsDirectory(const std::string& path, bool* isDir) = 0;
 
   // The kind of file found during a walk. Note that symbolic links are
   // reported as FILE_TYPE.
@@ -316,7 +316,7 @@ class Env {
   // found matching the pattern, no paths are added to the vector and an OK
   // status is returned.
   virtual Status Glob(
-      const std::string& path_pattern,
+      const std::string& pathPattern,
       std::vector<std::string>* paths) = 0;
 
   // Canonicalize 'path' by applying the following conversions:

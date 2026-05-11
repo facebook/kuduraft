@@ -27,18 +27,18 @@ RWFile::~RWFile() {}
 
 FileLock::~FileLock() {}
 
-static Status DoWriteStringToFile(
+static Status doWriteStringToFile(
     Env* env,
     const Slice& data,
     const std::string& fname,
-    bool should_sync) {
+    bool shouldSync) {
   unique_ptr<WritableFile> file;
   Status s = env->NewWritableFile(fname, &file);
   if (!s.ok()) {
     return s;
   }
   s = file->Append(data);
-  if (s.ok() && should_sync) {
+  if (s.ok() && shouldSync) {
     s = file->Sync();
   }
   if (s.ok()) {
@@ -56,7 +56,7 @@ static Status DoWriteStringToFile(
 // TODO: move these utils into env_util
 Status
 WriteStringToFile(Env* env, const Slice& data, const std::string& fname) {
-  return DoWriteStringToFile(env, data, fname, false);
+  return doWriteStringToFile(env, data, fname, false);
 }
 
 Status ReadFileToString(Env* env, const std::string& fname, faststring* data) {

@@ -1060,16 +1060,16 @@ class PosixEnv : public Env {
 
   virtual Status NewTempWritableFile(
       const WritableFileOptions& opts,
-      const string& name_template,
-      string* created_filename,
+      const string& nameTemplate,
+      string* createdFilename,
       unique_ptr<WritableFile>* result) override {
     TRACE_EVENT1(
-        "io", "PosixEnv::NewTempWritableFile", "template", name_template);
+        "io", "PosixEnv::NewTempWritableFile", "template", nameTemplate);
     int fd;
-    string tmp_filename;
-    RETURN_NOT_OK(MkTmpFile(name_template, &fd, &tmp_filename));
-    RETURN_NOT_OK(InstantiateNewWritableFile(tmp_filename, fd, opts, result));
-    created_filename->swap(tmp_filename);
+    string tmpFilename;
+    RETURN_NOT_OK(MkTmpFile(nameTemplate, &fd, &tmpFilename));
+    RETURN_NOT_OK(InstantiateNewWritableFile(tmpFilename, fd, opts, result));
+    createdFilename->swap(tmpFilename);
     return Status::OK();
   }
 
@@ -1091,13 +1091,13 @@ class PosixEnv : public Env {
 
   virtual Status NewTempRWFile(
       const RWFileOptions& opts,
-      const string& name_template,
-      string* created_filename,
+      const string& nameTemplate,
+      string* createdFilename,
       unique_ptr<RWFile>* res) override {
-    TRACE_EVENT1("io", "PosixEnv::NewTempRWFile", "template", name_template);
+    TRACE_EVENT1("io", "PosixEnv::NewTempRWFile", "template", nameTemplate);
     int fd;
-    RETURN_NOT_OK(MkTmpFile(name_template, &fd, created_filename));
-    res->reset(new PosixRWFile(*created_filename, fd, opts.syncOnClose));
+    RETURN_NOT_OK(MkTmpFile(nameTemplate, &fd, createdFilename));
+    res->reset(new PosixRWFile(*createdFilename, fd, opts.syncOnClose));
     return Status::OK();
   }
 
@@ -1246,7 +1246,7 @@ class PosixEnv : public Env {
 
   virtual Status GetFileSizeOnDiskRecursively(
       const string& root,
-      uint64_t* bytes_used) override {
+      uint64_t* bytesUsed) override {
     TRACE_EVENT1("io", "PosixEnv::GetFileSizeOnDiskRecursively", "path", root);
     uint64_t total = 0;
     RETURN_NOT_OK(Walk(
@@ -1256,11 +1256,11 @@ class PosixEnv : public Env {
             &PosixEnv::GetFileSizeOnDiskRecursivelyCb,
             Unretained(this),
             &total)));
-    *bytes_used = total;
+    *bytesUsed = total;
     return Status::OK();
   }
 
-  virtual Status GetBlockSize(const string& fname, uint64_t* block_size)
+  virtual Status GetBlockSize(const string& fname, uint64_t* blockSize)
       override {
     TRACE_EVENT1("io", "PosixEnv::GetBlockSize", "path", fname);
     MAYBE_RETURN_EIO(fname, ioError(Env::kInjectedFailureStatusMsg, EIO));
@@ -1270,7 +1270,7 @@ class PosixEnv : public Env {
     if (stat(fname.c_str(), &sbuf) != 0) {
       s = ioError(fname, errno);
     } else {
-      *block_size = sbuf.st_blksize;
+      *blockSize = sbuf.st_blksize;
     }
     return s;
   }
@@ -1301,13 +1301,13 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  virtual Status GetSpaceInfo(const string& path, SpaceInfo* space_info)
+  virtual Status GetSpaceInfo(const string& path, SpaceInfo* spaceInfo)
       override {
     TRACE_EVENT1("io", "PosixEnv::GetSpaceInfo", "path", path);
     struct statvfs buf;
     RETURN_NOT_OK(statVfs(path, &buf));
-    space_info->capacityBytes = buf.f_frsize * buf.f_blocks;
-    space_info->freeBytes = buf.f_frsize * buf.f_bavail;
+    spaceInfo->capacityBytes = buf.f_frsize * buf.f_blocks;
+    spaceInfo->freeBytes = buf.f_frsize * buf.f_bavail;
     return Status::OK();
   }
 
@@ -1428,7 +1428,7 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  virtual Status IsDirectory(const string& path, bool* is_dir) override {
+  virtual Status IsDirectory(const string& path, bool* isDir) override {
     TRACE_EVENT1("io", "PosixEnv::IsDirectory", "path", path);
     MAYBE_RETURN_EIO(path, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
@@ -1437,7 +1437,7 @@ class PosixEnv : public Env {
     if (stat(path.c_str(), &sbuf) != 0) {
       s = ioError(path, errno);
     } else {
-      *is_dir = S_ISDIR(sbuf.st_mode);
+      *isDir = S_ISDIR(sbuf.st_mode);
     }
     return s;
   }
@@ -1519,8 +1519,8 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status Glob(const string& path_pattern, vector<string>* paths) override {
-    TRACE_EVENT1("io", "PosixEnv::Glob", "path_pattern", path_pattern);
+  Status Glob(const string& pathPattern, vector<string>* paths) override {
+    TRACE_EVENT1("io", "PosixEnv::Glob", "path_pattern", pathPattern);
     ThreadRestrictions::assertIoAllowed();
 
     glob_t result;
@@ -1528,7 +1528,7 @@ class PosixEnv : public Env {
 
     errno = 0;
     int ret =
-        glob(path_pattern.c_str(), GLOB_TILDE | GLOB_ERR, nullptr, &result);
+        glob(pathPattern.c_str(), GLOB_TILDE | GLOB_ERR, nullptr, &result);
     switch (ret) {
       case 0:
         break;
@@ -1539,7 +1539,7 @@ class PosixEnv : public Env {
       default: {
         string err = (errno != 0) ? errnoToString(errno) : "unknown error";
         return Status::IOError(
-            fmt::format("glob failed for {}: {}", path_pattern, err));
+            fmt::format("glob failed for {}: {}", pathPattern, err));
       }
     }
 
@@ -1686,17 +1686,17 @@ class PosixEnv : public Env {
   };
 
   Status
-  MkTmpFile(const string& name_template, int* fd, string* created_filename) {
+  MkTmpFile(const string& nameTemplate, int* fd, string* createdFilename) {
     ThreadRestrictions::assertIoAllowed();
-    unique_ptr<char[]> fname(new char[name_template.size() + 1]);
+    unique_ptr<char[]> fname(new char[nameTemplate.size() + 1]);
     ::snprintf(
-        fname.get(), name_template.size() + 1, "%s", name_template.c_str());
+        fname.get(), nameTemplate.size() + 1, "%s", nameTemplate.c_str());
     MAYBE_RETURN_EIO(fname.get(), ioError(Env::kInjectedFailureStatusMsg, EIO));
     int created_fd = mkstemp(fname.get());
     if (created_fd < 0) {
       return ioError(
           fmt::format(
-              "Call to mkstemp() failed on name template {}", name_template),
+              "Call to mkstemp() failed on name template {}", nameTemplate),
           errno);
     }
     // mkstemp defaults to making files with permissions 0600. But, if the
@@ -1707,7 +1707,7 @@ class PosixEnv : public Env {
       CHECK_ERR(fchmod(created_fd, new_perms));
     }
     *fd = created_fd;
-    *created_filename = fname.get();
+    *createdFilename = fname.get();
     return Status::OK();
   }
 
@@ -1746,16 +1746,16 @@ class PosixEnv : public Env {
   }
 
   Status GetFileSizeOnDiskRecursivelyCb(
-      uint64_t* bytes_used,
+      uint64_t* bytesUsed,
       Env::FileType type,
       const string& dirname,
       const string& basename) {
-    uint64_t file_bytes_used = 0;
+    uint64_t fileBytesUsed = 0;
     switch (type) {
       case Env::FILE_TYPE:
         RETURN_NOT_OK(GetFileSizeOnDisk(
-            JoinPathSegments(dirname, basename), &file_bytes_used));
-        *bytes_used += file_bytes_used;
+            JoinPathSegments(dirname, basename), &fileBytesUsed));
+        *bytesUsed += fileBytesUsed;
         break;
       case Env::DIRECTORY_TYPE:
         // Ignore directory space consumption as it varies from filesystem to
