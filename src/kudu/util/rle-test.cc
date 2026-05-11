@@ -109,7 +109,7 @@ TEST(BitArray, TestBool) {
 }
 
 // Writes 'numVals' values with width 'bitWidth' and reads them back.
-void TestBitArrayValues(int bitWidth, int numVals) {
+void testBitArrayValues(int bitWidth, int numVals) {
   const int kTestLen = BitUtil::ceil(bitWidth * numVals, 8);
   const uint64_t mod = bitWidth == 64 ? 1 : 1LL << bitWidth;
 
@@ -133,11 +133,11 @@ void TestBitArrayValues(int bitWidth, int numVals) {
 
 TEST(BitArray, TestValues) {
   for (int width = 1; width <= kMaxWidth; ++width) {
-    TestBitArrayValues(width, 1);
-    TestBitArrayValues(width, 2);
+    testBitArrayValues(width, 1);
+    testBitArrayValues(width, 2);
     // Don't write too many values
-    TestBitArrayValues(width, (width < 12) ? (1 << width) : 4096);
-    TestBitArrayValues(width, 1024);
+    testBitArrayValues(width, (width < 12) ? (1 << width) : 4096);
+    testBitArrayValues(width, 1024);
   }
 }
 
@@ -181,7 +181,7 @@ TEST(BitArray, TestMixed) {
 // exactly 'expectedEncoding'.
 // if expectedLen is not -1, it will validate the encoded size is correct.
 template <typename T>
-void ValidateRle(
+void validateRle(
     const vector<T>& values,
     int bitWidth,
     uint8_t* expectedEncoding,
@@ -234,11 +234,11 @@ TEST(Rle, SpecificSequences) {
   expectedBuffer[2] = (50 << 1);
   expectedBuffer[3] = 1;
   for (int width = 1; width <= 8; ++width) {
-    ValidateRle(values, width, expectedBuffer, 4);
+    validateRle(values, width, expectedBuffer, 4);
   }
 
   for (int width = 9; width <= kMaxWidth; ++width) {
-    ValidateRle(values, width, nullptr, 2 * (1 + BitUtil::ceil(width, 8)));
+    validateRle(values, width, nullptr, 2 * (1 + BitUtil::ceil(width, 8)));
   }
 
   // Test 100 0's and 1's alternating
@@ -254,29 +254,29 @@ TEST(Rle, SpecificSequences) {
   expectedBuffer[1 + 100 / 8] = BOOST_BINARY(0 0 0 0 1 0 1 0); // 0x0a
 
   // numGroups and expectedBuffer only valid for bit width = 1
-  ValidateRle(values, 1, expectedBuffer, 1 + numGroups);
+  validateRle(values, 1, expectedBuffer, 1 + numGroups);
   for (int width = 2; width <= kMaxWidth; ++width) {
-    ValidateRle(values, width, nullptr, 1 + BitUtil::ceil(width * 100, 8));
+    validateRle(values, width, nullptr, 1 + BitUtil::ceil(width * 100, 8));
   }
 }
 
-// ValidateRle on 'numVals' values with width 'bitWidth'. If 'value' != -1,
+// validateRle on 'numVals' values with width 'bitWidth'. If 'value' != -1,
 // that value is used, otherwise alternating values are used.
-void TestRleValues(int bitWidth, int numVals, int value = -1) {
+void testRleValues(int bitWidth, int numVals, int value = -1) {
   const uint64_t mod = bitWidth == 64 ? 1ULL : 1ULL << bitWidth;
   vector<uint64_t> values;
   for (uint64_t v = 0; v < numVals; ++v) {
     values.push_back((value != -1) ? value : (bitWidth == 64 ? v : (v % mod)));
   }
-  ValidateRle(values, bitWidth, nullptr, -1);
+  validateRle(values, bitWidth, nullptr, -1);
 }
 
 TEST(Rle, TestValues) {
   for (int width = 1; width <= kMaxWidth; ++width) {
-    TestRleValues(width, 1);
-    TestRleValues(width, 1024);
-    TestRleValues(width, 1024, 0);
-    TestRleValues(width, 1024, 1);
+    testRleValues(width, 1);
+    testRleValues(width, 1024);
+    testRleValues(width, 1024, 0);
+    testRleValues(width, 1024, 1);
   }
 }
 
@@ -293,7 +293,7 @@ TEST_F(BitRle, AllSame) {
       values.push_back(v ? true : false);
     }
 
-    ValidateRle(values, 1, nullptr, 3);
+    validateRle(values, 1, nullptr, 3);
   }
 }
 
@@ -305,13 +305,13 @@ TEST_F(BitRle, Flush) {
     values.push_back(1);
   }
   values.push_back(false);
-  ValidateRle(values, 1, nullptr, -1);
+  validateRle(values, 1, nullptr, -1);
   values.push_back(true);
-  ValidateRle(values, 1, nullptr, -1);
+  validateRle(values, 1, nullptr, -1);
   values.push_back(true);
-  ValidateRle(values, 1, nullptr, -1);
+  validateRle(values, 1, nullptr, -1);
   values.push_back(true);
-  ValidateRle(values, 1, nullptr, -1);
+  validateRle(values, 1, nullptr, -1);
 }
 
 // Test some random bool sequences.
@@ -335,7 +335,7 @@ TEST_F(BitRle, RandomBools) {
       }
       parity = !parity;
     }
-    ValidateRle(values, (iters % kMaxWidth) + 1, nullptr, -1);
+    validateRle(values, (iters % kMaxWidth) + 1, nullptr, -1);
   }
 }
 
@@ -360,7 +360,7 @@ TEST_F(BitRle, Random64Bit) {
         values.push_back(curValue);
       }
     }
-    ValidateRle(values, 64, nullptr, -1);
+    validateRle(values, 64, nullptr, -1);
   }
 }
 
@@ -386,7 +386,7 @@ TEST_F(BitRle, RepeatedPattern) {
     }
   }
 
-  ValidateRle(values, 1, nullptr, -1);
+  validateRle(values, 1, nullptr, -1);
 }
 
 TEST_F(TestRle, TestBulkPut) {
@@ -455,7 +455,7 @@ TEST_F(TestRle, TestGetNextRun) {
 // each with a random length between 1 and 100. Returns the number
 // of values encoded (i.e the sum run length).
 static size_t
-GenerateRandomBitString(int numRuns, faststring* encBuf, string* stringRep) {
+generateRandomBitString(int numRuns, faststring* encBuf, string* stringRep) {
   RleEncoder<bool> enc(encBuf, 1);
   int numBits = 0;
   for (int i = 0; i < numRuns; i++) {
@@ -480,7 +480,7 @@ TEST_F(TestRle, TestRoundTripRandomSequencesWithRuns) {
   for (int rep = 0; rep < 100; rep++) {
     faststring buf;
     string stringRep;
-    int numBits = GenerateRandomBitString(10, &buf, &stringRep);
+    int numBits = generateRandomBitString(10, &buf, &stringRep);
     RleDecoder<bool> decoder(buf.data(), buf.size(), 1);
     string roundtripStr;
     int remToRead = numBits;
