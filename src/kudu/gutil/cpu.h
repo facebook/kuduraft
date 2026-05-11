@@ -67,32 +67,32 @@ class Cpu {
   bool hasPclmulqdq() const {
     return hasPclmulqdq_;
   }
-  bool has_ssse3() const {
-    return has_ssse3_;
+  bool hasSsse3() const {
+    return hasSsse3_;
   }
-  bool has_sse41() const {
-    return has_sse41_;
+  bool hasSse41() const {
+    return hasSse41_;
   }
-  bool has_sse42() const {
-    return has_sse42_;
+  bool hasSse42() const {
+    return hasSse42_;
   }
-  bool has_popcnt() const {
-    return has_popcnt_;
+  bool hasPopcnt() const {
+    return hasPopcnt_;
   }
-  bool has_avx() const {
-    return has_avx_;
+  bool hasAvx() const {
+    return hasAvx_;
   }
-  bool has_avx2() const {
-    return has_avx2_;
+  bool hasAvx2() const {
+    return hasAvx2_;
   }
-  bool has_aesni() const {
-    return has_aesni_;
+  bool hasAesni() const {
+    return hasAesni_;
   }
-  bool has_bmi() const {
-    return has_bmi_;
+  bool hasBmi() const {
+    return hasBmi_;
   }
-  bool has_bmi2() const {
-    return has_bmi2_;
+  bool hasBmi2() const {
+    return hasBmi2_;
   }
   bool hasNonStopTimeStampCounter() const {
     return hasNonStopTimeStampCounter_;
@@ -125,15 +125,15 @@ class Cpu {
   bool hasSse2_;
   bool hasSse3_;
   bool hasPclmulqdq_;
-  bool has_ssse3_;
-  bool has_sse41_;
-  bool has_sse42_;
-  bool has_popcnt_;
-  bool has_avx_;
-  bool has_avx2_;
-  bool has_aesni_;
-  bool has_bmi_;
-  bool has_bmi2_;
+  bool hasSsse3_;
+  bool hasSse41_;
+  bool hasSse42_;
+  bool hasPopcnt_;
+  bool hasAvx_;
+  bool hasAvx2_;
+  bool hasAesni_;
+  bool hasBmi_;
+  bool hasBmi2_;
   bool hasNonStopTimeStampCounter_;
   bool hasBrokenNeon_;
   std::string cpuVendor_;

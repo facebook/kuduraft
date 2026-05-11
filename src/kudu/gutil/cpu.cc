@@ -25,15 +25,15 @@ Cpu::Cpu()
       hasSse2_(false),
       hasSse3_(false),
       hasPclmulqdq_(false),
-      has_ssse3_(false),
-      has_sse41_(false),
-      has_sse42_(false),
-      has_popcnt_(false),
-      has_avx_(false),
-      has_avx2_(false),
-      has_aesni_(false),
-      has_bmi_(false),
-      has_bmi2_(false),
+      hasSsse3_(false),
+      hasSse41_(false),
+      hasSse42_(false),
+      hasPopcnt_(false),
+      hasAvx_(false),
+      hasAvx2_(false),
+      hasAesni_(false),
+      hasBmi_(false),
+      hasBmi2_(false),
       hasNonStopTimeStampCounter_(false),
       hasBrokenNeon_(false),
       cpuVendor_("unknown") {
@@ -217,10 +217,10 @@ void Cpu::initialize() {
     hasSse2_ = (cpu_info[3] & 0x04000000) != 0;
     hasSse3_ = (cpu_info[2] & 0x00000001) != 0;
     hasPclmulqdq_ = (cpu_info[2] & 0x00000002) != 0;
-    has_ssse3_ = (cpu_info[2] & 0x00000200) != 0;
-    has_sse41_ = (cpu_info[2] & 0x00080000) != 0;
-    has_sse42_ = (cpu_info[2] & 0x00100000) != 0;
-    has_popcnt_ = (cpu_info[2] & 0x00800000) != 0;
+    hasSsse3_ = (cpu_info[2] & 0x00000200) != 0;
+    hasSse41_ = (cpu_info[2] & 0x00080000) != 0;
+    hasSse42_ = (cpu_info[2] & 0x00100000) != 0;
+    hasPopcnt_ = (cpu_info[2] & 0x00800000) != 0;
     // AVX instructions will generate an illegal instruction exception unless
     //   a) they are supported by the CPU,
     //   b) XSAVE is supported by the CPU and
@@ -231,14 +231,14 @@ void Cpu::initialize() {
     // even after following Intel's example code. (See crbug.com/375968.)
     // Because of that, we also test the XSAVE bit because its description in
     // the CPUID documentation suggests that it signals xgetbv support.
-    has_avx_ = (cpu_info[2] & 0x10000000) != 0 &&
+    hasAvx_ = (cpu_info[2] & 0x10000000) != 0 &&
         (cpu_info[2] & 0x04000000) != 0 /* XSAVE */ &&
         (cpu_info[2] & 0x08000000) != 0 /* OSXSAVE */ &&
         (_xgetbv(0) & 6) == 6 /* XSAVE enabled by kernel */;
-    has_aesni_ = (cpu_info[2] & 0x02000000) != 0;
-    has_avx2_ = has_avx_ && (cpu_info7[1] & 0x00000020) != 0;
-    has_bmi_ = cpu_info7[1] & (1 << 3);
-    has_bmi2_ = cpu_info7[1] & (1 << 8);
+    hasAesni_ = (cpu_info[2] & 0x02000000) != 0;
+    hasAvx2_ = hasAvx_ && (cpu_info7[1] & 0x00000020) != 0;
+    hasBmi_ = cpu_info7[1] & (1 << 3);
+    hasBmi2_ = cpu_info7[1] & (1 << 8);
   }
 
   // Get the brand string of the cpu.
@@ -276,19 +276,19 @@ void Cpu::initialize() {
 }
 
 Cpu::IntelMicroArchitecture Cpu::getIntelMicroArchitecture() const {
-  if (has_avx2()) {
+  if (hasAvx2()) {
     return kAvx2;
   }
-  if (has_avx()) {
+  if (hasAvx()) {
     return kAvx;
   }
-  if (has_sse42()) {
+  if (hasSse42()) {
     return kSse42;
   }
-  if (has_sse41()) {
+  if (hasSse41()) {
     return kSse41;
   }
-  if (has_ssse3()) {
+  if (hasSsse3()) {
     return kSsse3;
   }
   if (hasSse3()) {
