@@ -1052,17 +1052,17 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Helper function to fill in the previous vote history and last pruned term
   // from the vote history.
-  void FillVoteResponsePreviousVoteHistory(VoteResponsePB* response);
+  void fillVoteResponsePreviousVoteHistory(VoteResponsePB* response);
 
   // Helper function to populate last known leader information in the
   // vote response.
-  void FillVoteResponseLastKnownLeader(VoteResponsePB* response);
+  void fillVoteResponseLastKnownLeader(VoteResponsePB* response);
 
   // Fills the response with the current status, if an update was successful.
-  void FillConsensusResponseOKUnlocked(ConsensusResponsePB* response);
+  void fillConsensusResponseOkUnlocked(ConsensusResponsePB* response);
 
   // Fills the response with an error code and error message.
-  void FillConsensusResponseError(
+  void fillConsensusResponseError(
       ConsensusResponsePB* response,
       ConsensusErrorPB::Code error_code,
       const Status& status);
@@ -1070,36 +1070,36 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Fill VoteResponsePB with the following information:
   // - Update responder_term to current local term.
   // - Set vote_granted to true.
-  void FillVoteResponseVoteGranted(VoteResponsePB* response);
+  void fillVoteResponseVoteGranted(VoteResponsePB* response);
 
   // Fill VoteResponsePB with the following information:
   // - Update responder_term to current local term.
   // - Set vote_granted to false.
   // - Set consensus_error.code to the given code.
-  void FillVoteResponseVoteDenied(
+  void fillVoteResponseVoteDenied(
       ConsensusErrorPB::Code error_code,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the candidate has an old term.
-  Status RequestVoteRespondInvalidTerm(
+  Status requestVoteRespondInvalidTerm(
       const VoteRequestPB* request,
       const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that we already granted our vote to the candidate.
-  Status RequestVoteRespondVoteAlreadyGranted(
+  Status requestVoteRespondVoteAlreadyGranted(
       const VoteRequestPB* request,
       const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that we already granted our vote to someone else.
-  Status RequestVoteRespondAlreadyVotedForOther(
+  Status requestVoteRespondAlreadyVotedForOther(
       const VoteRequestPB* request,
       const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the candidate's last-logged OpId is too old.
-  Status RequestVoteRespondLastOpIdTooOld(
+  Status requestVoteRespondLastOpIdTooOld(
       const OpId& localLastLoggedOpId,
       const VoteRequestPB* request,
       const std::string& hostnamePort,
@@ -1107,7 +1107,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Respond to VoteRequest with a denial because votes are being witheld
   // for testing.
-  Status RequestVoteRespondVoteWitheld(
+  Status requestVoteRespondVoteWitheld(
       const VoteRequestPB* request,
       const std::string& hostnamePort,
       const std::string& withholdReason,
@@ -1115,25 +1115,25 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Respond to VoteRequest that the vote was not granted because we believe
   // the leader to be alive.
-  Status RequestVoteRespondLeaderIsAlive(
+  Status requestVoteRespondLeaderIsAlive(
       const VoteRequestPB* request,
       const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the replica is already in the middle of
   // servicing another vote request or an update from a valid leader.
-  Status RequestVoteRespondIsBusy(
+  Status requestVoteRespondIsBusy(
       const VoteRequestPB* request,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the vote is granted for candidate.
-  Status RequestVoteRespondVoteGranted(
+  Status requestVoteRespondVoteGranted(
       const VoteRequestPB* request,
       const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the request is invalid.
-  Status RequestVoteRespondInvalidClientRequest(
+  Status requestVoteRespondInvalidClientRequest(
       VoteResponsePB* response,
       const std::string& errorMessage);
 

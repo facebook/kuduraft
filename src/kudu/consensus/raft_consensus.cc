@@ -1918,7 +1918,7 @@ Status RaftConsensus::handleLeaderRequestTermUnlocked(
           currentTermUnlocked(),
           OpsRangeString(*request));
       LOG_WITH_PREFIX_UNLOCKED(INFO) << msg;
-      FillConsensusResponseError(
+      fillConsensusResponseError(
           response, ConsensusErrorPB::INVALID_TERM, Status::IllegalState(msg));
       return Status::OK();
     }
@@ -1944,7 +1944,7 @@ Status RaftConsensus::enforceLogMatchingPropertyMatchesUnlocked(
       SecureShortDebugString(req.precedingOpId),
       termMismatch ? "term" : "index");
 
-  FillConsensusResponseError(
+  fillConsensusResponseError(
       response,
       ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH,
       Status::IllegalState(errorMsg));
@@ -2216,7 +2216,7 @@ Status RaftConsensus::updateReplica(
     RETURN_NOT_OK(checkLeaderRequestUnlocked(request, response, &dedupedReq));
     if (response->status().has_error()) {
       // We had an error, like an invalid term, we still fill the response.
-      FillConsensusResponseOKUnlocked(response);
+      fillConsensusResponseOkUnlocked(response);
       return Status::OK();
     }
 
@@ -2311,9 +2311,9 @@ Status RaftConsensus::updateReplica(
     if (messages.empty()) {
       Status checkStatus = roundHandler_->canAppend();
       if (PREDICT_FALSE(!checkStatus.ok())) {
-        FillConsensusResponseError(
+        fillConsensusResponseError(
             response, ConsensusErrorPB::CANNOT_PREPARE, checkStatus);
-        FillConsensusResponseOKUnlocked(response);
+        fillConsensusResponseOkUnlocked(response);
         return Status::OK();
       }
     }
@@ -2418,9 +2418,9 @@ Status RaftConsensus::updateReplica(
           s = Status::IllegalState(std::move(msg));
         }
 
-        FillConsensusResponseError(
+        fillConsensusResponseError(
             response, ConsensusErrorPB::CANNOT_PREPARE, s);
-        FillConsensusResponseOKUnlocked(response);
+        fillConsensusResponseOkUnlocked(response);
         return Status::OK();
       }
     }
@@ -2492,7 +2492,7 @@ Status RaftConsensus::updateReplica(
     // Fill the response with the current state. We will not mutate anymore
     // state until we actually reply to the leader, we'll just wait for the
     // messages to be durable.
-    FillConsensusResponseOKUnlocked(response);
+    fillConsensusResponseOkUnlocked(response);
     if (!haveQueuedLdcbOrNorcb_) {
       ScheduleLeaderDetectedCallback(currentTermUnlocked());
     }
@@ -2530,7 +2530,7 @@ Status RaftConsensus::updateReplica(
   return Status::OK();
 }
 
-void RaftConsensus::FillConsensusResponseOKUnlocked(
+void RaftConsensus::fillConsensusResponseOkUnlocked(
     ConsensusResponsePB* response) {
   DCHECK(lock_.is_locked());
   TRACE("Filling consensus response to leader.");
@@ -2550,7 +2550,7 @@ void RaftConsensus::FillConsensusResponseOKUnlocked(
       queue_->GetCommittedIndex());
 }
 
-void RaftConsensus::FillConsensusResponseError(
+void RaftConsensus::fillConsensusResponseError(
     ConsensusResponsePB* response,
     ConsensusErrorPB::Code error_code,
     const Status& status) {
@@ -2595,7 +2595,7 @@ Status RaftConsensus::requestVote(
     // etc.
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    return RequestVoteRespondIsBusy(request, response);
+    return requestVoteRespondIsBusy(request, response);
   }
 
   // Acquire the replica state lock so we can read / modify the consensus state.
@@ -2633,7 +2633,7 @@ Status RaftConsensus::requestVote(
 
   if (request->mode() == MOCK_ELECTION) {
     if (!request->has_mock_election_snapshot_op_id()) {
-      return RequestVoteRespondInvalidClientRequest(
+      return requestVoteRespondInvalidClientRequest(
           response,
           "mock_election_snapshot_op_id must be provided in a Mock Election");
     }
@@ -2706,7 +2706,7 @@ Status RaftConsensus::requestVote(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting vote request from peer " << request->candidate_uuid()
         << " " << hostnamePort << " for testing.";
-    return RequestVoteRespondVoteWitheld(
+    return requestVoteRespondVoteWitheld(
         request, hostnamePort, "votes are being witheld for testing", response);
   }
 
@@ -2717,12 +2717,12 @@ Status RaftConsensus::requestVote(
                std::max<MonoTime>(
                    withholdVotesUntil_, queue_->GetLeaderLeaseUntil())
            : MonoTime::Now() < withholdVotesUntil_)) {
-    return RequestVoteRespondLeaderIsAlive(request, hostnamePort, response);
+    return requestVoteRespondLeaderIsAlive(request, hostnamePort, response);
   }
 
   // Candidate is running behind.
   if (request->candidate_term() < currentTermUnlocked()) {
-    return RequestVoteRespondInvalidTerm(request, hostnamePort, response);
+    return requestVoteRespondInvalidTerm(request, hostnamePort, response);
   }
 
   // We already voted this term.
@@ -2730,12 +2730,12 @@ Status RaftConsensus::requestVote(
       HasVotedCurrentTermUnlocked()) {
     // Already voted for the same candidate in the current term.
     if (GetVotedForCurrentTermUnlocked() == request->candidate_uuid()) {
-      return RequestVoteRespondVoteAlreadyGranted(
+      return requestVoteRespondVoteAlreadyGranted(
           request, hostnamePort, response);
     }
 
     // Voted for someone else in current term.
-    return RequestVoteRespondAlreadyVotedForOther(
+    return requestVoteRespondAlreadyVotedForOther(
         request, hostnamePort, response);
   }
 
@@ -2774,7 +2774,7 @@ Status RaftConsensus::requestVote(
         ? 0
         : FLAGS_lag_threshold_for_request_vote;
     if (lag > lagThreshold) {
-      return RequestVoteRespondVoteWitheld(
+      return requestVoteRespondVoteWitheld(
           request,
           hostnamePort,
           fmt::format(
@@ -2809,12 +2809,12 @@ Status RaftConsensus::requestVote(
   }
 
   if (!voteYes) {
-    return RequestVoteRespondLastOpIdTooOld(
+    return requestVoteRespondLastOpIdTooOld(
         localLastLoggedOpId, request, hostnamePort, response);
   }
 
   // Passed all our checks. Vote granted.
-  return RequestVoteRespondVoteGranted(request, hostnamePort, response);
+  return requestVoteRespondVoteGranted(request, hostnamePort, response);
 }
 
 Status RaftConsensus::changeConfig(
@@ -3648,7 +3648,7 @@ std::string RaftConsensus::getRequestVoteLogPrefixUnlocked(
       ElectionMode_Name(request.mode()));
 }
 
-void RaftConsensus::FillVoteResponsePreviousVoteHistory(
+void RaftConsensus::fillVoteResponsePreviousVoteHistory(
     VoteResponsePB* response) {
   CHECK(response);
 
@@ -3664,33 +3664,33 @@ void RaftConsensus::FillVoteResponsePreviousVoteHistory(
   response->set_last_pruned_term(cmeta_->lastPrunedTerm());
 }
 
-void RaftConsensus::FillVoteResponseLastKnownLeader(VoteResponsePB* response) {
+void RaftConsensus::fillVoteResponseLastKnownLeader(VoteResponsePB* response) {
   CHECK(response);
   response->mutable_last_known_leader()->CopyFrom(cmeta_->lastKnownLeader());
 }
 
-void RaftConsensus::FillVoteResponseVoteGranted(VoteResponsePB* response) {
+void RaftConsensus::fillVoteResponseVoteGranted(VoteResponsePB* response) {
   response->set_responder_term(currentTermUnlocked());
   response->set_vote_granted(true);
-  FillVoteResponsePreviousVoteHistory(response);
-  FillVoteResponseLastKnownLeader(response);
+  fillVoteResponsePreviousVoteHistory(response);
+  fillVoteResponseLastKnownLeader(response);
 }
 
-void RaftConsensus::FillVoteResponseVoteDenied(
+void RaftConsensus::fillVoteResponseVoteDenied(
     ConsensusErrorPB::Code error_code,
     VoteResponsePB* response) {
   response->set_responder_term(currentTermUnlocked());
   response->set_vote_granted(false);
   response->mutable_consensus_error()->set_code(error_code);
-  FillVoteResponsePreviousVoteHistory(response);
-  FillVoteResponseLastKnownLeader(response);
+  fillVoteResponsePreviousVoteHistory(response);
+  fillVoteResponseLastKnownLeader(response);
 }
 
-Status RaftConsensus::RequestVoteRespondInvalidTerm(
+Status RaftConsensus::requestVoteRespondInvalidTerm(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
-  FillVoteResponseVoteDenied(ConsensusErrorPB::INVALID_TERM, response);
+  fillVoteResponseVoteDenied(ConsensusErrorPB::INVALID_TERM, response);
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} for earlier term {}. "
       "Current term is {}. Candidate context {}. ",
@@ -3708,11 +3708,11 @@ Status RaftConsensus::RequestVoteRespondInvalidTerm(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondVoteAlreadyGranted(
+Status RaftConsensus::requestVoteRespondVoteAlreadyGranted(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
-  FillVoteResponseVoteGranted(response);
+  fillVoteResponseVoteGranted(response);
   LOG(INFO) << fmt::format(
       "{}: Already granted yes {} for candidate {} {} in term {}. "
       "Candidate context {}. "
@@ -3726,11 +3726,11 @@ Status RaftConsensus::RequestVoteRespondVoteAlreadyGranted(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondAlreadyVotedForOther(
+Status RaftConsensus::requestVoteRespondAlreadyVotedForOther(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
-  FillVoteResponseVoteDenied(ConsensusErrorPB::ALREADY_VOTED, response);
+  fillVoteResponseVoteDenied(ConsensusErrorPB::ALREADY_VOTED, response);
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} in current term {}: "
       "Already voted for candidate {} in this term. "
@@ -3749,12 +3749,12 @@ Status RaftConsensus::RequestVoteRespondAlreadyVotedForOther(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondLastOpIdTooOld(
+Status RaftConsensus::requestVoteRespondLastOpIdTooOld(
     const OpId& localLastLoggedOpId,
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
-  FillVoteResponseVoteDenied(ConsensusErrorPB::LAST_OPID_TOO_OLD, response);
+  fillVoteResponseVoteDenied(ConsensusErrorPB::LAST_OPID_TOO_OLD, response);
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} for term {} because "
       "replica has last-logged OpId of {}, which is greater than that of the "
@@ -3775,12 +3775,12 @@ Status RaftConsensus::RequestVoteRespondLastOpIdTooOld(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondVoteWitheld(
+Status RaftConsensus::requestVoteRespondVoteWitheld(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     const std::string& withholdReason,
     VoteResponsePB* response) {
-  FillVoteResponseVoteDenied(ConsensusErrorPB::UNKNOWN, response);
+  fillVoteResponseVoteDenied(ConsensusErrorPB::UNKNOWN, response);
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} for term {} "
       "because of reason: {}. Candidate context: {}.",
@@ -3798,11 +3798,11 @@ Status RaftConsensus::RequestVoteRespondVoteWitheld(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondLeaderIsAlive(
+Status RaftConsensus::requestVoteRespondLeaderIsAlive(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
-  FillVoteResponseVoteDenied(ConsensusErrorPB::LEADER_IS_ALIVE, response);
+  fillVoteResponseVoteDenied(ConsensusErrorPB::LEADER_IS_ALIVE, response);
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} for term {} because "
       "replica is either leader or believes a valid leader to "
@@ -3820,10 +3820,10 @@ Status RaftConsensus::RequestVoteRespondLeaderIsAlive(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondIsBusy(
+Status RaftConsensus::requestVoteRespondIsBusy(
     const VoteRequestPB* request,
     VoteResponsePB* response) {
-  FillVoteResponseVoteDenied(ConsensusErrorPB::CONSENSUS_BUSY, response);
+  fillVoteResponseVoteDenied(ConsensusErrorPB::CONSENSUS_BUSY, response);
   string msg = fmt::format(
       "{}: Denying {} to candidate {} for term {} because "
       "replica is already servicing an update from a current leader "
@@ -3840,7 +3840,7 @@ Status RaftConsensus::RequestVoteRespondIsBusy(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondVoteGranted(
+Status RaftConsensus::requestVoteRespondVoteGranted(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
@@ -3858,7 +3858,7 @@ Status RaftConsensus::RequestVoteRespondVoteGranted(
     RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(request->candidate_uuid()));
   }
 
-  FillVoteResponseVoteGranted(response);
+  fillVoteResponseVoteGranted(response);
 
   // Give peer time to become leader. Snooze one more time after persisting our
   // vote. When disk latency is high, this should help reduce churn.
@@ -3875,7 +3875,7 @@ Status RaftConsensus::RequestVoteRespondVoteGranted(
   return Status::OK();
 }
 
-Status RaftConsensus::RequestVoteRespondInvalidClientRequest(
+Status RaftConsensus::requestVoteRespondInvalidClientRequest(
     VoteResponsePB* response,
     const std::string& errorMessage) {
   LOG(INFO) << "Invalid client request in RequestVote: " << errorMessage;
