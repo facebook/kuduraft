@@ -250,7 +250,7 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
 
   for (auto format : kFormats) {
     SCOPED_TRACE(
-        fmt::format("X509 CSR format: {}", DataFormatToString(format)));
+        fmt::format("X509 CSR format: {}", dataFormatToString(format)));
     string strReqRef;
     ASSERT_OK(reqRef.ToString(&strReqRef, format));
     CertSignRequest req;
@@ -278,7 +278,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(req, &certRef));
 
   for (auto format : kFormats) {
-    SCOPED_TRACE(fmt::format("X509 format: {}", DataFormatToString(format)));
+    SCOPED_TRACE(fmt::format("X509 format: {}", dataFormatToString(format)));
     string strCertRef;
     ASSERT_OK(certRef.ToString(&strCertRef, format));
     Cert cert;

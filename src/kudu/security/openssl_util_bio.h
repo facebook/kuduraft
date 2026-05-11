@@ -92,7 +92,7 @@ Status fromBio(
       break;
   }
   if (PREDICT_FALSE(!*ret)) {
-    return Status::RuntimeError(GetOpenSSLErrors());
+    return Status::RuntimeError(getOpenSslErrors());
   }
   return Status::OK();
 }

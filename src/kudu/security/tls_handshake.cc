@@ -102,16 +102,16 @@ Status TlsHandshake::sslHandshake(
   int fd = (*socket)->release();
 
   if (SSL_set_fd(ssl_.get(), fd) != 1) {
-    return Status::RuntimeError("SSL_set_fd error", GetOpenSSLErrors());
+    return Status::RuntimeError("SSL_set_fd error", getOpenSslErrors());
   }
 
   if (isServer) {
     if (SSL_accept(ssl_.get()) != 1) {
-      return Status::NetworkError("SSL_accept error", GetOpenSSLErrors());
+      return Status::NetworkError("SSL_accept error", getOpenSslErrors());
     }
   } else {
     if (SSL_connect(ssl_.get()) != 1) {
-      return Status::NetworkError("SSL_connect error", GetOpenSSLErrors());
+      return Status::NetworkError("SSL_connect error", getOpenSslErrors());
     }
   }
 
@@ -156,7 +156,7 @@ Status TlsHandshake::continueHandshake(const string& recv, string* send) {
     // WANT_READ and WANT_WRITE indicate that the handshake is not yet complete.
     if (sslErr != SSL_ERROR_WANT_READ && sslErr != SSL_ERROR_WANT_WRITE) {
       return Status::RuntimeError(
-          "TLS Handshake error", GetSSLErrorDescription(sslErr));
+          "TLS Handshake error", getSslErrorDescription(sslErr));
     }
     // In the case that we got SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE,
     // the OpenSSL implementation guarantees that there is no error entered into
@@ -196,7 +196,7 @@ Status TlsHandshake::verify(const Socket& socket) const {
             fmt::format(
                 "SSL cert verification failed: {}",
                 X509_verify_cert_error_string(rc)),
-            GetOpenSSLErrors());
+            getOpenSslErrors());
       }
       break;
   }
@@ -243,7 +243,7 @@ Status TlsHandshake::verify(const Socket& socket) const {
   }
   if (match < 0) {
     return Status::RuntimeError("TLS certificate hostname verification error",
-  GetOpenSSLErrors());
+  getOpenSslErrors());
   }
   DCHECK_EQ(match, 1);
   */
@@ -277,7 +277,7 @@ Status TlsHandshake::finish(unique_ptr<Socket>* socket) {
   // read and write memory BIO instances.
   int ret = SSL_set_fd(ssl_.get(), fd);
   if (ret != 1) {
-    return Status::RuntimeError("TLS handshake error", GetOpenSSLErrors());
+    return Status::RuntimeError("TLS handshake error", getOpenSslErrors());
   }
 
   // Transfer the SSL instance to the socket.

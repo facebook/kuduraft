@@ -126,7 +126,7 @@ CertRequestGenerator::CertRequestGenerator(Config config)
     : CertRequestGeneratorBase(), config_(std::move(config)) {}
 
 Status CertRequestGenerator::init() {
-  InitializeOpenSSL();
+  initializeOpenSsl();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
   CHECK(!isInitialized_);
@@ -208,7 +208,7 @@ CaCertRequestGenerator::~CaCertRequestGenerator() {
 }
 
 Status CaCertRequestGenerator::init() {
-  InitializeOpenSSL();
+  initializeOpenSsl();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
   lock_guard<SimpleSpinlock> guard(lock_);
@@ -299,7 +299,7 @@ CertSigner::CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey)
 
 Status CertSigner::sign(const CertSignRequest& req, Cert* ret) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  InitializeOpenSSL();
+  initializeOpenSsl();
   CHECK(ret);
 
   // If we are not self-signing, then make sure that the provided CA
@@ -358,10 +358,10 @@ Status CertSigner::fillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
   const int rc = X509_REQ_verify(req, pubKey.get());
   if (rc < 0) {
     return Status::RuntimeError(
-        "CSR signature verification error", GetOpenSSLErrors());
+        "CSR signature verification error", getOpenSslErrors());
   }
   if (rc == 0) {
-    return Status::RuntimeError("CSR signature mismatch", GetOpenSSLErrors());
+    return Status::RuntimeError("CSR signature mismatch", getOpenSslErrors());
   }
   OPENSSL_RET_NOT_OK(
       X509_set_subject_name(tmpl, X509_REQ_get_subject_name(req)),

@@ -141,7 +141,7 @@ TlsContext::TlsContext()
       trustedCertCount_(0),
       hasCert_(false),
       isExternalCert_(false) {
-  security::InitializeOpenSSL();
+  security::initializeOpenSsl();
 }
 
 TlsContext::TlsContext(std::string tlsCiphers, std::string tlsMinProtocol)
@@ -151,7 +151,7 @@ TlsContext::TlsContext(std::string tlsCiphers, std::string tlsMinProtocol)
       trustedCertCount_(0),
       hasCert_(false),
       isExternalCert_(false) {
-  security::InitializeOpenSSL();
+  security::initializeOpenSsl();
 }
 
 Status TlsContext::init() {
@@ -166,7 +166,7 @@ Status TlsContext::init() {
   ctx_ = ssl_make_unique(SSL_CTX_new(SSLv23_method()));
   if (!ctx_) {
     return Status::RuntimeError(
-        "failed to create TLS context", GetOpenSSLErrors());
+        "failed to create TLS context", getOpenSslErrors());
   }
   SSL_CTX_set_mode(
       ctx_.get(),
@@ -643,7 +643,7 @@ Status TlsContext::setSupportedAlpns() {
   if (SSL_CTX_set_alpn_protos(
           ctx_.get(), encodedAlpns.data(), encodedAlpns.size()) != 0) {
     return Status::RuntimeError(
-        "failed to set alpn protocols", GetOpenSSLErrors());
+        "failed to set alpn protocols", getOpenSslErrors());
   }
   SSL_CTX_set_alpn_select_cb(ctx_.get(), alpnSelectCallback, this);
   serverAlpns_ = std::move(encodedAlpns);
@@ -696,7 +696,7 @@ Status TlsContext::createSsl(TlsHandshake* handshake) const {
   }
   if (!handshake->ssl_) {
     return Status::RuntimeError(
-        "failed to create SSL handle", GetOpenSSLErrors());
+        "failed to create SSL handle", getOpenSslErrors());
   }
 
   return Status::OK();

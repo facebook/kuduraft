@@ -157,7 +157,7 @@ Status PublicKey::VerifySignature(
   const int rc = EVP_DigestVerifyFinal(mdCtx.get(), sigData, signature.size());
   if (rc < 0 || rc > 1) {
     return Status::RuntimeError(
-        fmt::format("error verifying data signature: {}", GetOpenSSLErrors()));
+        fmt::format("error verifying data signature: {}", getOpenSslErrors()));
   }
   if (rc == 0) {
     // No sense stringifying the internal OpenSSL error, since a bad
@@ -214,7 +214,7 @@ Status PrivateKey::GetPublicKey(PublicKey* publicKey) const {
   CHECK(publicKey);
   auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(CHECK_NOTNULL(data_.get())));
   if (PREDICT_FALSE(!rsa)) {
-    return Status::RuntimeError(GetOpenSSLErrors());
+    return Status::RuntimeError(getOpenSslErrors());
   }
   auto tmp = ssl_make_unique(BIO_new(BIO_s_mem()));
   CHECK(tmp);
@@ -259,7 +259,7 @@ Status PrivateKey::MakeSignature(
 Status GeneratePrivateKey(int numBits, PrivateKey* ret) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
-  InitializeOpenSSL();
+  initializeOpenSsl();
   auto key = ssl_make_unique(EVP_PKEY_new());
   {
     auto bn = ssl_make_unique(BN_new());

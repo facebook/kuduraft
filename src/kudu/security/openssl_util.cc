@@ -49,16 +49,16 @@ namespace {
 // Determine whether initialization was ever called.
 //
 // Thread safety:
-// - written by DoInitializeOpenSSL (single-threaded, due to std::call_once)
-// - read by DisableOpenSSLInitialization (must not be concurrent with above)
-bool g_ssl_is_initialized = false;
+// - written by doInitializeOpenSsl (single-threaded, due to std::call_once)
+// - read by disableOpenSslInitialization (must not be concurrent with above)
+bool gSslIsInitialized = false;
 
 // If true, then we expect someone else has initialized SSL.
 //
 // Thread safety:
-// - read by DoInitializeOpenSSL (single-threaded, due to std::call_once)
-// - written by DisableOpenSSLInitialization (must not be concurrent with above)
-bool g_disable_ssl_init = false;
+// - read by doInitializeOpenSsl (single-threaded, due to std::call_once)
+// - written by disableOpenSslInitialization (must not be concurrent with above)
+bool gDisableSslInit = false;
 
 // Array of locks used by OpenSSL.
 // We use an intentionally-leaked C-style array here to avoid non-POD static
@@ -69,7 +69,7 @@ bool g_disable_ssl_init = false;
 #error "OpenSSL < 1.1.0 - need to update"
 #endif
 
-Status CheckOpenSSLInitialized() {
+Status checkOpenSslInitialized() {
   if (!CRYPTO_get_locking_callback()) {
     return Status::RuntimeError("Locking callback not initialized");
   }
@@ -82,7 +82,7 @@ Status CheckOpenSSLInitialized() {
   return Status::OK();
 }
 
-void DoInitializeOpenSSL() {
+void doInitializeOpenSsl() {
 #if OPENSSL_VERSION_NUMBER > 0x10100000L
   // The OPENSSL_init_ssl manpage [1] says "As of version 1.1.0 OpenSSL will
   // automatically allocate all resources it needs so no explicit initialisation
@@ -96,7 +96,7 @@ void DoInitializeOpenSSL() {
   //
   // 1. https://www.openssl.org/docs/man1.1.0/ssl/OPENSSL_init_ssl.html
   // 2. https://github.com/openssl/openssl/issues/5899
-  if (g_disable_ssl_init) {
+  if (gDisableSslInit) {
     VLOG(2) << "Not initializing OpenSSL (disabled by application)";
     return;
   }
@@ -106,7 +106,7 @@ void DoInitializeOpenSSL() {
   // In case the user's thread has left some error around, clear it.
   ERR_clear_error();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (g_disable_ssl_init) {
+  if (gDisableSslInit) {
     VLOG(2) << "Not initializing OpenSSL (disabled by application)";
     return;
   }
@@ -150,7 +150,7 @@ void DoInitializeOpenSSL() {
   }
 #endif
 
-  g_ssl_is_initialized = true;
+  gSslIsInitialized = true;
 }
 
 } // anonymous namespace
@@ -177,24 +177,24 @@ STACK_OF(X509) *
 
   // Iterate through the chain certificate and add each one to the stack.
   for (int i = 0; i < sk_X509_INFO_num(info); ++i) {
-    X509_INFO* stack_item = sk_X509_INFO_value(info, i);
-    sk_X509_push(sk, stack_item->x509);
+    X509_INFO* stackItem = sk_X509_INFO_value(info, i);
+    sk_X509_push(sk, stackItem->x509);
     // We don't want the ScopedCleanup to free the x509 certificates as well
     // since we will use it as a part of the STACK_OF(X509) object to be
     // returned, so we set it to nullptr. We will take the responsibility of
     // freeing it when we are done with the STACK_OF(X509).
-    stack_item->x509 = nullptr;
+    stackItem->x509 = nullptr;
   }
   return sk;
 }
 
 // Writes a STACK_OF(X509) to the BIO.
 int PEM_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
-  int chain_len = sk_X509_num(obj);
+  int chainLen = sk_X509_num(obj);
   // Iterate through the stack and add each one to the BIO.
-  for (int i = 0; i < chain_len; ++i) {
-    X509* cert_item = sk_X509_value(obj, i);
-    int ret = PEM_write_bio_X509(bio, cert_item);
+  for (int i = 0; i < chainLen; ++i) {
+    X509* certItem = sk_X509_value(obj, i);
+    int ret = PEM_write_bio_X509(bio, certItem);
     if (ret <= 0) {
       return ret;
     }
@@ -220,48 +220,48 @@ STACK_OF(X509) * DER_read_STACK_OF_X509(BIO* bio, void* /* unused */) {
 
 // Writes a single X509 certificate that it gets from the STACK_OF(X509) 'obj'.
 int DER_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
-  int chain_len = sk_X509_num(obj);
+  int chainLen = sk_X509_num(obj);
   // We don't support chain certificates written in DER format.
-  DCHECK_EQ(chain_len, 1);
-  X509* cert_item = sk_X509_value(obj, 0);
-  if (cert_item == nullptr) {
+  DCHECK_EQ(chainLen, 1);
+  X509* certItem = sk_X509_value(obj, 0);
+  if (certItem == nullptr) {
     return 0;
   }
-  return i2d_X509_bio(bio, cert_item);
+  return i2d_X509_bio(bio, certItem);
 }
 
 void free_STACK_OF_X509(STACK_OF(X509) * sk) {
   sk_X509_pop_free(sk, X509_free);
 }
 
-Status DisableOpenSSLInitialization() {
-  if (g_disable_ssl_init) {
+Status disableOpenSslInitialization() {
+  if (gDisableSslInit) {
     return Status::OK();
   }
-  if (g_ssl_is_initialized) {
+  if (gSslIsInitialized) {
     return Status::IllegalState(
         "SSL already initialized. Initialization can only be disabled "
         "before first usage.");
   }
-  RETURN_NOT_OK(CheckOpenSSLInitialized());
-  g_disable_ssl_init = true;
+  RETURN_NOT_OK(checkOpenSslInitialized());
+  gDisableSslInit = true;
   return Status::OK();
 }
 
-void InitializeOpenSSL() {
-  static std::once_flag ssl_once;
-  std::call_once(ssl_once, DoInitializeOpenSSL);
+void initializeOpenSsl() {
+  static std::once_flag sslOnce;
+  std::call_once(sslOnce, doInitializeOpenSsl);
 }
 
-string GetOpenSSLErrors() {
+string getOpenSslErrors() {
   ostringstream serr;
   uint32_t l;
   int line, flags;
   const char *file, *data;
-  bool is_first = true;
+  bool isFirst = true;
   while ((l = ERR_get_error_line_data(&file, &line, &data, &flags)) != 0) {
-    if (is_first) {
-      is_first = false;
+    if (isFirst) {
+      isFirst = false;
     } else {
       serr << " ";
     }
@@ -276,8 +276,8 @@ string GetOpenSSLErrors() {
   return serr.str();
 }
 
-string GetSSLErrorDescription(int error_code) {
-  switch (error_code) {
+string getSslErrorDescription(int errorCode) {
+  switch (errorCode) {
     case SSL_ERROR_NONE:
       return "";
     case SSL_ERROR_ZERO_RETURN:
@@ -293,18 +293,18 @@ string GetSSLErrorDescription(int error_code) {
     case SSL_ERROR_WANT_X509_LOOKUP:
       return "SSL_ERROR_WANT_X509_LOOKUP";
     case SSL_ERROR_SYSCALL: {
-      string queued_error = GetOpenSSLErrors();
-      if (!queued_error.empty()) {
-        return queued_error;
+      string queuedError = getOpenSslErrors();
+      if (!queuedError.empty()) {
+        return queuedError;
       }
       return kudu::errnoToString(errno);
     }
     default:
-      return GetOpenSSLErrors();
+      return getOpenSslErrors();
   }
 }
 
-const string& DataFormatToString(DataFormat fmt) {
+const string& dataFormatToString(DataFormat fmt) {
   static const string kStrFormatUnknown = "UNKNOWN";
   static const string kStrFormatDer = "DER";
   static const string kStrFormatPem = "PEM";
@@ -318,7 +318,7 @@ const string& DataFormatToString(DataFormat fmt) {
   }
 }
 
-Status GetPasswordFromShellCommand(const string& cmd, string* password) {
+Status getPasswordFromShellCommand(const string& cmd, string* password) {
   vector<string> argv = strings::Split(cmd, " ", strings::SkipEmpty());
   if (argv.empty()) {
     return Status::RuntimeError("invalid empty private key password command");

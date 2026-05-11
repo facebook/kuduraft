@@ -60,14 +60,14 @@ string X509NameToString(X509_NAME* name) {
 }
 
 int getKuduKerberosPrincipalOidNid() {
-  InitializeOpenSSL();
+  initializeOpenSsl();
   static std::once_flag flag;
   static int nid;
   std::call_once(flag, [&]() {
     nid = OBJ_create(
         kKuduKerberosPrincipalOidStr, "kuduPrinc", "kuduKerberosPrincipal");
     CHECK_NE(nid, NID_undef)
-        << "failed to create kuduPrinc oid: " << GetOpenSSLErrors();
+        << "failed to create kuduPrinc oid: " << getOpenSslErrors();
   });
   return nid;
 }
@@ -256,7 +256,7 @@ void Cert::adoptAndAddRefRawData(RawDataType* data) {
 #error "OpenSSL < 1.1.0 - need to update"
 #else
   OPENSSL_CHECK_OK(X509_up_ref(cert))
-      << "X509 use-after-free detected: " << GetOpenSSLErrors();
+      << "X509 use-after-free detected: " << getOpenSslErrors();
 #endif
   // We copy the STACK_OF() object, but the copy and the original both
   // internally point to the same elements.
@@ -278,7 +278,7 @@ void Cert::adoptAndAddRefX509(X509* cert) {
 #error "OpenSSL < 1.1.0 - need to update"
 #else
   OPENSSL_CHECK_OK(X509_up_ref(cert))
-      << "X509 use-after-free detected: " << GetOpenSSLErrors();
+      << "X509 use-after-free detected: " << getOpenSslErrors();
 #endif
   adoptX509(cert);
 }
@@ -312,7 +312,7 @@ CertSignRequest CertSignRequest::clone() const {
   // seem to be a public method that increments data_'s refcount.
   clonedReq = X509_REQ_dup(GetRawData());
   CHECK(clonedReq != nullptr)
-      << "X509 allocation failure detected: " << GetOpenSSLErrors();
+      << "X509 allocation failure detected: " << getOpenSslErrors();
 #endif
 
   CertSignRequest clone;

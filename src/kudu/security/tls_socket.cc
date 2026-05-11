@@ -68,7 +68,7 @@ Status TlsSocket::write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
       return Status::OK();
     }
     return Status::NetworkError(
-        "failed to write to TLS socket", GetSSLErrorDescription(errorCode));
+        "failed to write to TLS socket", getSslErrorDescription(errorCode));
   }
   *nwritten = bytesWritten;
   return Status::OK();
@@ -217,7 +217,7 @@ Status TlsSocket::recv(uint8_t* buf, int32_t amt, int32_t* nread) {
       }
       return Status::NetworkError(errString, "unknown ERROR_SYSCALL");
     }
-    return Status::NetworkError(errString, GetSSLErrorDescription(errorCode));
+    return Status::NetworkError(errString, getSslErrorDescription(errorCode));
   }
   *nread = bytesRead;
   return Status::OK();
@@ -241,7 +241,7 @@ Status TlsSocket::Close() {
   } else {
     auto errorCode = SSL_get_error(ssl_.get(), ret);
     sslShutdown = Status::NetworkError(
-        "TlsSocket::Close", GetSSLErrorDescription(errorCode));
+        "TlsSocket::Close", getSslErrorDescription(errorCode));
   }
 
   ssl_.reset();

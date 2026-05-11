@@ -205,7 +205,7 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
             rpcCertificateFile_, rpcPrivateKeyFile_, [&]() {
               string ret;
               WARN_NOT_OK(
-                  security::GetPasswordFromShellCommand(
+                  security::getPasswordFromShellCommand(
                       rpcPrivateKeyPasswordCmd_, &ret),
                   "could not get RPC password from configured command");
               return ret;

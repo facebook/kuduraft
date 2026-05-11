@@ -43,12 +43,12 @@ using X509 = struct x509_st;
 
 #define OPENSSL_RET_NOT_OK(call, msg)                       \
   if ((call) <= 0) {                                        \
-    return Status::RuntimeError((msg), GetOpenSSLErrors()); \
+    return Status::RuntimeError((msg), getOpenSslErrors()); \
   }
 
 #define OPENSSL_RET_IF_NULL(call, msg)                      \
   if ((call) == nullptr) {                                  \
-    return Status::RuntimeError((msg), GetOpenSSLErrors()); \
+    return Status::RuntimeError((msg), getOpenSslErrors()); \
   }
 
 // Scoped helper which DCHECKs that on both scope entry and exit, there are no
@@ -65,7 +65,7 @@ using X509 = struct x509_st;
 //      ... use OpenSSL APIs ...
 //    }
 #define SCOPED_OPENSSL_NO_PENDING_ERRORS                                  \
-  kudu::security::internal::ScopedCheckNoPendingSSLErrors _no_ssl_errors( \
+  kudu::security::internal::ScopedCheckNoPendingSslErrors _no_ssl_errors( \
       __PRETTY_FUNCTION__)
 
 namespace kudu {
@@ -74,21 +74,21 @@ namespace security {
 using PasswordCallback = std::function<std::string(void)>;
 
 // Disable initialization of OpenSSL. Must be called before
-// any call to InitializeOpenSSL().
-Status DisableOpenSSLInitialization() WARN_UNUSED_RESULT;
+// any call to initializeOpenSsl().
+Status disableOpenSslInitialization() WARN_UNUSED_RESULT;
 
 // Initializes static state required by the OpenSSL library.
-// This is a no-op if DisableOpenSSLInitialization() has been called.
+// This is a no-op if disableOpenSslInitialization() has been called.
 //
 // Safe to call multiple times.
-void InitializeOpenSSL();
+void initializeOpenSsl();
 
 // Fetches errors from the OpenSSL error error queue, and stringifies them.
 //
 // The error queue will be empty after this method returns.
 //
 // See man(3) ERR_get_err for more discussion.
-std::string GetOpenSSLErrors();
+std::string getOpenSslErrors();
 
 // Returns a string representation of the provided error code, which must be
 // from a prior call to the SSL_get_error function.
@@ -98,14 +98,14 @@ std::string GetOpenSSLErrors();
 // only be used directly after the error occurs, and from the same thread.
 //
 // See man(3) SSL_get_error for more discussion.
-std::string GetSSLErrorDescription(int error_code);
+std::string getSslErrorDescription(int errorCode);
 
 // Runs the shell command 'cmd' which should give a password to a private key
 // file as the output.
 //
 // 'password' is populated with the password string if the command was a
 // success. An error Status object is returned otherwise.
-Status GetPasswordFromShellCommand(
+Status getPasswordFromShellCommand(
     const std::string& cmd,
     std::string* password);
 
@@ -180,7 +180,7 @@ enum class DataFormat {
 };
 
 // Data format representation as a string.
-const std::string& DataFormatToString(DataFormat fmt);
+const std::string& dataFormatToString(DataFormat fmt);
 
 // Template wrapper for dynamically allocated entities with custom deleter.
 // Mostly, using it for xxx_st types from the OpenSSL crypto library.
@@ -205,17 +205,17 @@ namespace internal {
 
 // Implementation of SCOPED_OPENSSL_NO_PENDING_ERRORS. Use the macro form
 // instead of directly instantiating the implementation class.
-struct ScopedCheckNoPendingSSLErrors {
+struct ScopedCheckNoPendingSslErrors {
  public:
-  explicit ScopedCheckNoPendingSSLErrors(const char* func) : func_(func) {
+  explicit ScopedCheckNoPendingSslErrors(const char* func) : func_(func) {
     DCHECK_EQ(ERR_peek_error(), 0)
         << "Expected no pending OpenSSL errors on " << func_
-        << " entry, but had: " << GetOpenSSLErrors();
+        << " entry, but had: " << getOpenSslErrors();
   }
-  ~ScopedCheckNoPendingSSLErrors() {
+  ~ScopedCheckNoPendingSslErrors() {
     DCHECK_EQ(ERR_peek_error(), 0)
         << "Expected no pending OpenSSL errors on " << func_
-        << " exit, but had: " << GetOpenSSLErrors();
+        << " exit, but had: " << getOpenSslErrors();
   }
 
  private:

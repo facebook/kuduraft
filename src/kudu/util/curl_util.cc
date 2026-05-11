@@ -55,7 +55,7 @@ size_t writeCallback(void* buffer, size_t size, size_t nmemb, void* userPtr) {
 EasyCurl::EasyCurl() {
   // Use our own SSL initialization, and disable curl's.
   // Both of these calls are idempotent.
-  security::InitializeOpenSSL();
+  security::initializeOpenSsl();
   CHECK_EQ(0, curl_global_init(CURL_GLOBAL_DEFAULT & ~CURL_GLOBAL_SSL));
   curl_ = curl_easy_init();
   CHECK(curl_) << "Could not init curl";
