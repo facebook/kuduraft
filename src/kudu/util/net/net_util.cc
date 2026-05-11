@@ -245,12 +245,12 @@ string HostPort::toString() const {
                              : fmt::format("{}:{}", host_, port_);
 }
 
-string HostPort::toCommaSeparatedString(const vector<HostPort>& hostports) {
-  vector<string> hostportStrs;
-  for (const HostPort& hostport : hostports) {
-    hostportStrs.push_back(hostport.toString());
+string HostPort::toCommaSeparatedString(const vector<HostPort>& hostPorts) {
+  vector<string> hostPortStrs;
+  for (const HostPort& hostPort : hostPorts) {
+    hostPortStrs.push_back(hostPort.toString());
   }
-  return JoinStrings(hostportStrs, ",");
+  return JoinStrings(hostPortStrs, ",");
 }
 
 Network::Network() : addr_(0), netmask_(0) {}
