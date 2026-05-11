@@ -116,15 +116,15 @@ bool getRaftConfigMemberRegion(
 }
 
 std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config) {
-  std::unordered_set<std::string> electable_uuids;
+  std::unordered_set<std::string> electableUuids;
 
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.member_type() == RaftPeerPB::VOTER && isBackingDbPresent(peer)) {
-      electable_uuids.insert(peer.permanent_uuid());
+      electableUuids.insert(peer.permanent_uuid());
     }
   }
 
-  return electable_uuids;
+  return electableUuids;
 }
 
 bool getRaftConfigMemberQuorumIdRegardlessQuorumType(
@@ -156,10 +156,10 @@ bool isBackingDbPresent(const RaftPeerPB& peer) {
 Status getRaftConfigMember(
     RaftConfigPB* config,
     const std::string& uuid,
-    RaftPeerPB** peer_pb) {
+    RaftPeerPB** peerPb) {
   for (RaftPeerPB& peer : *config->mutable_peers()) {
     if (peer.permanent_uuid() == uuid) {
-      *peer_pb = &peer;
+      *peerPb = &peer;
       return Status::OK();
     }
   }
@@ -167,28 +167,28 @@ Status getRaftConfigMember(
       fmt::format("Peer with uuid {} not found in consensus config", uuid));
 }
 
-Status getRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb) {
+Status getRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peerPb) {
   if (cstate->leader_uuid().empty()) {
     return Status::NotFound("Consensus config has no leader");
   }
   return getRaftConfigMember(
-      cstate->mutable_committed_config(), cstate->leader_uuid(), peer_pb);
+      cstate->mutable_committed_config(), cstate->leader_uuid(), peerPb);
 }
 
 bool removeFromRaftConfig(RaftConfigPB* config, const string& uuid) {
-  RepeatedPtrField<RaftPeerPB> modified_peers;
+  RepeatedPtrField<RaftPeerPB> modifiedPeers;
   bool removed = false;
   for (const RaftPeerPB& peer : config->peers()) {
     if (peer.permanent_uuid() == uuid) {
       removed = true;
       continue;
     }
-    *modified_peers.Add() = peer;
+    *modifiedPeers.Add() = peer;
   }
   if (!removed) {
     return false;
   }
-  config->mutable_peers()->Swap(&modified_peers);
+  config->mutable_peers()->Swap(&modifiedPeers);
   return true;
 }
 
@@ -462,12 +462,12 @@ string diffConsensusStates(
   // Due to the default construction nature of std::map and std::pair, if a peer
   // is present in one configuration but not the other, we'll end up with an
   // empty protobuf in that element of the pair.
-  PeerInfoMap committed_peer_infos;
+  PeerInfoMap committedPeerInfos;
   for (const auto& p : old_state.committed_config().peers()) {
-    committed_peer_infos[p.permanent_uuid()].first = p;
+    committedPeerInfos[p.permanent_uuid()].first = p;
   }
   for (const auto& p : new_state.committed_config().peers()) {
-    committed_peer_infos[p.permanent_uuid()].second = p;
+    committedPeerInfos[p.permanent_uuid()].second = p;
   }
 
   // Now collect strings representing the changes.
@@ -489,30 +489,30 @@ string diffConsensusStates(
   }
 
   if (leader_changed) {
-    string old_leader = "<none>";
-    string new_leader = "<none>";
+    string oldLeader = "<none>";
+    string newLeader = "<none>";
     if (!old_state.leader_uuid().empty()) {
-      old_leader = fmt::format(
+      oldLeader = fmt::format(
           "{} ({})",
           old_state.leader_uuid(),
-          committed_peer_infos[old_state.leader_uuid()]
+          committedPeerInfos[old_state.leader_uuid()]
               .first.last_known_addr()
               .host());
     }
     if (!new_state.leader_uuid().empty()) {
-      new_leader = fmt::format(
+      newLeader = fmt::format(
           "{} ({})",
           new_state.leader_uuid(),
-          committed_peer_infos[new_state.leader_uuid()]
+          committedPeerInfos[new_state.leader_uuid()]
               .second.last_known_addr()
               .host());
     }
 
     change_strs.push_back(
-        fmt::format("leader changed from {} to {}", old_leader, new_leader));
+        fmt::format("leader changed from {} to {}", oldLeader, newLeader));
   }
 
-  diffPeers(committed_peer_infos, &change_strs, evicted_peers);
+  diffPeers(committedPeerInfos, &change_strs, evicted_peers);
 
   if (pending_config_gained) {
     change_strs.push_back(
@@ -530,21 +530,21 @@ string diffConsensusStates(
   // A pending config doesn't have a committed opid_index yet, so we determine
   // if there's a change by computing the peer differences.
   if (old_state.has_pending_config() && new_state.has_pending_config()) {
-    PeerInfoMap pending_peer_infos;
+    PeerInfoMap pendingPeerInfos;
     for (const auto& p : old_state.pending_config().peers()) {
-      pending_peer_infos[p.permanent_uuid()].first = p;
+      pendingPeerInfos[p.permanent_uuid()].first = p;
     }
     for (const auto& p : new_state.pending_config().peers()) {
-      pending_peer_infos[p.permanent_uuid()].second = p;
+      pendingPeerInfos[p.permanent_uuid()].second = p;
     }
 
-    vector<string> pending_change_strs;
-    if (diffPeers(pending_peer_infos, &pending_change_strs, evicted_peers)) {
+    vector<string> pendingChangeStrs;
+    if (diffPeers(pendingPeerInfos, &pendingChangeStrs, evicted_peers)) {
       change_strs.emplace_back("pending config changed");
       change_strs.insert(
           change_strs.end(),
-          pending_change_strs.cbegin(),
-          pending_change_strs.cend());
+          pendingChangeStrs.cbegin(),
+          pendingChangeStrs.cend());
     }
   }
 

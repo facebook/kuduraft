@@ -94,12 +94,12 @@ bool isBackingDbPresent(const RaftPeerPB& peer);
 Status getRaftConfigMember(
     RaftConfigPB* config,
     const std::string& uuid,
-    RaftPeerPB** peer_pb);
+    RaftPeerPB** peerPb);
 
 // Get the leader of the consensus configuration.
 // Returns Status::NotFound() if the leader RaftPeerPB could not be found in
 // the config, or if there is no leader defined.
-Status getRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb);
+Status getRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peerPb);
 
 // Modifies 'configuration' remove the peer with the specified 'uuid'.
 // Returns false if the server with 'uuid' is not found in the configuration.
