@@ -117,11 +117,11 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   RaftConsensusQuorumTest()
       : clock_(clock::LogicalClock::createStartingAt(Timestamp(1))),
-        metric_entity_(
-            METRIC_ENTITY_server.instantiate(&metric_registry_, "raft-test")) {
+        metricEntity_(
+            METRIC_ENTITY_server.instantiate(&metricRegistry_, "raft-test")) {
     options_.tablet_id = kTestTablet;
     FLAGS_enable_leader_failure_detection = false;
-    CHECK_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));
+    CHECK_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
   }
 
   // Builds an initial configuration of 'num' elements.
@@ -137,7 +137,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     for (int i = 0; i < num; i++) {
       shared_ptr<MemTracker> parentMemTracker =
           MemTracker::createTracker(-1, fmt::format("peer-{}", i));
-      parent_mem_trackers_.push_back(parentMemTracker);
+      parentMemTrackers_.push_back(parentMemTracker);
       string testPath = GetTestPath(fmt::format("peer-{}-root", i));
       FsManagerOpts opts;
       opts.parent_mem_tracker = parentMemTracker;
@@ -148,7 +148,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
       std::shared_ptr<ConsensusMetadataManager> cmetaManager =
           std::make_shared<ConsensusMetadataManager>(fsManager.get());
-      cmeta_managers_.push_back(cmetaManager);
+      cmetaManagers_.push_back(cmetaManager);
 
       std::shared_ptr<PersistentVarsManager> persistentVarsManager =
           std::make_shared<PersistentVarsManager>(fsManager.get());
@@ -159,7 +159,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           LogOptions(), fsManager.get(), "", kTestTablet, nullptr);
 
       logs_.emplace_back(std::move(log));
-      fs_managers_.push_back(fsManager.release());
+      fsManagers_.push_back(fsManager.release());
     }
     return Status::OK();
   }
@@ -170,7 +170,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     for (int i = 0; i < num; i++) {
       RaftPeerPB* peerPb = raftConfig.add_peers();
       peerPb->set_member_type(RaftPeerPB::VOTER);
-      peerPb->set_permanent_uuid(fs_managers_[i]->uuid());
+      peerPb->set_permanent_uuid(fsManagers_[i]->uuid());
       HostPortPB* hp = peerPb->mutable_last_known_addr();
       hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", i));
       hp->set_port(0);
@@ -179,28 +179,28 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   Status buildPeers() {
-    CHECK_EQ(config_.peers_size(), cmeta_managers_.size());
-    CHECK_EQ(config_.peers_size(), fs_managers_.size());
+    CHECK_EQ(config_.peers_size(), cmetaManagers_.size());
+    CHECK_EQ(config_.peers_size(), fsManagers_.size());
     CHECK_EQ(config_.peers_size(), persistentVarsManagers_.size());
     for (int i = 0; i < config_.peers_size(); i++) {
       RETURN_NOT_OK(
-          cmeta_managers_[i]->createCMeta(kTestTablet, config_, kMinimumTerm));
+          cmetaManagers_[i]->createCMeta(kTestTablet, config_, kMinimumTerm));
 
       RETURN_NOT_OK(
           persistentVarsManagers_[i]->createPersistentVars(kTestTablet));
 
       RaftPeerPB* localPeerPb;
       RETURN_NOT_OK(
-          getRaftConfigMember(&config_, fs_managers_[i]->uuid(), &localPeerPb));
+          getRaftConfigMember(&config_, fsManagers_[i]->uuid(), &localPeerPb));
 
       shared_ptr<RaftConsensus> peer;
       RETURN_NOT_OK(
           RaftConsensus::Create(
               options_,
               config_.peers(i),
-              cmeta_managers_[i],
+              cmetaManagers_[i],
               persistentVarsManagers_[i],
-              raft_pool_.get(),
+              raftPool_.get(),
               &peer));
       peers_->AddPeer(config_.peers(i).permanent_uuid(), peer);
     }
@@ -221,7 +221,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           std::make_shared<TimeManager>(clock_, Timestamp::kMin);
       auto txnFactory = new TestTransactionFactory();
       txnFactory->SetConsensus(peer.get());
-      txn_factories_.push_back(txnFactory);
+      txnFactories_.push_back(txnFactory);
 
       RETURN_NOT_OK(peer->start(
           bootInfo,
@@ -229,7 +229,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           logs_[i],
           timeManager,
           txnFactory,
-          metric_entity_,
+          metricEntity_,
           Bind(&doNothing)));
     }
     return Status::OK();
@@ -465,7 +465,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   void verifyLogs(int leader_idx, int first_replica_idx, int last_replica_idx) {
     // Wait for in-flight transactions to be done. We're destroying the
     // peers next and leader transactions won't be able to commit anymore.
-    for (TestTransactionFactory* factory : txn_factories_) {
+    for (TestTransactionFactory* factory : txnFactories_) {
       factory->WaitDone();
     }
 
@@ -578,7 +578,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   std::shared_ptr<ConsensusMetadata> readConsensusMetadataFromDisk(
       int peer_index) {
     std::shared_ptr<ConsensusMetadata> cmeta;
-    CHECK_OK(cmeta_managers_[peer_index]->loadCMeta(kTestTablet, &cmeta));
+    CHECK_OK(cmetaManagers_[peer_index]->loadCMeta(kTestTablet, &cmeta));
     return cmeta;
   }
 
@@ -606,17 +606,17 @@ class RaftConsensusQuorumTest : public KuduTest {
     peers_->Clear();
     // TODO(modernization): Consider std::vector<std::unique_ptr<T>> for
     // automatic cleanup
-    for (auto* ptr : txn_factories_) {
+    for (auto* ptr : txnFactories_) {
       delete ptr;
     }
-    txn_factories_.clear();
-    // We need to clear the logs before deleting the fs_managers_ or we'll
+    txnFactories_.clear();
+    // We need to clear the logs before deleting the fsManagers_ or we'll
     // get a SIGSEGV when closing the logs.
     logs_.clear();
-    for (auto* ptr : fs_managers_) {
+    for (auto* ptr : fsManagers_) {
       delete ptr;
     }
-    fs_managers_.clear();
+    fsManagers_.clear();
     for (auto& entry : syncs_) {
       delete entry.second;
     }
@@ -626,18 +626,18 @@ class RaftConsensusQuorumTest : public KuduTest {
  protected:
   ConsensusOptions options_;
   RaftConfigPB config_;
-  OpId initial_id_;
-  vector<shared_ptr<MemTracker>> parent_mem_trackers_;
-  vector<FsManager*> fs_managers_;
+  OpId initialId_;
+  vector<shared_ptr<MemTracker>> parentMemTrackers_;
+  vector<FsManager*> fsManagers_;
   vector<std::shared_ptr<StatefulMockLog>> logs_;
-  unique_ptr<ThreadPool> raft_pool_;
-  vector<std::shared_ptr<ConsensusMetadataManager>> cmeta_managers_;
+  unique_ptr<ThreadPool> raftPool_;
+  vector<std::shared_ptr<ConsensusMetadataManager>> cmetaManagers_;
   vector<std::shared_ptr<PersistentVarsManager>> persistentVarsManagers_;
   unique_ptr<TestPeerMapManager> peers_;
-  vector<TestTransactionFactory*> txn_factories_;
+  vector<TestTransactionFactory*> txnFactories_;
   std::shared_ptr<clock::Clock> clock_;
-  MetricRegistry metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
+  MetricRegistry metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
   std::unordered_map<ConsensusRound*, Synchronizer*> syncs_;
 };
 
@@ -1137,7 +1137,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // a valid leader.
   int flush_count_before = flush_count();
   VoteResponsePB response;
-  request.set_candidate_uuid(fs_managers_[0]->uuid());
+  request.set_candidate_uuid(fsManagers_[0]->uuid());
   request.set_candidate_term(last_op_id.term() + 1);
   ASSERT_OK(peer->requestVote(
       &request,
@@ -1162,7 +1162,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(last_op_id.term() + 1, response.responder_term());
   ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
-      kPeerIndex, last_op_id.term() + 1, fs_managers_[0]->uuid()));
+      kPeerIndex, last_op_id.term() + 1, fsManagers_[0]->uuid()));
   ASSERT_EQ(1, flush_count() - flush_count_before)
       << "A granted vote should flush only once";
 
@@ -1180,7 +1180,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // Ensure we get a "no" for a different candidate UUID for that term.
   flush_count_before = flush_count();
   response.Clear();
-  request.set_candidate_uuid(fs_managers_[2]->uuid());
+  request.set_candidate_uuid(fsManagers_[2]->uuid());
   ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
@@ -1190,7 +1190,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_EQ(ConsensusErrorPB::ALREADY_VOTED, response.consensus_error().code());
   ASSERT_EQ(last_op_id.term() + 1, response.responder_term());
   ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
-      kPeerIndex, last_op_id.term() + 1, fs_managers_[0]->uuid()));
+      kPeerIndex, last_op_id.term() + 1, fsManagers_[0]->uuid()));
   ASSERT_EQ(0, flush_count() - flush_count_before)
       << "Rejected votes for same term should not flush";
 
@@ -1201,7 +1201,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // Increase the term of our candidate, which will cause the voter replica to
   // increase its own term to match.
   flush_count_before = flush_count();
-  request.set_candidate_uuid(fs_managers_[0]->uuid());
+  request.set_candidate_uuid(fsManagers_[0]->uuid());
   request.set_candidate_term(last_op_id.term() + 2);
   response.Clear();
   ASSERT_OK(peer->requestVote(
@@ -1211,7 +1211,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
   ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
-      kPeerIndex, last_op_id.term() + 2, fs_managers_[0]->uuid()));
+      kPeerIndex, last_op_id.term() + 2, fsManagers_[0]->uuid()));
   ASSERT_EQ(1, flush_count() - flush_count_before)
       << "Accepted votes with increased term should flush once";
 
@@ -1230,7 +1230,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_EQ(ConsensusErrorPB::INVALID_TERM, response.consensus_error().code());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
   ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
-      kPeerIndex, last_op_id.term() + 2, fs_managers_[0]->uuid()));
+      kPeerIndex, last_op_id.term() + 2, fsManagers_[0]->uuid()));
   ASSERT_EQ(0, flush_count() - flush_count_before)
       << "Rejected votes for old terms should not flush";
 
@@ -1248,7 +1248,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_FALSE(response.has_consensus_error());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
   ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
-      kPeerIndex, last_op_id.term() + 2, fs_managers_[0]->uuid()));
+      kPeerIndex, last_op_id.term() + 2, fsManagers_[0]->uuid()));
   ASSERT_EQ(0, flush_count() - flush_count_before)
       << "Pre-elections should not flush";
   request.set_mode(ElectionMode::NORMAL_ELECTION);
@@ -1258,7 +1258,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   //
 
   flush_count_before = flush_count();
-  request.set_candidate_uuid(fs_managers_[0]->uuid());
+  request.set_candidate_uuid(fsManagers_[0]->uuid());
   request.set_candidate_term(last_op_id.term() + 3);
   request.mutable_candidate_status()->mutable_last_received()->CopyFrom(
       MinimumOpId());
@@ -1280,7 +1280,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // Send a "heartbeat" to the peer. It should be rejected.
   ConsensusRequestPB req;
   req.set_caller_term(last_op_id.term());
-  req.set_caller_uuid(fs_managers_[0]->uuid());
+  req.set_caller_uuid(fsManagers_[0]->uuid());
   req.set_committed_index(last_op_id.index());
   req.set_all_replicated_index(0);
   ConsensusResponsePB res;
