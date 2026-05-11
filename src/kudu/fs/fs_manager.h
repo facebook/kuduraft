@@ -174,7 +174,7 @@ class FsManager {
 
   std::string GetWalsRootDir() const {
     DCHECK(initted_);
-    return JoinPathSegments(canonicalized_wal_fs_root_.path, kWalDirName);
+    return JoinPathSegments(canonicalizedWalFsRoot_.path, kWalDirName);
   }
 
   std::string GetTabletWalDir(const std::string& tablet_id) const {
@@ -203,7 +203,7 @@ class FsManager {
   std::string GetConsensusMetadataDir() const {
     DCHECK(initted_);
     return JoinPathSegments(
-        canonicalized_metadata_fs_root_.path, kConsensusMetadataDirName);
+        canonicalizedMetadataFsRoot_.path, kConsensusMetadataDirName);
   }
 
   // Return the path where ConsensusMetadataPB is stored.
@@ -252,7 +252,7 @@ class FsManager {
 
   // Initializes, sanitizes, and canonicalizes the filesystem roots.
   // Determines the correct filesystem root for tablet-specific metadata.
-  Status Init();
+  Status init();
 
   // Creates filesystem roots from 'canonicalized_roots', writing new on-disk
   // instances using 'metadata'.
@@ -261,20 +261,20 @@ class FsManager {
   // All created directories and files will be appended to 'created_dirs' and
   // 'created_files' respectively. It is the responsibility of the caller to
   // synchronize the directories containing these newly created file objects.
-  Status CreateFileSystemRoots(
+  Status createFileSystemRoots(
       const CanonicalizedRootsList& canonicalized_roots,
       const InstanceMetadataPB& metadata,
       std::vector<std::string>* created_dirs,
       std::vector<std::string>* created_files);
 
   // Create a new InstanceMetadataPB.
-  Status CreateInstanceMetadata(
+  Status createInstanceMetadata(
       std::optional<std::string> uuid,
       InstanceMetadataPB* metadata);
 
   // Save a InstanceMetadataPB to the filesystem.
   // Does not mutate the current state of the fsmanager.
-  Status WriteInstanceMetadata(
+  Status writeInstanceMetadata(
       const InstanceMetadataPB& metadata,
       const std::string& root);
 
@@ -291,20 +291,20 @@ class FsManager {
   // (e.g. WAL root directory).
   //
   // Logs warnings in case of errors.
-  void CleanTmpFiles();
+  void cleanTmpFiles();
 
   // Checks that the permissions of the root data directories conform to the
   // configured umask, and tightens them as necessary if they do not.
-  void CheckAndFixPermissions();
+  void checkAndFixPermissions();
 
   // Returns true if 'fname' is a valid tablet ID.
-  bool IsValidTabletId(const std::string& fname);
+  bool isValidTabletId(const std::string& fname);
 
   // Creates the data dir layout (<root>/data/ and
   // <root>/data/block_manager_instance) for backward compatibility with
   // older code that expects DataDirManager artifacts to exist on disk.
   // Failures are logged but not fatal.
-  void CreateDataDirLayoutForBackwardCompat();
+  void createDataDirLayoutForBackwardCompat();
 
   static const char* kDataDirName;
   static const char* kTabletMetadataDirName;
@@ -321,15 +321,15 @@ class FsManager {
   // The options that the FsManager was created with.
   const FsManagerOpts opts_;
 
-  // Canonicalized forms of the root directories. Constructed during Init()
+  // Canonicalized forms of the root directories. Constructed during init()
   // with ordering maintained.
   //
   // - The first data root is used as the metadata root.
   // - Common roots in the collections have been deduplicated.
-  CanonicalizedRootAndStatus canonicalized_wal_fs_root_;
-  CanonicalizedRootAndStatus canonicalized_metadata_fs_root_;
-  CanonicalizedRootsList canonicalized_data_fs_roots_;
-  CanonicalizedRootsList canonicalized_all_fs_roots_;
+  CanonicalizedRootAndStatus canonicalizedWalFsRoot_;
+  CanonicalizedRootAndStatus canonicalizedMetadataFsRoot_;
+  CanonicalizedRootsList canonicalizedDataFsRoots_;
+  CanonicalizedRootsList canonicalizedAllFsRoots_;
 
   std::unique_ptr<InstanceMetadataPB> metadata_;
 

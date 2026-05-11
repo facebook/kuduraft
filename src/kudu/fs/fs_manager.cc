@@ -95,11 +95,11 @@ const char* FsManager::kInstanceMetadataFileName = "instance";
 const char* FsManager::kConsensusMetadataDirName = "consensus-meta";
 
 namespace {
-vector<string> GetRootNames(const CanonicalizedRootsList& root_list) {
+vector<string> getRootNames(const CanonicalizedRootsList& rootList) {
   vector<string> roots;
   std::transform(
-      root_list.begin(),
-      root_list.end(),
+      rootList.begin(),
+      rootList.end(),
       std::back_inserter(roots),
       [&](const CanonicalizedRootAndStatus& r) { return r.path; });
   return roots;
@@ -131,7 +131,7 @@ FsManager::FsManager(Env* env, FsManagerOpts opts)
 
 FsManager::~FsManager() {}
 
-Status FsManager::Init() {
+Status FsManager::init() {
   if (initted_) {
     return Status::OK();
   }
@@ -194,28 +194,28 @@ Status FsManager::Init() {
   auto it_wal = canonicalized_roots.find(opts_.wal_root);
   CHECK(it_wal != canonicalized_roots.end())
       << "Map key not found: " << opts_.wal_root;
-  canonicalized_wal_fs_root_ = it_wal->second;
+  canonicalizedWalFsRoot_ = it_wal->second;
   unordered_set<string> unique_roots;
   LOG(INFO) << "Data directories (fs_data_dirs) not provided";
   LOG(INFO) << "Using write-ahead log directory (fs_wal_dir) as data directory";
-  canonicalized_data_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
-  if (unique_roots.insert(canonicalized_wal_fs_root_.path).second) {
-    canonicalized_all_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
+  canonicalizedDataFsRoots_.emplace_back(canonicalizedWalFsRoot_);
+  if (unique_roots.insert(canonicalizedWalFsRoot_.path).second) {
+    canonicalizedAllFsRoots_.emplace_back(canonicalizedWalFsRoot_);
   }
 
   // Decide on a metadata root to use.
   if (opts_.metadata_root.empty()) {
     // Check the first data root for metadata.
     const string meta_dir_in_data_root = JoinPathSegments(
-        canonicalized_data_fs_roots_[0].path, kTabletMetadataDirName);
+        canonicalizedDataFsRoots_[0].path, kTabletMetadataDirName);
     // If there is already metadata in the first data root, use it. Otherwise,
     // use the WAL root.
     LOG(INFO) << "Metadata directory not provided";
     if (env_->FileExists(meta_dir_in_data_root)) {
-      canonicalized_metadata_fs_root_ = canonicalized_data_fs_roots_[0];
+      canonicalizedMetadataFsRoot_ = canonicalizedDataFsRoots_[0];
       LOG(INFO) << "Using existing metadata directory in first data directory";
     } else {
-      canonicalized_metadata_fs_root_ = canonicalized_wal_fs_root_;
+      canonicalizedMetadataFsRoot_ = canonicalizedWalFsRoot_;
       LOG(INFO)
           << "Using write-ahead log directory (fs_wal_dir) as metadata directory";
     }
@@ -224,32 +224,31 @@ Status FsManager::Init() {
     auto it_meta = canonicalized_roots.find(opts_.metadata_root);
     CHECK(it_meta != canonicalized_roots.end())
         << "Map key not found: " << opts_.metadata_root;
-    canonicalized_metadata_fs_root_ = it_meta->second;
-    if (InsertIfNotPresent(
-            &unique_roots, canonicalized_metadata_fs_root_.path)) {
-      canonicalized_all_fs_roots_.emplace_back(canonicalized_metadata_fs_root_);
+    canonicalizedMetadataFsRoot_ = it_meta->second;
+    if (InsertIfNotPresent(&unique_roots, canonicalizedMetadataFsRoot_.path)) {
+      canonicalizedAllFsRoots_.emplace_back(canonicalizedMetadataFsRoot_);
     }
   }
 
   // The server cannot start if the WAL root or metadata root failed to
   // canonicalize.
-  const string& wal_root = canonicalized_wal_fs_root_.path;
+  const string& wal_root = canonicalizedWalFsRoot_.path;
   RETURN_NOT_OK_PREPEND(
-      canonicalized_wal_fs_root_.status,
+      canonicalizedWalFsRoot_.status,
       fmt::format(
           "Write-ahead log directory {} failed to canonicalize", wal_root));
-  const string& meta_root = canonicalized_metadata_fs_root_.path;
+  const string& meta_root = canonicalizedMetadataFsRoot_.path;
   RETURN_NOT_OK_PREPEND(
-      canonicalized_metadata_fs_root_.status,
+      canonicalizedMetadataFsRoot_.status,
       fmt::format("Metadata directory {} failed to canonicalize", meta_root));
 
   if (VLOG_IS_ON(1)) {
-    VLOG(1) << "WAL root: " << canonicalized_wal_fs_root_.path;
-    VLOG(1) << "Metadata root: " << canonicalized_metadata_fs_root_.path;
+    VLOG(1) << "WAL root: " << canonicalizedWalFsRoot_.path;
+    VLOG(1) << "Metadata root: " << canonicalizedMetadataFsRoot_.path;
     VLOG(1) << "Data roots: "
-            << JoinStrings(GetRootNames(canonicalized_data_fs_roots_), ",");
+            << JoinStrings(getRootNames(canonicalizedDataFsRoots_), ",");
     VLOG(1) << "All roots: "
-            << JoinStrings(GetRootNames(canonicalized_all_fs_roots_), ",");
+            << JoinStrings(getRootNames(canonicalizedAllFsRoots_), ",");
   }
 
   initted_ = true;
@@ -257,14 +256,14 @@ Status FsManager::Init() {
 }
 
 Status FsManager::Open(FsReport* report) {
-  RETURN_NOT_OK(Init());
+  RETURN_NOT_OK(init());
 
   // Load and verify the instance metadata files.
   //
   // Done first to minimize side effects in the case that the configured roots
   // are not yet initialized on disk.
   CanonicalizedRootsList missing_roots;
-  for (auto& root : canonicalized_all_fs_roots_) {
+  for (auto& root : canonicalizedAllFsRoots_) {
     if (!root.status.ok()) {
       continue;
     }
@@ -332,7 +331,7 @@ Status FsManager::Open(FsReport* report) {
   // Create any missing roots, if desired.
   if (opts_.consistency_check == ConsistencyCheckBehavior::UPDATE_ON_DISK) {
     RETURN_NOT_OK_PREPEND(
-        CreateFileSystemRoots(
+        createFileSystemRoots(
             missing_roots, *metadata_, &created_dirs, &created_files),
         "unable to create missing filesystem roots");
   }
@@ -341,15 +340,15 @@ Status FsManager::Open(FsReport* report) {
   // This ensures that we were able to obtain the exclusive directory locks
   // on the data directories before we start deleting files.
   if (!opts_.read_only) {
-    CleanTmpFiles();
-    CheckAndFixPermissions();
-    CreateDataDirLayoutForBackwardCompat();
+    cleanTmpFiles();
+    checkAndFixPermissions();
+    createDataDirLayoutForBackwardCompat();
   }
 
   // Report wal and metadata directories.
   if (report) {
-    report->walDir = canonicalized_wal_fs_root_.path;
-    report->metadataDir = canonicalized_metadata_fs_root_.path;
+    report->walDir = canonicalizedWalFsRoot_.path;
+    report->metadataDir = canonicalizedMetadataFsRoot_.path;
   }
 
   if (FLAGS_enable_data_block_fsync) {
@@ -361,7 +360,7 @@ Status FsManager::Open(FsReport* report) {
   }
 
   LOG(INFO) << "Opened local filesystem: "
-            << JoinStrings(GetRootNames(canonicalized_all_fs_roots_), ",")
+            << JoinStrings(getRootNames(canonicalizedAllFsRoots_), ",")
             << std::endl
             << SecureDebugString(*metadata_);
 
@@ -382,7 +381,7 @@ Status FsManager::Open(FsReport* report) {
 Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   CHECK(!opts_.read_only);
 
-  RETURN_NOT_OK(Init());
+  RETURN_NOT_OK(init());
 
   // In the event of failure, delete everything we created.
   vector<string> created_dirs;
@@ -404,11 +403,11 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   // Files/directories created will NOT be synchronized to disk.
   InstanceMetadataPB metadata;
   RETURN_NOT_OK_PREPEND(
-      CreateInstanceMetadata(std::move(uuid), &metadata),
+      createInstanceMetadata(std::move(uuid), &metadata),
       "unable to create instance metadata");
   RETURN_NOT_OK_PREPEND(
-      FsManager::CreateFileSystemRoots(
-          canonicalized_all_fs_roots_, metadata, &created_dirs, &created_files),
+      FsManager::createFileSystemRoots(
+          canonicalizedAllFsRoots_, metadata, &created_dirs, &created_files),
       "unable to create file system roots");
 
   // Create ancillary directories.
@@ -426,7 +425,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
 
   // Create backward-compat data dir layout so that rollback to older code
   // (which expects DataDirManager artifacts) does not crash.
-  CreateDataDirLayoutForBackwardCompat();
+  createDataDirLayoutForBackwardCompat();
 
   if (FLAGS_enable_data_block_fsync) {
     // Files/directories created by the directory manager in the fs roots have
@@ -441,7 +440,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   return Status::OK();
 }
 
-Status FsManager::CreateFileSystemRoots(
+Status FsManager::createFileSystemRoots(
     const CanonicalizedRootsList& canonicalized_roots,
     const InstanceMetadataPB& metadata,
     vector<string>* created_dirs,
@@ -492,14 +491,14 @@ Status FsManager::CreateFileSystemRoots(
       created_dirs->emplace_back(root_name);
     }
     RETURN_NOT_OK_PREPEND(
-        WriteInstanceMetadata(metadata, root_name),
+        writeInstanceMetadata(metadata, root_name),
         "unable to write instance metadata");
     created_files->emplace_back(GetInstanceMetadataPath(root_name));
   }
   return Status::OK();
 }
 
-Status FsManager::CreateInstanceMetadata(
+Status FsManager::createInstanceMetadata(
     std::optional<string> uuid,
     InstanceMetadataPB* metadata) {
   if (uuid) {
@@ -521,7 +520,7 @@ Status FsManager::CreateInstanceMetadata(
   return Status::OK();
 }
 
-Status FsManager::WriteInstanceMetadata(
+Status FsManager::writeInstanceMetadata(
     const InstanceMetadataPB& metadata,
     const string& root) {
   const string path = GetInstanceMetadataPath(root);
@@ -543,14 +542,14 @@ const string& FsManager::uuid() const {
 string FsManager::GetTabletMetadataDir() const {
   DCHECK(initted_);
   return JoinPathSegments(
-      canonicalized_metadata_fs_root_.path, kTabletMetadataDirName);
+      canonicalizedMetadataFsRoot_.path, kTabletMetadataDirName);
 }
 
 string FsManager::GetTabletMetadataPath(const string& tablet_id) const {
   return JoinPathSegments(GetTabletMetadataDir(), tablet_id);
 }
 
-bool FsManager::IsValidTabletId(const string& fname) {
+bool FsManager::isValidTabletId(const string& fname) {
   // Prevent warning logs for hidden files or ./..
   if (hasPrefixString(fname, ".")) {
     VLOG(1) << "Ignoring hidden file in tablet metadata dir: " << fname;
@@ -586,7 +585,7 @@ Status FsManager::ListTabletIds(vector<string>* tablet_ids) {
 
   vector<string> tablets;
   for (const string& child : children) {
-    if (!IsValidTabletId(child)) {
+    if (!isValidTabletId(child)) {
       continue;
     }
     tablet_ids->push_back(child);
@@ -613,7 +612,7 @@ string FsManager::GetWalSegmentFileName(
           "{}-{}", kWalFileNamePrefix, fmt::format("{:09d}", sequence_number)));
 }
 
-void FsManager::CleanTmpFiles() {
+void FsManager::cleanTmpFiles() {
   DCHECK(!opts_.read_only);
   // Temporary files in the Block Manager directories are cleaned during
   // Block Manager startup.
@@ -625,8 +624,8 @@ void FsManager::CleanTmpFiles() {
   }
 }
 
-void FsManager::CheckAndFixPermissions() {
-  for (const auto& root : canonicalized_all_fs_roots_) {
+void FsManager::checkAndFixPermissions() {
+  for (const auto& root : canonicalizedAllFsRoots_) {
     if (!root.status.ok()) {
       continue;
     }
@@ -644,7 +643,7 @@ void FsManager::CheckAndFixPermissions() {
 void FsManager::DumpFileSystemTree(ostream& out) {
   DCHECK(initted_);
 
-  for (const auto& root : canonicalized_all_fs_roots_) {
+  for (const auto& root : canonicalizedAllFsRoots_) {
     if (!root.status.ok()) {
       continue;
     }
@@ -687,10 +686,10 @@ std::ostream& operator<<(std::ostream& o, const BlockId& blockId) {
   return o << blockId.toString();
 }
 
-void FsManager::CreateDataDirLayoutForBackwardCompat() {
+void FsManager::createDataDirLayoutForBackwardCompat() {
   static const char* kBlockManagerInstanceFileName = "block_manager_instance";
 
-  for (const auto& root : canonicalized_data_fs_roots_) {
+  for (const auto& root : canonicalizedDataFsRoots_) {
     if (!root.status.ok()) {
       continue;
     }
