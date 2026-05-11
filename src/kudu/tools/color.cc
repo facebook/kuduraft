@@ -36,7 +36,7 @@ DEFINE_string(
     "valid values are 'always' or 'never'.");
 TAG_FLAG(color, stable);
 
-static bool validateColorFlag(const char* flagname, const std::string& value) {
+static bool validateColorFlag(const char* flagName, const std::string& value) {
   if (value == "always" || value == "auto" || value == "never") {
     return true;
   }
@@ -67,15 +67,15 @@ const char* stringForCode(AnsiCode colorCode) {
 
   // Codes from: https://en.wikipedia.org/wiki/ANSI_escape_code
   switch (colorCode) {
-    case AnsiCode::RED:
+    case AnsiCode::Red:
       return "\x1b[31m";
-    case AnsiCode::GREEN:
+    case AnsiCode::Green:
       return "\x1b[32m";
-    case AnsiCode::YELLOW:
+    case AnsiCode::Yellow:
       return "\x1b[33m";
-    case AnsiCode::BLUE:
+    case AnsiCode::Blue:
       return "\x1b[34m";
-    case AnsiCode::RESET:
+    case AnsiCode::Reset:
       return "\x1b[m";
   }
   LOG(FATAL);
@@ -88,7 +88,7 @@ std::string color(AnsiCode colorCode, StringPiece s) {
       "{}{}{}",
       stringForCode(colorCode),
       s.asString(),
-      stringForCode(AnsiCode::RESET));
+      stringForCode(AnsiCode::Reset));
 }
 
 } // namespace tools

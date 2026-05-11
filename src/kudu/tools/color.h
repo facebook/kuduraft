@@ -23,7 +23,7 @@
 namespace kudu {
 namespace tools {
 
-enum class AnsiCode { RED, YELLOW, GREEN, BLUE, RESET };
+enum class AnsiCode { Red, Yellow, Green, Blue, Reset };
 
 std::string color(AnsiCode colorCode, StringPiece s);
 
