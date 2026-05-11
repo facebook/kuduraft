@@ -319,13 +319,13 @@
   AnnotateRWLockDestroy(__FILE__, __LINE__, lock)
 
 /* Report that the lock at address "lock" has been acquired.
-   is_w=1 for writer lock, is_w=0 for reader lock. */
-#define KUDU_ANNONTATE_RWLOCK_ACQUIRED(lock, is_w) \
-  AnnotateRWLockAcquired(__FILE__, __LINE__, lock, is_w)
+   isW=1 for writer lock, isW=0 for reader lock. */
+#define KUDU_ANNONTATE_RWLOCK_ACQUIRED(lock, isW) \
+  AnnotateRWLockAcquired(__FILE__, __LINE__, lock, isW)
 
 /* Report that the lock at address "lock" is about to be released. */
-#define KUDU_ANNONTATE_RWLOCK_RELEASED(lock, is_w) \
-  AnnotateRWLockReleased(__FILE__, __LINE__, lock, is_w)
+#define KUDU_ANNONTATE_RWLOCK_RELEASED(lock, isW) \
+  AnnotateRWLockReleased(__FILE__, __LINE__, lock, isW)
 
 /* -------------------------------------------------------------
    Annotations useful when implementing barriers.  They are not
@@ -333,11 +333,11 @@
    The "barrier" argument is a pointer to the barrier object. */
 
 /* Report that the "barrier" has been initialized with initial "count".
- If 'reinitialization_allowed' is true, initialization is allowed to happen
+ If 'reinitializationAllowed' is true, initialization is allowed to happen
  multiple times w/o calling barrier_destroy() */
-#define KUDU_ANNONTATE_BARRIER_INIT(barrier, count, reinitialization_allowed) \
-  AnnotateBarrierInit(                                                        \
-      __FILE__, __LINE__, barrier, count, reinitialization_allowed)
+#define KUDU_ANNONTATE_BARRIER_INIT(barrier, count, reinitializationAllowed) \
+  AnnotateBarrierInit(                                                       \
+      __FILE__, __LINE__, barrier, count, reinitializationAllowed)
 
 /* Report that we are about to enter barrier_wait("barrier"). */
 #define KUDU_ANNONTATE_BARRIER_WAIT_BEFORE(barrier) \
@@ -371,10 +371,10 @@
 #define KUDU_ANNONTATE_RWLOCK_CREATE(lock) /* empty */
 #define KUDU_ANNONTATE_RWLOCK_CREATE_STATIC(lock) /* empty */
 #define KUDU_ANNONTATE_RWLOCK_DESTROY(lock) /* empty */
-#define KUDU_ANNONTATE_RWLOCK_ACQUIRED(lock, is_w) /* empty */
-#define KUDU_ANNONTATE_RWLOCK_RELEASED(lock, is_w) /* empty */
+#define KUDU_ANNONTATE_RWLOCK_ACQUIRED(lock, isW) /* empty */
+#define KUDU_ANNONTATE_RWLOCK_RELEASED(lock, isW) /* empty */
 #define KUDU_ANNONTATE_BARRIER_INIT( \
-    barrier, count, reinitialization_allowed) /* */
+    barrier, count, reinitializationAllowed) /* */
 #define KUDU_ANNONTATE_BARRIER_WAIT_BEFORE(barrier) /* empty */
 #define KUDU_ANNONTATE_BARRIER_WAIT_AFTER(barrier) /* empty */
 #define KUDU_ANNONTATE_BARRIER_DESTROY(barrier) /* empty */
@@ -701,21 +701,21 @@ inline T KUDU_ANNONTATE_UNPROTECTED_READ(const volatile T& x)
   return res;
 }
 /* Apply KUDU_ANNONTATE_BENIGN_RACE_SIZED to a static variable. */
-#define KUDU_ANNONTATE_BENIGN_RACE_STATIC(static_var, description)        \
-  namespace {                                                             \
-  class static_var##_annotator {                                          \
-   public:                                                                \
-    static_var##_annotator() {                                            \
-      KUDU_ANNONTATE_BENIGN_RACE_SIZED(                                   \
-          &static_var, sizeof(static_var), #static_var ": " description); \
-    }                                                                     \
-  };                                                                      \
-  static static_var##_annotator the##static_var##_annotator;              \
+#define KUDU_ANNONTATE_BENIGN_RACE_STATIC(staticVar, description)      \
+  namespace {                                                          \
+  class staticVar##_annotator {                                        \
+   public:                                                             \
+    staticVar##_annotator() {                                          \
+      KUDU_ANNONTATE_BENIGN_RACE_SIZED(                                \
+          &staticVar, sizeof(staticVar), #staticVar ": " description); \
+    }                                                                  \
+  };                                                                   \
+  static staticVar##_annotator the##staticVar##_annotator;             \
   }
 #else /* DYNAMIC_ANNOTATIONS_ENABLED == 0 */
 
 #define KUDU_ANNONTATE_UNPROTECTED_READ(x) (x)
-#define KUDU_ANNONTATE_BENIGN_RACE_STATIC(static_var, description) /* empty */
+#define KUDU_ANNONTATE_BENIGN_RACE_STATIC(staticVar, description) /* empty */
 
 #endif /* DYNAMIC_ANNOTATIONS_ENABLED */
 
