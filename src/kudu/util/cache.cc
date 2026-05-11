@@ -348,7 +348,7 @@ Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
 
   // Do the metrics outside of the lock.
   if (metrics_) {
-    STATS_block_cache_lookups.add(1, KUDU_STATS_TAG);
+    STATS_blockCacheLookups.add(1, KUDU_STATS_TAG);
     bool was_hit = (e != nullptr);
     if (was_hit) {
       if (caching) {
@@ -386,7 +386,7 @@ Cache::Handle* LRUCache::Insert(
                                                // returned handle
   UpdateMemTracker(e->charge);
   if (PREDICT_TRUE(metrics_)) {
-    STATS_block_cache_inserts.add(1, KUDU_STATS_TAG);
+    STATS_blockCacheInserts.add(1, KUDU_STATS_TAG);
   }
 
   LRUHandle* to_remove_head = nullptr;

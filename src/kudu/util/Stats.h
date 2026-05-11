@@ -60,23 +60,23 @@ DECLARE_dynamic_quantile_stat(majorityDoneOps, 1);
 DECLARE_dynamic_quantile_stat(inProgressOps, 1);
 DECLARE_dynamic_quantile_stat(opsBehindLeader, 1);
 DECLARE_dynamic_quantile_stat(availableCommitPeers, 1);
-DECLARE_dynamic_quantile_stat(available_leader_lease_grantors, 1);
-DECLARE_dynamic_quantile_stat(available_bounded_dataloss_window_ackers, 1);
+DECLARE_dynamic_quantile_stat(availableLeaderLeaseGrantors, 1);
+DECLARE_dynamic_quantile_stat(availableBoundedDatalossWindowAckers, 1);
 
 // --- consensus_queue.cc: counters ---
-DECLARE_dynamic_timeseries(check_quorum_runs, 1);
-DECLARE_dynamic_timeseries(check_quorum_failures, 1);
-DECLARE_dynamic_timeseries(corruption_cache_drops, 1);
-DECLARE_dynamic_timeseries(single_corruption_cache_drops, 1);
+DECLARE_dynamic_timeseries(checkQuorumRuns, 1);
+DECLARE_dynamic_timeseries(checkQuorumFailures, 1);
+DECLARE_dynamic_timeseries(corruptionCacheDrops, 1);
+DECLARE_dynamic_timeseries(singleCorruptionCacheDrops, 1);
 
 // --- log_cache.cc: gauges ---
-DECLARE_dynamic_quantile_stat(log_cache_num_ops, 1);
-DECLARE_dynamic_quantile_stat(log_cache_size, 1);
-DECLARE_dynamic_quantile_stat(log_cache_msg_size, 1);
+DECLARE_dynamic_quantile_stat(logCacheNumOps, 1);
+DECLARE_dynamic_quantile_stat(logCacheSize, 1);
+DECLARE_dynamic_quantile_stat(logCacheMsgSize, 1);
 
 // --- log_cache.cc: counters ---
-DECLARE_dynamic_timeseries(log_cache_compressed_payload_size, 1);
-DECLARE_dynamic_timeseries(log_cache_payload_size, 1);
+DECLARE_dynamic_timeseries(logCacheCompressedPayloadSize, 1);
+DECLARE_dynamic_timeseries(logCachePayloadSize, 1);
 
 // --- log_metrics.cc: histograms ---
 DECLARE_dynamic_quantile_stat(log_sync_latency, 1);
@@ -95,8 +95,8 @@ DECLARE_dynamic_timeseries(raft_rpc_token_num_response_mismatches, 1);
 DECLARE_dynamic_timeseries(log_index_chunk_mmap_for_read, 1);
 
 // --- cache_metrics.cc: counters ---
-DECLARE_dynamic_timeseries(block_cache_inserts, 1);
-DECLARE_dynamic_timeseries(block_cache_lookups, 1);
+DECLARE_dynamic_timeseries(blockCacheInserts, 1);
+DECLARE_dynamic_timeseries(blockCacheLookups, 1);
 DECLARE_dynamic_timeseries(block_cache_evictions, 1);
 DECLARE_dynamic_timeseries(block_cache_misses, 1);
 DECLARE_dynamic_timeseries(block_cache_misses_caching, 1);
@@ -110,8 +110,8 @@ DECLARE_dynamic_quantile_stat(block_cache_usage, 1);
 DECLARE_dynamic_quantile_stat(leader_replicate_latency, 1);
 
 // --- thread.cc: gauges (bumped at thread create/destroy sites) ---
-DECLARE_dynamic_quantile_stat(threads_started, 1);
-DECLARE_dynamic_quantile_stat(threads_running, 1);
+DECLARE_dynamic_quantile_stat(threadsStarted, 1);
+DECLARE_dynamic_quantile_stat(threadsRunning, 1);
 
 // --- Process-level gauges (polled every 60s via FunctionScheduler) ---
 // Single sample per window, so timeseries (not quantile stat).

@@ -272,8 +272,8 @@ void ThreadMgr::addThread(
     started = threadsStartedMetric_;
     running = threadsRunningMetric_;
   }
-  STATS_threads_started.addValue(started, KUDU_STATS_TAG);
-  STATS_threads_running.addValue(running, KUDU_STATS_TAG);
+  STATS_threadsStarted.addValue(started, KUDU_STATS_TAG);
+  STATS_threadsRunning.addValue(running, KUDU_STATS_TAG);
   KUDU_ANNONTATE_IGNORE_SYNC_END();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
 }
@@ -292,7 +292,7 @@ void ThreadMgr::removeThread(
     threadsRunningMetric_--;
     running = threadsRunningMetric_;
   }
-  STATS_threads_running.addValue(running, KUDU_STATS_TAG);
+  STATS_threadsRunning.addValue(running, KUDU_STATS_TAG);
   KUDU_ANNONTATE_IGNORE_SYNC_END();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
 }

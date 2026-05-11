@@ -306,11 +306,11 @@ Status LogCache::appendOperations(
   metrics_.logCacheSize->incrementBy(memRequired); // needed for tests
   metrics_.logCacheMsgSize->incrementBy(memRequired); // needed for tests
   metrics_.logCacheNumOps->incrementBy(msgs.size()); // needed for tests
-  STATS_log_cache_size.addValue(memRequired, KUDU_STATS_TAG);
-  STATS_log_cache_msg_size.addValue(memRequired, KUDU_STATS_TAG);
-  STATS_log_cache_num_ops.addValue(msgs.size(), KUDU_STATS_TAG);
-  STATS_log_cache_payload_size.add(memRequired, KUDU_STATS_TAG);
-  STATS_log_cache_compressed_payload_size.add(memRequired, KUDU_STATS_TAG);
+  STATS_logCacheSize.addValue(memRequired, KUDU_STATS_TAG);
+  STATS_logCacheMsgSize.addValue(memRequired, KUDU_STATS_TAG);
+  STATS_logCacheNumOps.addValue(msgs.size(), KUDU_STATS_TAG);
+  STATS_logCachePayloadSize.add(memRequired, KUDU_STATS_TAG);
+  STATS_logCacheCompressedPayloadSize.add(memRequired, KUDU_STATS_TAG);
 
   Status logStatus = log_->asyncAppendReplicates(
       msgs,
@@ -434,11 +434,11 @@ Status LogCache::appendOperations(
   metrics_.logCacheSize->incrementBy(memRequired); // needed for tests
   metrics_.logCacheMsgSize->incrementBy(totalMsgSize); // needed for tests
   metrics_.logCacheNumOps->incrementBy(msg_wrappers.size()); // needed for tests
-  STATS_log_cache_size.addValue(memRequired, KUDU_STATS_TAG);
-  STATS_log_cache_msg_size.addValue(totalMsgSize, KUDU_STATS_TAG);
-  STATS_log_cache_num_ops.addValue(msg_wrappers.size(), KUDU_STATS_TAG);
-  STATS_log_cache_payload_size.add(uncompressedSize, KUDU_STATS_TAG);
-  STATS_log_cache_compressed_payload_size.add(compressedSize, KUDU_STATS_TAG);
+  STATS_logCacheSize.addValue(memRequired, KUDU_STATS_TAG);
+  STATS_logCacheMsgSize.addValue(totalMsgSize, KUDU_STATS_TAG);
+  STATS_logCacheNumOps.addValue(msg_wrappers.size(), KUDU_STATS_TAG);
+  STATS_logCachePayloadSize.add(uncompressedSize, KUDU_STATS_TAG);
+  STATS_logCacheCompressedPayloadSize.add(compressedSize, KUDU_STATS_TAG);
 
   VLOG(2) << "Compressed size: " << compressedSize
           << ", Uncompressed size: " << uncompressedSize

@@ -2024,7 +2024,7 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Corruption likely at " << peer->nextIndex
           << ", evicting log cache";
-      STATS_corruption_cache_drops.add(1, KUDU_STATS_TAG);
+      STATS_corruptionCacheDrops.add(1, KUDU_STATS_TAG);
       log_cache_->evictThroughOp(peer->nextIndex, true);
     }
   }
@@ -2044,7 +2044,7 @@ bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
         << "Peer " << peer->uuid()
         << " corruption count: " << peer->corruptionCount << " > "
         << FLAGS_min_single_corruption_count;
-    STATS_single_corruption_cache_drops.add(1, KUDU_STATS_TAG);
+    STATS_singleCorruptionCacheDrops.add(1, KUDU_STATS_TAG);
     return true;
   }
 
@@ -2722,7 +2722,7 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
         return peer->leaseGranted.index() >= queueState_.committed_index;
       });
 
-  STATS_available_leader_lease_grantors.addValue(
+  STATS_availableLeaderLeaseGrantors.addValue(
       results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
@@ -2750,7 +2750,7 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
             queueState_.committed_index;
       });
 
-  STATS_available_bounded_dataloss_window_ackers.addValue(
+  STATS_availableBoundedDatalossWindowAckers.addValue(
       results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
@@ -3097,7 +3097,7 @@ bool PeerMessageQueue::CheckQuorum() {
     return true;
   }
 
-  STATS_check_quorum_runs.add(1, KUDU_STATS_TAG);
+  STATS_checkQuorumRuns.add(1, KUDU_STATS_TAG);
 
   vector<string> unhealthy_peers;
   string local_uuid = localPeerPb_.permanent_uuid();
@@ -3114,7 +3114,7 @@ bool PeerMessageQueue::CheckQuorum() {
   STATS_availableCommitPeers.addValue(results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
-    STATS_check_quorum_failures.add(1, KUDU_STATS_TAG);
+    STATS_checkQuorumFailures.add(1, KUDU_STATS_TAG);
     LOG(WARNING) << "Check quorum failed. " << results.quorum_size
                  << " is required commit quorum. " << results.num_satisfied
                  << " peers are healthy. " << unhealthy_peers.size()

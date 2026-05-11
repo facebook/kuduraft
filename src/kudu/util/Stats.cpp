@@ -103,14 +103,14 @@ DEFINE_dynamic_quantile_stat(
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    available_leader_lease_grantors,
+    availableLeaderLeaseGrantors,
     "{}.available_leader_lease_grantors",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    available_bounded_dataloss_window_ackers,
+    availableBoundedDatalossWindowAckers,
     "{}.available_bounded_dataloss_window_ackers",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -119,43 +119,43 @@ DEFINE_dynamic_quantile_stat(
 // ---- consensus_queue.cc: counters ----
 
 DEFINE_dynamic_timeseries(
-    check_quorum_runs,
+    checkQuorumRuns,
     "{}.check_quorum_runs",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    check_quorum_failures,
+    checkQuorumFailures,
     "{}.check_quorum_failures",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    corruption_cache_drops,
+    corruptionCacheDrops,
     "{}.corruption_cache_drops",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    single_corruption_cache_drops,
+    singleCorruptionCacheDrops,
     "{}.single_corruption_cache_drops",
     facebook::fb303::ExportType::SUM);
 
 // ---- log_cache.cc: gauges ----
 
 DEFINE_dynamic_quantile_stat(
-    log_cache_num_ops,
+    logCacheNumOps,
     "{}.log_cache_num_ops",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    log_cache_size,
+    logCacheSize,
     "{}.log_cache_size_bytes",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    log_cache_msg_size,
+    logCacheMsgSize,
     "{}.log_cache_msg_size_bytes",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -164,12 +164,12 @@ DEFINE_dynamic_quantile_stat(
 // ---- log_cache.cc: counters ----
 
 DEFINE_dynamic_timeseries(
-    log_cache_compressed_payload_size,
+    logCacheCompressedPayloadSize,
     "{}.log_cache_compressed_payload_size_bytes",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    log_cache_payload_size,
+    logCachePayloadSize,
     "{}.log_cache_payload_size_bytes",
     facebook::fb303::ExportType::SUM);
 
@@ -234,12 +234,12 @@ DEFINE_dynamic_timeseries(
 // ---- cache_metrics.cc: counters ----
 
 DEFINE_dynamic_timeseries(
-    block_cache_inserts,
+    blockCacheInserts,
     "{}.block_cache_inserts",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    block_cache_lookups,
+    blockCacheLookups,
     "{}.block_cache_lookups",
     facebook::fb303::ExportType::SUM);
 
@@ -317,14 +317,14 @@ DEFINE_dynamic_timeseries(
 // ---- thread.cc: gauges (bumped at thread create/destroy sites) ----
 
 DEFINE_dynamic_quantile_stat(
-    threads_started,
+    threadsStarted,
     "{}.threads_started",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    threads_running,
+    threadsRunning,
     "{}.threads_running",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
