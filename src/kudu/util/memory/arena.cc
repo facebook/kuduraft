@@ -44,29 +44,29 @@ constexpr int kMaxTcmallocFastAllocation = 8192 * 127;
 
 template <bool THREADSAFE>
 ArenaBase<THREADSAFE>::ArenaBase(
-    BufferAllocator* buffer_allocator,
-    size_t initial_buffer_size)
-    : buffer_allocator_(buffer_allocator),
-      max_buffer_size_(kMaxTcmallocFastAllocation),
-      arena_footprint_(0) {
-  addComponent(CHECK_NOTNULL(newComponent(initial_buffer_size, 0)));
+    BufferAllocator* bufferAllocator,
+    size_t initialBufferSize)
+    : bufferAllocator_(bufferAllocator),
+      maxBufferSize_(kMaxTcmallocFastAllocation),
+      arenaFootprint_(0) {
+  addComponent(CHECK_NOTNULL(newComponent(initialBufferSize, 0)));
 }
 
 template <bool THREADSAFE>
-ArenaBase<THREADSAFE>::ArenaBase(size_t initial_buffer_size)
-    : ArenaBase<THREADSAFE>(HeapBufferAllocator::Get(), initial_buffer_size) {}
+ArenaBase<THREADSAFE>::ArenaBase(size_t initialBufferSize)
+    : ArenaBase<THREADSAFE>(HeapBufferAllocator::Get(), initialBufferSize) {}
 
 template <bool THREADSAFE>
 void ArenaBase<THREADSAFE>::setMaxBufferSize(size_t size) {
   DCHECK_LE(size, kMaxTcmallocFastAllocation);
-  max_buffer_size_ = size;
+  maxBufferSize_ = size;
 }
 
 template <bool THREADSAFE>
 void* ArenaBase<THREADSAFE>::allocateBytesFallback(
     const size_t size,
     const size_t align) {
-  std::lock_guard<mutex_type> lock(component_lock_);
+  std::lock_guard<mutex_type> lock(componentLock_);
 
   // It's possible another thread raced with us and already allocated
   // a new component, in which case we should try the "fast path" again
@@ -77,25 +77,25 @@ void* ArenaBase<THREADSAFE>::allocateBytesFallback(
   }
 
   // Really need to allocate more space.
-  size_t next_component_size = min(2 * cur->size(), max_buffer_size_);
+  size_t nextComponentSize = min(2 * cur->size(), maxBufferSize_);
   // But, allocate enough, even if the request is large. In this case,
   // might violate the max_element_size bound.
-  if (next_component_size < size) {
-    next_component_size = size;
+  if (nextComponentSize < size) {
+    nextComponentSize = size;
   }
   // If soft quota is exhausted we will only get the "minimal" amount of memory
   // we ask for. In this case if we always use "size" as minimal, we may degrade
   // to allocating a lot of tiny components, one for each string added to the
   // arena. This would be very inefficient, so let's first try something between
-  // "size" and "next_component_size". If it fails due to hard quota being
+  // "size" and "nextComponentSize". If it fails due to hard quota being
   // exhausted, we'll fall back to using "size" as minimal.
-  size_t minimal = (size + next_component_size) / 2;
+  size_t minimal = (size + nextComponentSize) / 2;
   CHECK_LE(size, minimal);
-  CHECK_LE(minimal, next_component_size);
+  CHECK_LE(minimal, nextComponentSize);
   // Now, just make sure we can actually get the memory.
-  Component* component = newComponent(next_component_size, minimal);
+  Component* component = newComponent(nextComponentSize, minimal);
   if (component == nullptr) {
-    component = newComponent(next_component_size, size);
+    component = newComponent(nextComponentSize, size);
   }
   if (!component) {
     return nullptr;
@@ -113,10 +113,10 @@ void* ArenaBase<THREADSAFE>::allocateBytesFallback(
 
 template <bool THREADSAFE>
 typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::newComponent(
-    size_t requested_size,
-    size_t minimum_size) {
+    size_t requestedSize,
+    size_t minimumSize) {
   Buffer* buffer =
-      buffer_allocator_->BestEffortAllocate(requested_size, minimum_size);
+      bufferAllocator_->BestEffortAllocate(requestedSize, minimumSize);
   if (buffer == nullptr) {
     return nullptr;
   }
@@ -129,17 +129,17 @@ typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::newComponent(
   return new Component(buffer);
 }
 
-// LOCKING: component_lock_ must be held by the current thread.
+// LOCKING: componentLock_ must be held by the current thread.
 template <bool THREADSAFE>
 void ArenaBase<THREADSAFE>::addComponent(ArenaBase::Component* component) {
   releaseStoreCurrent(component);
   arena_.push_back(unique_ptr<Component>(component));
-  arena_footprint_ += component->size();
+  arenaFootprint_ += component->size();
 }
 
 template <bool THREADSAFE>
 void ArenaBase<THREADSAFE>::reset() {
-  std::lock_guard<mutex_type> lock(component_lock_);
+  std::lock_guard<mutex_type> lock(componentLock_);
 
   if (PREDICT_FALSE(arena_.size() > 1)) {
     unique_ptr<Component> last = std::move(arena_.back());
@@ -148,22 +148,22 @@ void ArenaBase<THREADSAFE>::reset() {
     releaseStoreCurrent(arena_[0].get());
   }
   arena_.back()->reset();
-  arena_footprint_ = arena_.back()->size();
+  arenaFootprint_ = arena_.back()->size();
 
 #ifndef NDEBUG
   // In debug mode release the last component too for (hopefully) better
   // detection of memory-related bugs (invalid shallow copies, etc.).
-  size_t last_size = arena_.back()->size();
+  size_t lastSize = arena_.back()->size();
   arena_.clear();
-  addComponent(CHECK_NOTNULL(newComponent(last_size, 0)));
-  arena_footprint_ = 0;
+  addComponent(CHECK_NOTNULL(newComponent(lastSize, 0)));
+  arenaFootprint_ = 0;
 #endif
 }
 
 template <bool THREADSAFE>
 size_t ArenaBase<THREADSAFE>::memoryFootprint() const {
-  std::lock_guard<mutex_type> lock(component_lock_);
-  return arena_footprint_;
+  std::lock_guard<mutex_type> lock(componentLock_);
+  return arenaFootprint_;
 }
 
 // Explicit instantiation.

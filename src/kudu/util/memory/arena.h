@@ -79,7 +79,7 @@ class ArenaBase {
   // Arenas are required to have a minimum size of at least this amount.
   static const size_t kMinimumChunkSize;
 
-  // Creates a new arena, with a single buffer of size up-to initial_buffer_size
+  // Creates a new arena, with a single buffer of size up-to initialBufferSize
   // and maximum capacity (i.e. total sizes of all buffers)
   // possibly limited by the buffer allocator. The allocator might cap the
   // initial allocation request arbitrarily (down to zero). As a consequence,
@@ -88,15 +88,15 @@ class ArenaBase {
   // Calls to allocateBytes() will then give out bytes from the working buffer
   // until it is exhausted. Then, a subsequent working buffer will be allocated.
   // The size of the next buffer is normally 2x the size of the previous buffer.
-  // It might be capped by the allocator, or by the max_buffer_size of the
+  // It might be capped by the allocator, or by the maxBufferSize of the
   // Arena, settable by setMaxBufferSize below.
   //
   // The default maximum buffer size is ~1MB. See 'setMaxBufferSize' for details
   // on when you would want to configure this differently.
-  ArenaBase(BufferAllocator* buffer_allocator, size_t initial_buffer_size);
+  ArenaBase(BufferAllocator* bufferAllocator, size_t initialBufferSize);
 
   // Creates an arena using a default (heap) allocator.
-  explicit ArenaBase(size_t initial_buffer_size);
+  explicit ArenaBase(size_t initialBufferSize);
 
   // Set the maximum buffer size allocated for this arena.
   // The maximum buffer size allowed is slightly less than ~1MB (8192 * 127
@@ -171,7 +171,7 @@ class ArenaBase {
   // addSlice and allocateBytes). Does not cause memory allocation.
   // May reduce memory footprint, as it discards all allocated buffers but
   // the last one.
-  // Unless allocations exceed max_buffer_size, repetitive filling up and
+  // Unless allocations exceed maxBufferSize, repetitive filling up and
   // resetting normally lead to quickly settling memory footprint and ceasing
   // buffer allocations, as the arena keeps reusing a single, large buffer.
   void reset();
@@ -189,7 +189,7 @@ class ArenaBase {
   // Fallback for allocateBytes non-fast-path
   void* allocateBytesFallback(const size_t size, const size_t align);
 
-  Component* newComponent(size_t requested_size, size_t minimum_size);
+  Component* newComponent(size_t requestedSize, size_t minimumSize);
   void addComponent(Component* component);
 
   // Load the current component, with "Acquire" semantics (see atomicops.h)
@@ -215,19 +215,19 @@ class ArenaBase {
     }
   }
 
-  BufferAllocator* const buffer_allocator_;
+  BufferAllocator* const bufferAllocator_;
   std::vector<std::unique_ptr<Component>> arena_;
 
   // The current component to allocate from.
   // Use acquireLoadCurrent and releaseStoreCurrent to load/store.
   Component* current_;
-  size_t max_buffer_size_;
-  size_t arena_footprint_;
+  size_t maxBufferSize_;
+  size_t arenaFootprint_;
 
   // Lock covering 'slow path' allocation, when new components are
   // allocated and added to the arena's list. Also covers any other
   // mutation of the component data structure (eg reset).
-  mutable mutex_type component_lock_;
+  mutable mutex_type componentLock_;
 
   DISALLOW_COPY_AND_ASSIGN(ArenaBase);
 };
@@ -308,14 +308,14 @@ class ArenaAllocator {
 
 class Arena : public ArenaBase<false> {
  public:
-  explicit Arena(size_t initial_buffer_size)
-      : ArenaBase<false>(initial_buffer_size) {}
+  explicit Arena(size_t initialBufferSize)
+      : ArenaBase<false>(initialBufferSize) {}
 };
 
 class ThreadSafeArena : public ArenaBase<true> {
  public:
-  explicit ThreadSafeArena(size_t initial_buffer_size)
-      : ArenaBase<true>(initial_buffer_size) {}
+  explicit ThreadSafeArena(size_t initialBufferSize)
+      : ArenaBase<true>(initialBufferSize) {}
 };
 
 // Arena implementation that is integrated with MemTracker in order to
@@ -324,10 +324,10 @@ class ThreadSafeArena : public ArenaBase<true> {
 class MemoryTrackingArena : public ArenaBase<false> {
  public:
   MemoryTrackingArena(
-      size_t initial_buffer_size,
-      const std::shared_ptr<MemoryTrackingBufferAllocator>& tracking_allocator)
-      : ArenaBase<false>(tracking_allocator.get(), initial_buffer_size),
-        tracking_allocator_(tracking_allocator) {}
+      size_t initialBufferSize,
+      const std::shared_ptr<MemoryTrackingBufferAllocator>& trackingAllocator)
+      : ArenaBase<false>(trackingAllocator.get(), initialBufferSize),
+        trackingAllocator_(trackingAllocator) {}
 
   ~MemoryTrackingArena() {}
 
@@ -335,22 +335,22 @@ class MemoryTrackingArena : public ArenaBase<false> {
   // This is required in order for the Arena to survive even after tablet is
   // shut down, e.g., in the case of Scanners running scanners (see
   // tablet_server-test.cc)
-  std::shared_ptr<MemoryTrackingBufferAllocator> tracking_allocator_;
+  std::shared_ptr<MemoryTrackingBufferAllocator> trackingAllocator_;
 };
 
 class ThreadSafeMemoryTrackingArena : public ArenaBase<true> {
  public:
   ThreadSafeMemoryTrackingArena(
-      size_t initial_buffer_size,
-      const std::shared_ptr<MemoryTrackingBufferAllocator>& tracking_allocator)
-      : ArenaBase<true>(tracking_allocator.get(), initial_buffer_size),
-        tracking_allocator_(tracking_allocator) {}
+      size_t initialBufferSize,
+      const std::shared_ptr<MemoryTrackingBufferAllocator>& trackingAllocator)
+      : ArenaBase<true>(trackingAllocator.get(), initialBufferSize),
+        trackingAllocator_(trackingAllocator) {}
 
   ~ThreadSafeMemoryTrackingArena() {}
 
  private:
   // See comment in MemoryTrackingArena above.
-  std::shared_ptr<MemoryTrackingBufferAllocator> tracking_allocator_;
+  std::shared_ptr<MemoryTrackingBufferAllocator> trackingAllocator_;
 };
 
 // Implementation of inline and template methods
@@ -395,7 +395,7 @@ class ArenaBase<THREADSAFE>::Component {
   // ASAN does not support concurrent unpoison calls that may overlap a
   // particular memory word (8 bytes).
   typedef typename ArenaTraits<THREADSAFE>::spinlock_type spinlock_type;
-  spinlock_type asan_lock_;
+  spinlock_type asanLock_;
 #endif
   DISALLOW_COPY_AND_ASSIGN(Component);
 };
@@ -416,11 +416,11 @@ retry:
   Atomic32 offset = Acquire_Load(&offset_);
 
   Atomic32 aligned = KUDU_ALIGN_UP(offset, alignment);
-  Atomic32 new_offset = aligned + size;
+  Atomic32 newOffset = aligned + size;
 
-  if (PREDICT_TRUE(new_offset <= size_)) {
+  if (PREDICT_TRUE(newOffset <= size_)) {
     bool success =
-        Acquire_CompareAndSwap(&offset_, offset, new_offset) == offset;
+        Acquire_CompareAndSwap(&offset_, offset, newOffset) == offset;
     if (PREDICT_TRUE(success)) {
       asanUnpoison(data_ + aligned, size);
       return data_ + aligned;
@@ -444,13 +444,13 @@ inline uint8_t* ArenaBase<false>::Component::allocateBytesAligned(
       << "bad alignment: " << alignment;
   size_t aligned = KUDU_ALIGN_UP(offset_, alignment);
   uint8_t* destination = data_ + aligned;
-  size_t save_offset = offset_;
+  size_t saveOffset = offset_;
   offset_ = aligned + size;
   if (PREDICT_TRUE(offset_ <= size_)) {
     asanUnpoison(data_ + aligned, size);
     return destination;
   } else {
-    offset_ = save_offset;
+    offset_ = saveOffset;
     return nullptr;
   }
 }
@@ -460,7 +460,7 @@ inline void ArenaBase<THREADSAFE>::Component::asanUnpoison(
     const void* addr,
     size_t size) {
 #ifdef ADDRESS_SANITIZER
-  std::lock_guard<spinlock_type> l(asan_lock_);
+  std::lock_guard<spinlock_type> l(asanLock_);
   KUDU_ASAN_UNPOISON_MEMORY_REGION(addr, size);
 #endif
 }
