@@ -264,9 +264,9 @@ TEST_F(SubprocessTest, TestGetExitStatusSignaled) {
 }
 
 TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
-  string kTestFile = GetTestPath("foo");
+  string testFile = GetTestPath("foo");
 
-  // Start a subprocess that creates kTestFile immediately and deletes it on
+  // Start a subprocess that creates testFile immediately and deletes it on
   // exit.
   //
   // Note: it's important that the shell not invoke a command while waiting
@@ -277,37 +277,37 @@ TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
       "/bin/bash",
       "-c",
       fmt::format(
-          // Delete kTestFile on exit.
+          // Delete testFile on exit.
           "trap \"rm {}\" EXIT;"
-          // Create kTestFile on start.
+          // Create testFile on start.
           "touch {};"
           // Spin in a tight loop waiting to be killed.
           "while true;"
           "  do FOO=$((FOO + 1));"
           "done",
-          kTestFile,
-          kTestFile)};
+          testFile,
+          testFile)};
 
   {
     Subprocess s(argv);
     ASSERT_OK(s.start());
-    assertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
+    assertEventually([&] { ASSERT_TRUE(env_->FileExists(testFile)); });
   }
 
   // The subprocess went out of scope and was killed with SIGKILL, so it left
-  // kTestFile behind.
-  ASSERT_TRUE(env_->FileExists(kTestFile));
+  // testFile behind.
+  ASSERT_TRUE(env_->FileExists(testFile));
 
-  ASSERT_OK(env_->DeleteFile(kTestFile));
+  ASSERT_OK(env_->DeleteFile(testFile));
   {
     Subprocess s(argv, SIGTERM);
     ASSERT_OK(s.start());
-    assertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
+    assertEventually([&] { ASSERT_TRUE(env_->FileExists(testFile)); });
   }
 
   // The subprocess was killed with SIGTERM, giving it a chance to delete
-  // kTestFile.
-  ASSERT_FALSE(env_->FileExists(kTestFile));
+  // testFile.
+  ASSERT_FALSE(env_->FileExists(testFile));
 }
 
 // TEST KUDU-2208: Test subprocess interruption handling
