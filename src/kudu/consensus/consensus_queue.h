@@ -152,7 +152,7 @@ class PeerMessageQueue {
 
     // Check that the terms seen from a given peer only increase
     // monotonically.
-    void CheckMonotonicTerms(int64_t term) {
+    void checkMonotonicTerms(int64_t term) {
       DCHECK_GE(term, lastSeenTerm_);
       lastSeenTerm_ = term;
     }
@@ -227,27 +227,27 @@ class PeerMessageQueue {
     std::optional<bool> isPeerInLocalQuorum;
     std::optional<bool> isPeerInLocalRegion;
 
-    void PopulateIsPeerInLocalRegion();
-    void PopulateIsPeerInLocalQuorum();
+    void populateIsPeerInLocalRegion();
+    void populateIsPeerInLocalQuorum();
 
     // Determines health based on number of consecutive rpc failures exceeding
     // a configured limit.
-    bool is_healthy() const;
+    bool isHealthy() const;
 
-    int32_t consecutive_failures() const;
-    void incr_consecutive_failures();
-    void reset_consecutive_failures();
+    int32_t consecutiveFailures() const;
+    void incrConsecutiveFailures();
+    void resetConsecutiveFailures();
     // Used for tests.
-    void set_consecutive_failures(int32_t value);
+    void setConsecutiveFailures(int32_t value);
 
     // Whether proxying to this instance is enabled.
-    bool ProxyTargetEnabled() const;
+    bool proxyTargetEnabled() const;
 
     // Disable proxying to this instance for some time delta.
-    void SnoozeProxying(MonoDelta delta);
+    void snoozeProxying(MonoDelta delta);
 
     // Report that peer thinks the message for nextIndex is corrupted
-    void ReportCorruption();
+    void reportCorruption();
 
     // Server metrics for this peer
     StateMachineMetricsPB stateMachineMetrics;
@@ -901,7 +901,7 @@ class PeerMessageQueue {
 
   // Tracks a peer.
   // If a peer is the local peer, set is_local_peer to true so that it has
-  // the correct defaults. ie. consecutive_failures for local peer is always
+  // the correct defaults. ie. consecutiveFailures for local peer is always
   // 0.
   void TrackPeerUnlocked(const RaftPeerPB& peer_pb, bool is_local_peer = false);
 

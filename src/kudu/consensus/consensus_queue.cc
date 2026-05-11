@@ -344,11 +344,11 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
       queue(queue) {
   lastSuccessfulExchange = timeProvider_->Now();
   lastCommunicationTime = timeProvider_->Now();
-  PopulateIsPeerInLocalQuorum();
-  PopulateIsPeerInLocalRegion();
+  populateIsPeerInLocalQuorum();
+  populateIsPeerInLocalRegion();
 }
 
-void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalQuorum() {
+void PeerMessageQueue::TrackedPeer::populateIsPeerInLocalQuorum() {
   isPeerInLocalQuorum.reset();
 
   const RaftPeerPB& localPeerPb = queue->localPeerPb_;
@@ -370,7 +370,7 @@ void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalQuorum() {
   }
 }
 
-void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalRegion() {
+void PeerMessageQueue::TrackedPeer::populateIsPeerInLocalRegion() {
   isPeerInLocalRegion.reset();
 
   const RaftPeerPB& localPeerPb = queue->localPeerPb_;
@@ -391,34 +391,34 @@ void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalRegion() {
   }
 }
 
-bool PeerMessageQueue::TrackedPeer::is_healthy() const {
+bool PeerMessageQueue::TrackedPeer::isHealthy() const {
   return consecutiveFailures_ < FLAGS_unhealthy_threshold;
 }
 
-int32_t PeerMessageQueue::TrackedPeer::consecutive_failures() const {
+int32_t PeerMessageQueue::TrackedPeer::consecutiveFailures() const {
   return consecutiveFailures_;
 }
 
-void PeerMessageQueue::TrackedPeer::incr_consecutive_failures() {
+void PeerMessageQueue::TrackedPeer::incrConsecutiveFailures() {
   // avoid overflow
   if (consecutiveFailures_ != INT_MAX) {
     consecutiveFailures_++;
   }
 }
 
-void PeerMessageQueue::TrackedPeer::reset_consecutive_failures() {
+void PeerMessageQueue::TrackedPeer::resetConsecutiveFailures() {
   consecutiveFailures_ = 0;
 }
 
-void PeerMessageQueue::TrackedPeer::set_consecutive_failures(int32_t value) {
+void PeerMessageQueue::TrackedPeer::setConsecutiveFailures(int32_t value) {
   consecutiveFailures_ = value;
 }
 
-bool PeerMessageQueue::TrackedPeer::ProxyTargetEnabled() const {
+bool PeerMessageQueue::TrackedPeer::proxyTargetEnabled() const {
   return timeProvider_->Now() >= proxyingDisabledUntil_;
 }
 
-void PeerMessageQueue::TrackedPeer::SnoozeProxying(MonoDelta delta) {
+void PeerMessageQueue::TrackedPeer::snoozeProxying(MonoDelta delta) {
   proxyingDisabledUntil_ = timeProvider_->Now() + delta;
 }
 
@@ -639,7 +639,7 @@ void PeerMessageQueue::TrackPeerUnlocked(
   tracked_peer->nextIndex = queueState_.last_appended.index() + 1;
 
   if (is_local_peer) {
-    tracked_peer->reset_consecutive_failures();
+    tracked_peer->resetConsecutiveFailures();
   }
 
   auto [it, inserted] = peers_map_.insert({tracked_peer->uuid(), tracked_peer});
@@ -1232,9 +1232,9 @@ Status PeerMessageQueue::RequestForPeer(
       // periodically exchange the health report of all peers as part of
       // UpdateReplica() call
 
-      if (peer->ProxyTargetEnabled()) {
+      if (peer->proxyTargetEnabled()) {
         bool should_proxy = false;
-        if (peer->is_healthy()) {
+        if (peer->isHealthy()) {
           auto proxy_it = peers_map_.find(*next_hop_uuid);
           // Validate proxy peer exists and has non-null value.
           if (proxy_it != peers_map_.end() && proxy_it->second != nullptr &&
@@ -1245,7 +1245,7 @@ Status PeerMessageQueue::RequestForPeer(
 
         if (!should_proxy) {
           *next_hop_uuid = uuid;
-          peer->SnoozeProxying(
+          peer->snoozeProxying(
               MonoDelta::FromSeconds(FLAGS_proxy_disable_secs));
           LOG(WARNING) << "Proxy target " << uuid
                        << " is unhealthy. Snooze proxying to this instance for "
@@ -1902,7 +1902,7 @@ void PeerMessageQueue::UpdatePeerStatus(
       break;
 
     case PeerStatus::RpcLayerError:
-      peer->incr_consecutive_failures();
+      peer->incrConsecutiveFailures();
       // Most controller errors are caused by network issues or corner cases
       // like shutdown and failure to deserialize a protobuf. Therefore, we
       // generally consider these errors to indicate an unreachable peer.
@@ -1910,13 +1910,13 @@ void PeerMessageQueue::UpdatePeerStatus(
       break;
 
     case PeerStatus::TabletNotFound:
-      peer->incr_consecutive_failures();
+      peer->incrConsecutiveFailures();
       VLOG_WITH_PREFIX_UNLOCKED(1)
           << "Peer needs tablet copy: " << peer->ToString();
       break;
 
     case PeerStatus::TabletFailed: {
-      peer->incr_consecutive_failures();
+      peer->incrConsecutiveFailures();
       UpdatePeerHealthUnlocked(peer);
       return;
     }
@@ -1925,12 +1925,12 @@ void PeerMessageQueue::UpdatePeerStatus(
     case PeerStatus::InvalidTerm:
     case PeerStatus::LmpMismatch:
     case PeerStatus::CannotPrepare:
-      peer->incr_consecutive_failures();
+      peer->incrConsecutiveFailures();
       UpdatePeerAppendFailure(peer, status);
       break;
 
     case PeerStatus::Ok:
-      peer->reset_consecutive_failures();
+      peer->resetConsecutiveFailures();
       DCHECK(status.ok());
       break;
   }
@@ -1952,7 +1952,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
     peer->lastExchangeStatus = PeerStatus::Ok;
     peer->lastSuccessfulExchange = now;
     peer->corruptionCount = 0;
-    peer->reset_consecutive_failures();
+    peer->resetConsecutiveFailures();
     *sendMoreImmediately = false;
     if (peer->shouldSendCompressionDict) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -1962,7 +1962,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
     return;
   }
 
-  peer->incr_consecutive_failures();
+  peer->incrConsecutiveFailures();
 
   switch (status.error().code()) {
     case ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH:
@@ -1971,21 +1971,21 @@ void PeerMessageQueue::UpdateExchangeStatus(
       if (last_exchange_status == PeerStatus::New) {
         LOG_WITH_PREFIX_UNLOCKED(INFO)
             << "Connected to new peer: " << peer->ToString();
-        peer->reset_consecutive_failures();
+        peer->resetConsecutiveFailures();
       } else {
-        if (peer->consecutive_failures() <
+        if (peer->consecutiveFailures() <
             FLAGS_consecutive_failure_backoff_threshold) {
           LOG_WITH_PREFIX_UNLOCKED(INFO)
               << "Got LMP mismatch error from peer: " << peer->ToString();
         } else if (
-            peer->consecutive_failures() % kLmpMismatchLogFrequency == 0) {
+            peer->consecutiveFailures() % kLmpMismatchLogFrequency == 0) {
           LOG_WITH_PREFIX_UNLOCKED(INFO)
               << "(THROTTLED EVERY " << kLmpMismatchLogFrequency << ") "
               << "Got LMP mismatch error from peer: " << peer->ToString();
         }
       }
       *sendMoreImmediately = last_exchange_status == PeerStatus::New ||
-          peer->consecutive_failures() <
+          peer->consecutiveFailures() <
               FLAGS_consecutive_failure_backoff_threshold;
       return;
 
@@ -2402,7 +2402,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
     if (response.has_responder_term()) {
       // The peer must have responded with a term that is greater than or equal
       // to the last known term for that peer.
-      peer->CheckMonotonicTerms(response.responder_term());
+      peer->checkMonotonicTerms(response.responder_term());
 
       // If the responder didn't send an error back that must mean that it has
       // a term that is the same or lower than ours.
@@ -3104,7 +3104,7 @@ bool PeerMessageQueue::CheckQuorum() {
   QuorumResults results = IsQuorumSatisfiedUnlocked(
       localPeerPb_, [&local_uuid, &unhealthy_peers](auto peer) {
         const string& peer_uuid = peer->uuid();
-        if (peer_uuid == local_uuid || peer->is_healthy()) {
+        if (peer_uuid == local_uuid || peer->isHealthy()) {
           return true;
         }
         unhealthy_peers.push_back(peer_uuid);
@@ -3145,7 +3145,7 @@ bool PeerMessageQueue::RegionHasQuorumCommitUnlocked(
   }
 
   QuorumResults results = IsQuorumSatisfiedUnlocked(
-      target_peer, [](auto peer) { return peer->is_healthy(); });
+      target_peer, [](auto peer) { return peer->isHealthy(); });
   return results.quorum_satisfied;
 }
 
@@ -3166,7 +3166,7 @@ int32_t PeerMessageQueue::GetAvailableCommitPeers() {
   }
 
   QuorumResults results = IsQuorumSatisfiedUnlocked(
-      localPeerPb_, [](auto peer) { return peer->is_healthy(); });
+      localPeerPb_, [](auto peer) { return peer->isHealthy(); });
   return results.num_satisfied;
 }
 
@@ -3205,7 +3205,7 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
     auto range = by_quorum_id.equal_range(quorum_id);
     for (auto it = range.first; it != range.second; it++) {
       auto* peer = it->second;
-      if (peer->is_healthy()) {
+      if (peer->isHealthy()) {
         quorum_id_health.healthy_peers.push_back(peer->peerPb);
       } else {
         quorum_id_health.unhealthy_peers.push_back(peer->peerPb);
@@ -3319,7 +3319,7 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
           (peer_pb_it != peer_pb_by_uuid.end()) ? peer_pb_it->second : nullptr;
       CHECK(peer_pb) << fmt::format(
           "Expecting non-null RaftPeerPB with uuid {}.", peer_uuid);
-      if (peer->is_healthy()) {
+      if (peer->isHealthy()) {
         health_detail.healthy_peers.push_back(*peer_pb);
       } else {
         health_detail.unhealthy_peers.push_back(*peer_pb);
