@@ -38,7 +38,7 @@ struct ElectionResult;
 struct ElectionContext;
 } // namespace consensus
 
-namespace KC = kudu::consensus;
+namespace kc = kudu::consensus;
 
 namespace tserver {
 
@@ -57,7 +57,7 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
 
   // bootstrap tservers can be directly passed in
   // by application
-  std::vector<KC::RaftPeerPB> bootstrapTservers;
+  std::vector<kc::RaftPeerPB> bootstrapTservers;
 
   std::shared_ptr<kudu::log::LogFactory> logFactory;
 
