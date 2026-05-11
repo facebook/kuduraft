@@ -102,7 +102,7 @@ class TSTabletManager : public TabletManagerIf,
 
   virtual ~TSTabletManager();
 
-  Status Load(FsManager* fs_manager);
+  Status load(FsManager* fsManager);
 
   // Load all tablet metadata blocks from disk, and open their respective
   // tablets. Upon return of this method all existing tablets are registered,
@@ -150,7 +150,7 @@ class TSTabletManager : public TabletManagerIf,
   }
 
   // Marks the tablet as dirty so that it's included in the next heartbeat.
-  void MarkTabletDirty(const std::string& reason) {}
+  void markTabletDirty(const std::string& reason) {}
 
  private:
   // Standard log prefix, given a tablet id.
@@ -158,7 +158,7 @@ class TSTabletManager : public TabletManagerIf,
       const std::string& tabletId,
       FsManager* fsManager);
   std::string LogPrefix(const std::string& tabletId) const {
-    return LogPrefix(tabletId, fs_manager_);
+    return LogPrefix(tabletId, fsManager_);
   }
 
   std::string LogPrefix() const;
@@ -168,41 +168,41 @@ class TSTabletManager : public TabletManagerIf,
     return state_;
   }
 
-  void set_state(TSTabletManagerStatePB s) {
+  void setState(TSTabletManagerStatePB s) {
     std::lock_guard lock(lock_);
     state_ = s;
   }
 
   // waits in a loop to check that consensus has started to run
-  Status WaitUntilRunning();
+  Status waitUntilRunning();
 
   // Wait for consensus to start running
-  Status WaitUntilConsensusRunning(const MonoDelta& timeout);
+  Status waitUntilConsensusRunning(const MonoDelta& timeout);
 
   // Create either a standalone or distributed config
-  Status CreateNew(FsManager* fs_manager);
+  Status createNew(FsManager* fsManager);
 
   // Helper function to create Raft consensus and log
   // Consensus is yet to be started at the end of this
   // call.
-  Status SetupRaft();
+  Status setupRaft();
 
   // Initializes the RaftPeerPB for the local peer.
   // Guaranteed to include both uuid and last_seen_addr fields.
   // Crashes with an invariant check if the RPC server is not currently in a
   // running state.
-  void InitLocalRaftPeerPB();
+  void initLocalRaftPeerPb();
 
   // Use the master options to generate a new consensus configuration.
   // In addition, resolve all UUIDs of this consensus configuration.
-  Status CreateDistributedConfig(
+  Status createDistributedConfig(
       const TabletServerOptions& options,
       consensus::RaftConfigPB* committedConfig);
 
  private:
-  FsManager* const fs_manager_;
+  FsManager* const fsManager_;
 
-  const std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
+  const std::shared_ptr<consensus::ConsensusMetadataManager> cmetaManager_;
   const std::shared_ptr<consensus::PersistentVarsManager>
       persistentVarsManager_;
 
@@ -212,9 +212,9 @@ class TSTabletManager : public TabletManagerIf,
 
   TabletServer* server_;
 
-  MetricRegistry* metric_registry_;
+  MetricRegistry* metricRegistry_;
 
-  consensus::RaftPeerPB local_peer_pb_;
+  consensus::RaftPeerPB localPeerPb_;
 
   // Lock protecting tablet_map_, dirty_tablets_, state_,
   // transition_in_progress_, perm_deleted_tablet_ids_,

@@ -139,15 +139,15 @@ const std::string TSTabletManager::kSysCatalogTabletId(
     "00000000000000000000000000000000");
 
 TSTabletManager::TSTabletManager(TabletServer* server)
-    : fs_manager_(server->fsManager()),
-      cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
+    : fsManager_(server->fsManager()),
+      cmetaManager_(std::make_shared<ConsensusMetadataManager>(fsManager_)),
       persistentVarsManager_(
-          std::make_shared<PersistentVarsManager>(fs_manager_)),
+          std::make_shared<PersistentVarsManager>(fsManager_)),
       server_(server),
-      metric_registry_(server->metricRegistry()),
+      metricRegistry_(server->metricRegistry()),
       state_(MANAGER_INITIALIZING),
       markDirtyClbk_(
-          Bind(&TSTabletManager::MarkTabletDirty, Unretained(this))) {}
+          Bind(&TSTabletManager::markTabletDirty, Unretained(this))) {}
 
 TSTabletManager::~TSTabletManager() {
   // Close cannot be called from the destructor any more.
@@ -159,12 +159,12 @@ TSTabletManager::~TSTabletManager() {
   }
 }
 
-Status TSTabletManager::Load(FsManager* /* fs_manager */) {
+Status TSTabletManager::load(FsManager* /* fsManager */) {
   if (server_->opts().isDistributed()) {
     LOG(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
-        cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta),
+        cmetaManager_->loadCMeta(kSysCatalogTabletId, &cmeta),
         "Unable to load consensus metadata for tablet " + kSysCatalogTabletId);
     ConsensusStatePB cstate = cmeta->toConsensusStatePB();
     RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
@@ -206,42 +206,42 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     }
   }
 
-  return SetupRaft();
+  return setupRaft();
 }
 
-Status TSTabletManager::CreateNew(FsManager* fs_manager) {
+Status TSTabletManager::createNew(FsManager* fsManager) {
   RaftConfigPB config;
   if (server_->opts().isDistributed()) {
-    LOG(INFO) << "TSTabletManager::CreateNew - Calling CreateDistributedConfig";
+    LOG(INFO) << "TSTabletManager::createNew - Calling createDistributedConfig";
     RETURN_NOT_OK_PREPEND(
-        CreateDistributedConfig(server_->opts(), &config),
+        createDistributedConfig(server_->opts(), &config),
         "Failed to create new distributed Raft config");
   } else {
     LOG(INFO)
-        << "TSTabletManager::CreateNew - Setting up single peer local config";
+        << "TSTabletManager::createNew - Setting up single peer local config";
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
-    peer->set_permanent_uuid(fs_manager->uuid());
+    peer->set_permanent_uuid(fsManager->uuid());
     peer->set_member_type(RaftPeerPB::VOTER);
   }
 
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->createCMeta(
+      cmetaManager_->createCMeta(
           kSysCatalogTabletId, config, consensus::kMinimumTerm),
       "Unable to persist consensus metadata for tablet " + kSysCatalogTabletId);
   // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation
   // time. For now, we initialize with an empty proxy graph.
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->createDrt(kSysCatalogTabletId, config, {}),
+      cmetaManager_->createDrt(kSysCatalogTabletId, config, {}),
       "Unable to create new durable routing table for tablet " +
           kSysCatalogTabletId);
   // Note that we are intentionally not creating Persistent Vars here because we
-  // do it in SetupRaft() anyway if the file does not exist
+  // do it in setupRaft() anyway if the file does not exist
 
-  return SetupRaft();
+  return setupRaft();
 }
 
-Status TSTabletManager::CreateDistributedConfig(
+Status TSTabletManager::createDistributedConfig(
     const TabletServerOptions& options,
     RaftConfigPB* committedConfig) {
   DCHECK(options.isDistributed());
@@ -310,7 +310,7 @@ Status TSTabletManager::CreateDistributedConfig(
   return Status::OK();
 }
 
-Status TSTabletManager::WaitUntilConsensusRunning(const MonoDelta& timeout) {
+Status TSTabletManager::waitUntilConsensusRunning(const MonoDelta& timeout) {
   MonoTime start(MonoTime::Now());
 
   int backoffExp = 0;
@@ -333,11 +333,11 @@ Status TSTabletManager::WaitUntilConsensusRunning(const MonoDelta& timeout) {
   return Status::OK();
 }
 
-Status TSTabletManager::WaitUntilRunning() {
+Status TSTabletManager::waitUntilRunning() {
   TRACE_EVENT0("master", "SysCatalogTable::WaitUntilRunning");
   int secondsWaited = 0;
   while (true) {
-    Status status = WaitUntilConsensusRunning(MonoDelta::FromSeconds(1));
+    Status status = waitUntilConsensusRunning(MonoDelta::FromSeconds(1));
     secondsWaited++;
     if (status.ok()) {
       LOG_WITH_PREFIX(INFO)
@@ -368,34 +368,34 @@ Status TSTabletManager::Init(bool isFirstRun) {
 
   if (isFirstRun) {
     LOG(INFO)
-        << "TSTabletManager::Init: is_first_run detected. Calling CreateNew";
+        << "TSTabletManager::Init: is_first_run detected. Calling createNew";
     RETURN_NOT_OK_PREPEND(
-        CreateNew(server_->fsManager()),
-        "Failed to CreateNew in TabletManager");
+        createNew(server_->fsManager()),
+        "Failed to createNew in TabletManager");
   } else {
-    LOG(INFO) << "TSTabletManager::Init: existing cmeta dir. Calling Load";
+    LOG(INFO) << "TSTabletManager::Init: existing cmeta dir. Calling load";
     RETURN_NOT_OK_PREPEND(
-        Load(server_->fsManager()), "Failed to Load in TabletManager");
+        load(server_->fsManager()), "Failed to load in TabletManager");
   }
 
-  set_state(MANAGER_INITIALIZED);
+  setState(MANAGER_INITIALIZED);
   return Status::OK();
 }
 
 Status TSTabletManager::Start(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
-  // set_state(INITIALIZED);
+  // setState(INITIALIZED);
   // SetStatusMessage("Initialized. Waiting to start...");
 
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta);
+  Status s = cmetaManager_->loadCMeta(kSysCatalogTabletId, &cmeta);
 
   std::shared_ptr<PersistentVars> persistentVars;
   s = persistentVarsManager_->loadPersistentVars(
       kSysCatalogTabletId, &persistentVars);
 
-  // We have already captured the ConsensusBootstrapInfo in SetupRaft
+  // We have already captured the ConsensusBootstrapInfo in setupRaft
   // and saved it locally.
   // consensus::ConsensusBootstrapInfo bootstrap_info;
 
@@ -446,16 +446,16 @@ Status TSTabletManager::Start(bool isFirstRun) {
   log_->ClearOrphanedReplicates();
 
   RETURN_NOT_OK_PREPEND(
-      WaitUntilRunning(), "Failed waiting for the raft to run");
+      waitUntilRunning(), "Failed waiting for the raft to run");
 
-  set_state(MANAGER_RUNNING);
+  setState(MANAGER_RUNNING);
   return Status::OK();
 }
 
-Status TSTabletManager::SetupRaft() {
+Status TSTabletManager::setupRaft() {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
-  InitLocalRaftPeerPB();
+  initLocalRaftPeerPb();
 
   // If the persistent vars file does not already exist, create one
   if (!persistentVarsManager_->persistentVarsFileExists(kSysCatalogTabletId)) {
@@ -483,8 +483,8 @@ Status TSTabletManager::SetupRaft() {
   RETURN_NOT_OK(
       RaftConsensus::Create(
           std::move(options),
-          local_peer_pb_,
-          cmeta_manager_,
+          localPeerPb_,
+          cmetaManager_,
           persistentVarsManager_,
           server_->raftPool(),
           &consensus));
@@ -511,12 +511,12 @@ Status TSTabletManager::SetupRaft() {
     consensus_->SetStateMachineMetrics(server_->opts().stateMachineMetrics);
   }
 
-  // set_state(INITIALIZED);
+  // setState(INITIALIZED);
   // SetStatusMessage("Initialized. Waiting to start...");
 
   // Not sure these 2 lines are required
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta);
+  Status s = cmetaManager_->loadCMeta(kSysCatalogTabletId, &cmeta);
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.
@@ -524,7 +524,7 @@ Status TSTabletManager::SetupRaft() {
   logOptions.logFactory = server_->opts().logFactory;
   Status s1 = Log::Open(
       logOptions,
-      fs_manager_,
+      fsManager_,
       kSysCatalogTabletId,
       server_->metricEntity(),
       &log_);
@@ -605,20 +605,20 @@ const NodeInstancePB& TSTabletManager::NodeInstance() const {
   return server_->instancePb();
 }
 
-void TSTabletManager::InitLocalRaftPeerPB() {
+void TSTabletManager::initLocalRaftPeerPb() {
   DCHECK_EQ(state(), MANAGER_INITIALIZING);
-  local_peer_pb_.set_permanent_uuid(fs_manager_->uuid());
+  localPeerPb_.set_permanent_uuid(fsManager_->uuid());
   Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
   CHECK_OK(hostPortFromSockaddrReplaceWildcard(addr, &hp));
-  CHECK_OK(hostPortToPb(hp, local_peer_pb_.mutable_last_known_addr()));
+  CHECK_OK(hostPortToPb(hp, localPeerPb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
   // attr. We assumed that on plugin side, topologyConfig->server_config
   // is well formed. We use it directly here.
   if (FLAGS_enable_flexi_raft &&
       server_->opts().topologyConfig.has_server_config()) {
-    local_peer_pb_ = server_->opts().topologyConfig.server_config();
+    localPeerPb_ = server_->opts().topologyConfig.server_config();
   }
 }
 
@@ -643,16 +643,16 @@ Status TSTabletManager::startConsensusOnlyRound(
 Status TSTabletManager::startFollowerTransaction(
     const std::shared_ptr<ConsensusRound>& round) {
   // THIS IS CURRENTLY A NO-OP
-  consensus::ReplicateMsg* replicate_msg = round->replicate_msg();
-  DCHECK(replicate_msg->has_timestamp());
+  consensus::ReplicateMsg* replicateMsg = round->replicate_msg();
+  DCHECK(replicateMsg->has_timestamp());
   return Status::OK();
 }
 
 void TSTabletManager::finishConsensusOnlyRound(ConsensusRound* round) {
-  consensus::ReplicateMsg* replicate_msg = round->replicate_msg();
-  consensus::OperationType op_type = replicate_msg->op_type();
-  (void)op_type;
-  (void)replicate_msg;
+  consensus::ReplicateMsg* replicateMsg = round->replicate_msg();
+  consensus::OperationType opType = replicateMsg->op_type();
+  (void)opType;
+  (void)replicateMsg;
 }
 
 bool TSTabletManager::isLeaderEligible() const {
