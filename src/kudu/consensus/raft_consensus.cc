@@ -4708,9 +4708,11 @@ MonoDelta RaftConsensus::LeaderElectionExpBackoffDeltaUnlocked() {
 
 MonoDelta RaftConsensus::TimeoutBackoffHelper(double backoff_factor) {
   double min_timeout = minimumElectionTimeout().ToMilliseconds();
-  double max_timeout = std::min<double>(
-      min_timeout * backoff_factor,
-      FLAGS_leader_failure_exp_backoff_max_delta_ms);
+  double max_timeout = std::max(
+      min_timeout,
+      std::min<double>(
+          min_timeout * backoff_factor,
+          FLAGS_leader_failure_exp_backoff_max_delta_ms));
 
   // Randomize the timeout between the minimum and the calculated value.
   // We do this after the above capping to the max. Otherwise, after a
