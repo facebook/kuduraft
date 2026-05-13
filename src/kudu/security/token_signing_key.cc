@@ -41,7 +41,7 @@ TokenSigningPublicKey::~TokenSigningPublicKey() {}
 
 Status TokenSigningPublicKey::init() {
   // This should be called only once.
-  CHECK(!key_.GetRawData());
+  CHECK(!key_.getRawData());
   if (!pb_.has_rsa_key_der()) {
     return Status::RuntimeError("no key for token signing helper");
   }

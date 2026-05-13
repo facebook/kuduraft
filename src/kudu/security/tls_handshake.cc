@@ -294,19 +294,19 @@ Status TlsHandshake::finishNoWrap(const Socket& socket) {
 
 Status TlsHandshake::getLocalCert(Cert* cert) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!localCert_.GetRawData()) {
+  if (!localCert_.getRawData()) {
     return Status::RuntimeError("no local certificate");
   }
-  cert->adoptAndAddRefRawData(localCert_.GetRawData());
+  cert->adoptAndAddRefRawData(localCert_.getRawData());
   return Status::OK();
 }
 
 Status TlsHandshake::getRemoteCert(Cert* cert) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!remoteCert_.GetRawData()) {
+  if (!remoteCert_.getRawData()) {
     return Status::RuntimeError("no remote certificate");
   }
-  cert->adoptAndAddRefRawData(remoteCert_.GetRawData());
+  cert->adoptAndAddRefRawData(remoteCert_.getRawData());
   return Status::OK();
 }
 

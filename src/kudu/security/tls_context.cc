@@ -163,7 +163,7 @@ Status TlsContext::init() {
   // TLSv1 and later). We explicitly disable SSLv2 and SSLv3 below so that only
   // TLS methods remain. See the discussion on
   // https://trac.torproject.org/projects/tor/ticket/11598 for more info.
-  ctx_ = ssl_make_unique(SSL_CTX_new(SSLv23_method()));
+  ctx_ = sslMakeUnique(SSL_CTX_new(SSLv23_method()));
   if (!ctx_) {
     return Status::RuntimeError(
         "failed to create TLS context", getOpenSslErrors());
@@ -225,11 +225,11 @@ Status TlsContext::init() {
 Status TlsContext::verifyCertChainUnlocked(const Cert& cert) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_STORE* store = SSL_CTX_get_cert_store(ctx_.get());
-  auto storeCtx = ssl_make_unique<X509_STORE_CTX>(X509_STORE_CTX_new());
+  auto storeCtx = sslMakeUnique<X509_STORE_CTX>(X509_STORE_CTX_new());
 
   OPENSSL_RET_NOT_OK(
       X509_STORE_CTX_init(
-          storeCtx.get(), store, cert.getTopOfChainX509(), cert.GetRawData()),
+          storeCtx.get(), store, cert.getTopOfChainX509(), cert.getRawData()),
       "could not init X509_STORE_CTX");
   int rc = X509_verify_cert(storeCtx.get());
   if (rc != 1) {
@@ -277,7 +277,7 @@ Status TlsContext::useCertificateAndKeyUnlocked(
       SSL_CTX_use_certificate(ctx_.get(), cert.getTopOfChainX509()),
       "failed to use certificate");
   OPENSSL_RET_NOT_OK(
-      SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
+      SSL_CTX_use_PrivateKey(ctx_.get(), key.getRawData()),
       "failed to use private key");
   hasCert_ = true;
   return Status::OK();
@@ -320,7 +320,7 @@ Status TlsContext::addTrustedCertificateUnlocked(
   // Iterate through the certificate chain and add each individual certificate
   // to the store.
   for (int i = 0; i < cert.chainLen(); ++i) {
-    X509* innerCert = sk_X509_value(cert.GetRawData(), i);
+    X509* innerCert = sk_X509_value(cert.getRawData(), i);
     int rc = X509_STORE_add_cert(certStore, innerCert);
     if (rc <= 0) {
       // Ignore the common case of re-adding a cert that is already in the
@@ -490,7 +490,7 @@ Status TlsContext::generateSelfSignedCertAndKey() {
   std::unique_lock lock(lock_);
   CHECK(!hasCert_);
   OPENSSL_RET_NOT_OK(
-      SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
+      SSL_CTX_use_PrivateKey(ctx_.get(), key.getRawData()),
       "failed to use private key");
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_certificate(ctx_.get(), cert.getTopOfChainX509()),
@@ -692,7 +692,7 @@ Status TlsContext::createSsl(TlsHandshake* handshake) const {
   CHECK(!handshake->ssl_);
   {
     shared_lock lock(lock_);
-    handshake->adoptSsl(ssl_make_unique(SSL_new(ctx_.get())));
+    handshake->adoptSsl(sslMakeUnique(SSL_new(ctx_.get())));
   }
   if (!handshake->ssl_) {
     return Status::RuntimeError(

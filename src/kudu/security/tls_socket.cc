@@ -35,7 +35,7 @@
 namespace kudu {
 namespace security {
 
-TlsSocket::TlsSocket(int fd, c_unique_ptr<SSL> ssl)
+TlsSocket::TlsSocket(int fd, CUniquePtr<SSL> ssl)
     : Socket(fd), ssl_(std::move(ssl)) {}
 
 TlsSocket::~TlsSocket() {

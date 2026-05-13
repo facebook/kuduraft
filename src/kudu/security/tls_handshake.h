@@ -163,7 +163,7 @@ class TlsHandshake {
 
   // Set the SSL to use during the handshake. Called once by
   // TlsContext::initiateHandshake before starting the handshake processes.
-  void adoptSsl(c_unique_ptr<SSL> ssl) {
+  void adoptSsl(CUniquePtr<SSL> ssl) {
     CHECK(!ssl_);
     ssl_ = std::move(ssl);
   }
@@ -179,7 +179,7 @@ class TlsHandshake {
   Status verify(const Socket& socket) const WARN_UNUSED_RESULT;
 
   // Owned SSL handle.
-  c_unique_ptr<SSL> ssl_;
+  CUniquePtr<SSL> ssl_;
 
   Cert localCert_;
   Cert remoteCert_;

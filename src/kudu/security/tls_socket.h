@@ -50,10 +50,10 @@ class TlsSocket : public Socket {
  private:
   friend class TlsHandshake;
 
-  TlsSocket(int fd, c_unique_ptr<SSL> ssl);
+  TlsSocket(int fd, CUniquePtr<SSL> ssl);
 
   // Owned SSL handle.
-  c_unique_ptr<SSL> ssl_;
+  CUniquePtr<SSL> ssl_;
 
   // Socket-local buffer used by writev().
   faststring buf_;

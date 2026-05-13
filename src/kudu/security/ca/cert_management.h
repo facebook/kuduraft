@@ -211,7 +211,7 @@ class CertSigner {
       WARN_UNUSED_RESULT;
   static Status digestSign(const EVP_MD* md, EVP_PKEY* pkey, X509* x)
       WARN_UNUSED_RESULT;
-  static Status generateSerial(c_unique_ptr<ASN1_INTEGER>* ret)
+  static Status generateSerial(CUniquePtr<ASN1_INTEGER>* ret)
       WARN_UNUSED_RESULT;
 
   Status doSign(const EVP_MD* digest, int32_t expSeconds, X509* ret) const

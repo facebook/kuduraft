@@ -111,7 +111,7 @@ Status getPasswordFromShellCommand(
 
 // A generic wrapper for OpenSSL structures.
 template <typename T>
-using c_unique_ptr = std::unique_ptr<T, std::function<void(T*)>>;
+using CUniquePtr = std::unique_ptr<T, std::function<void(T*)>>;
 
 // For each SSL type, the Traits class provides the important OpenSSL
 // API functions.
@@ -129,23 +129,23 @@ struct SslTypeTraits<X509> {
 
 // SslTypeTraits functions for Type STACK_OF(X509)
 STACK_OF(X509) *
-    PEM_read_STACK_OF_X509(
+    pemReadStackOfX509(
         BIO* bio,
         void* /* unused */,
         pem_password_cb* /* unused */,
         void* /* unused */);
-int PEM_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj);
-STACK_OF(X509) * DER_read_STACK_OF_X509(BIO* bio, void* /* unused */);
-int DER_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj);
-void free_STACK_OF_X509(STACK_OF(X509) * sk);
+int pemWriteStackOfX509(BIO* bio, STACK_OF(X509) * obj);
+STACK_OF(X509) * derReadStackOfX509(BIO* bio, void* /* unused */);
+int derWriteStackOfX509(BIO* bio, STACK_OF(X509) * obj);
+void freeStackOfX509(STACK_OF(X509) * sk);
 
 template <>
 struct SslTypeTraits<STACK_OF(X509)> {
-  static constexpr auto kFreeFunc = &free_STACK_OF_X509;
-  static constexpr auto kReadPemFunc = &PEM_read_STACK_OF_X509;
-  static constexpr auto kReadDerFunc = &DER_read_STACK_OF_X509;
-  static constexpr auto kWritePemFunc = &PEM_write_STACK_OF_X509;
-  static constexpr auto kWriteDerFunc = &DER_write_STACK_OF_X509;
+  static constexpr auto kFreeFunc = &freeStackOfX509;
+  static constexpr auto kReadPemFunc = &pemReadStackOfX509;
+  static constexpr auto kReadDerFunc = &derReadStackOfX509;
+  static constexpr auto kWritePemFunc = &pemWriteStackOfX509;
+  static constexpr auto kWriteDerFunc = &derWriteStackOfX509;
 };
 template <>
 struct SslTypeTraits<X509_EXTENSION> {
@@ -169,7 +169,7 @@ struct SslTypeTraits<SSL_CTX> {
 };
 
 template <typename SSL_TYPE, typename Traits = SslTypeTraits<SSL_TYPE>>
-c_unique_ptr<SSL_TYPE> ssl_make_unique(SSL_TYPE* d) {
+CUniquePtr<SSL_TYPE> sslMakeUnique(SSL_TYPE* d) {
   return {d, Traits::kFreeFunc};
 }
 
@@ -189,16 +189,16 @@ class RawDataWrapper {
  public:
   using RawDataType = Type;
 
-  RawDataType* GetRawData() const {
+  RawDataType* getRawData() const {
     return data_.get();
   }
 
-  void AdoptRawData(RawDataType* d) {
-    data_ = ssl_make_unique(d);
+  void adoptRawData(RawDataType* d) {
+    data_ = sslMakeUnique(d);
   }
 
  protected:
-  c_unique_ptr<RawDataType> data_;
+  CUniquePtr<RawDataType> data_;
 };
 
 namespace internal {

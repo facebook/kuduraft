@@ -75,15 +75,15 @@ template <typename TYPE, typename Traits = SslTypeTraits<TYPE>>
 Status fromBio(
     BIO* bio,
     DataFormat format,
-    c_unique_ptr<TYPE>* ret,
+    CUniquePtr<TYPE>* ret,
     const PasswordCallback& cb = PasswordCallback()) {
   CHECK(bio);
   switch (format) {
     case DataFormat::DER:
-      *ret = ssl_make_unique(Traits::kReadDerFunc(bio, nullptr));
+      *ret = sslMakeUnique(Traits::kReadDerFunc(bio, nullptr));
       break;
     case DataFormat::PEM:
-      *ret = ssl_make_unique(
+      *ret = sslMakeUnique(
           Traits::kReadPemFunc(
               bio,
               nullptr,
@@ -98,12 +98,10 @@ Status fromBio(
 }
 
 template <typename Type, typename Traits = SslTypeTraits<Type>>
-Status fromString(
-    const std::string& data,
-    DataFormat format,
-    c_unique_ptr<Type>* ret) {
+Status
+fromString(const std::string& data, DataFormat format, CUniquePtr<Type>* ret) {
   const void* mdata = reinterpret_cast<const void*>(data.data());
-  auto bio = ssl_make_unique(BIO_new_mem_buf(
+  auto bio = sslMakeUnique(BIO_new_mem_buf(
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
 #error "This old OpenSSL version is not supported"
 #else
@@ -119,7 +117,7 @@ Status fromString(
 template <typename Type, typename Traits = SslTypeTraits<Type>>
 Status toString(std::string* data, DataFormat format, Type* obj) {
   CHECK(data);
-  auto bio = ssl_make_unique(BIO_new(BIO_s_mem()));
+  auto bio = sslMakeUnique(BIO_new(BIO_s_mem()));
   RETURN_NOT_OK_PREPEND(
       (toBio<Type, Traits>(bio.get(), format, obj)), "error serializing data");
   BUF_MEM* membuf;
@@ -132,9 +130,9 @@ template <typename Type, typename Traits = SslTypeTraits<Type>>
 Status fromFile(
     const std::string& fpath,
     DataFormat format,
-    c_unique_ptr<Type>* ret,
+    CUniquePtr<Type>* ret,
     const PasswordCallback& cb = PasswordCallback()) {
-  auto bio = ssl_make_unique(BIO_new(BIO_s_file()));
+  auto bio = sslMakeUnique(BIO_new(BIO_s_file()));
   OPENSSL_RET_NOT_OK(
       BIO_read_filename(bio.get(), fpath.c_str()),
       fmt::format("could not read data from file '{}'", fpath));

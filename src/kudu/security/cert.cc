@@ -51,7 +51,7 @@ static const char* kKuduKerberosPrincipalOidStr =
 string X509NameToString(X509_NAME* name) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(name);
-  auto bio = ssl_make_unique(BIO_new(BIO_s_mem()));
+  auto bio = sslMakeUnique(BIO_new(BIO_s_mem()));
   OPENSSL_CHECK_OK(X509_NAME_print_ex(bio.get(), name, 0, XN_FLAG_ONELINE));
 
   BUF_MEM* membuf;
@@ -136,7 +136,7 @@ std::optional<string> Cert::commonName() const {
 vector<string> Cert::hostnames() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   vector<string> result;
-  auto gens = ssl_make_unique(
+  auto gens = sslMakeUnique(
       reinterpret_cast<GENERAL_NAMES*>(X509_get_ext_d2i(
           getTopOfChainX509(), NID_subject_alt_name, nullptr, nullptr)));
   if (gens) {
@@ -181,7 +181,7 @@ std::optional<string> Cert::kuduKerberosPrincipal() const {
 Status Cert::checkKeyMatch(const PrivateKey& key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   OPENSSL_RET_NOT_OK(
-      X509_check_private_key(getTopOfChainX509(), key.GetRawData()),
+      X509_check_private_key(getTopOfChainX509(), key.getRawData()),
       "certificate does not match private key");
   return Status::OK();
 }
@@ -230,8 +230,8 @@ Status Cert::getServerEndPointChannelBindings(string* channelBindings) const {
   // Create a digest BIO. All data written to the BIO will be sent through the
   // digest (hash) function. The digest BIO requires a null BIO to writethrough
   // to.
-  auto nullBio = ssl_make_unique(BIO_new(BIO_s_null()));
-  auto mdBio = ssl_make_unique(BIO_new(BIO_f_md()));
+  auto nullBio = sslMakeUnique(BIO_new(BIO_s_null()));
+  auto mdBio = sslMakeUnique(BIO_new(BIO_f_md()));
   OPENSSL_RET_NOT_OK(
       BIO_set_md(mdBio.get(), md), "failed to set digest for BIO");
   BIO_push(mdBio.get(), nullBio.get());
@@ -260,7 +260,7 @@ void Cert::adoptAndAddRefRawData(RawDataType* data) {
 #endif
   // We copy the STACK_OF() object, but the copy and the original both
   // internally point to the same elements.
-  AdoptRawData(sk_X509_dup(data));
+  adoptRawData(sk_X509_dup(data));
 }
 
 void Cert::adoptX509(X509* cert) {
@@ -270,7 +270,7 @@ void Cert::adoptX509(X509* cert) {
   STACK_OF(X509)* sk = sk_X509_new_null();
   DCHECK(sk);
   sk_X509_push(sk, cert);
-  AdoptRawData(sk);
+  adoptRawData(sk);
 }
 
 void Cert::adoptAndAddRefX509(X509* cert) {
@@ -287,7 +287,7 @@ Status Cert::GetPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   EVP_PKEY* rawKey = X509_get_pubkey(getTopOfChainX509());
   OPENSSL_RET_IF_NULL(rawKey, "unable to get certificate public key");
-  key->AdoptRawData(rawKey);
+  key->adoptRawData(rawKey);
   return Status::OK();
 }
 
@@ -310,13 +310,13 @@ CertSignRequest CertSignRequest::clone() const {
 #else
   // With OpenSSL 1.1, data structure internals are hidden, and there doesn't
   // seem to be a public method that increments data_'s refcount.
-  clonedReq = X509_REQ_dup(GetRawData());
+  clonedReq = X509_REQ_dup(getRawData());
   CHECK(clonedReq != nullptr)
       << "X509 allocation failure detected: " << getOpenSslErrors();
 #endif
 
   CertSignRequest clone;
-  clone.AdoptRawData(clonedReq);
+  clone.adoptRawData(clonedReq);
   return clone;
 }
 
@@ -324,7 +324,7 @@ Status CertSignRequest::GetPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   EVP_PKEY* rawKey = X509_REQ_get_pubkey(data_.get());
   OPENSSL_RET_IF_NULL(rawKey, "unable to get CSR public key");
-  key->AdoptRawData(rawKey);
+  key->adoptRawData(rawKey);
   return Status::OK();
 }
 

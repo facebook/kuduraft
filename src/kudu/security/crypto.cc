@@ -51,18 +51,18 @@ namespace {
 // signature than the rest of the write functions, so we
 // have to provide this wrapper.
 int pemWritePrivateKey(BIO* bio, EVP_PKEY* key) {
-  auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(key));
+  auto rsa = sslMakeUnique(EVP_PKEY_get1_RSA(key));
   return PEM_write_bio_RSAPrivateKey(
       bio, rsa.get(), nullptr, nullptr, 0, nullptr, nullptr);
 }
 
 int pemWritePublicKey(BIO* bio, EVP_PKEY* key) {
-  auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(key));
+  auto rsa = sslMakeUnique(EVP_PKEY_get1_RSA(key));
   return PEM_write_bio_RSA_PUBKEY(bio, rsa.get());
 }
 
 int derWritePublicKey(BIO* bio, EVP_PKEY* key) {
-  auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(key));
+  auto rsa = sslMakeUnique(EVP_PKEY_get1_RSA(key));
   return i2d_RSA_PUBKEY_bio(bio, rsa.get());
 }
 
@@ -138,10 +138,10 @@ Status PublicKey::VerifySignature(
     const std::string& signature) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   const EVP_MD* md = getMessageDigest(digest);
-  auto mdCtx = ssl_make_unique(EVP_MD_CTX_create());
+  auto mdCtx = sslMakeUnique(EVP_MD_CTX_create());
 
   OPENSSL_RET_NOT_OK(
-      EVP_DigestVerifyInit(mdCtx.get(), nullptr, md, nullptr, GetRawData()),
+      EVP_DigestVerifyInit(mdCtx.get(), nullptr, md, nullptr, getRawData()),
       "error initializing verification digest");
   OPENSSL_RET_NOT_OK(
       EVP_DigestVerifyUpdate(mdCtx.get(), data.data(), data.size()),
@@ -212,11 +212,11 @@ Status PrivateKey::FromFile(
 Status PrivateKey::GetPublicKey(PublicKey* publicKey) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(publicKey);
-  auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(CHECK_NOTNULL(data_.get())));
+  auto rsa = sslMakeUnique(EVP_PKEY_get1_RSA(CHECK_NOTNULL(data_.get())));
   if (PREDICT_FALSE(!rsa)) {
     return Status::RuntimeError(getOpenSslErrors());
   }
-  auto tmp = ssl_make_unique(BIO_new(BIO_s_mem()));
+  auto tmp = sslMakeUnique(BIO_new(BIO_s_mem()));
   CHECK(tmp);
   // Export public key in DER format into the temporary buffer.
   OPENSSL_RET_NOT_OK(
@@ -236,15 +236,15 @@ Status PrivateKey::MakeSignature(
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(signature);
   const EVP_MD* md = getMessageDigest(digest);
-  auto mdCtx = ssl_make_unique(EVP_MD_CTX_create());
+  auto mdCtx = sslMakeUnique(EVP_MD_CTX_create());
 
   OPENSSL_RET_NOT_OK(
-      EVP_DigestSignInit(mdCtx.get(), nullptr, md, nullptr, GetRawData()),
+      EVP_DigestSignInit(mdCtx.get(), nullptr, md, nullptr, getRawData()),
       "error initializing signing digest");
   OPENSSL_RET_NOT_OK(
       EVP_DigestSignUpdate(mdCtx.get(), data.data(), data.size()),
       "error signing data");
-  size_t sigLen = EVP_PKEY_size(GetRawData());
+  size_t sigLen = EVP_PKEY_size(getRawData());
   static const size_t kSigBufSize = 4 * 1024;
   CHECK(sigLen <= kSigBufSize);
   unsigned char buf[kSigBufSize];
@@ -260,18 +260,18 @@ Status GeneratePrivateKey(int numBits, PrivateKey* ret) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
   initializeOpenSsl();
-  auto key = ssl_make_unique(EVP_PKEY_new());
+  auto key = sslMakeUnique(EVP_PKEY_new());
   {
-    auto bn = ssl_make_unique(BN_new());
+    auto bn = sslMakeUnique(BN_new());
     OPENSSL_CHECK_OK(BN_set_word(bn.get(), RSA_F4));
-    auto rsa = ssl_make_unique(RSA_new());
+    auto rsa = sslMakeUnique(RSA_new());
     OPENSSL_RET_NOT_OK(
         RSA_generate_key_ex(rsa.get(), numBits, bn.get(), nullptr),
         "error generating RSA key");
     OPENSSL_RET_NOT_OK(
         EVP_PKEY_set1_RSA(key.get(), rsa.get()), "error assigning RSA key");
   }
-  ret->AdoptRawData(key.release());
+  ret->adoptRawData(key.release());
 
   return Status::OK();
 }

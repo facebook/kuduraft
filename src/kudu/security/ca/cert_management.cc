@@ -88,9 +88,9 @@ Status CertRequestGeneratorBase::generateRequest(
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
   CHECK(initialized());
-  auto req = ssl_make_unique(X509_REQ_new());
+  auto req = sslMakeUnique(X509_REQ_new());
   OPENSSL_RET_NOT_OK(
-      X509_REQ_set_pubkey(req.get(), key.GetRawData()),
+      X509_REQ_set_pubkey(req.get(), key.getRawData()),
       "error setting X509 public key");
 
   // Populate the subject field of the request.
@@ -101,9 +101,9 @@ Status CertRequestGeneratorBase::generateRequest(
 
   // And finally sign the result.
   OPENSSL_RET_NOT_OK(
-      X509_REQ_sign(req.get(), key.GetRawData(), EVP_sha256()),
+      X509_REQ_sign(req.get(), key.getRawData(), EVP_sha256()),
       "error signing X509 request");
-  ret->AdoptRawData(req.release());
+  ret->adoptRawData(req.release());
 
   return Status::OK();
 }
@@ -113,7 +113,7 @@ Status CertRequestGeneratorBase::pushExtension(
     int32_t nid,
     StringPiece value) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  auto ex = ssl_make_unique(X509V3_EXT_conf_nid(
+  auto ex = sslMakeUnique(X509V3_EXT_conf_nid(
       nullptr, nullptr, nid, const_cast<char*>(value.data())));
   OPENSSL_RET_IF_NULL(ex, "error configuring extension");
   OPENSSL_RET_NOT_OK(
@@ -292,9 +292,9 @@ Status CertSigner::selfSignCert(
 CertSigner::CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey)
     : caCert_(caCert), caPrivateKey_(caPrivateKey) {
   // Private key is required.
-  CHECK(caPrivateKey_ && caPrivateKey_->GetRawData());
+  CHECK(caPrivateKey_ && caPrivateKey_->getRawData());
   // The cert is optional, but if we have it, it should be initialized.
-  CHECK(!caCert_ || caCert_->GetRawData());
+  CHECK(!caCert_ || caCert_->getRawData());
 }
 
 Status CertSigner::sign(const CertSignRequest& req, Cert* ret) const {
@@ -309,8 +309,8 @@ Status CertSigner::sign(const CertSignRequest& req, Cert* ret) const {
   if (caCert_) {
     RETURN_NOT_OK(caCert_->checkKeyMatch(*caPrivateKey_));
   }
-  auto x509 = ssl_make_unique(X509_new());
-  RETURN_NOT_OK(fillCertTemplateFromRequest(req.GetRawData(), x509.get()));
+  auto x509 = sslMakeUnique(X509_new());
+  RETURN_NOT_OK(fillCertTemplateFromRequest(req.getRawData(), x509.get()));
   RETURN_NOT_OK(doSign(EVP_sha256(), expIntervalSec_, x509.get()));
   ret->adoptX509(x509.release());
 
@@ -334,7 +334,7 @@ Status CertSigner::copyExtensions(X509_REQ* req, X509* x) {
     if (idx != -1) {
       // If extension exits, delete all extensions of same type.
       do {
-        auto tmpext = ssl_make_unique(X509_get_ext(x, idx));
+        auto tmpext = sslMakeUnique(X509_get_ext(x, idx));
         X509_delete_ext(x, idx);
         idx = X509_get_ext_by_OBJ(x, obj, -1);
       } while (idx != -1);
@@ -353,7 +353,7 @@ Status CertSigner::fillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
 #endif
-  auto pubKey = ssl_make_unique(X509_REQ_get_pubkey(req));
+  auto pubKey = sslMakeUnique(X509_REQ_get_pubkey(req));
   OPENSSL_RET_IF_NULL(pubKey, "error unpacking public key from CSR");
   const int rc = X509_REQ_verify(req, pubKey.get());
   if (rc < 0) {
@@ -377,12 +377,12 @@ Status CertSigner::digestSign(const EVP_MD* md, EVP_PKEY* pkey, X509* x) {
   return Status::OK();
 }
 
-Status CertSigner::generateSerial(c_unique_ptr<ASN1_INTEGER>* ret) {
+Status CertSigner::generateSerial(CUniquePtr<ASN1_INTEGER>* ret) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  auto btmp = ssl_make_unique(BN_new());
+  auto btmp = sslMakeUnique(BN_new());
   OPENSSL_RET_NOT_OK(
       BN_pseudo_rand(btmp.get(), 64, 0, 0), "error generating random number");
-  auto serial = ssl_make_unique(ASN1_INTEGER_new());
+  auto serial = sslMakeUnique(ASN1_INTEGER_new());
   OPENSSL_RET_IF_NULL(
       BN_to_ASN1_INTEGER(btmp.get(), serial.get()),
       "error converting number into ASN1 representation");
@@ -407,7 +407,7 @@ Status CertSigner::doSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
   X509_NAME* issuerName = X509_get_subject_name(issuerCert);
   OPENSSL_RET_NOT_OK(
       X509_set_issuer_name(ret, issuerName), "error setting issuer name");
-  c_unique_ptr<ASN1_INTEGER> serial;
+  CUniquePtr<ASN1_INTEGER> serial;
   RETURN_NOT_OK(generateSerial(&serial));
   // set version to v3
   OPENSSL_RET_NOT_OK(
@@ -420,7 +420,7 @@ Status CertSigner::doSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
   OPENSSL_RET_IF_NULL(
       X509_gmtime_adj(X509_get_notAfter(ret), expSeconds),
       "error setting cert expiration time");
-  RETURN_NOT_OK(digestSign(digest, caPrivateKey_->GetRawData(), ret));
+  RETURN_NOT_OK(digestSign(digest, caPrivateKey_->getRawData(), ret));
 
   return Status::OK();
 }

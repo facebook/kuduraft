@@ -268,7 +268,7 @@ class TlsContext {
   // using a mutating method (eg SSL_CTX_use_*) or when changing the value of
   // any of our own member variables.
   mutable SharedMutexReadPriorityTracked lock_;
-  c_unique_ptr<SSL_CTX> ctx_;
+  CUniquePtr<SSL_CTX> ctx_;
   int32_t trustedCertCount_;
   bool hasCert_;
   bool isExternalCert_;

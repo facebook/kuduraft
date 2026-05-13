@@ -73,7 +73,7 @@ Status checkOpenSslInitialized() {
   if (!CRYPTO_get_locking_callback()) {
     return Status::RuntimeError("Locking callback not initialized");
   }
-  auto ctx = ssl_make_unique(SSL_CTX_new(SSLv23_method()));
+  auto ctx = sslMakeUnique(SSL_CTX_new(SSLv23_method()));
   if (!ctx) {
     ERR_clear_error();
     return Status::RuntimeError(
@@ -116,7 +116,7 @@ void doInitializeOpenSsl() {
   // initializes OpenSSL, and we risk installing conflicting callbacks
   // or crashing due to concurrent initialization attempts. In that case,
   // log a warning.
-  auto ctx = ssl_make_unique(SSL_CTX_new(SSLv23_method()));
+  auto ctx = sslMakeUnique(SSL_CTX_new(SSLv23_method()));
   if (ctx) {
     LOG(WARNING)
         << "It appears that OpenSSL has been previously initialized by "
@@ -157,7 +157,7 @@ void doInitializeOpenSsl() {
 
 // Reads a STACK_OF(X509) from the BIO and returns it.
 STACK_OF(X509) *
-    PEM_read_STACK_OF_X509(
+    pemReadStackOfX509(
         BIO* bio,
         void* /* unused */,
         pem_password_cb* /* unused */,
@@ -189,7 +189,7 @@ STACK_OF(X509) *
 }
 
 // Writes a STACK_OF(X509) to the BIO.
-int PEM_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
+int pemWriteStackOfX509(BIO* bio, STACK_OF(X509) * obj) {
   int chainLen = sk_X509_num(obj);
   // Iterate through the stack and add each one to the BIO.
   for (int i = 0; i < chainLen; ++i) {
@@ -204,9 +204,9 @@ int PEM_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
 
 // Reads a single X509 certificate and returns a STACK_OF(X509) with the single
 // certificate.
-STACK_OF(X509) * DER_read_STACK_OF_X509(BIO* bio, void* /* unused */) {
+STACK_OF(X509) * derReadStackOfX509(BIO* bio, void* /* unused */) {
   // We don't support chain certificates written in DER format.
-  auto x = ssl_make_unique(d2i_X509_bio(bio, nullptr));
+  auto x = sslMakeUnique(d2i_X509_bio(bio, nullptr));
   if (!x) {
     return nullptr;
   }
@@ -219,7 +219,7 @@ STACK_OF(X509) * DER_read_STACK_OF_X509(BIO* bio, void* /* unused */) {
 }
 
 // Writes a single X509 certificate that it gets from the STACK_OF(X509) 'obj'.
-int DER_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
+int derWriteStackOfX509(BIO* bio, STACK_OF(X509) * obj) {
   int chainLen = sk_X509_num(obj);
   // We don't support chain certificates written in DER format.
   DCHECK_EQ(chainLen, 1);
@@ -230,7 +230,7 @@ int DER_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
   return i2d_X509_bio(bio, certItem);
 }
 
-void free_STACK_OF_X509(STACK_OF(X509) * sk) {
+void freeStackOfX509(STACK_OF(X509) * sk) {
   sk_X509_pop_free(sk, X509_free);
 }
 
