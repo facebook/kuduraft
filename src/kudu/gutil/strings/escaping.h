@@ -76,7 +76,7 @@ int escapeStrForCsv(const char* src, char* dest, int destLen);
 //    the dest array is not defined, but rest of the source will be
 //    processed.
 //
-//    *** DEPRECATED: Use CUnescape() in new code ***
+//    *** DEPRECATED: Use cUnescape() in new code ***
 //    ----------------------------------------------------------------------
 int UnescapeCEscapeSequences(const char* source, char* dest);
 int UnescapeCEscapeSequences(
@@ -98,7 +98,7 @@ int UnescapeCEscapeSequences(
 //    In the first and second calls, the length of dest is returned. In the
 //    the third call, the new string is returned.
 //
-//    *** DEPRECATED: Use CUnescape() in new code ***
+//    *** DEPRECATED: Use cUnescape() in new code ***
 // ----------------------------------------------------------------------
 int UnescapeCEscapeString(const std::string& src, std::string* dest);
 int UnescapeCEscapeString(
@@ -108,7 +108,7 @@ int UnescapeCEscapeString(
 std::string UnescapeCEscapeString(const std::string& src);
 
 // ----------------------------------------------------------------------
-// CUnescape()
+// cUnescape()
 //    Copies "source" to "dest", rewriting C-style escape sequences
 //    -- '\n', '\r', '\\', '\ooo', etc -- to their ASCII
 //    equivalents.  "dest" must be sufficiently large to hold all
@@ -137,26 +137,26 @@ std::string UnescapeCEscapeString(const std::string& src);
 //    Errors: Sets the description of the first encountered error in
 //    'error'. To disable error reporting, set 'error' to NULL.
 // ----------------------------------------------------------------------
-bool CUnescape(
+bool cUnescape(
     const StringPiece& source,
     char* dest,
     int* destLen,
     std::string* error);
 
-bool CUnescape(
+bool cUnescape(
     const StringPiece& source,
     std::string* dest,
     std::string* error);
 
 // A version with no error reporting.
-inline bool CUnescape(const StringPiece& source, std::string* dest) {
-  return CUnescape(source, dest, nullptr);
+inline bool cUnescape(const StringPiece& source, std::string* dest) {
+  return cUnescape(source, dest, nullptr);
 }
 
 // ----------------------------------------------------------------------
-// CUnescapeForNullTerminatedString()
+// cUnescapeForNullTerminatedString()
 //
-// This has the same behavior as CUnescape, except that each octal, hex,
+// This has the same behavior as cUnescape, except that each octal, hex,
 // or Unicode escape sequence that resolves to a null character ('\0')
 // is left in its original escaped form.  The result is a
 // display-formatted string that can be interpreted as a null-terminated
@@ -165,22 +165,22 @@ inline bool CUnescape(const StringPiece& source, std::string* dest) {
 //
 // ----------------------------------------------------------------------
 
-bool CUnescapeForNullTerminatedString(
+bool cUnescapeForNullTerminatedString(
     const StringPiece& source,
     char* dest,
     int* destLen,
     std::string* error);
 
-bool CUnescapeForNullTerminatedString(
+bool cUnescapeForNullTerminatedString(
     const StringPiece& source,
     std::string* dest,
     std::string* error);
 
 // A version with no error reporting.
-inline bool CUnescapeForNullTerminatedString(
+inline bool cUnescapeForNullTerminatedString(
     const StringPiece& source,
     std::string* dest) {
-  return CUnescapeForNullTerminatedString(source, dest, NULL);
+  return cUnescapeForNullTerminatedString(source, dest, NULL);
 }
 
 // ----------------------------------------------------------------------
@@ -267,7 +267,7 @@ inline std::string backslashUnescape(
 }
 
 // ----------------------------------------------------------------------
-// QuotedPrintableUnescape()
+// quotedPrintableUnescape()
 //    Check out http://www.cis.ohio-state.edu/htbin/rfc/rfc2045.html for
 //    more details, only briefly implemented. But from the web...
 //    Quoted-printable is an encoding method defined in the MIME
@@ -285,10 +285,10 @@ inline std::string backslashUnescape(
 //    characters are shortened by line breaks, with the equal sign marking
 //    where the breaks occurred.
 //
-//    Note that QuotedPrintableUnescape is different from 'Q'-encoding as
+//    Note that quotedPrintableUnescape is different from 'Q'-encoding as
 //    defined in rfc2047. In particular, This does not treat '_'s as spaces.
 //
-//    See QEncodingUnescape().
+//    See qEncodingUnescape().
 //
 //    Copies "src" to "dest", rewriting quoted printable escape sequences
 //    =XX to their ASCII equivalents. src is not null terminated, instead
@@ -296,11 +296,11 @@ inline std::string backslashUnescape(
 //    anyway.
 //    RETURNS the length of dest.
 // ----------------------------------------------------------------------
-int QuotedPrintableUnescape(const char* src, int slen, char* dest, int szdest);
+int quotedPrintableUnescape(const char* src, int slen, char* dest, int szdest);
 
 // ----------------------------------------------------------------------
-// QEncodingUnescape()
-//    This is very similar to QuotedPrintableUnescape except that we convert
+// qEncodingUnescape()
+//    This is very similar to quotedPrintableUnescape except that we convert
 //    '_'s into spaces. (See RFC 2047)
 //    http://www.faqs.org/rfcs/rfc2047.html.
 //
@@ -310,7 +310,7 @@ int QuotedPrintableUnescape(const char* src, int slen, char* dest, int szdest);
 //    anyway.
 //    RETURNS the length of dest.
 // ----------------------------------------------------------------------
-int QEncodingUnescape(const char* src, int slen, char* dest, int szdest);
+int qEncodingUnescape(const char* src, int slen, char* dest, int szdest);
 
 // ----------------------------------------------------------------------
 // Base64Unescape()
@@ -349,16 +349,16 @@ inline bool WebSafeBase64Unescape(const std::string& src, std::string* dest) {
 // routines. Make sure to use the same value for doPadding in both.
 // This function may return incorrect results if given inputLen values that
 // are extremely high, which should happen rarely.
-int CalculateBase64EscapedLen(int inputLen, bool doPadding);
+int calculateBase64EscapedLen(int inputLen, bool doPadding);
 // Use this version when calling Base64Escape without a doPadding arg.
-int CalculateBase64EscapedLen(int inputLen);
+int calculateBase64EscapedLen(int inputLen);
 
 // ----------------------------------------------------------------------
 // Base64Escape()
 // WebSafeBase64Escape()
 //    Encode "src" to "dest" using base64 encoding.
 //    src is not null terminated, instead specify len.
-//    'dest' should have at least CalculateBase64EscapedLen() length.
+//    'dest' should have at least calculateBase64EscapedLen() length.
 //    RETURNS the length of dest.
 //    The WebSafe variation use '-' instead of '+' and '_' instead of '/'
 //    so that we can place the out in the URL or cookies without having
@@ -406,7 +406,7 @@ inline bool Base32Unescape(const std::string& src, std::string* dest) {
 // Base32Escape()
 //    Encode "src" to "dest" using base32 encoding.
 //    src is not null terminated, instead specify len.
-//    'dest' should have at least CalculateBase32EscapedLen() length.
+//    'dest' should have at least calculateBase32EscapedLen() length.
 //    RETURNS the length of dest. RETURNS 0 if szsrc is zero, or szdest is
 //    too small to fit the fully encoded result.  'dest' is padded with '='.
 //
@@ -423,7 +423,7 @@ bool Base32Escape(const std::string& src, std::string* dest);
 // Base32HexEscape()
 //    Encode "src" to "dest" using base32hex encoding.
 //    src is not null terminated, instead specify len.
-//    'dest' should have at least CalculateBase32EscapedLen() length.
+//    'dest' should have at least calculateBase32EscapedLen() length.
 //    RETURNS the length of dest. RETURNS 0 if szsrc is zero, or szdest is
 //    too small to fit the fully encoded result.  'dest' is padded with '='.
 //
@@ -440,18 +440,18 @@ bool Base32HexEscape(const std::string& src, std::string* dest);
 // Return the length to use for the output buffer given to the base32 escape
 // routines.  This function may return incorrect results if given inputLen
 // values that are extremely high, which should happen rarely.
-int CalculateBase32EscapedLen(size_t inputLen);
+int calculateBase32EscapedLen(size_t inputLen);
 
 // ----------------------------------------------------------------------
-// EightBase32DigitsToTenHexDigits()
-// TenHexDigitsToEightBase32Digits()
+// eightBase32DigitsToTenHexDigits()
+// tenHexDigitsToEightBase32Digits()
 //    Convert base32 to and from hex.
 //
-//   for EightBase32DigitsToTenHexDigits():
+//   for eightBase32DigitsToTenHexDigits():
 //     *in must point to 8 base32 digits.
 //     *out must point to 10 bytes.
 //
-//   for TenHexDigitsToEightBase32Digits():
+//   for tenHexDigitsToEightBase32Digits():
 //     *in must point to 10 hex digits.
 //     *out must point to 8 bytes.
 //
@@ -463,29 +463,29 @@ int CalculateBase32EscapedLen(size_t inputLen);
 //   See RFC3548 at http://www.ietf.org/rfc/rfc3548.txt
 //   for details on base32.
 // ----------------------------------------------------------------------
-void EightBase32DigitsToTenHexDigits(const unsigned char* in, char* out);
-void TenHexDigitsToEightBase32Digits(const char* in, char* out);
+void eightBase32DigitsToTenHexDigits(const unsigned char* in, char* out);
+void tenHexDigitsToEightBase32Digits(const char* in, char* out);
 
 // ----------------------------------------------------------------------
-// EightBase32DigitsToFiveBytes()
-// FiveBytesToEightBase32Digits()
+// eightBase32DigitsToFiveBytes()
+// fiveBytesToEightBase32Digits()
 //   Convert base32 to and from binary
 //
-//   for EightBase32DigitsToTenHexDigits():
+//   for eightBase32DigitsToTenHexDigits():
 //     *in must point to 8 base32 digits.
 //     *out must point to 5 bytes.
 //
-//   for TenHexDigitsToEightBase32Digits():
+//   for tenHexDigitsToEightBase32Digits():
 //     *in must point to 5 bytes.
 //     *out must point to 8 bytes.
 //
 //   Note that the Base64 functions above are different.  They deal with
 //   arbitrary lengths and we deal with single, whole base32 quanta.
 // ----------------------------------------------------------------------
-void EightBase32DigitsToFiveBytes(
+void eightBase32DigitsToFiveBytes(
     const unsigned char* in,
     unsigned char* bytesOut);
-void FiveBytesToEightBase32Digits(const unsigned char* inBytes, char* out);
+void fiveBytesToEightBase32Digits(const unsigned char* inBytes, char* out);
 
 // ----------------------------------------------------------------------
 // escapeFileName()
