@@ -61,9 +61,9 @@ struct WithOverflowCheck<Type, false> {
 template <typename Type>
 inline Type addWithOverflowCheck(Type a, Type b, bool* overflowed) {
   // Pick the right specialization based on whether Type is signed.
-  using myStruct =
+  using MyStruct =
       safe_math_internal::WithOverflowCheck<Type, MathLimits<Type>::kIsSigned>;
-  return myStruct::add(a, b, overflowed);
+  return MyStruct::add(a, b, overflowed);
 }
 
 } // namespace kudu
