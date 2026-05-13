@@ -137,13 +137,13 @@ class KuduThreadPool : public ThreadPool {
   // starting up) for this thread pool.
   int numThreads() const override {
     MutexLock l(lock_);
-    return num_threads_ + num_threads_pending_start_;
+    return numThreads_ + numThreadsPendingStart_;
   }
 
   // Return the number of threads currently executing tasks.
   int activeThreads() const override {
     MutexLock l(lock_);
-    return active_threads_;
+    return activeThreads_;
   }
 
  private:
@@ -166,7 +166,7 @@ class KuduThreadPool : public ThreadPool {
 
   // Create new thread.
   //
-  // REQUIRES: caller has incremented 'num_threads_pending_start_' ahead of this
+  // REQUIRES: caller has incremented 'numThreadsPendingStart_' ahead of this
   // call. NOTE: For performance reasons, lock_ should not be held.
   Status createThread();
 
@@ -180,50 +180,50 @@ class KuduThreadPool : public ThreadPool {
   void releaseToken(KuduThreadPoolToken* t);
 
   const std::string name_;
-  const int min_threads_;
-  const int max_threads_;
-  const int max_queue_size_;
-  const MonoDelta idle_timeout_;
+  const int minThreads_;
+  const int maxThreads_;
+  const int maxQueueSize_;
+  const MonoDelta idleTimeout_;
 
   // Overall status of the pool. Set to an error when the pool is shut down.
   //
   // Protected by 'lock_'.
-  Status pool_status_;
+  Status poolStatus_;
 
   // Synchronizes many of the members of the pool and all of its
   // condition variables.
   mutable Mutex lock_;
 
   // Condition variable for "pool is idling". Waiters wake up when
-  // active_threads_ reaches zero.
-  ConditionVariable idle_cond_;
+  // activeThreads_ reaches zero.
+  ConditionVariable idleCond_;
 
   // Condition variable for "pool has no threads". Waiters wake up when
-  // num_threads_ and num_pending_threads_ are both 0.
-  ConditionVariable no_threads_cond_;
+  // numThreads_ and num_pending_threads_ are both 0.
+  ConditionVariable noThreadsCond_;
 
   // Number of threads currently running.
   //
   // Protected by lock_.
-  int num_threads_;
+  int numThreads_;
 
   // Number of threads which are in the process of starting.
   // When these threads start, they will decrement this counter and
-  // accordingly increment 'num_threads_'.
+  // accordingly increment 'numThreads_'.
   //
   // Protected by lock_.
-  int num_threads_pending_start_;
+  int numThreadsPendingStart_;
 
   // Number of threads currently running and executing client tasks.
   //
   // Protected by lock_.
-  int active_threads_;
+  int activeThreads_;
 
   // Total number of client tasks queued, either directly (queue_) or
   // indirectly (tokens_).
   //
   // Protected by lock_.
-  int total_queued_tasks_;
+  int totalQueuedTasks_;
 
   // All allocated tokens.
   //
@@ -252,16 +252,16 @@ class KuduThreadPool : public ThreadPool {
   //
   // Protected by lock_.
   struct IdleThread : public boost::intrusive::list_base_hook<> {
-    explicit IdleThread(Mutex* m) : not_empty(m) {}
+    explicit IdleThread(Mutex* m) : notEmpty(m) {}
 
     // Condition variable for "queue is not empty". Waiters wake up when a new
     // task is queued.
-    ConditionVariable not_empty;
+    ConditionVariable notEmpty;
 
     DISALLOW_COPY_AND_ASSIGN(IdleThread);
   };
   boost::intrusive::list<IdleThread>
-      idle_threads_; // NOLINT(build/include_what_you_use)
+      idleThreads_; // NOLINT(build/include_what_you_use)
 
   // ExecutionMode::Concurrent token used by the pool for tokenless submission.
   std::unique_ptr<ThreadPoolToken> tokenless_;
@@ -269,8 +269,8 @@ class KuduThreadPool : public ThreadPool {
   // Metrics for the entire thread pool.
   const ThreadPoolMetrics metrics_;
 
-  const char* queue_time_trace_metric_name_;
-  const char* run_wall_time_trace_metric_name_;
+  const char* queueTimeTraceMetricName_;
+  const char* runWallTimeTraceMetricName_;
 
   DISALLOW_COPY_AND_ASSIGN(KuduThreadPool);
   KuduThreadPool(KuduThreadPool&&) = delete;
@@ -387,11 +387,11 @@ class KuduThreadPoolToken : public ThreadPoolToken {
 
   // Condition variable for "token is idle". Waiters wake up when the token
   // transitions to IDLE or QUIESCED.
-  ConditionVariable not_running_cond_;
+  ConditionVariable notRunningCond_;
 
   // Number of worker threads currently executing tasks belonging to this
   // token.
-  int active_threads_;
+  int activeThreads_;
 
   DISALLOW_COPY_AND_ASSIGN(KuduThreadPoolToken);
   KuduThreadPoolToken(KuduThreadPoolToken&&) = delete;
