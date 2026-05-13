@@ -172,7 +172,7 @@ class ConsensusPeersTest : public KuduTest {
       int term,
       int index) {
     OpId id;
-    id.CopyFrom(proxy->proxy()->last_received());
+    id.CopyFrom(proxy->proxy()->lastReceived());
     ASSERT_EQ(id.term(), term);
     ASSERT_EQ(id.index(), index);
   }
@@ -251,7 +251,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
       newRemotePeer("peer-2", &remotePeer2);
 
   // Delay the response from the second remote peer.
-  remotePeer2Proxy->DelayResponse();
+  remotePeer2Proxy->delayResponse();
 
   // Append one message to the queue.
   appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
@@ -269,7 +269,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   ASSERT_OPID_EQ(first, messageQueue_->GetLastOpIdInLog());
   checkLastRemoteEntry(remotePeer1Proxy, first.term(), first.index());
 
-  remotePeer2Proxy->Respond(TestPeerProxy::kUpdate);
+  remotePeer2Proxy->respond(TestPeerProxy::kUpdate);
   // Wait until all peers have replicated the message, otherwise
   // when we add the next one remote_peer2 might find the next message
   // in the queue and will replicate it, which is not what we want.
@@ -324,7 +324,7 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
       MakeOpId(0, 0));
   peerResp.mutable_status()->set_last_committed_idx(0);
 
-  mockProxy->set_update_response(peerResp);
+  mockProxy->setUpdateResponse(peerResp);
 
   // Add an op to the queue and start sending requests to the peer.
   appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
@@ -367,7 +367,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   // where the peer manager keeps trying to update the peer's committed
   // index.
   initialResp.mutable_status()->set_last_committed_idx(1);
-  mockProxy->set_update_response(initialResp);
+  mockProxy->setUpdateResponse(initialResp);
 
   appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
   peer->signalRequest(true);
@@ -382,7 +382,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   statusToPb(
       Status::NotFound("fake error"),
       errorResp.mutable_error()->mutable_status());
-  mockProxy->set_update_response(errorResp);
+  mockProxy->setUpdateResponse(errorResp);
 
   // Add a bunch of messages to the queue.
   for (int i = 2; i <= 100; i++) {
@@ -395,7 +395,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   // Write. 100 writes might have taken a second or two, though, so it's
   // OK to have called UpdateConsensus() a few times due to regularly
   // scheduled heartbeats.
-  ASSERT_LT(mockProxy->update_count(), 5);
+  ASSERT_LT(mockProxy->updateCount(), 5);
 }
 
 } // namespace consensus

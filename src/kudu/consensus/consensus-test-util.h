@@ -289,7 +289,7 @@ class TestPeerProxy : public PeerProxy {
   // Register the RPC callback in order to call later.
   // We currently only support one request of each method being in flight at a
   // time.
-  virtual void RegisterCallback(
+  virtual void registerCallback(
       Method method,
       const rpc::ResponseCallback& callback) {
     std::lock_guard<SimpleSpinlock> lock(lock_);
@@ -298,7 +298,7 @@ class TestPeerProxy : public PeerProxy {
   }
 
   // Answer the peer.
-  virtual void Respond(Method method) {
+  virtual void respond(Method method) {
     rpc::ResponseCallback callback;
     {
       std::lock_guard<SimpleSpinlock> lock(lock_);
@@ -314,11 +314,11 @@ class TestPeerProxy : public PeerProxy {
     ignoreResult(pool_->SubmitFunc(callback));
   }
 
-  virtual void RegisterCallbackAndRespond(
+  virtual void registerCallbackAndRespond(
       Method method,
       const rpc::ResponseCallback& callback) {
-    RegisterCallback(method, callback);
-    Respond(method);
+    registerCallback(method, callback);
+    respond(method);
   }
 
   mutable SimpleSpinlock lock_;
@@ -334,32 +334,32 @@ class DelayablePeerProxy : public TestPeerProxy {
   explicit DelayablePeerProxy(ThreadPool* pool, ProxyType* proxy)
       : TestPeerProxy(pool),
         proxy_(CHECK_NOTNULL(proxy)),
-        delay_response_(false),
+        delayResponse_(false),
         latch_(1) {}
 
   // Delay the answer to the next response to this remote
-  // peer. The response callback will only be called on Respond().
-  virtual void DelayResponse() {
+  // peer. The response callback will only be called on respond().
+  virtual void delayResponse() {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    delay_response_ = true;
+    delayResponse_ = true;
     latch_.reset(1); // Reset for the next time.
   }
 
-  virtual void RespondUnlessDelayed(Method method) {
+  virtual void respondUnlessDelayed(Method method) {
     {
       std::lock_guard<SimpleSpinlock> l(lock_);
-      if (delay_response_) {
+      if (delayResponse_) {
         latch_.countDown();
-        delay_response_ = false;
+        delayResponse_ = false;
         return;
       }
     }
-    TestPeerProxy::Respond(method);
+    TestPeerProxy::respond(method);
   }
 
-  virtual void Respond(Method method) override {
+  virtual void respond(Method method) override {
     latch_.wait(); // Wait until strictly after peer would have responded.
-    return TestPeerProxy::Respond(method);
+    return TestPeerProxy::respond(method);
   }
 
   virtual void updateAsync(
@@ -367,12 +367,12 @@ class DelayablePeerProxy : public TestPeerProxy {
       ConsensusResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override {
-    RegisterCallback(kUpdate, callback);
+    registerCallback(kUpdate, callback);
     return proxy_->updateAsync(
         request,
         response,
         controller,
-        boost::bind(&DelayablePeerProxy::RespondUnlessDelayed, this, kUpdate));
+        boost::bind(&DelayablePeerProxy::respondUnlessDelayed, this, kUpdate));
   }
 
   virtual Status startElection(
@@ -387,13 +387,13 @@ class DelayablePeerProxy : public TestPeerProxy {
       VoteResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override {
-    RegisterCallback(kRequestVote, callback);
+    registerCallback(kRequestVote, callback);
     return proxy_->requestConsensusVoteAsync(
         request,
         response,
         controller,
         boost::bind(
-            &DelayablePeerProxy::RespondUnlessDelayed, this, kRequestVote));
+            &DelayablePeerProxy::respondUnlessDelayed, this, kRequestVote));
   }
 
   ProxyType* proxy() const {
@@ -402,7 +402,7 @@ class DelayablePeerProxy : public TestPeerProxy {
 
  protected:
   std::unique_ptr<ProxyType> const proxy_;
-  bool delay_response_; // Protected by lock_.
+  bool delayResponse_; // Protected by lock_.
   CountDownLatch latch_;
 };
 
@@ -411,21 +411,21 @@ class DelayablePeerProxy : public TestPeerProxy {
 class MockedPeerProxy : public TestPeerProxy {
  public:
   explicit MockedPeerProxy(ThreadPool* pool)
-      : TestPeerProxy(pool), update_count_(0) {}
+      : TestPeerProxy(pool), updateCount_(0) {}
 
-  virtual void set_update_response(const ConsensusResponsePB& update_response) {
-    CHECK(update_response.IsInitialized())
-        << pb_util::SecureShortDebugString(update_response);
+  virtual void setUpdateResponse(const ConsensusResponsePB& updateResponse) {
+    CHECK(updateResponse.IsInitialized())
+        << pb_util::SecureShortDebugString(updateResponse);
     {
       std::lock_guard<SimpleSpinlock> l(lock_);
-      update_response_ = update_response;
+      updateResponse_ = updateResponse;
     }
   }
 
-  virtual void set_vote_response(const VoteResponsePB& vote_response) {
+  virtual void setVoteResponse(const VoteResponsePB& voteResponse) {
     {
       std::lock_guard<SimpleSpinlock> l(lock_);
-      vote_response_ = vote_response;
+      voteResponse_ = voteResponse;
     }
   }
 
@@ -436,10 +436,10 @@ class MockedPeerProxy : public TestPeerProxy {
       const rpc::ResponseCallback& callback) override {
     {
       std::lock_guard<SimpleSpinlock> l(lock_);
-      update_count_++;
-      *response = update_response_;
+      updateCount_++;
+      *response = updateResponse_;
     }
-    return RegisterCallbackAndRespond(kUpdate, callback);
+    return registerCallbackAndRespond(kUpdate, callback);
   }
 
   virtual void requestConsensusVoteAsync(
@@ -447,8 +447,8 @@ class MockedPeerProxy : public TestPeerProxy {
       VoteResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override {
-    *response = vote_response_;
-    return RegisterCallbackAndRespond(kRequestVote, callback);
+    *response = voteResponse_;
+    return registerCallbackAndRespond(kRequestVote, callback);
   }
 
   Status startElection(
@@ -459,16 +459,16 @@ class MockedPeerProxy : public TestPeerProxy {
   }
 
   // Return the number of times that updateAsync() has been called.
-  int update_count() const {
+  int updateCount() const {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    return update_count_;
+    return updateCount_;
   }
 
  protected:
-  int update_count_;
+  int updateCount_;
 
-  ConsensusResponsePB update_response_;
-  VoteResponsePB vote_response_;
+  ConsensusResponsePB updateResponse_;
+  VoteResponsePB voteResponse_;
 };
 
 // Allows to test peers by emulating a noop remote endpoint that just replies
@@ -476,8 +476,8 @@ class MockedPeerProxy : public TestPeerProxy {
 class NoOpTestPeerProxy : public TestPeerProxy {
  public:
   explicit NoOpTestPeerProxy(ThreadPool* pool, consensus::RaftPeerPB peer_pb)
-      : TestPeerProxy(pool), peer_pb_(std::move(peer_pb)) {
-    last_received_.CopyFrom(MinimumOpId());
+      : TestPeerProxy(pool), peerPb_(std::move(peer_pb)) {
+    lastReceived_.CopyFrom(MinimumOpId());
   }
 
   virtual void updateAsync(
@@ -488,29 +488,28 @@ class NoOpTestPeerProxy : public TestPeerProxy {
     response->Clear();
     {
       std::lock_guard<SimpleSpinlock> lock(lock_);
-      if (OpIdLessThan(last_received_, request->preceding_id())) {
+      if (OpIdLessThan(lastReceived_, request->preceding_id())) {
         ConsensusErrorPB* error = response->mutable_status()->mutable_error();
         error->set_code(ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH);
         statusToPb(Status::IllegalState(""), error->mutable_status());
       } else if (request->ops_size() > 0) {
-        last_received_.CopyFrom(request->ops(request->ops_size() - 1).id());
+        lastReceived_.CopyFrom(request->ops(request->ops_size() - 1).id());
       }
 
-      response->set_responder_uuid(peer_pb_.permanent_uuid());
+      response->set_responder_uuid(peerPb_.permanent_uuid());
       response->set_responder_term(request->caller_term());
       response->mutable_status()->mutable_last_received()->CopyFrom(
-          last_received_);
+          lastReceived_);
       response->mutable_status()
           ->mutable_last_received_current_leader()
-          ->CopyFrom(last_received_);
+          ->CopyFrom(lastReceived_);
       // We set the last committed index to be the same index as the last
       // received. While this is unlikely to happen in a real situation, its not
       // technically incorrect and avoids having to come up with some other
       // index that it still correct.
-      response->mutable_status()->set_last_committed_idx(
-          last_received_.index());
+      response->mutable_status()->set_last_committed_idx(lastReceived_.index());
     }
-    return RegisterCallbackAndRespond(kUpdate, callback);
+    return registerCallbackAndRespond(kUpdate, callback);
   }
 
   virtual Status startElection(
@@ -527,22 +526,22 @@ class NoOpTestPeerProxy : public TestPeerProxy {
       const rpc::ResponseCallback& callback) override {
     {
       std::lock_guard<SimpleSpinlock> lock(lock_);
-      response->set_responder_uuid(peer_pb_.permanent_uuid());
+      response->set_responder_uuid(peerPb_.permanent_uuid());
       response->set_responder_term(request->candidate_term());
       response->set_vote_granted(true);
     }
-    return RegisterCallbackAndRespond(kRequestVote, callback);
+    return registerCallbackAndRespond(kRequestVote, callback);
   }
 
-  const OpId& last_received() {
+  const OpId& lastReceived() {
     std::lock_guard<SimpleSpinlock> lock(lock_);
-    return last_received_;
+    return lastReceived_;
   }
 
  private:
-  const consensus::RaftPeerPB peer_pb_;
-  ConsensusStatusPB last_status_; // Protected by lock_.
-  OpId last_received_; // Protected by lock_.
+  const consensus::RaftPeerPB peerPb_;
+  ConsensusStatusPB lastStatus_; // Protected by lock_.
+  OpId lastReceived_; // Protected by lock_.
 };
 
 class NoOpTestPeerProxyFactory : public PeerProxyFactory {
@@ -648,7 +647,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
       ConsensusResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override {
-    RegisterCallback(kUpdate, callback);
+    registerCallback(kUpdate, callback);
     CHECK_OK(pool_->SubmitFunc(
         boost::bind(
             &LocalTestPeerProxy::SendUpdateRequest, this, request, response)));
@@ -666,7 +665,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
       VoteResponsePB* response,
       rpc::RpcController* /*controller*/,
       const rpc::ResponseCallback& callback) override {
-    RegisterCallback(kRequestVote, callback);
+    registerCallback(kRequestVote, callback);
     CHECK_OK(pool_->SubmitFunc(
         boost::bind(
             &LocalTestPeerProxy::SendVoteRequest, this, request, response)));
@@ -702,7 +701,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     } else {
       final_response->CopyFrom(response_temp);
     }
-    Respond(method);
+    respond(method);
   }
 
   void SendUpdateRequest(
