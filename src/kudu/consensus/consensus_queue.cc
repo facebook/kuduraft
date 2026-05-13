@@ -3196,38 +3196,37 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
 
     quorum_id_health.primary = leader_quorum_id == quorum_id;
 
-    quorum_id_health.num_vd_voters =
-        getTotalVotersFromVoterDistribution(
-            *(queueState_.active_config), quorum_id)
-            .value_or(0);
-    quorum_id_health.quorum_size = majoritySize(quorum_id_health.num_vd_voters);
+    quorum_id_health.numVdVoters = getTotalVotersFromVoterDistribution(
+                                       *(queueState_.active_config), quorum_id)
+                                       .value_or(0);
+    quorum_id_health.quorumSize = majoritySize(quorum_id_health.numVdVoters);
 
     auto range = by_quorum_id.equal_range(quorum_id);
     for (auto it = range.first; it != range.second; it++) {
       auto* peer = it->second;
       if (peer->isHealthy()) {
-        quorum_id_health.healthy_peers.push_back(peer->peerPb);
+        quorum_id_health.healthyPeers.push_back(peer->peerPb);
       } else {
-        quorum_id_health.unhealthy_peers.push_back(peer->peerPb);
+        quorum_id_health.unhealthyPeers.push_back(peer->peerPb);
       }
     }
 
     const int num_healthy =
-        static_cast<int>(quorum_id_health.healthy_peers.size());
-    if (num_healthy < quorum_id_health.quorum_size) {
-      quorum_id_health.health_status = UNHEALTHY;
-    } else if (num_healthy == quorum_id_health.quorum_size) {
-      quorum_id_health.health_status = AT_RISK;
-    } else if (num_healthy >= quorum_id_health.num_vd_voters) {
-      quorum_id_health.health_status = HEALTHY;
+        static_cast<int>(quorum_id_health.healthyPeers.size());
+    if (num_healthy < quorum_id_health.quorumSize) {
+      quorum_id_health.healthStatus = kUnhealthy;
+    } else if (num_healthy == quorum_id_health.quorumSize) {
+      quorum_id_health.healthStatus = kAtRisk;
+    } else if (num_healthy >= quorum_id_health.numVdVoters) {
+      quorum_id_health.healthStatus = kHealthy;
     } else {
-      quorum_id_health.health_status = DEGRADED;
+      quorum_id_health.healthStatus = kDegraded;
     }
 
-    quorum_id_health.total_voters = static_cast<int>(
-        quorum_id_health.healthy_peers.size() +
-        quorum_id_health.unhealthy_peers.size());
-    health->by_quorum_id.emplace(quorum_id, std::move(quorum_id_health));
+    quorum_id_health.totalVoters = static_cast<int>(
+        quorum_id_health.healthyPeers.size() +
+        quorum_id_health.unhealthyPeers.size());
+    health->byQuorumId.emplace(quorum_id, std::move(quorum_id_health));
   }
   return Status::OK();
 }
@@ -3259,12 +3258,12 @@ Status PeerMessageQueue::GetQuorumHealthForVanillaRaftUnlocked(
 
   // Populate the quorum health.
   PopulateQuorumIdHealthUnlocked(
-      considered_voter_peers, kVanillaRaftQuorumId, &(health->by_quorum_id));
+      considered_voter_peers, kVanillaRaftQuorumId, &(health->byQuorumId));
   if (is_joint_consensus_mode) {
     PopulateQuorumIdHealthUnlocked(
         considered_next_voter_peers,
         kVanillaRaftQuorumId,
-        &(health->next_config_quorum_health));
+        &(health->nextConfigQuorumHealth));
   }
 
   return Status::OK();
@@ -3320,31 +3319,30 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
       CHECK(peer_pb) << fmt::format(
           "Expecting non-null RaftPeerPB with uuid {}.", peer_uuid);
       if (peer->isHealthy()) {
-        health_detail.healthy_peers.push_back(*peer_pb);
+        health_detail.healthyPeers.push_back(*peer_pb);
       } else {
-        health_detail.unhealthy_peers.push_back(*peer_pb);
+        health_detail.unhealthyPeers.push_back(*peer_pb);
       }
     }
 
     // Populate other metadata for this QuorumID.
     health_detail.primary = (leader_quorum_id == quorum_id);
-    health_detail.total_voters = (int)(health_detail.healthy_peers.size() +
-                                       health_detail.unhealthy_peers.size());
-    health_detail.quorum_size = majoritySize(health_detail.total_voters);
+    health_detail.totalVoters = (int)(health_detail.healthyPeers.size() +
+                                      health_detail.unhealthyPeers.size());
+    health_detail.quorumSize = majoritySize(health_detail.totalVoters);
     if (leader_quorum_id == kVanillaRaftQuorumId) {
       // Voter distribution is not used for VanillaRaft, we use total voters.
-      health_detail.num_vd_voters = health_detail.total_voters;
+      health_detail.numVdVoters = health_detail.totalVoters;
     } else {
-      health_detail.num_vd_voters = getTotalVotersFromVoterDistribution(
-                                        *queueState_.active_config, quorum_id)
-                                        .value_or(0);
+      health_detail.numVdVoters = getTotalVotersFromVoterDistribution(
+                                      *queueState_.active_config, quorum_id)
+                                      .value_or(0);
     }
 
     // Infer the health status for this QuorumID.
-    const int num_healthy =
-        static_cast<int>(health_detail.healthy_peers.size());
-    health_detail.health_status = InferQuorumIdHealthStatus(
-        num_healthy, health_detail.quorum_size, health_detail.num_vd_voters);
+    const int num_healthy = static_cast<int>(health_detail.healthyPeers.size());
+    health_detail.healthStatus = InferQuorumIdHealthStatus(
+        num_healthy, health_detail.quorumSize, health_detail.numVdVoters);
 
     quorum_id_health->emplace(quorum_id, std::move(health_detail));
   }
@@ -3356,14 +3354,14 @@ PeerMessageQueue::InferQuorumIdHealthStatus(
     int majority_size,
     int num_total_voters) {
   if (num_healthy_voters < majority_size) {
-    return UNHEALTHY;
+    return kUnhealthy;
   } else if (num_healthy_voters == majority_size) {
-    return AT_RISK;
+    return kAtRisk;
   } else if (num_healthy_voters >= num_total_voters) {
-    return HEALTHY;
+    return kHealthy;
   } else {
     // majority_size < num_healthy_voters < num_total_voters
-    return DEGRADED;
+    return kDegraded;
   }
 }
 

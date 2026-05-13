@@ -270,17 +270,17 @@ class PeerMessageQueue {
   };
 
   struct TransferContext {
-    std::chrono::system_clock::time_point original_start_time;
-    std::string original_uuid;
-    bool is_origin_dead_promotion;
+    std::chrono::system_clock::time_point originalStartTime;
+    std::string originalUuid;
+    bool isOriginDeadPromotion;
   };
 
   enum QuorumIdHealthStatus {
-    UNKNOWN = 0,
-    UNHEALTHY = 1,
-    AT_RISK = 2,
-    DEGRADED = 3,
-    HEALTHY = 4
+    kUnknown = 0,
+    kUnhealthy = 1,
+    kAtRisk = 2,
+    kDegraded = 3,
+    kHealthy = 4
   };
 
   struct QuorumIdHealth {
@@ -288,28 +288,28 @@ class PeerMessageQueue {
     bool primary = false;
 
     // Number of active voting peers.
-    int total_voters = 0;
+    int totalVoters = 0;
 
     // Number of voters defined in voter distribution.
-    int num_vd_voters = 0;
+    int numVdVoters = 0;
 
-    int quorum_size = 0;
+    int quorumSize = 0;
 
-    QuorumIdHealthStatus health_status = UNKNOWN;
+    QuorumIdHealthStatus healthStatus = kUnknown;
 
-    std::vector<RaftPeerPB> healthy_peers;
+    std::vector<RaftPeerPB> healthyPeers;
 
-    std::vector<RaftPeerPB> unhealthy_peers;
+    std::vector<RaftPeerPB> unhealthyPeers;
   };
 
   struct QuorumHealth {
-    std::unordered_map<std::string, QuorumIdHealth> by_quorum_id;
+    std::unordered_map<std::string, QuorumIdHealth> byQuorumId;
 
     // This field is used during joint-consensus mode, expect it to be empty in
     // normal run. Specifically, during joint-consensus mode with transitional
     // config (C_old_new), this field stores the quorum health for instances in
-    // C_new, while the `by_quorum_id` field above is for C_old.
-    std::unordered_map<std::string, QuorumIdHealth> next_config_quorum_health;
+    // C_new, while the `byQuorumId` field above is for C_old.
+    std::unordered_map<std::string, QuorumIdHealth> nextConfigQuorumHealth;
   };
 
   // Given a list of voter peers, populate the 'quorum_id_health' map with the

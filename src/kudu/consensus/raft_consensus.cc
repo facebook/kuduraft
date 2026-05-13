@@ -340,9 +340,15 @@ namespace kudu::consensus {
 
 PeerMessageQueue::TransferContext ElectionContext::transferContext() const {
   if (isChainedElection) {
-    return {chainedStartTime, sourceUuid, isOriginDeadPromotion};
+    return {
+        .originalStartTime = chainedStartTime,
+        .originalUuid = sourceUuid,
+        .isOriginDeadPromotion = isOriginDeadPromotion};
   }
-  return {startTime, currentLeaderUuid, isOriginDeadPromotion};
+  return {
+      .originalStartTime = startTime,
+      .originalUuid = currentLeaderUuid,
+      .isOriginDeadPromotion = isOriginDeadPromotion};
 }
 
 RaftConsensus::RaftConsensus(
@@ -1680,11 +1686,10 @@ void RaftConsensus::TryStartElectionOnPeerTask(
     LeaderElectionContextPB* ctx = req.mutable_election_context();
     ctx->set_original_start_time(
         std::chrono::duration_cast<std::chrono::nanoseconds>(
-            transferContext->original_start_time.time_since_epoch())
+            transferContext->originalStartTime.time_since_epoch())
             .count());
-    ctx->set_original_uuid(transferContext->original_uuid);
-    ctx->set_is_origin_dead_promotion(
-        transferContext->is_origin_dead_promotion);
+    ctx->set_original_uuid(transferContext->originalUuid);
+    ctx->set_is_origin_dead_promotion(transferContext->isOriginDeadPromotion);
   }
   if (std::shared_ptr<const std::string> rpc_token = getRaftRpcToken()) {
     req.set_raft_rpc_token(*rpc_token);
