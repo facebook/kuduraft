@@ -117,7 +117,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
  public:
   explicit TraceBufferRingBuffer(size_t max_chunks)
       : maxChunks_(max_chunks),
-        recyclableChunksQueue_(new size_t[queue_capacity()]),
+        recyclableChunksQueue_(new size_t[queueCapacity()]),
         queueHead_(0),
         queueTail_(max_chunks),
         currentIterationIndex_(0),
@@ -202,30 +202,30 @@ class TraceBufferRingBuffer : public TraceBuffer {
     }
 
     while (currentIterationIndex_ != queueTail_) {
-      size_t chunk_index = recyclableChunksQueue_[currentIterationIndex_];
+      size_t chunkIndex = recyclableChunksQueue_[currentIterationIndex_];
       currentIterationIndex_ = nextQueueIndex(currentIterationIndex_);
-      if (chunk_index >= chunks_.size()) { // Skip uninitialized chunks.
+      if (chunkIndex >= chunks_.size()) { // Skip uninitialized chunks.
         continue;
       }
-      DCHECK(chunks_[chunk_index]);
-      return chunks_[chunk_index];
+      DCHECK(chunks_[chunkIndex]);
+      return chunks_[chunkIndex];
     }
     return nullptr;
   }
 
   virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
-    unique_ptr<ClonedTraceBuffer> cloned_buffer(new ClonedTraceBuffer());
-    for (size_t queue_index = queueHead_; queue_index != queueTail_;
-         queue_index = nextQueueIndex(queue_index)) {
-      size_t chunk_index = recyclableChunksQueue_[queue_index];
-      if (chunk_index >= chunks_.size()) { // Skip uninitialized chunks.
+    unique_ptr<ClonedTraceBuffer> clonedBuffer(new ClonedTraceBuffer());
+    for (size_t queueIndex = queueHead_; queueIndex != queueTail_;
+         queueIndex = nextQueueIndex(queueIndex)) {
+      size_t chunkIndex = recyclableChunksQueue_[queueIndex];
+      if (chunkIndex >= chunks_.size()) { // Skip uninitialized chunks.
         continue;
       }
-      TraceBufferChunk* chunk = chunks_[chunk_index];
-      cloned_buffer->chunks_.push_back(
+      TraceBufferChunk* chunk = chunks_[chunkIndex];
+      clonedBuffer->chunks_.push_back(
           chunk ? chunk->clone().release() : nullptr);
     }
-    return cloned_buffer;
+    return clonedBuffer;
   }
 
  private:
@@ -282,21 +282,21 @@ class TraceBufferRingBuffer : public TraceBuffer {
 
   size_t queueSize() const {
     return queueTail_ > queueHead_ ? queueTail_ - queueHead_
-                                   : queueTail_ + queue_capacity() - queueHead_;
+                                   : queueTail_ + queueCapacity() - queueHead_;
   }
 
   bool queueIsFull() const {
-    return queueSize() == queue_capacity() - 1;
+    return queueSize() == queueCapacity() - 1;
   }
 
-  size_t queue_capacity() const {
+  size_t queueCapacity() const {
     // One extra space to help distinguish full state and empty state.
     return maxChunks_ + 1;
   }
 
   size_t nextQueueIndex(size_t index) const {
     index++;
-    if (index >= queue_capacity()) {
+    if (index >= queueCapacity()) {
       index = 0;
     }
     return index;
@@ -444,8 +444,8 @@ class MarkFlagInScope {
     // thread has experienced at least one context switch. A number of options
     // for this are outlined in:
     // http://home.comcast.net/~pjbishop/Dave/Asymmetric-Dekker-Synchronization.txt
-    Atomic32 old_val = base::subtle::acquireAtomicExchange(dst_, 1);
-    DCHECK_EQ(old_val, 0);
+    Atomic32 oldVal = base::subtle::acquireAtomicExchange(dst_, 1);
+    DCHECK_EQ(oldVal, 0);
   }
   ~MarkFlagInScope() {
     base::subtle::Release_Store(dst_, 0);
@@ -463,27 +463,27 @@ TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::atomicTakeBuffer() {
           reinterpret_cast<AtomicWord*>(&eventBuffer_), 0));
 }
 
-void TraceBufferChunk::reset(uint32_t new_seq) {
+void TraceBufferChunk::reset(uint32_t newSeq) {
   for (size_t i = 0; i < nextFree_; ++i) {
     chunk_[i].reset();
   }
   nextFree_ = 0;
-  seq_ = new_seq;
+  seq_ = newSeq;
 }
 
-TraceEvent* TraceBufferChunk::addTraceEvent(size_t* event_index) {
+TraceEvent* TraceBufferChunk::addTraceEvent(size_t* eventIndex) {
   DCHECK(!isFull());
-  *event_index = nextFree_++;
-  return &chunk_[*event_index];
+  *eventIndex = nextFree_++;
+  return &chunk_[*eventIndex];
 }
 
 unique_ptr<TraceBufferChunk> TraceBufferChunk::clone() const {
-  unique_ptr<TraceBufferChunk> cloned_chunk(new TraceBufferChunk(seq_));
-  cloned_chunk->nextFree_ = nextFree_;
+  unique_ptr<TraceBufferChunk> clonedChunk(new TraceBufferChunk(seq_));
+  clonedChunk->nextFree_ = nextFree_;
   for (size_t i = 0; i < nextFree_; ++i) {
-    cloned_chunk->chunk_[i].copyFrom(chunk_[i]);
+    clonedChunk->chunk_[i].copyFrom(chunk_[i]);
   }
-  return cloned_chunk;
+  return clonedChunk;
 }
 
 // A helper class that allows the lock to be acquired in the middle of the scope
@@ -637,18 +637,18 @@ void TraceEvent::initialize(
   }
 
   bool copy = !!(flags & TRACE_EVENT_FLAG_COPY);
-  size_t alloc_size = 0;
+  size_t allocSize = 0;
   if (copy) {
-    alloc_size += getAllocLength(name);
+    allocSize += getAllocLength(name);
     for (i = 0; i < num_args; ++i) {
-      alloc_size += getAllocLength(argNames_[i]);
+      allocSize += getAllocLength(argNames_[i]);
       if (argTypes_[i] == TRACE_VALUE_TYPE_STRING) {
         argTypes_[i] = TRACE_VALUE_TYPE_COPY_STRING;
       }
     }
   }
 
-  bool arg_is_copy[kTraceMaxNumArgs];
+  bool argIsCopy[kTraceMaxNumArgs];
   for (i = 0; i < num_args; ++i) {
     // No copying of convertable types, we retain ownership.
     if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
@@ -656,17 +656,17 @@ void TraceEvent::initialize(
     }
 
     // We only take a copy of arg_vals if they are of type COPY_STRING.
-    arg_is_copy[i] = (argTypes_[i] == TRACE_VALUE_TYPE_COPY_STRING);
-    if (arg_is_copy[i]) {
-      alloc_size += getAllocLength(argValues_[i].asString);
+    argIsCopy[i] = (argTypes_[i] == TRACE_VALUE_TYPE_COPY_STRING);
+    if (argIsCopy[i]) {
+      allocSize += getAllocLength(argValues_[i].asString);
     }
   }
 
-  if (alloc_size) {
+  if (allocSize) {
     parameterCopyStorage_ = std::make_shared<RefCountedString>();
-    parameterCopyStorage_->data().resize(alloc_size);
+    parameterCopyStorage_->data().resize(allocSize);
     char* ptr = parameterCopyStorage_->data().data();
-    const char* end = ptr + alloc_size;
+    const char* end = ptr + allocSize;
     if (copy) {
       copyTraceEventParameter(&ptr, &name_, end);
       for (i = 0; i < num_args; ++i) {
@@ -677,7 +677,7 @@ void TraceEvent::initialize(
       if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
         continue;
       }
-      if (arg_is_copy[i]) {
+      if (argIsCopy[i]) {
         copyTraceEventParameter(&ptr, &argValues_[i].asString, end);
       }
     }
@@ -708,8 +708,8 @@ namespace {
 // Escape the given string using JSON rules.
 void jsonEscape(StringPiece s, string* out) {
   out->reserve(out->size() + s.size() * 2);
-  const char* p_end = s.data() + s.size();
-  for (const char* p = s.data(); p != p_end; p++) {
+  const char* pEnd = s.data() + s.size();
+  for (const char* p = s.data(); p != pEnd; p++) {
     // Only the following characters need to be escaped, according to json.org.
     // In particular, it's illegal to escape the single-quote character, and
     // JSON does not support the "\x" escape sequence like C/Java.
@@ -810,7 +810,7 @@ void TraceEvent::appendValueAsJson(
 }
 
 void TraceEvent::appendAsJson(std::string* out) const {
-  int64_t time_int64 = timestamp_;
+  int64_t timeInt64 = timestamp_;
   int process_id = TraceLog::getInstance()->processId();
   // Category group checked at category creation time.
   DCHECK(!strchr(name_, '"'));
@@ -820,7 +820,7 @@ void TraceEvent::appendAsJson(std::string* out) const {
       TraceLog::getCategoryGroupName(categoryGroupEnabled_),
       process_id,
       threadId_,
-      time_int64,
+      timeInt64,
       static_cast<char>(phase_),
       name_);
 
@@ -856,8 +856,8 @@ void TraceEvent::appendAsJson(std::string* out) const {
 
   // Output tts if thread_timestamp is valid.
   if (threadTimestamp_ >= 0) {
-    int64_t thread_time_int64 = threadTimestamp_;
-    *out += fmt::format(",\"tts\":{}", thread_time_int64);
+    int64_t threadTimeInt64 = threadTimestamp_;
+    *out += fmt::format(",\"tts\":{}", threadTimeInt64);
   }
 
   // If id_ is set, print it out as a hex string so we don't loose any
@@ -899,15 +899,15 @@ void TraceEvent::appendPrettyPrinted(std::ostringstream* out) const {
         *out << ", ";
       }
       *out << argNames_[i] << ":";
-      std::string value_as_text;
+      std::string valueAsText;
 
       if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
-        convertableValues_[i]->appendAsTraceFormat(&value_as_text);
+        convertableValues_[i]->appendAsTraceFormat(&valueAsText);
       } else {
-        appendValueAsJson(argTypes_[i], argValues_[i], &value_as_text);
+        appendValueAsJson(argTypes_[i], argValues_[i], &valueAsText);
       }
 
-      *out << value_as_text;
+      *out << valueAsText;
     }
     *out << "}";
   }
@@ -927,10 +927,10 @@ string TraceResultBuffer::flushTraceLogToStringButLeaveBufferIntact() {
   return doFlush(true);
 }
 
-string TraceResultBuffer::doFlush(bool leave_intact) {
+string TraceResultBuffer::doFlush(bool leaveIntact) {
   TraceResultBuffer buf;
   TraceLog* tl = TraceLog::getInstance();
-  if (leave_intact) {
+  if (leaveIntact) {
     tl->flushButLeaveBufferIntact(
         Bind(&TraceResultBuffer::collect, Unretained(&buf)));
   } else {
@@ -945,7 +945,7 @@ TraceResultBuffer::~TraceResultBuffer() {}
 
 void TraceResultBuffer::collect(
     const std::shared_ptr<RefCountedString>& s,
-    bool /* has_more_events */) {
+    bool /* hasMoreEvents */) {
   if (first_) {
     json_.append("{\"traceEvents\": [\n");
     first_ = false;
@@ -1164,10 +1164,10 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::addTraceEvent(
     return nullptr;
   }
 
-  size_t event_index;
-  TraceEvent* trace_event = chunk_->addTraceEvent(&event_index);
+  size_t eventIndex;
+  TraceEvent* trace_event = chunk_->addTraceEvent(&eventIndex);
   if (trace_event && handle) {
-    makeHandle(chunk_->seq(), chunkIndex_, event_index, handle);
+    makeHandle(chunk_->seq(), chunkIndex_, eventIndex, handle);
   }
 
   return trace_event;
@@ -1590,14 +1590,11 @@ TraceEvent* TraceLog::addEventToThreadSharedChunkWhileLocked(
     return nullptr;
   }
 
-  size_t event_index;
-  TraceEvent* trace_event = threadSharedChunk_->addTraceEvent(&event_index);
+  size_t eventIndex;
+  TraceEvent* trace_event = threadSharedChunk_->addTraceEvent(&eventIndex);
   if (trace_event && handle) {
     makeHandle(
-        threadSharedChunk_->seq(),
-        threadSharedChunkIndex_,
-        event_index,
-        handle);
+        threadSharedChunk_->seq(), threadSharedChunkIndex_, eventIndex, handle);
   }
   return trace_event;
 }
@@ -1724,7 +1721,7 @@ void TraceLog::convertTraceEventsToTraceFormat(
 
   // The callback need to be called at least once even if there is no events
   // to let the caller know the completion of flush.
-  bool has_more_events = true;
+  bool hasMoreEvents = true;
   do {
     std::shared_ptr<RefCountedString> json_events_str_ptr =
         std::make_shared<RefCountedString>();
@@ -1732,7 +1729,7 @@ void TraceLog::convertTraceEventsToTraceFormat(
     for (size_t i = 0; i < kTraceEventBatchChunks; ++i) {
       const TraceBufferChunk* chunk = logged_events->nextChunk();
       if (!chunk) {
-        has_more_events = false;
+        hasMoreEvents = false;
         break;
       }
       for (size_t j = 0; j < chunk->size(); ++j) {
@@ -1743,8 +1740,8 @@ void TraceLog::convertTraceEventsToTraceFormat(
       }
     }
 
-    flush_output_callback.Run(json_events_str_ptr, has_more_events);
-  } while (has_more_events);
+    flush_output_callback.Run(json_events_str_ptr, hasMoreEvents);
+  } while (hasMoreEvents);
   logged_events.reset();
 }
 

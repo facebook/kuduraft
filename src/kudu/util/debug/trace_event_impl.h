@@ -203,8 +203,8 @@ class BASE_EXPORT TraceBufferChunk {
  public:
   explicit TraceBufferChunk(uint32_t seq) : nextFree_(0), seq_(seq) {}
 
-  void reset(uint32_t new_seq);
-  TraceEvent* addTraceEvent(size_t* event_index);
+  void reset(uint32_t newSeq);
+  TraceEvent* addTraceEvent(size_t* eventIndex);
   bool isFull() const {
     return nextFree_ == kTraceBufferChunkSize;
   }
@@ -275,12 +275,10 @@ class TraceResultBuffer {
   TraceResultBuffer();
   ~TraceResultBuffer();
 
-  static std::string doFlush(bool leave_intact);
+  static std::string doFlush(bool leaveIntact);
 
   // Callback for TraceLog::flush
-  void collect(
-      const std::shared_ptr<RefCountedString>& s,
-      bool has_more_events);
+  void collect(const std::shared_ptr<RefCountedString>& s, bool hasMoreEvents);
 
   bool first_;
   std::string json_;
@@ -515,9 +513,8 @@ class BASE_EXPORT TraceLog {
   // done when tracing is enabled. If called when tracing is enabled, the
   // callback will be called directly with (empty_string, false) to indicate
   // the end of this unsuccessful flush.
-  using OutputCallback = kudu::Callback<void(
-      const std::shared_ptr<kudu::RefCountedString>&,
-      bool has_more_events)>;
+  using OutputCallback = kudu::Callback<
+      void(const std::shared_ptr<kudu::RefCountedString>&, bool hasMoreEvents)>;
   void flush(const OutputCallback& cb);
   void flushButLeaveBufferIntact(const OutputCallback& flush_output_callback);
 
