@@ -176,35 +176,35 @@ DEFINE_dynamic_timeseries(
 // ---- log_metrics.cc: histograms ----
 
 DEFINE_dynamic_quantile_stat(
-    log_sync_latency,
+    logSyncLatency,
     "{}.log_sync_latency_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    log_append_latency,
+    logAppendLatency,
     "{}.log_append_latency_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    log_group_commit_latency,
+    logGroupCommitLatency,
     "{}.log_group_commit_latency_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    log_roll_latency,
+    logRollLatency,
     "{}.log_roll_latency_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    log_entry_batches_per_group,
+    logEntryBatchesPerGroup,
     "{}.log_entry_batches_per_group",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -213,7 +213,7 @@ DEFINE_dynamic_quantile_stat(
 // ---- log_metrics.cc: counter ----
 
 DEFINE_dynamic_timeseries(
-    log_bytes_logged,
+    logBytesLogged,
     "{}.log_bytes_logged_bytes",
     facebook::fb303::ExportType::SUM);
 
@@ -244,34 +244,34 @@ DEFINE_dynamic_timeseries(
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    block_cache_evictions,
+    blockCacheEvictions,
     "{}.block_cache_evictions",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    block_cache_misses,
+    blockCacheMisses,
     "{}.block_cache_misses",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    block_cache_misses_caching,
+    blockCacheMissesCaching,
     "{}.block_cache_misses_caching",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    block_cache_hits,
+    blockCacheHits,
     "{}.block_cache_hits",
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_timeseries(
-    block_cache_hits_caching,
+    blockCacheHitsCaching,
     "{}.block_cache_hits_caching",
     facebook::fb303::ExportType::SUM);
 
 // ---- cache_metrics.cc: gauge ----
 
 DEFINE_dynamic_quantile_stat(
-    block_cache_usage,
+    blockCacheUsage,
     "{}.block_cache_usage_bytes",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -290,17 +290,17 @@ DEFINE_dynamic_quantile_stat(
 // Single sample per window, so timeseries with AVG (not quantile stat).
 
 DEFINE_dynamic_timeseries(
-    spinlock_contention_time,
+    spinlockContentionTime,
     "{}.spinlock_contention_time_us",
     facebook::fb303::ExportType::AVG);
 
 DEFINE_dynamic_timeseries(
-    cpu_utime,
+    cpuUtime,
     "{}.cpu_utime_ms",
     facebook::fb303::ExportType::AVG);
 
 DEFINE_dynamic_timeseries(
-    cpu_stime,
+    cpuStime,
     "{}.cpu_stime_ms",
     facebook::fb303::ExportType::AVG);
 

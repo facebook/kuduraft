@@ -302,7 +302,7 @@ void LruCache::freeEntry(LruHandle* e) {
   }
   updateMemTracker(-static_cast<int64_t>(e->charge));
   if (PREDICT_TRUE(metrics_)) {
-    STATS_block_cache_evictions.add(1, KUDU_STATS_TAG);
+    STATS_blockCacheEvictions.add(1, KUDU_STATS_TAG);
   }
   delete[] e;
 }
@@ -352,15 +352,15 @@ Cache::Handle* LruCache::lookup(const Slice& key, uint32_t hash, bool caching) {
     bool wasHit = (e != nullptr);
     if (wasHit) {
       if (caching) {
-        STATS_block_cache_hits_caching.add(1, KUDU_STATS_TAG);
+        STATS_blockCacheHitsCaching.add(1, KUDU_STATS_TAG);
       } else {
-        STATS_block_cache_hits.add(1, KUDU_STATS_TAG);
+        STATS_blockCacheHits.add(1, KUDU_STATS_TAG);
       }
     } else {
       if (caching) {
-        STATS_block_cache_misses_caching.add(1, KUDU_STATS_TAG);
+        STATS_blockCacheMissesCaching.add(1, KUDU_STATS_TAG);
       } else {
-        STATS_block_cache_misses.add(1, KUDU_STATS_TAG);
+        STATS_blockCacheMisses.add(1, KUDU_STATS_TAG);
       }
     }
   }

@@ -79,14 +79,14 @@ DECLARE_dynamic_timeseries(logCacheCompressedPayloadSize, 1);
 DECLARE_dynamic_timeseries(logCachePayloadSize, 1);
 
 // --- log_metrics.cc: histograms ---
-DECLARE_dynamic_quantile_stat(log_sync_latency, 1);
-DECLARE_dynamic_quantile_stat(log_append_latency, 1);
-DECLARE_dynamic_quantile_stat(log_group_commit_latency, 1);
-DECLARE_dynamic_quantile_stat(log_roll_latency, 1);
-DECLARE_dynamic_quantile_stat(log_entry_batches_per_group, 1);
+DECLARE_dynamic_quantile_stat(logSyncLatency, 1);
+DECLARE_dynamic_quantile_stat(logAppendLatency, 1);
+DECLARE_dynamic_quantile_stat(logGroupCommitLatency, 1);
+DECLARE_dynamic_quantile_stat(logRollLatency, 1);
+DECLARE_dynamic_quantile_stat(logEntryBatchesPerGroup, 1);
 
 // --- log_metrics.cc: counter ---
-DECLARE_dynamic_timeseries(log_bytes_logged, 1);
+DECLARE_dynamic_timeseries(logBytesLogged, 1);
 
 // --- consensus_peers.cc: counter ---
 DECLARE_dynamic_timeseries(raft_rpc_token_num_response_mismatches, 1);
@@ -97,14 +97,14 @@ DECLARE_dynamic_timeseries(log_index_chunk_mmap_for_read, 1);
 // --- cache_metrics.cc: counters ---
 DECLARE_dynamic_timeseries(blockCacheInserts, 1);
 DECLARE_dynamic_timeseries(blockCacheLookups, 1);
-DECLARE_dynamic_timeseries(block_cache_evictions, 1);
-DECLARE_dynamic_timeseries(block_cache_misses, 1);
-DECLARE_dynamic_timeseries(block_cache_misses_caching, 1);
-DECLARE_dynamic_timeseries(block_cache_hits, 1);
-DECLARE_dynamic_timeseries(block_cache_hits_caching, 1);
+DECLARE_dynamic_timeseries(blockCacheEvictions, 1);
+DECLARE_dynamic_timeseries(blockCacheMisses, 1);
+DECLARE_dynamic_timeseries(blockCacheMissesCaching, 1);
+DECLARE_dynamic_timeseries(blockCacheHits, 1);
+DECLARE_dynamic_timeseries(blockCacheHitsCaching, 1);
 
 // --- cache_metrics.cc: gauge ---
-DECLARE_dynamic_quantile_stat(block_cache_usage, 1);
+DECLARE_dynamic_quantile_stat(blockCacheUsage, 1);
 
 // --- RaftInterface.cpp: histogram ---
 DECLARE_dynamic_quantile_stat(leader_replicate_latency, 1);
@@ -115,9 +115,9 @@ DECLARE_dynamic_quantile_stat(threadsRunning, 1);
 
 // --- Process-level gauges (polled every 60s via FunctionScheduler) ---
 // Single sample per window, so timeseries (not quantile stat).
-DECLARE_dynamic_timeseries(spinlock_contention_time, 1);
-DECLARE_dynamic_timeseries(cpu_utime, 1);
-DECLARE_dynamic_timeseries(cpu_stime, 1);
+DECLARE_dynamic_timeseries(spinlockContentionTime, 1);
+DECLARE_dynamic_timeseries(cpuUtime, 1);
+DECLARE_dynamic_timeseries(cpuStime, 1);
 DECLARE_dynamic_timeseries(voluntary_context_switches, 1);
 DECLARE_dynamic_timeseries(involuntary_context_switches, 1);
 

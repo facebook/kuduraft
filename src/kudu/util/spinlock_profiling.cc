@@ -291,16 +291,15 @@ void registerSpinLockContentionMetrics(
           static constexpr std::string_view kTag = "process_metrics";
 
           // Spinlock contention
-          STATS_spinlock_contention_time.add(
-              getSpinLockContentionMicros(), kTag);
+          STATS_spinlockContentionTime.add(getSpinLockContentionMicros(), kTag);
 
           // Single getrusage call for CPU time + context switches
           rusage ru;
           if (getrusage(RUSAGE_SELF, &ru) == 0) {
-            STATS_cpu_utime.add(
+            STATS_cpuUtime.add(
                 ru.ru_utime.tv_sec * 1000UL + ru.ru_utime.tv_usec / 1000UL,
                 kTag);
-            STATS_cpu_stime.add(
+            STATS_cpuStime.add(
                 ru.ru_stime.tv_sec * 1000UL + ru.ru_stime.tv_usec / 1000UL,
                 kTag);
             STATS_voluntary_context_switches.add(ru.ru_nvcsw, kTag);
