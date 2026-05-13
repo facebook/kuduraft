@@ -403,7 +403,7 @@ Status TSTabletManager::Start(bool isFirstRun) {
   VLOG(2) << "T " << kSysCatalogTabletId << " P " << consensus_->peer_uuid()
           << ": Peer starting";
   VLOG(2) << "RaftConfig before starting: "
-          << SecureDebugString(consensus_->CommittedConfig());
+          << SecureDebugString(consensus_->committedConfig());
 
   unique_ptr<PeerProxyFactory> peerProxyFactory;
   std::shared_ptr<ITimeManager> timeManager;
@@ -490,25 +490,25 @@ Status TSTabletManager::setupRaft() {
           &consensus));
   consensus_ = std::move(consensus);
   if (server_->opts().edcb) {
-    consensus_->SetElectionDecisionCallback(server_->opts().edcb);
+    consensus_->setElectionDecisionCallback(server_->opts().edcb);
   }
   if (server_->opts().tacb) {
-    consensus_->SetTermAdvancementCallback(server_->opts().tacb);
+    consensus_->setTermAdvancementCallback(server_->opts().tacb);
   }
   if (server_->opts().norcb) {
-    consensus_->SetNoOpReceivedCallback(server_->opts().norcb);
+    consensus_->setNoOpReceivedCallback(server_->opts().norcb);
   }
   if (server_->opts().ldcb) {
-    consensus_->SetLeaderDetectedCallback(server_->opts().ldcb);
+    consensus_->setLeaderDetectedCallback(server_->opts().ldcb);
   }
   if (server_->opts().disableNoop) {
     consensus_->disableNoOpEntries();
   }
   if (server_->opts().voteLogger) {
-    consensus_->SetVoteLogger(server_->opts().voteLogger);
+    consensus_->setVoteLogger(server_->opts().voteLogger);
   }
   if (server_->opts().stateMachineMetrics) {
-    consensus_->SetStateMachineMetrics(server_->opts().stateMachineMetrics);
+    consensus_->setStateMachineMetrics(server_->opts().stateMachineMetrics);
   }
 
   // setState(INITIALIZED);

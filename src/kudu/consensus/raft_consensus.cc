@@ -4096,7 +4096,7 @@ const string& RaftConsensus::tablet_id() const {
   return options_.tablet_id;
 }
 
-Status RaftConsensus::ConsensusState(
+Status RaftConsensus::consensusState(
     ConsensusStatePB* cstate,
     IncludeHealthReport report_health,
     bool lock) const {
@@ -4140,17 +4140,17 @@ Status RaftConsensus::ConsensusState(
   return Status::OK();
 }
 
-RaftConfigPB RaftConsensus::CommittedConfig() const {
+RaftConfigPB RaftConsensus::committedConfig() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   return cmeta_->committedConfig();
 }
 
-Status RaftConsensus::PendingConfig(RaftConfigPB* pendingConfig) const {
+Status RaftConsensus::pendingConfig(RaftConfigPB* pendingConfigOut) const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   if (cmeta_->hasPendingConfig()) {
-    *pendingConfig = cmeta_->pendingConfig();
+    *pendingConfigOut = cmeta_->pendingConfig();
     return Status::OK();
   }
   return Status::NotFound("No pending config found");
@@ -4617,7 +4617,7 @@ void RaftConsensus::SnoozeFailureDetector(
   }
 }
 
-void RaftConsensus::PauseFailureDetector(std::optional<MonoDelta> delta) {
+void RaftConsensus::pauseFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(failureDetector_ && FLAGS_enable_leader_failure_detection)) {
     if (!delta) {
       delta = updateReplicaSnoozeTimeout();
@@ -4632,7 +4632,7 @@ void RaftConsensus::PauseFailureDetector(std::optional<MonoDelta> delta) {
   }
 }
 
-void RaftConsensus::ResumeFailureDetector() {
+void RaftConsensus::resumeFailureDetector() {
   if (PREDICT_TRUE(failureDetector_ && FLAGS_enable_leader_failure_detection)) {
     std::optional<MonoDelta> time_left = failureDetectorTimeLeft_.withWLock(
         [](std::optional<MonoDelta>& time_left) {
@@ -5173,27 +5173,27 @@ int64_t RaftConsensus::getMillisSinceLastLeaderHeartbeat() const {
       : (getMonoTimeMicros() - lastLeaderCommunicationTimeMicros_) / 1000;
 }
 
-void RaftConsensus::SetElectionDecisionCallback(ElectionDecisionCallback edcb) {
+void RaftConsensus::setElectionDecisionCallback(ElectionDecisionCallback edcb) {
   CHECK(edcb);
   edcb_ = std::move(edcb);
 }
 
-void RaftConsensus::SetTermAdvancementCallback(TermAdvancementCallback tacb) {
+void RaftConsensus::setTermAdvancementCallback(TermAdvancementCallback tacb) {
   CHECK(tacb);
   tacb_ = std::move(tacb);
 }
 
-void RaftConsensus::SetNoOpReceivedCallback(NoOpReceivedCallback norcb) {
+void RaftConsensus::setNoOpReceivedCallback(NoOpReceivedCallback norcb) {
   CHECK(norcb);
   norcb_ = std::move(norcb);
 }
 
-void RaftConsensus::SetLeaderDetectedCallback(LeaderDetectedCallback ldcb) {
+void RaftConsensus::setLeaderDetectedCallback(LeaderDetectedCallback ldcb) {
   CHECK(ldcb);
   ldcb_ = std::move(ldcb);
 }
 
-void RaftConsensus::SetVoteLogger(
+void RaftConsensus::setVoteLogger(
     std::shared_ptr<VoteLoggerInterface> vote_logger) {
   voteLogger_ = std::move(vote_logger);
 }
@@ -5731,14 +5731,14 @@ Status ConsensusRound::CheckBoundTerm(int64_t current_term) const {
   return Status::OK();
 }
 
-void RaftConsensus::SetCheckQuorumFailureCallback(
+void RaftConsensus::setCheckQuorumFailureCallback(
     CheckQuorumFailureCallback failure_callback) {
   LockGuard l(lock_);
   checkQuorumFailureCallback_ = std::move(failure_callback);
   InitCheckQuorumDetectorUnlocked();
 }
 
-void RaftConsensus::SetCheckQuorumFailureIntervalHeartbeats(
+void RaftConsensus::setCheckQuorumFailureIntervalHeartbeats(
     int32_t heartbeats) {
   LockGuard l(lock_);
   checkQuorumIntervalHeartbeats_ = heartbeats;
@@ -5816,17 +5816,17 @@ void RaftConsensus::StopCheckQuorumDetectorUnlocked() {
   checkQuorumTimer_.reset();
 }
 
-int32_t RaftConsensus::GetAvailableCommitPeers() {
+int32_t RaftConsensus::getAvailableCommitPeers() {
   LockGuard l(lock_);
   return queue_->GetAvailableCommitPeers();
 }
 
-Status RaftConsensus::GetQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
+Status RaftConsensus::getQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
   LockGuard l(lock_);
   return queue_->GetQuorumHealth(health);
 }
 
-void RaftConsensus::SetStateMachineMetrics(
+void RaftConsensus::setStateMachineMetrics(
     std::shared_ptr<StateMachineMetricsInterface> s) {
   stateMachineMetrics_ = std::move(s);
 }
@@ -5837,7 +5837,7 @@ Status RaftConsensus::getAllStateMachineMetrics(
   return queue_->getAllStateMachineMetrics(metrics);
 }
 
-bool RaftConsensus::IsStateMachineHealthyForElection(
+bool RaftConsensus::isStateMachineHealthyForElection(
     const std::string& candidate_uuid,
     std::optional<int> seconds_behind_master_threshold) {
   LockGuard l(lock_);

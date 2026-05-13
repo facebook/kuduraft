@@ -661,16 +661,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // health report about each active peer in the committed config.
   // If RaftConsensus has been shut down, returns Status::IllegalState.
   // Does not modify the out-param 'cstate' unless an OK status is returned.
-  Status ConsensusState(
+  Status consensusState(
       ConsensusStatePB* cstate,
       IncludeHealthReport report_health = EXCLUDE_HEALTH_REPORT,
       bool lock = true) const;
 
   // Returns a copy of the current committed Raft configuration.
-  RaftConfigPB CommittedConfig() const;
+  RaftConfigPB committedConfig() const;
 
   // Returns a copy of the current pending Raft configuration.
-  Status PendingConfig(RaftConfigPB* pendingConfig) const;
+  Status pendingConfig(RaftConfigPB* pendingConfigOut) const;
 
   // Transition to kStopped state. See State enum definition for details.
   // This is a no-op if the tablet is already in kStopped or kShutdown state;
@@ -793,23 +793,23 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Sets the callback that is called when we detect a failure in the
   // CheckQuorum detector.
-  void SetCheckQuorumFailureCallback(
+  void setCheckQuorumFailureCallback(
       CheckQuorumFailureCallback failure_callback);
 
   // Changes the interval at which to call the Check Quorum detector.
   // This method exists because changing the interval requires re-initializing
   // the check quorum timer.
-  void SetCheckQuorumFailureIntervalHeartbeats(int heartbeats);
+  void setCheckQuorumFailureIntervalHeartbeats(int heartbeats);
 
   // See kudu::consensus::PeerMessageQueue::GetAvailableCommitPeers().
-  int32_t GetAvailableCommitPeers();
+  int32_t getAvailableCommitPeers();
 
-  Status GetQuorumHealth(PeerMessageQueue::QuorumHealth* health);
+  Status getQuorumHealth(PeerMessageQueue::QuorumHealth* health);
 
   Status getAllStateMachineMetrics(
       PeerMessageQueue::AllStateMachineMetrics* metrics);
 
-  void SetStateMachineMetrics(
+  void setStateMachineMetrics(
       std::shared_ptr<StateMachineMetricsInterface> state_machine_metrics);
 
   /**
@@ -823,16 +823,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
    *                 exceeded, the failure detector will detect a failure even
    *                 when paused. Defaults to updateReplicaSnoozeTimeout
    */
-  void PauseFailureDetector(std::optional<MonoDelta> maxPause = {});
+  void pauseFailureDetector(std::optional<MonoDelta> maxPause = {});
 
   /**
    * Resumes the failure detector at the point where it was paused by
-   * PauseFailureDectector, assuming that we did not snooze the timer in the
+   * pauseFailureDetector, assuming that we did not snooze the timer in the
    * interim.
    */
-  void ResumeFailureDetector();
+  void resumeFailureDetector();
 
-  bool IsStateMachineHealthyForElection(
+  bool isStateMachineHealthyForElection(
       const std::string& candidate_uuid,
       std::optional<int> seconds_behind_master_threshold = std::nullopt);
 
@@ -1352,11 +1352,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   ConsensusMetadata* consensus_metadata_for_tests() const;
 
-  void SetElectionDecisionCallback(ElectionDecisionCallback edcb);
-  void SetTermAdvancementCallback(TermAdvancementCallback tacb);
-  void SetNoOpReceivedCallback(NoOpReceivedCallback norcb);
-  void SetLeaderDetectedCallback(LeaderDetectedCallback ldcb);
-  void SetVoteLogger(std::shared_ptr<VoteLoggerInterface> vote_logger);
+  void setElectionDecisionCallback(ElectionDecisionCallback edcb);
+  void setTermAdvancementCallback(TermAdvancementCallback tacb);
+  void setNoOpReceivedCallback(NoOpReceivedCallback norcb);
+  void setLeaderDetectedCallback(LeaderDetectedCallback ldcb);
+  void setVoteLogger(std::shared_ptr<VoteLoggerInterface> vote_logger);
 
   Status ValidateTransferLeadership(
       const std::optional<std::string>& new_leader_uuid,

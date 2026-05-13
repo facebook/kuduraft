@@ -329,14 +329,14 @@ bool ConsensusServiceImpl::AuthorizeServiceUser(
 void ConsensusServiceImpl::LongUpdateConsensusLoading() {
   if (shared_ptr<RaftConsensus> consensus =
           tabletManager_.shared_consensus("")) {
-    consensus->PauseFailureDetector();
+    consensus->pauseFailureDetector();
   }
 }
 
 void ConsensusServiceImpl::LongUpdateConsensusLoaded() {
   if (shared_ptr<RaftConsensus> consensus =
           tabletManager_.shared_consensus("")) {
-    consensus->ResumeFailureDetector();
+    consensus->resumeFailureDetector();
   }
 }
 
@@ -723,7 +723,7 @@ void ConsensusServiceImpl::GetConsensusState(
     }
 
     consensus::GetConsensusStateResponsePB_TabletConsensusInfoPB tabletInfo;
-    Status s = consensus->ConsensusState(tabletInfo.mutable_cstate(), req->report_health());
+    Status s = consensus->consensusState(tabletInfo.mutable_cstate(), req->report_health());
     if (!s.ok()) {
       DCHECK(s.IsIllegalState()) << s.ToString();
       continue;

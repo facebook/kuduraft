@@ -261,7 +261,7 @@ Status RaftConsensusInstance::start(bool /*isFirstRun*/) {
   VLOG_WITH_PREFIX(2) << "T " << id_ << " P " << consensus_->peer_uuid()
                       << ": Peer starting";
   VLOG_WITH_PREFIX(2) << "RaftConfig before starting: "
-                      << SecureDebugString(consensus_->CommittedConfig());
+                      << SecureDebugString(consensus_->committedConfig());
 
   std::unique_ptr<PeerProxyFactory> peerProxyFactory;
   std::shared_ptr<ITimeManager> timeManager;
@@ -547,25 +547,25 @@ Status RaftConsensusInstance::setupRaft() {
           &consensus));
   consensus_ = std::move(consensus);
   if (opts.edcb) {
-    consensus_->SetElectionDecisionCallback(opts.edcb);
+    consensus_->setElectionDecisionCallback(opts.edcb);
   }
   if (opts.tacb) {
-    consensus_->SetTermAdvancementCallback(opts.tacb);
+    consensus_->setTermAdvancementCallback(opts.tacb);
   }
   if (opts.norcb) {
-    consensus_->SetNoOpReceivedCallback(opts.norcb);
+    consensus_->setNoOpReceivedCallback(opts.norcb);
   }
   if (opts.ldcb) {
-    consensus_->SetLeaderDetectedCallback(opts.ldcb);
+    consensus_->setLeaderDetectedCallback(opts.ldcb);
   }
   if (opts.disableNoop) {
     consensus_->disableNoOpEntries();
   }
   if (opts.voteLogger) {
-    consensus_->SetVoteLogger(opts.voteLogger);
+    consensus_->setVoteLogger(opts.voteLogger);
   }
   if (opts.stateMachineMetrics) {
-    consensus_->SetStateMachineMetrics(opts.stateMachineMetrics);
+    consensus_->setStateMachineMetrics(opts.stateMachineMetrics);
   }
 
   // set_state(INITIALIZED);
