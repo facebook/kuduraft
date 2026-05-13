@@ -47,8 +47,8 @@ Status doGetLoggedInUser(string* userName) {
 
   // Get the system-defined limit for usernames. If the value was indeterminate,
   // use a constant that should be more than enough, per the man page.
-  int64_t retval = sysconf(_SC_GETPW_R_SIZE_MAX);
-  size_t bufSize = retval > 0 ? retval : 16384;
+  int64_t retVal = sysconf(_SC_GETPW_R_SIZE_MAX);
+  size_t bufSize = retVal > 0 ? retVal : 16384;
 
   const unique_ptr<char[]> buf(new char[bufSize]);
 
