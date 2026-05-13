@@ -178,10 +178,10 @@ class MultiThreadTest {
   MultiThreadTest()
       : puts(4),
         blockingPuts(4),
-        nthreads(5),
-        queue(nthreads * puts),
-        numInserters(nthreads),
-        syncLatch(nthreads) {}
+        nThreads(5),
+        queue(nThreads * puts),
+        numInserters(nThreads),
+        syncLatch(nThreads) {}
 
   void inserterThread(int arg) {
     for (int i = 0; i < puts; i++) {
@@ -211,7 +211,7 @@ class MultiThreadTest {
   }
 
   void run() {
-    for (int i = 0; i < nthreads; i++) {
+    for (int i = 0; i < nThreads; i++) {
       threads.emplace_back(&MultiThreadTest::inserterThread, this, i);
       threads.emplace_back(&MultiThreadTest::removerThread, this);
     }
@@ -223,11 +223,11 @@ class MultiThreadTest {
     }
     // Let's check to make sure we got what we should have.
     MutexLock guard(lock);
-    for (int i = 0; i < nthreads; i++) {
+    for (int i = 0; i < nThreads; i++) {
       ASSERT_EQ(puts + blockingPuts, gotten[i]);
     }
-    // And there were nthreads * (puts + blockingPuts)
-    // elements removed, but only nthreads * puts +
+    // And there were nThreads * (puts + blockingPuts)
+    // elements removed, but only nThreads * puts +
     // blockingPuts elements added.  So some removers hit the
     // shutdown case.
     ASSERT_EQ(puts + blockingPuts, gotten[-1]);
@@ -235,7 +235,7 @@ class MultiThreadTest {
 
   int puts;
   int blockingPuts;
-  int nthreads;
+  int nThreads;
   BlockingQueue<int32_t> queue;
   Mutex lock;
   std::map<int32_t, int> gotten;
