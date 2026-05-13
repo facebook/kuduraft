@@ -52,9 +52,9 @@ int krb5_realm_override_loaded = 1;
 // Save the original function from the Kerberos library itself.
 // We use dlsym() to load all of them, since this file gets linked into
 // some test binaries that themselves may not link against libkrb5.so at all.
-static void* gOrigKrb5GetHostRealm;
-static void* gOrigKrb5GetDefaultRealm;
-static void* gOrigKrb5FreeDefaultRealm;
+static void* origKrb5GetHostRealm;
+static void* origKrb5GetDefaultRealm;
+static void* origKrb5FreeDefaultRealm;
 
 // We only enable our workaround if this environment variable is set.
 constexpr static const char* kEnvVar = "KUDU_ENABLE_KRB5_REALM_FIX";
@@ -63,19 +63,19 @@ constexpr static const char* kEnvVar = "KUDU_ENABLE_KRB5_REALM_FIX";
   ((decltype(&func_name))orig_ptr)(__VA_ARGS__)
 
 __attribute__((constructor)) static void initOrigFunc() {
-  gOrigKrb5GetHostRealm = dlsym(RTLD_NEXT, "krb5_get_host_realm");
-  gOrigKrb5GetDefaultRealm = dlsym(RTLD_NEXT, "krb5_get_default_realm");
-  gOrigKrb5FreeDefaultRealm = dlsym(RTLD_NEXT, "krb5_free_default_realm");
+  origKrb5GetHostRealm = dlsym(RTLD_NEXT, "krb5_get_host_realm");
+  origKrb5GetDefaultRealm = dlsym(RTLD_NEXT, "krb5_get_default_realm");
+  origKrb5FreeDefaultRealm = dlsym(RTLD_NEXT, "krb5_free_default_realm");
 }
 
 krb5_error_code
 krb5_get_host_realm(krb5_context context, const char* host, char*** realmsp) {
-  CHECK(gOrigKrb5GetHostRealm);
-  CHECK(gOrigKrb5GetDefaultRealm);
-  CHECK(gOrigKrb5FreeDefaultRealm);
+  CHECK(origKrb5GetHostRealm);
+  CHECK(origKrb5GetDefaultRealm);
+  CHECK(origKrb5FreeDefaultRealm);
 
   krb5_error_code rc = CALL_ORIG(
-      krb5_get_host_realm, gOrigKrb5GetHostRealm, context, host, realmsp);
+      krb5_get_host_realm, origKrb5GetHostRealm, context, host, realmsp);
   if (rc != KRB5_ERR_NUMERIC_REALM || getenv(kEnvVar) == nullptr) {
     return rc;
   }
@@ -84,7 +84,7 @@ krb5_get_host_realm(krb5_context context, const char* host, char*** realmsp) {
   // So, we fill in the default realm instead.
   char* defaultRealm;
   rc = CALL_ORIG(
-      krb5_get_default_realm, gOrigKrb5GetDefaultRealm, context, &defaultRealm);
+      krb5_get_default_realm, origKrb5GetDefaultRealm, context, &defaultRealm);
   if (rc != 0) {
     return rc;
   }
@@ -103,10 +103,7 @@ krb5_get_host_realm(krb5_context context, const char* host, char*** realmsp) {
   *realmsp = retRealms;
 
   CALL_ORIG(
-      krb5_free_default_realm,
-      gOrigKrb5FreeDefaultRealm,
-      context,
-      defaultRealm);
+      krb5_free_default_realm, origKrb5FreeDefaultRealm, context, defaultRealm);
   return 0;
 }
 
