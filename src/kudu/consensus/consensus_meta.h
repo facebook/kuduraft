@@ -94,9 +94,9 @@ class ConsensusMetadata {
   bool isMemberInConfigWithDetail(
       const std::string& uuid,
       RaftConfigState type,
-      std::string* hostname_port,
-      bool* is_voter,
-      std::string* quorum_id);
+      std::string* hostnamePort,
+      bool* isVoter,
+      std::string* quorumId);
 
   // Returns a count of the number of voters in the specified local Raft
   // config.
@@ -134,7 +134,7 @@ class ConsensusMetadata {
   // Accessors for setting the active leader.
   const std::string& leaderUuid() const;
   void setLeaderUuid(std::string uuid);
-  Status syncLastKnownLeader(std::optional<int64_t> cas_term = {});
+  Status syncLastKnownLeader(std::optional<int64_t> casTerm = {});
 
   // Accessor for last known leader. It's not necessarily an active leader.
   // Used for computation of quorums for flexiraft leader elections.
@@ -178,7 +178,7 @@ class ConsensusMetadata {
   void mergeCommittedConsensusStatePB(const ConsensusStatePB& cstate);
 
   // Persist current state of the protobuf to disk.
-  Status flush(FlushMode flush_mode = kOverwrite);
+  Status flush(FlushMode flushMode = kOverwrite);
 
   int64_t flushCountForTests() const {
     return flushCountForTests_;
@@ -190,21 +190,20 @@ class ConsensusMetadata {
     return onDiskSize_.load(std::memory_order_relaxed);
   }
 
-  // Adds all the peer_uuid's in 'removed_peers' to the internal list
+  // Adds all the peerUuid's in 'removedPeers' to the internal list
   // (removedPeers_) tracking peers that have been removed from the active
   // config. 'removedPeers_' can only track 'max_removed_peers' peers. So, the
   // earliest peers are evicted from the list (if needed)
-  void insertIntoRemovedPeersList(
-      const std::vector<std::string>& removed_peers);
+  void insertIntoRemovedPeersList(const std::vector<std::string>& removedPeers);
 
-  // Returns true if 'peer_uuid' is present in 'removedPeers_' list
-  bool isPeerRemoved(const std::string& peer_uuid);
+  // Returns true if 'peerUuid' is present in 'removedPeers_' list
+  bool isPeerRemoved(const std::string& peerUuid);
 
-  // Deletes all the uuids in 'peer_uuids' from 'removedPeers_' list
-  void deleteFromRemovedPeersList(const std::vector<std::string>& peer_uuids);
+  // Deletes all the uuids in 'peerUuids' from 'removedPeers_' list
+  void deleteFromRemovedPeersList(const std::vector<std::string>& peerUuids);
 
-  // Deletes 'peer_uuid' frpm 'removedPeers_' list
-  void deleteFromRemovedPeersList(const std::string& peer_uuid);
+  // Deletes 'peerUuid' frpm 'removedPeers_' list
+  void deleteFromRemovedPeersList(const std::string& peerUuid);
 
   // Clears the 'removedPeers_' list
   void clearRemovedPeersList();
@@ -227,45 +226,45 @@ class ConsensusMetadata {
   static const int32_t kVoteHistoryMaxSize = 100;
 
   ConsensusMetadata(
-      FsManager* fs_manager,
-      std::string tablet_id,
-      std::string peer_uuid);
+      FsManager* fsManager,
+      std::string tabletId,
+      std::string peerUuid);
 
   // Create a ConsensusMetadata object with provided initial state.
-  // If 'create_mode' is set to FlushOnCreate, the encoded PB is flushed to
-  // disk before returning. Otherwise, if 'create_mode' is set to
+  // If 'createMode' is set to FlushOnCreate, the encoded PB is flushed to
+  // disk before returning. Otherwise, if 'createMode' is set to
   // NoFlushOnCreate, the caller must explicitly call flush() on the
   // returned object to get the bytes onto disk.
   static Status create(
-      FsManager* fs_manager,
-      const std::string& tablet_id,
-      const std::string& peer_uuid,
+      FsManager* fsManager,
+      const std::string& tabletId,
+      const std::string& peerUuid,
       const RaftConfigPB& config,
-      int64_t current_term,
-      ConsensusMetadataCreateMode create_mode =
+      int64_t currentTerm,
+      ConsensusMetadataCreateMode createMode =
           ConsensusMetadataCreateMode::FlushOnCreate,
-      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmetaOut = nullptr);
 
   // Load a ConsensusMetadata object from disk.
   // Returns Status::NotFound if the file could not be found. May return other
   // Status codes if unable to read the file.
   static Status load(
-      FsManager* fs_manager,
-      const std::string& tablet_id,
-      const std::string& peer_uuid,
-      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
+      FsManager* fsManager,
+      const std::string& tabletId,
+      const std::string& peerUuid,
+      std::shared_ptr<ConsensusMetadata>* cmetaOut = nullptr);
 
   // Delete the ConsensusMetadata file associated with the given tablet from
   // disk. Returns Status::NotFound if the on-disk data is not found.
   static Status deleteOnDiskData(
-      FsManager* fs_manager,
-      const std::string& tablet_id);
+      FsManager* fsManager,
+      const std::string& tabletId);
 
   // Return the specified config.
   const RaftConfigPB& getConfig(RaftConfigState type) const;
 
   // Helper function to extend previousVoteHistory_
-  void populatePreviousVoteHistory(const PreviousVotePB& prev_vote);
+  void populatePreviousVoteHistory(const PreviousVotePB& prevVote);
 
   std::string LogPrefix() const;
 
@@ -281,7 +280,7 @@ class ConsensusMetadata {
 
   // This fake mutex helps ensure that this ConsensusMetadata object stays
   // externally synchronized.
-  DFAKE_MUTEX(fake_lock_);
+  DFAKE_MUTEX(fakeLock_);
 
   std::string
       leaderUuid_; // Leader of the current term (term == pb_.current_term).
