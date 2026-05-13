@@ -98,16 +98,16 @@ extern kudu::RedactContext g_should_redact;
 
 class ScopedDisableRedaction {
  public:
-  ScopedDisableRedaction() : old_val_(tls_redact_user_data) {
+  ScopedDisableRedaction() : oldVal_(tls_redact_user_data) {
     tls_redact_user_data = false;
   }
 
   ~ScopedDisableRedaction() {
-    tls_redact_user_data = old_val_;
+    tls_redact_user_data = oldVal_;
   }
 
  private:
-  bool old_val_;
+  bool oldVal_;
 };
 
 } // namespace kudu
@@ -255,7 +255,7 @@ void UnregisterLoggingCallback();
 void GetFullLogFilename(google::LogSeverity severity, std::string* filename);
 
 // Format a timestamp in the same format as used by GLog.
-std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch);
+std::string FormatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch);
 
 // Enable asynchronous logging for glog.
 // Wraps the glog Logger for INFO, WARNING, and ERROR with an AsyncLogger
@@ -285,7 +285,7 @@ namespace logging {
 // macro descriptions above for details.
 class LogThrottler {
  public:
-  LogThrottler() : num_suppressed_(0), last_ts_(0), last_tag_(nullptr) {
+  LogThrottler() : numSuppressed_(0), lastTs_(0), lastTag_(nullptr) {
     KUDU_ANNONTATE_BENIGN_RACE_SIZED(
         this, sizeof(*this), "OK to be sloppy with log throttling");
   }
@@ -296,28 +296,28 @@ class LogThrottler {
     // When we switch tags, we should not show the "suppressed" messages,
     // because in fact it's a different message that we skipped. So, reset it to
     // zero, and always log the new message.
-    if (tag != last_tag_) {
-      *num_suppressed = num_suppressed_ = 0;
-      last_tag_ = tag;
-      last_ts_ = ts;
+    if (tag != lastTag_) {
+      *num_suppressed = numSuppressed_ = 0;
+      lastTag_ = tag;
+      lastTs_ = ts;
       return true;
     }
 
-    if (ts - last_ts_ < n_secs * 1000000) {
+    if (ts - lastTs_ < n_secs * 1000000) {
       *num_suppressed =
-          base::subtle::NoBarrier_AtomicIncrement(&num_suppressed_, 1);
+          base::subtle::NoBarrier_AtomicIncrement(&numSuppressed_, 1);
       return false;
     }
-    last_ts_ = ts;
+    lastTs_ = ts;
     *num_suppressed =
-        base::subtle::NoBarrier_AtomicExchange(&num_suppressed_, 0);
+        base::subtle::NoBarrier_AtomicExchange(&numSuppressed_, 0);
     return true;
   }
 
  private:
-  Atomic32 num_suppressed_;
-  kudu::MicrosecondsInt64 last_ts_;
-  const char* last_tag_;
+  Atomic32 numSuppressed_;
+  kudu::MicrosecondsInt64 lastTs_;
+  const char* lastTag_;
 };
 } // namespace logging
 

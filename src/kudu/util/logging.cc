@@ -77,7 +77,7 @@ TAG_FLAG(max_log_files, experimental);
 
 #define PROJ_NAME "kudu"
 
-bool logging_initialized = false;
+bool loggingInitialized = false;
 
 using namespace std; // NOLINT(*)
 using namespace boost::uuids; // NOLINT(*)
@@ -101,70 +101,70 @@ class SimpleSink : public google::LogSink {
 
   virtual void send(
       google::LogSeverity severity,
-      const char* full_filename,
+      const char* fullFilename,
       const char* /* base_filename */,
       int line,
       const struct ::tm* tm_time,
       const char* message,
-      size_t message_len) override {
-    LogSeverity kudu_severity;
+      size_t messageLen) override {
+    LogSeverity kuduSeverity;
     switch (severity) {
       case google::INFO:
-        kudu_severity = kSeverityInfo;
+        kuduSeverity = kSeverityInfo;
         break;
       case google::WARNING:
-        kudu_severity = kSeverityWarning;
+        kuduSeverity = kSeverityWarning;
         break;
       case google::ERROR:
-        kudu_severity = kSeverityError;
+        kuduSeverity = kSeverityError;
         break;
       case google::FATAL:
-        kudu_severity = kSeverityFatal;
+        kuduSeverity = kSeverityFatal;
         break;
       default:
         LOG(FATAL) << "Unknown glog severity: " << severity;
     }
-    cb_.Run(kudu_severity, full_filename, line, tm_time, message, message_len);
+    cb_.Run(kuduSeverity, fullFilename, line, tm_time, message, messageLen);
   }
 
  private:
   LoggingCallback cb_;
 };
 
-SpinLock logging_mutex(base::kLinkerInitialized);
+SpinLock loggingMutex(base::kLinkerInitialized);
 
 // There can only be a single instance of a SimpleSink.
 //
-// Protected by 'logging_mutex'.
-SimpleSink* registered_sink = nullptr;
+// Protected by 'loggingMutex'.
+SimpleSink* registeredSink = nullptr;
 
 // Records the logging severity after the first call to
 // InitGoogleLoggingSafe{Basic}. Calls to UnregisterLoggingCallback()
 // will restore stderr logging back to this severity level.
 //
-// Protected by 'logging_mutex'.
-int initial_stderr_severity;
+// Protected by 'loggingMutex'.
+int initialStderrSeverity;
 
 void UnregisterLoggingCallbackUnlocked() {
-  CHECK(logging_mutex.isHeld());
-  CHECK(registered_sink);
+  CHECK(loggingMutex.isHeld());
+  CHECK(registeredSink);
 
   // Restore logging to stderr, then remove our sink. This ordering ensures
   // that no log messages are missed.
-  google::SetStderrLogging(initial_stderr_severity);
-  google::RemoveLogSink(registered_sink);
-  delete registered_sink;
-  registered_sink = nullptr;
+  google::SetStderrLogging(initialStderrSeverity);
+  google::RemoveLogSink(registeredSink);
+  delete registeredSink;
+  registeredSink = nullptr;
 }
 
 void FlushCoverageOnExit() {
   // Coverage flushing is not re-entrant, but this might be called from a
   // crash signal context, so avoid re-entrancy.
-  static __thread bool in_call = false;
-  if (in_call) {
+  static __thread bool inCall = false;
+  if (inCall) {
     return;
   }
-  in_call = true;
+  inCall = true;
 
   // The failure writer will be called multiple times per exit.
   // We only need to flush coverage once. We use a 'once' here so that,
@@ -176,7 +176,7 @@ void FlushCoverageOnExit() {
     write(STDERR_FILENO, msg, arraysize(msg));
     tryFlushCoverage();
   });
-  in_call = false;
+  inCall = false;
 }
 
 // On SEGVs, etc, glog will call this function to write the error to stderr.
@@ -225,8 +225,8 @@ void EnableAsyncLogging() {
 }
 
 void InitGoogleLoggingSafe(const char* arg) {
-  SpinLockHolder l(logging_mutex);
-  if (logging_initialized) {
+  SpinLockHolder l(loggingMutex);
+  if (loggingInitialized) {
     return;
   }
 
@@ -249,20 +249,20 @@ void InitGoogleLoggingSafe(const char* arg) {
   if (!FLAGS_logtostderr) {
     // Verify that a log file can be created in log_dir by creating a tmp file.
     ostringstream ss;
-    random_generator uuid_generator;
-    ss << FLAGS_log_dir << "/" << PROJ_NAME "_test_log." << uuid_generator();
-    const string file_name = ss.str();
-    ofstream test_file(file_name.c_str());
-    if (!test_file.is_open()) {
-      ostringstream error_msg;
-      error_msg << "Could not open file in log_dir " << FLAGS_log_dir;
-      perror(error_msg.str().c_str());
+    random_generator uuidGenerator;
+    ss << FLAGS_log_dir << "/" << PROJ_NAME "_test_log." << uuidGenerator();
+    const string fileName = ss.str();
+    ofstream testFile(fileName.c_str());
+    if (!testFile.is_open()) {
+      ostringstream errorMsg;
+      errorMsg << "Could not open file in log_dir " << FLAGS_log_dir;
+      perror(errorMsg.str().c_str());
       // Unlock the mutex before exiting the program to avoid mutex d'tor
       // assert.
-      logging_mutex.unlock();
+      loggingMutex.unlock();
       exit(1);
     }
-    remove(file_name.c_str());
+    remove(fileName.c_str());
   }
 
   google::InitGoogleLogging(arg);
@@ -288,7 +288,7 @@ void InitGoogleLoggingSafe(const char* arg) {
   // File logging: on.
   // Stderr logging threshold: FLAGS_stderrthreshold.
   // Sink logging: off.
-  initial_stderr_severity = FLAGS_stderrthreshold;
+  initialStderrSeverity = FLAGS_stderrthreshold;
 
   // Ignore SIGPIPE early in the startup process so that threads writing to TLS
   // sockets do not crash when writing to a closed socket. See KUDU-1910.
@@ -301,12 +301,12 @@ void InitGoogleLoggingSafe(const char* arg) {
     EnableAsyncLogging();
   }
 
-  logging_initialized = true;
+  loggingInitialized = true;
 }
 
 void InitGoogleLoggingSafeBasic(const char* arg) {
-  SpinLockHolder l(logging_mutex);
-  if (logging_initialized) {
+  SpinLockHolder l(loggingMutex);
+  if (loggingInitialized) {
     return;
   }
 
@@ -318,15 +318,15 @@ void InitGoogleLoggingSafeBasic(const char* arg) {
   // File logging: off.
   // Stderr logging threshold: INFO.
   // Sink logging: off.
-  initial_stderr_severity = google::INFO;
-  logging_initialized = true;
+  initialStderrSeverity = google::INFO;
+  loggingInitialized = true;
 }
 
 void RegisterLoggingCallback(const LoggingCallback& cb) {
-  SpinLockHolder l(logging_mutex);
-  CHECK(logging_initialized);
+  SpinLockHolder l(loggingMutex);
+  CHECK(loggingInitialized);
 
-  if (registered_sink) {
+  if (registeredSink) {
     LOG(WARNING) << "Cannot register logging callback: one already registered";
     return;
   }
@@ -334,8 +334,8 @@ void RegisterLoggingCallback(const LoggingCallback& cb) {
   // AddLogSink() claims to take ownership of the sink, but it doesn't
   // really; it actually expects it to remain valid until
   // google::ShutdownGoogleLogging() is called.
-  registered_sink = new SimpleSink(cb);
-  google::AddLogSink(registered_sink);
+  registeredSink = new SimpleSink(cb);
+  google::AddLogSink(registeredSink);
 
   // Even when stderr logging is ostensibly off, it's still emitting
   // ERROR-level stuff. This is the default.
@@ -347,17 +347,17 @@ void RegisterLoggingCallback(const LoggingCallback& cb) {
 }
 
 void UnregisterLoggingCallback() {
-  SpinLockHolder l(logging_mutex);
-  CHECK(logging_initialized);
+  SpinLockHolder l(loggingMutex);
+  CHECK(loggingInitialized);
 
-  if (!registered_sink) {
+  if (!registeredSink) {
     LOG(WARNING) << "Cannot unregister logging callback: none registered";
     return;
   }
 
   UnregisterLoggingCallbackUnlocked();
   // File logging: yes, if InitGoogleLoggingSafe() was called earlier.
-  // Stderr logging threshold: initial_stderr_severity.
+  // Stderr logging threshold: initialStderrSeverity.
   // Sink logging: off.
 }
 
@@ -368,11 +368,11 @@ void GetFullLogFilename(google::LogSeverity severity, string* filename) {
   *filename = ss.str();
 }
 
-std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch) {
-  time_t secs_since_epoch = micros_since_epoch / 1000000;
-  int usecs = micros_since_epoch % 1000000;
+std::string FormatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch) {
+  time_t secsSinceEpoch = microsSinceEpoch / 1000000;
+  int usecs = microsSinceEpoch % 1000000;
   struct tm tm_time;
-  localtime_r(&secs_since_epoch, &tm_time);
+  localtime_r(&secsSinceEpoch, &tm_time);
 
   return fmt::format(
       "{:02d}{:02d} {:02d}:{:02d}:{:02d}.{:06d}",
@@ -385,24 +385,24 @@ std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch) {
 }
 
 void ShutdownLoggingSafe() {
-  SpinLockHolder l(logging_mutex);
-  if (!logging_initialized) {
+  SpinLockHolder l(loggingMutex);
+  if (!loggingInitialized) {
     return;
   }
 
-  if (registered_sink) {
+  if (registeredSink) {
     UnregisterLoggingCallbackUnlocked();
   }
 
   google::ShutdownGoogleLogging();
 
-  logging_initialized = false;
+  loggingInitialized = false;
 }
 
 Status DeleteExcessLogFiles(Env* env) {
-  int32_t max_log_files = FLAGS_max_log_files;
+  int32_t maxLogFiles = FLAGS_max_log_files;
   // Ignore bad input or disable log rotation.
-  if (max_log_files <= 0) {
+  if (maxLogFiles <= 0) {
     return Status::OK();
   }
 
@@ -415,14 +415,14 @@ Status DeleteExcessLogFiles(Env* env) {
         FLAGS_log_filename,
         google::GetLogSeverityName(severity));
 
-    // Keep the 'max_log_files' most recent log files, as compared by
+    // Keep the 'maxLogFiles' most recent log files, as compared by
     // modification time. Glog files contain a second-granularity timestamp in
     // the name, so this could potentially use the filename sort order as
     // guaranteed by glob, however this code has been adapted from Impala which
     // uses mtime to determine which files to delete, and there haven't been any
     // issues in production settings.
     RETURN_NOT_OK(
-        env_util::deleteExcessFilesByPattern(env, pattern, max_log_files));
+        env_util::deleteExcessFilesByPattern(env, pattern, maxLogFiles));
   }
   return Status::OK();
 }
