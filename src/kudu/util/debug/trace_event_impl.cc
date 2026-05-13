@@ -1288,7 +1288,7 @@ void TraceLog::updateSyntheticDelaysFromCategoryFilter() {
       categoryFilter_.getSyntheticDelayValues();
   CategoryFilter::StringList::const_iterator ci;
   for (ci = delays.begin(); ci != delays.end(); ++ci) {
-    std::list<string> tokens = strings::Split(*ci, ";");
+    std::list<string> tokens = strings::split(*ci, ";");
     if (tokens.empty()) {
       continue;
     }
@@ -1965,7 +1965,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
           // This is a thread id that we've seen before, but potentially with a
           // new name.
           std::vector<StringPiece> existing_names =
-              strings::Split(existing_name->second, ",");
+              strings::split(existing_name->second, ",");
           bool found =
               std::find(
                   existing_names.begin(), existing_names.end(), new_name) !=
@@ -2410,7 +2410,7 @@ bool CategoryFilter::doesCategoryGroupContainCategory(
     const char* category_group,
     const char* category) const {
   DCHECK(category);
-  vector<string> pieces = strings::Split(category_group, ",");
+  vector<string> pieces = strings::split(category_group, ",");
   for (const string& category_group_token : pieces) {
     // Don't allow empty tokens, nor tokens with leading or trailing space.
     DCHECK(!CategoryFilter::isEmptyOrContainsLeadingOrTrailingWhitespace(
@@ -2452,7 +2452,7 @@ CategoryFilter& CategoryFilter::operator=(const CategoryFilter& rhs) {
 
 void CategoryFilter::initializeFilter(const std::string& filter_string) {
   // Tokenize list of categories, delimited by ','.
-  vector<string> tokens = strings::Split(filter_string, ",");
+  vector<string> tokens = strings::split(filter_string, ",");
   // Add each token to the appropriate list (included_,excluded_).
   for (string category : tokens) {
     // Ignore empty categories.

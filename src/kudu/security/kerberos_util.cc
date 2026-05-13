@@ -27,9 +27,9 @@ namespace security {
 
 std::array<StringPiece, 3> splitKerberosPrincipal(StringPiece principal) {
   std::pair<StringPiece, StringPiece> userRealm =
-      strings::Split(principal, "@");
+      strings::split(principal, "@");
   std::pair<StringPiece, StringPiece> princHost =
-      strings::Split(userRealm.first, "/");
+      strings::split(userRealm.first, "/");
   return {{princHost.first, princHost.second, userRealm.second}};
 }
 

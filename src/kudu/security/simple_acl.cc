@@ -40,7 +40,7 @@ SimpleAcl::~SimpleAcl() {}
 
 Status SimpleAcl::parseFlag(const string& flag) {
   vector<StringPiece> fields =
-      strings::Split(flag, ",", strings::SkipWhitespace());
+      strings::split(flag, ",", strings::SkipWhitespace());
   set<string> users;
   for (const auto& field : fields) {
     if (field.empty()) {

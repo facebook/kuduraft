@@ -87,7 +87,7 @@ void appendHardWrapped(
   }
 
   // Iterate through the words deciding where to wrap.
-  vector<StringPiece> words = strings::Split(toAppend, " ");
+  vector<StringPiece> words = strings::split(toAppend, " ");
   if (words.empty()) {
     return;
   }

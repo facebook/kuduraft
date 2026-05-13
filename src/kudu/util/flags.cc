@@ -180,7 +180,7 @@ static bool validateRedact(const char* /*flagname*/, const string& value) {
     return true;
   }
 
-  for (const auto& t : strings::Split(redactFlags, ",", strings::SkipEmpty())) {
+  for (const auto& t : strings::split(redactFlags, ",", strings::SkipEmpty())) {
     if (t == "LOG") {
       kudu::g_should_redact = kudu::RedactContext::LOG;
     } else if (t == "ALL" || t == "NONE") {

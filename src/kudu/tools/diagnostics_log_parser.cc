@@ -101,7 +101,7 @@ Status ParsedLine::parse(string line) {
   }
 
   array<StringPiece, 5> fields =
-      strings::Split(line_, strings::delimiter::Limit(" ", 4));
+      strings::split(line_, strings::delimiter::limit(" ", 4));
   fields[0].removePrefix(1); // Remove the 'I'.
   // Sanity check the microsecond timestamp.
   // Eventually, it should be used when processing metrics records.

@@ -50,7 +50,7 @@ using std::istreambuf_iterator;
 using std::ostringstream;
 using std::string;
 using std::vector;
-using strings::Split;
+using strings::split;
 
 namespace kudu {
 
@@ -91,7 +91,7 @@ parseStat(const std::string& buffer, std::string* name, ThreadStats* stats) {
   string extractedName =
       buffer.substr(openParen + 1, closeParen - (openParen + 1));
   string rest = buffer.substr(closeParen + 2);
-  vector<string> splits = Split(rest, " ", strings::SkipEmpty());
+  vector<string> splits = split(rest, " ", strings::SkipEmpty());
   if (splits.size() < kMaxOffset) {
     return Status::IOError("Unrecognised /proc format");
   }
@@ -167,12 +167,12 @@ bool isBeingDebugged() {
     return false;
   }
   StringPiece bufSp(reinterpret_cast<const char*>(buf.data()), buf.size());
-  vector<StringPiece> lines = Split(bufSp, "\n");
+  vector<StringPiece> lines = split(bufSp, "\n");
   for (const auto& l : lines) {
     if (!hasPrefixString(l, "TracerPid:")) {
       continue;
     }
-    std::pair<StringPiece, StringPiece> keyVal = Split(l, "\t");
+    std::pair<StringPiece, StringPiece> keyVal = split(l, "\t");
     int64_t tracerPid = -1;
     if (!safe_strto64(keyVal.second.data(), keyVal.second.size(), &tracerPid)) {
       KLOG_FIRST_N(WARNING, 1) << "Invalid line in /proc/self/status: " << l;

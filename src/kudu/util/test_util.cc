@@ -409,7 +409,7 @@ waitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
   // The second line is the file descriptor number. We ignore it.
   // The third line has the bind address and port.
   // Subsequent lines show active connections.
-  vector<string> lines = strings::Split(lsof_out, "\n");
+  vector<string> lines = strings::split(lsof_out, "\n");
   int32_t p = -1;
   if (lines.size() < 3 || lines[2].substr(0, 3) != "n*:" ||
       !safe_strto32(lines[2].substr(3), &p) || p <= 0) {

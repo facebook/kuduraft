@@ -44,7 +44,7 @@ using std::string;
 using std::vector;
 using strings::SkipEmpty;
 using strings::SkipWhitespace;
-using strings::Split;
+using strings::split;
 
 PstackWatcher::PstackWatcher(MonoDelta timeout)
     : timeout_(timeout), running_(true), cond_(&lock_) {
@@ -131,11 +131,11 @@ Status PstackWatcher::hasGoodGdb() {
   // ...
   string stdout;
   RETURN_NOT_OK(Subprocess::call({"gdb", "--version"}, "", &stdout));
-  vector<string> lines = Split(stdout, "\n", SkipEmpty());
+  vector<string> lines = split(stdout, "\n", SkipEmpty());
   if (lines.empty()) {
     return Status::Incomplete("gdb version not found");
   }
-  vector<string> words = Split(lines[0], " ", SkipWhitespace());
+  vector<string> words = split(lines[0], " ", SkipWhitespace());
   if (words.empty()) {
     return Status::Incomplete("could not parse gdb version");
   }

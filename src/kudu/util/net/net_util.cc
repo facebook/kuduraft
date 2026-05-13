@@ -152,7 +152,7 @@ Status HostPort::parseString(const string& str, uint16_t defaultPort) {
 
   if (ipv6Addr) {
     std::pair<string, string> p =
-        strings::Split(str, strings::delimiter::Limit("]", 1));
+        strings::split(str, strings::delimiter::limit("]", 1));
     host = std::move(p.first);
     StripWhiteSpace(&host);
     host = StripPrefixString(host, "[");
@@ -166,7 +166,7 @@ Status HostPort::parseString(const string& str, uint16_t defaultPort) {
   } else {
     hasPort = numColons == 1;
     std::pair<string, string> p =
-        strings::Split(str, strings::delimiter::Limit(":", 1));
+        strings::split(str, strings::delimiter::limit(":", 1));
     host = std::move(p.first);
     StripWhiteSpace(&host);
     portStr = std::move(p.second);
@@ -229,7 +229,7 @@ Status HostPort::parseStrings(
     uint16_t defaultPort,
     vector<HostPort>* res) {
   vector<string> addrStrings =
-      strings::Split(commaSepAddrs, ",", strings::SkipEmpty());
+      strings::split(commaSepAddrs, ",", strings::SkipEmpty());
   for (const string& addrString : addrStrings) {
     HostPort hostPort;
     RETURN_NOT_OK(hostPort.parseString(addrString, defaultPort));
@@ -265,7 +265,7 @@ bool Network::withinNetwork(const Sockaddr& addr) const {
 
 Status Network::parseCidrString(const string& addr) {
   std::pair<string, string> p =
-      strings::Split(addr, strings::delimiter::Limit("/", 1));
+      strings::split(addr, strings::delimiter::limit("/", 1));
 
   kudu::Sockaddr sockaddr;
   Status s = sockaddr.ParseString(p.first, 0);
@@ -291,7 +291,7 @@ Status Network::parseCidrStrings(
     const string& commaSepAddrs,
     vector<Network>* res) {
   vector<string> addrStrings =
-      strings::Split(commaSepAddrs, ",", strings::SkipEmpty());
+      strings::split(commaSepAddrs, ",", strings::SkipEmpty());
   for (const string& addrString : addrStrings) {
     Network network;
     RETURN_NOT_OK(network.parseCidrString(addrString));

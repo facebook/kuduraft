@@ -34,7 +34,7 @@
 using std::ostream;
 using std::string;
 using std::vector;
-using strings::Split;
+using strings::split;
 
 namespace kudu {
 
@@ -61,11 +61,11 @@ Status parseVersion(const string& versionStr, Version* v) {
       Status::InvalidArgument("invalid version string", versionStr);
   auto vStr = versionStr;
   StripWhiteSpace(&vStr);
-  const vector<string> mainAndExtra = Split(vStr, kDelimiter);
+  const vector<string> mainAndExtra = split(vStr, kDelimiter);
   if (mainAndExtra.empty()) {
     return invalidVerErr;
   }
-  const vector<string> majMinMaint = Split(mainAndExtra.front(), ".");
+  const vector<string> majMinMaint = split(mainAndExtra.front(), ".");
   if (majMinMaint.size() != 3) {
     return invalidVerErr;
   }

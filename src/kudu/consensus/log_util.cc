@@ -942,7 +942,7 @@ bool isLogFileName(const string& fname) {
     return false;
   }
 
-  vector<string> v = strings::Split(fname, "-");
+  vector<string> v = strings::split(fname, "-");
   if (v.size() != 2 || v[0] != FsManager::kWalFileNamePrefix) {
     VLOG(1) << "Not a log file: " << fname;
     return false;

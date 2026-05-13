@@ -319,7 +319,7 @@ const string& dataFormatToString(DataFormat fmt) {
 }
 
 Status getPasswordFromShellCommand(const string& cmd, string* password) {
-  vector<string> argv = strings::Split(cmd, " ", strings::SkipEmpty());
+  vector<string> argv = strings::split(cmd, " ", strings::SkipEmpty());
   if (argv.empty()) {
     return Status::RuntimeError("invalid empty private key password command");
   }

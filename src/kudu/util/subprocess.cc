@@ -60,7 +60,7 @@ using std::map;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Split;
+using strings::split;
 
 namespace kudu {
 
@@ -683,7 +683,7 @@ Status Subprocess::getExitStatus(int* exitStatus, string* infoStr) const {
 }
 
 Status Subprocess::call(const string& argStr) {
-  vector<string> argv = Split(argStr, " ");
+  vector<string> argv = split(argStr, " ");
   return call(argv, "", nullptr, nullptr);
 }
 

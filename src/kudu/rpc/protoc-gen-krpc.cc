@@ -189,7 +189,7 @@ class FileSubstitutions : public Substituter {
   }
 
   static string generateOpenNamespace(const string& str) {
-    vector<string> components = strings::Split(str, ".");
+    vector<string> components = strings::split(str, ".");
     string out;
     for (const string& c : components) {
       out.append("namespace ").append(c).append(" {\n");
@@ -198,7 +198,7 @@ class FileSubstitutions : public Substituter {
   }
 
   static string generateCloseNamespace(const string& str) {
-    vector<string> components = strings::Split(str, ".");
+    vector<string> components = strings::split(str, ".");
     string out;
     for (auto c = components.crbegin(); c != components.crend(); c++) {
       out.append("} // namespace ").append(*c).append("\n");
@@ -265,7 +265,7 @@ class MethodSubstitutions : public Substituter {
 
   static std::string replaceNamespaceDelimiters(
       const std::string& argFullName) {
-    return JoinStrings(strings::Split(argFullName, "."), "::");
+    return JoinStrings(strings::split(argFullName, "."), "::");
   }
 
  private:

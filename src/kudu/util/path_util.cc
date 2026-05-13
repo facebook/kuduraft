@@ -41,7 +41,7 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 using strings::SkipEmpty;
-using strings::Split;
+using strings::split;
 
 namespace kudu {
 namespace {
@@ -84,7 +84,7 @@ vector<string> splitPath(const string& path) {
   if (path[0] == '/') {
     segments.emplace_back("/");
   }
-  vector<StringPiece> pieces = Split(path, "/", SkipEmpty());
+  vector<StringPiece> pieces = split(path, "/", SkipEmpty());
   for (const StringPiece& piece : pieces) {
     segments.emplace_back(piece.data(), piece.size());
   }

@@ -112,17 +112,17 @@ void appendToImpl(vector<string>* container, Splitter splitter) {
   }
 }
 
-// Appends the results of a call to strings::Split() to the specified container.
-// This function is used with the new strings::Split() API to implement the
+// Appends the results of a call to strings::split() to the specified container.
+// This function is used with the new strings::split() API to implement the
 // append semantics of the legacy Split*() functions.
 //
 // The "Splitter" template parameter is intended to be a
 // ::strings::internal::Splitter<>, which is the return value of a call to
-// strings::Split(). Sample usage:
+// strings::split(). Sample usage:
 //
 //   vector<string> v;
 //   ... add stuff to "v" ...
-//   appendTo(&v, strings::Split("a,b,c", ","));
+//   appendTo(&v, strings::split("a,b,c", ","));
 //
 template <typename Container, typename Splitter>
 void appendTo(Container* container, Splitter splitter) {
@@ -148,7 +148,7 @@ void splitStringAllowEmpty(
     const string& full,
     const char* delim,
     vector<string>* result) {
-  appendTo(result, strings::Split(full, AnyOf(delim)));
+  appendTo(result, strings::split(full, AnyOf(delim)));
 }
 
 // If we know how much to allocate for a vector of strings, we can

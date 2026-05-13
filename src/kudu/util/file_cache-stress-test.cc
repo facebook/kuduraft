@@ -82,7 +82,7 @@ class FileCacheStressTest : public KuduTest {
     if (!_s.ok()) {                                                            \
       LOG(INFO) << "Dumping cache contents";                                   \
       vector<string> lines =                                                   \
-          strings::Split(cache_->toDebugString(), "\n", strings::SkipEmpty()); \
+          strings::split(cache_->toDebugString(), "\n", strings::SkipEmpty()); \
       for (const auto& l : lines) {                                            \
         LOG(INFO) << l;                                                        \
       }                                                                        \

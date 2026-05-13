@@ -114,7 +114,7 @@ static bool validateTrustedSubnets(
     return true;
   }
 
-  for (const auto& t : strings::Split(value, ",", strings::SkipEmpty())) {
+  for (const auto& t : strings::split(value, ",", strings::SkipEmpty())) {
     kudu::Network network;
     kudu::Status s = network.parseCidrString(t.toString());
     if (!s.ok()) {
@@ -137,7 +137,7 @@ vector<Network>* gTrustedSubnets = nullptr;
 
 bool validateTrustedCn(const std::string& valueList, const std::string& CN) {
   std::vector<string> result =
-      strings::Split(valueList, ",", strings::SkipEmpty());
+      strings::split(valueList, ",", strings::SkipEmpty());
   auto itr = std::find(result.begin(), result.end(), CN);
   return (itr != result.end());
 }

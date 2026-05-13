@@ -251,7 +251,7 @@ Status LogIndex::openAllChunksOnStartup(
       continue;
     }
 
-    vector<string> v = strings::Split(fname, ".");
+    vector<string> v = strings::split(fname, ".");
     if (v.size() != 2) {
       LOG(INFO)
           << "Improperly named file in wal directory skipped on recovery: "

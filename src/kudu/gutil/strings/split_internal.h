@@ -190,7 +190,7 @@ struct IsNotInitializerList<std::initializer_list<T>> {};
 // This class implements the behavior of the split API by giving callers access
 // to the underlying split substrings in various convenient ways, such as
 // through iterators or implicit conversion functions. Do not construct this
-// class directly, rather use the Split() function instead.
+// class directly, rather use the split() function instead.
 //
 // Output containers can be collections of either StringPiece or string objects.
 // StringPiece is more efficient because the underlying data will not need to be

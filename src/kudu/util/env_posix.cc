@@ -121,7 +121,7 @@ bool shouldInject(const string& candidate, const string& glob_patterns) {
   }
 
   vector<string> globs =
-      strings::Split(glob_patterns, ",", strings::SkipEmpty());
+      strings::split(glob_patterns, ",", strings::SkipEmpty());
   for (const auto& glob : globs) {
     if (fnmatch(glob.c_str(), candidate.c_str(), 0) == 0) {
       return true;
