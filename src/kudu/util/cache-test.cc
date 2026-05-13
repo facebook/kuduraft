@@ -80,15 +80,15 @@ class CacheTest : public KuduTest,
 
     std::shared_ptr<MetricEntity> entity =
         METRIC_ENTITY_server.instantiate(&metricRegistry, "test");
-    cache->SetMetrics(entity);
+    cache->setMetrics(entity);
   }
 
   int Lookup(int key) {
     Cache::Handle* handle =
-        cache->Lookup(encodeInt(key), Cache::kExpectInCache);
-    const int r = (handle == nullptr) ? -1 : decodeInt(cache->Value(handle));
+        cache->lookup(encodeInt(key), Cache::kExpectInCache);
+    const int r = (handle == nullptr) ? -1 : decodeInt(cache->value(handle));
     if (handle != nullptr) {
-      cache->Release(handle);
+      cache->release(handle);
     }
     return r;
   }
@@ -97,14 +97,14 @@ class CacheTest : public KuduTest,
     std::string keyStr = encodeInt(key);
     std::string valStr = encodeInt(value);
     Cache::PendingHandle* handle =
-        CHECK_NOTNULL(cache->Allocate(keyStr, valStr.size(), charge));
-    memcpy(cache->MutableValue(handle), valStr.data(), valStr.size());
+        CHECK_NOTNULL(cache->allocate(keyStr, valStr.size(), charge));
+    memcpy(cache->mutableValue(handle), valStr.data(), valStr.size());
 
-    cache->Release(cache->Insert(handle, this));
+    cache->release(cache->insert(handle, this));
   }
 
   void Erase(int key) {
-    cache->Erase(encodeInt(key));
+    cache->erase(encodeInt(key));
   }
 };
 
@@ -172,15 +172,15 @@ TEST_P(CacheTest, Erase) {
 
 TEST_P(CacheTest, EntriesArePinned) {
   Insert(100, 101);
-  Cache::Handle* h1 = cache->Lookup(encodeInt(100), Cache::kExpectInCache);
-  ASSERT_EQ(101, decodeInt(cache->Value(h1)));
+  Cache::Handle* h1 = cache->lookup(encodeInt(100), Cache::kExpectInCache);
+  ASSERT_EQ(101, decodeInt(cache->value(h1)));
 
   Insert(100, 102);
-  Cache::Handle* h2 = cache->Lookup(encodeInt(100), Cache::kExpectInCache);
-  ASSERT_EQ(102, decodeInt(cache->Value(h2)));
+  Cache::Handle* h2 = cache->lookup(encodeInt(100), Cache::kExpectInCache);
+  ASSERT_EQ(102, decodeInt(cache->value(h2)));
   ASSERT_EQ(0, evictedKeys.size());
 
-  cache->Release(h1);
+  cache->release(h1);
   ASSERT_EQ(1, evictedKeys.size());
   ASSERT_EQ(100, evictedKeys[0]);
   ASSERT_EQ(101, evictedValues[0]);
@@ -189,7 +189,7 @@ TEST_P(CacheTest, EntriesArePinned) {
   ASSERT_EQ(-1, Lookup(100));
   ASSERT_EQ(1, evictedKeys.size());
 
-  cache->Release(h2);
+  cache->release(h2);
   ASSERT_EQ(2, evictedKeys.size());
   ASSERT_EQ(100, evictedKeys[1]);
   ASSERT_EQ(102, evictedValues[1]);

@@ -100,7 +100,7 @@ class BaseDescriptor {
     // deadlock on recursive acquisition of 'lock_'.
 
     if (deleted()) {
-      cache()->Erase(filename());
+      cache()->erase(filename());
 
       VLOG(1) << "Deleting file: " << filename();
       WARN_NOT_OK(env()->DeleteFile(filename()), "");
@@ -117,12 +117,12 @@ class BaseDescriptor {
     // to memory tracking, but it's necessary if the cache capacity is to be
     // equivalent to the max number of fds.
     Cache::PendingHandle* pending =
-        CHECK_NOTNULL(cache()->Allocate(filename(), sizeof(filePtr), 1));
-    memcpy(cache()->MutableValue(pending), &filePtr, sizeof(filePtr));
+        CHECK_NOTNULL(cache()->allocate(filename(), sizeof(filePtr), 1));
+    memcpy(cache()->mutableValue(pending), &filePtr, sizeof(filePtr));
     return ScopedOpenedDescriptor<FileType>(
         this,
         Cache::UniqueHandle(
-            cache()->Insert(pending, fileCache_->evictionCb_.get()),
+            cache()->insert(pending, fileCache_->evictionCb_.get()),
             Cache::HandleDeleter(cache())));
   }
 
@@ -135,7 +135,7 @@ class BaseDescriptor {
     return ScopedOpenedDescriptor<FileType>(
         this,
         Cache::UniqueHandle(
-            cache()->Lookup(filename(), Cache::kExpectInCache),
+            cache()->lookup(filename(), Cache::kExpectInCache),
             Cache::HandleDeleter(cache())));
   }
 
@@ -213,7 +213,7 @@ class ScopedOpenedDescriptor {
 
   FileType* file() const {
     DCHECK(opened());
-    return cacheValueToFileType<FileType>(desc_->cache()->Value(handle_.get()));
+    return cacheValueToFileType<FileType>(desc_->cache()->value(handle_.get()));
   }
 
  private:
@@ -467,7 +467,7 @@ FileCache<FileType>::FileCache(
       cache_(newLruCache(kDramCache, maxOpenFiles, cacheName)),
       running_(1) {
   if (entity) {
-    cache_->SetMetrics(entity);
+    cache_->setMetrics(entity);
   }
   LOG(INFO) << fmt::format(
       "Constructed file cache {} with capacity {}", cacheName, maxOpenFiles);
@@ -535,7 +535,7 @@ Status FileCache<FileType>::deleteFile(const string& fileName) {
   //
   // Make sure it's been fully evicted from the cache (perhaps it was opened
   // previously?) so that the filesystem can reclaim the file data instantly.
-  cache_->Erase(fileName);
+  cache_->erase(fileName);
   return env_->DeleteFile(fileName);
 }
 
@@ -564,7 +564,7 @@ void FileCache<FileType>::invalidate(const string& fileName) {
   // Remove it from the cache so that if the same path is opened again, we
   // will re-open a new FD rather than retrieving one that might have been
   // cached prior to invalidation.
-  cache_->Erase(fileName);
+  cache_->erase(fileName);
 
   // Remove the invalidated descriptor from the map. We are guaranteed it
   // is still there because we've held a strong reference to it for

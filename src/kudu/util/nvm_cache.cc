@@ -217,7 +217,7 @@ class NvmLruCache {
       LruHandle* h,
       Cache::EvictionCallback* evictionCallback);
 
-  // Like Cache::Lookup, but with an extra "hash" parameter.
+  // Like Cache::lookup, but with an extra "hash" parameter.
   Cache::Handle* lookup(const Slice& key, uint32_t hash, bool caching);
   void release(Cache::Handle* handle);
   void erase(const Slice& key, uint32_t hash);
@@ -513,39 +513,39 @@ class ShardedLruCache : public Cache {
     vmem_delete(vmp_);
   }
 
-  virtual Handle* Insert(
+  virtual Handle* insert(
       PendingHandle* handle,
       Cache::EvictionCallback* evictionCallback) override {
     LruHandle* h = reinterpret_cast<LruHandle*>(DCHECK_NOTNULL(handle));
     return shards_[shard(h->hash)]->insert(h, evictionCallback);
   }
-  virtual Handle* Lookup(const Slice& key, CacheBehavior caching) override {
+  virtual Handle* lookup(const Slice& key, CacheBehavior caching) override {
     const uint32_t hash = hashSlice(key);
     return shards_[shard(hash)]->lookup(key, hash, caching == kExpectInCache);
   }
-  virtual void Release(Handle* handle) override {
+  virtual void release(Handle* handle) override {
     LruHandle* h = reinterpret_cast<LruHandle*>(handle);
     shards_[shard(h->hash)]->release(handle);
   }
-  virtual void Erase(const Slice& key) override {
+  virtual void erase(const Slice& key) override {
     const uint32_t hash = hashSlice(key);
     shards_[shard(hash)]->erase(key, hash);
   }
-  virtual Slice Value(Handle* handle) override {
+  virtual Slice value(Handle* handle) override {
     return reinterpret_cast<LruHandle*>(handle)->value();
   }
-  virtual uint8_t* MutableValue(PendingHandle* handle) override {
+  virtual uint8_t* mutableValue(PendingHandle* handle) override {
     return reinterpret_cast<LruHandle*>(handle)->valPtr();
   }
 
-  virtual void SetMetrics(
+  virtual void setMetrics(
       const std::shared_ptr<MetricEntity>& entity) override {
     metrics_.reset(new CacheMetrics(entity));
     for (NvmLruCache* cache : shards_) {
       cache->setMetrics(metrics_.get());
     }
   }
-  virtual PendingHandle* Allocate(Slice key, int valLen, int charge) override {
+  virtual PendingHandle* allocate(Slice key, int valLen, int charge) override {
     int keyLen = key.size();
     DCHECK_GE(keyLen, 0);
     DCHECK_GE(valLen, 0);
@@ -574,7 +574,7 @@ class ShardedLruCache : public Cache {
     return nullptr;
   }
 
-  virtual void Free(PendingHandle* ph) override {
+  virtual void free(PendingHandle* ph) override {
     vmem_free(vmp_, ph);
   }
 };

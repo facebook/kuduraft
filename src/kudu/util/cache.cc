@@ -210,7 +210,7 @@ class LruCache {
   Cache::Handle* insert(
       LruHandle* handle,
       Cache::EvictionCallback* evictionCallback);
-  // Like Cache::Lookup, but with an extra "hash" parameter.
+  // Like Cache::lookup, but with an extra "hash" parameter.
   Cache::Handle* lookup(const Slice& key, uint32_t hash, bool caching);
   void release(Cache::Handle* handle);
   void erase(const Slice& key, uint32_t hash);
@@ -380,7 +380,7 @@ Cache::Handle* LruCache::insert(
     LruHandle* e,
     Cache::EvictionCallback* evictionCallback) {
   // Set the remaining LruHandle members which were not already allocated during
-  // Allocate().
+  // allocate().
   e->evictionCallback = evictionCallback;
   e->refs.store(2, std::memory_order_relaxed); // One from LruCache, one for the
                                                // returned handle
@@ -503,28 +503,28 @@ class ShardedLruCache : public Cache {
     shards_.clear();
   }
 
-  virtual Handle* Insert(
+  virtual Handle* insert(
       PendingHandle* handle,
       Cache::EvictionCallback* evictionCallback) override {
     LruHandle* h = reinterpret_cast<LruHandle*>(DCHECK_NOTNULL(handle));
     return shards_[shard(h->hash)]->insert(h, evictionCallback);
   }
-  virtual Handle* Lookup(const Slice& key, CacheBehavior caching) override {
+  virtual Handle* lookup(const Slice& key, CacheBehavior caching) override {
     const uint32_t hash = hashSlice(key);
     return shards_[shard(hash)]->lookup(key, hash, caching == kExpectInCache);
   }
-  virtual void Release(Handle* handle) override {
+  virtual void release(Handle* handle) override {
     LruHandle* h = reinterpret_cast<LruHandle*>(handle);
     shards_[shard(h->hash)]->release(handle);
   }
-  virtual void Erase(const Slice& key) override {
+  virtual void erase(const Slice& key) override {
     const uint32_t hash = hashSlice(key);
     shards_[shard(hash)]->erase(key, hash);
   }
-  virtual Slice Value(Handle* handle) override {
+  virtual Slice value(Handle* handle) override {
     return reinterpret_cast<LruHandle*>(handle)->value();
   }
-  virtual void SetMetrics(
+  virtual void setMetrics(
       const std::shared_ptr<MetricEntity>& entity) override {
     // TODO(KUDU-2165): reuse of the Cache singleton across multiple MiniCluster
     // servers causes TSAN errors. So, we'll ensure that metrics only get
@@ -542,7 +542,7 @@ class ShardedLruCache : public Cache {
     }
   }
 
-  virtual PendingHandle* Allocate(Slice key, int valLen, int charge) override {
+  virtual PendingHandle* allocate(Slice key, int valLen, int charge) override {
     int keyLen = key.size();
     DCHECK_GE(keyLen, 0);
     DCHECK_GE(valLen, 0);
@@ -562,12 +562,12 @@ class ShardedLruCache : public Cache {
     return reinterpret_cast<PendingHandle*>(handle);
   }
 
-  virtual void Free(PendingHandle* h) override {
+  virtual void free(PendingHandle* h) override {
     uint8_t* data = reinterpret_cast<uint8_t*>(h);
     delete[] data;
   }
 
-  virtual uint8_t* MutableValue(PendingHandle* h) override {
+  virtual uint8_t* mutableValue(PendingHandle* h) override {
     return reinterpret_cast<LruHandle*>(h)->mutableValPtr();
   }
 };

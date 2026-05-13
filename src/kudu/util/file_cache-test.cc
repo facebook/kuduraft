@@ -150,7 +150,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
     NO_FATALS(this->assertFdsAndDescriptors(1, 1));
     {
       Cache::UniqueHandle uh(
-          this->cache_->cache_->Lookup(kFile1, Cache::kExpectInCache),
+          this->cache_->cache_->lookup(kFile1, Cache::kExpectInCache),
           Cache::HandleDeleter(this->cache_->cache_.get()));
       ASSERT_TRUE(uh.get());
     }
@@ -162,13 +162,13 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
     NO_FATALS(this->assertFdsAndDescriptors(1, 2));
     {
       Cache::UniqueHandle uh(
-          this->cache_->cache_->Lookup(kFile1, Cache::kExpectInCache),
+          this->cache_->cache_->lookup(kFile1, Cache::kExpectInCache),
           Cache::HandleDeleter(this->cache_->cache_.get()));
       ASSERT_FALSE(uh.get());
     }
     {
       Cache::UniqueHandle uh(
-          this->cache_->cache_->Lookup(kFile2, Cache::kExpectInCache),
+          this->cache_->cache_->lookup(kFile2, Cache::kExpectInCache),
           Cache::HandleDeleter(this->cache_->cache_.get()));
       ASSERT_TRUE(uh.get());
     }

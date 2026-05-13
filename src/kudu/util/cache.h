@@ -63,7 +63,7 @@ class Cache {
   //   ...
   //   {
   //     unique_ptr<Cache::Handle, Cache::HandleDeleter> h(
-  //       cache->Lookup(...), Cache::HandleDeleter(cache));
+  //       cache->lookup(...), Cache::HandleDeleter(cache));
   //     ...
   //   } // 'h' is automatically released here
   //
@@ -72,7 +72,7 @@ class Cache {
   //   Cache* cache = newLruCache(...);
   //   ...
   //   {
-  //     Cache::UniqueHandle h(cache->Lookup(...), Cache::HandleDeleter(cache));
+  //     Cache::UniqueHandle h(cache->lookup(...), Cache::HandleDeleter(cache));
   //     ...
   //   } // 'h' is automatically released here
   //
@@ -81,7 +81,7 @@ class Cache {
     explicit HandleDeleter(Cache* c) : c_(c) {}
 
     void operator()(Cache::Handle* h) const {
-      c_->Release(h);
+      c_->release(h);
     }
 
    private:
@@ -99,29 +99,29 @@ class Cache {
   // If the cache has no mapping for "key", returns NULL.
   //
   // Else return a handle that corresponds to the mapping.  The caller
-  // must call this->Release(handle) when the returned mapping is no
+  // must call this->release(handle) when the returned mapping is no
   // longer needed.
-  virtual Handle* Lookup(const Slice& key, CacheBehavior caching) = 0;
+  virtual Handle* lookup(const Slice& key, CacheBehavior caching) = 0;
 
-  // Release a mapping returned by a previous Lookup().
+  // Release a mapping returned by a previous lookup().
   // REQUIRES: handle must not have been released yet.
   // REQUIRES: handle must have been returned by a method on *this.
-  virtual void Release(Handle* handle) = 0;
+  virtual void release(Handle* handle) = 0;
 
   // Return the value encapsulated in a handle returned by a
-  // successful Lookup().
+  // successful lookup().
   // REQUIRES: handle must not have been released yet.
   // REQUIRES: handle must have been returned by a method on *this.
-  virtual Slice Value(Handle* handle) = 0;
+  virtual Slice value(Handle* handle) = 0;
 
   // If the cache contains entry for key, erase it.  Note that the
   // underlying entry will be kept around until all existing handles
   // to it have been released.
-  virtual void Erase(const Slice& key) = 0;
+  virtual void erase(const Slice& key) = 0;
 
   // Pass a metric entity in order to start recoding metrics.
-  virtual void SetMetrics(
-      const std::shared_ptr<MetricEntity>& metric_entity) = 0;
+  virtual void setMetrics(
+      const std::shared_ptr<MetricEntity>& metricEntity) = 0;
 
   // ------------------------------------------------------------
   // Insertion path
@@ -135,15 +135,15 @@ class Cache {
   //
   // For example:
   //
-  //   PendingHandle* ph = cache_->Allocate("my entry", value_size, charge);
-  //   if (!ReadDataFromDisk(cache_->MutableValue(ph)).ok()) {
-  //     cache_->Free(ph);
+  //   PendingHandle* ph = cache_->allocate("my entry", value_size, charge);
+  //   if (!ReadDataFromDisk(cache_->mutableValue(ph)).ok()) {
+  //     cache_->free(ph);
   //     ... error handling ...
   //     return;
   //   }
-  //   Handle* h = cache_->Insert(ph, my_eviction_callback);
+  //   Handle* h = cache_->insert(ph, my_eviction_callback);
   //   ...
-  //   cache_->Release(h);
+  //   cache_->release(h);
 
   // Opaque handle to an entry which is being prepared to be added to
   // the cache.
@@ -157,7 +157,7 @@ class Cache {
   //
   // The provided 'key' is copied into the resulting handle object.
   // The allocated handle has enough space such that the value can
-  // be written into cache_->MutableValue(handle).
+  // be written into cache_->mutableValue(handle).
   //
   // If 'charge' is not 'kAutomaticCharge', then the cache capacity will be
   // charged the explicit amount. This is useful when caching items that are
@@ -172,29 +172,29 @@ class Cache {
   // allocation.
   //
   // NOTE: the returned memory is not automatically freed by the cache: the
-  // caller must either free it using Free(), or insert it using Insert().
-  virtual PendingHandle* Allocate(Slice key, int val_len, int charge) = 0;
+  // caller must either free it using free(), or insert it using insert().
+  virtual PendingHandle* allocate(Slice key, int valLen, int charge) = 0;
 
-  virtual uint8_t* MutableValue(PendingHandle* handle) = 0;
+  virtual uint8_t* mutableValue(PendingHandle* handle) = 0;
 
   // Commit a prepared entry into the cache.
   //
   // Returns a handle that corresponds to the mapping.  The caller
-  // must call this->Release(handle) when the returned mapping is no
+  // must call this->release(handle) when the returned mapping is no
   // longer needed. This method always succeeds and returns a non-null
   // entry, since the space was reserved above.
   //
   // The 'pending' entry passed here should have been allocated using
-  // Cache::Allocate() above.
+  // Cache::allocate() above.
   //
-  // If 'eviction_callback' is non-NULL, then it will be called when the
+  // If 'evictionCallback' is non-NULL, then it will be called when the
   // entry is later evicted or when the cache shuts down.
-  virtual Handle* Insert(
+  virtual Handle* insert(
       PendingHandle* pending,
-      EvictionCallback* eviction_callback) = 0;
+      EvictionCallback* evictionCallback) = 0;
 
-  // Free 'ptr', which must have been previously allocated using 'Allocate'.
-  virtual void Free(PendingHandle* ptr) = 0;
+  // Free 'ptr', which must have been previously allocated using 'allocate'.
+  virtual void free(PendingHandle* ptr) = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(Cache);
