@@ -175,20 +175,20 @@ class HybridClock : public Clock {
 
   // Used to fetch the current time and error bound from the system or NTP
   // service.
-  std::unique_ptr<clock::TimeService> time_service_;
+  std::unique_ptr<clock::TimeService> timeService_;
 
   mutable simple_spinlock lock_;
 
   // The next timestamp to be generated from this clock, assuming that
   // the physical clock hasn't advanced beyond the value stored here.
-  uint64_t next_timestamp_;
+  uint64_t nextTimestamp_;
 
   // The last valid clock reading we got from the time source, along
   // with the monotime that we took that reading.
-  mutable simple_spinlock last_clock_read_lock_;
-  MonoTime last_clock_read_time_;
-  uint64_t last_clock_read_physical_;
-  uint64_t last_clock_read_error_;
+  mutable simple_spinlock lastClockReadLock_;
+  MonoTime lastClockReadTime_;
+  uint64_t lastClockReadPhysical_;
+  uint64_t lastClockReadError_;
 
   // How many bits to left shift a microseconds clock read. The remainder
   // of the timestamp will be reserved for logical values.
@@ -204,7 +204,7 @@ class HybridClock : public Clock {
   // Clock metrics are set to detach to their last value. This means
   // that, during our destructor, we'll need to access other class members
   // declared above this. Hence, this member must be declared last.
-  FunctionGaugeDetacher metric_detacher_;
+  FunctionGaugeDetacher metricDetacher_;
 };
 
 } // namespace kudu::clock

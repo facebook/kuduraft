@@ -116,17 +116,17 @@ const int HybridClock::kBitsToShift = 12;
 // This mask gives us back the logical bits.
 const uint64_t HybridClock::kLogicalBitMask = (1 << kBitsToShift) - 1;
 
-HybridClock::HybridClock() : next_timestamp_(0), state_(kNotInitialized) {}
+HybridClock::HybridClock() : nextTimestamp_(0), state_(kNotInitialized) {}
 
 Status HybridClock::init() {
   if (boost::iequals(FLAGS_time_source, "mock")) {
-    time_service_.reset(new clock::MockNtp());
+    timeService_.reset(new clock::MockNtp());
   } else if (boost::iequals(FLAGS_time_source, "system")) {
-    time_service_.reset(new clock::SystemNtp());
+    timeService_.reset(new clock::SystemNtp());
   } else {
     return Status::InvalidArgument("invalid NTP source", FLAGS_time_source);
   }
-  RETURN_NOT_OK(time_service_->init());
+  RETURN_NOT_OK(timeService_->init());
 
   state_ = kInitialized;
 
@@ -177,9 +177,9 @@ void HybridClock::nowWithError(Timestamp* timestamp, uint64_t* maxErrorUsec) {
   // If the physical time from the system clock is higher than our last-returned
   // time, we should use the physical timestamp.
   uint64_t candidatePhysTimestamp = nowUsec << kBitsToShift;
-  if (PREDICT_TRUE(candidatePhysTimestamp > next_timestamp_)) {
-    next_timestamp_ = candidatePhysTimestamp;
-    *timestamp = Timestamp(next_timestamp_++);
+  if (PREDICT_TRUE(candidatePhysTimestamp > nextTimestamp_)) {
+    nextTimestamp_ = candidatePhysTimestamp;
+    *timestamp = Timestamp(nextTimestamp_++);
     *maxErrorUsec = errorUsec;
     if (PREDICT_FALSE(VLOG_IS_ON(2))) {
       VLOG(2)
@@ -208,8 +208,8 @@ void HybridClock::nowWithError(Timestamp* timestamp, uint64_t* maxErrorUsec) {
   // This broadens the error interval for both cases but always returns
   // a correct error interval.
 
-  *maxErrorUsec = (next_timestamp_ >> kBitsToShift) - (nowUsec - errorUsec);
-  *timestamp = Timestamp(next_timestamp_++);
+  *maxErrorUsec = (nextTimestamp_ >> kBitsToShift) - (nowUsec - errorUsec);
+  *timestamp = Timestamp(nextTimestamp_++);
   if (PREDICT_FALSE(VLOG_IS_ON(2))) {
     VLOG(2)
         << "Current clock is lower than the last one. Returning last read and incrementing"
@@ -244,7 +244,7 @@ Status HybridClock::update(const Timestamp& toUpdate) {
 
   // Our next timestamp must be higher than the one that we are updating
   // from.
-  next_timestamp_ = toUpdate.value() + 1;
+  nextTimestamp_ = toUpdate.value() + 1;
   return Status::OK();
 }
 
@@ -295,7 +295,7 @@ Status HybridClock::waitUntilAfter(
 
   // Additionally adjust the sleep time with the max tolerance adjustment
   // to account for the worst case clock skew while we're sleeping.
-  waitForUsec *= (1 + (time_service_->skewPpm() / 1000000.0));
+  waitForUsec *= (1 + (timeService_->skewPpm() / 1000000.0));
 
   // Check that sleeping wouldn't sleep longer than our deadline.
   RETURN_NOT_OK(checkDeadlineNotWithinMicros(deadline, waitForUsec));
@@ -341,7 +341,7 @@ bool HybridClock::isAfter(Timestamp t) {
   Timestamp now;
   {
     std::lock_guard<simple_spinlock> lock(lock_);
-    now = Timestamp(std::max(next_timestamp_, nowUsec << kBitsToShift));
+    now = Timestamp(std::max(nextTimestamp_, nowUsec << kBitsToShift));
   }
   return t.value() < now.value();
 }
@@ -351,7 +351,7 @@ void HybridClock::walltimeWithErrorOrDie(
     uint64_t* errorUsec) {
   Status s = walltimeWithError(nowUsec, errorUsec);
   if (PREDICT_FALSE(!s.ok())) {
-    time_service_->dumpDiagnostics(/*log=*/nullptr);
+    timeService_->dumpDiagnostics(/*log=*/nullptr);
     CHECK_OK_PREPEND(s, "unable to get current time with error bound");
   }
 }
@@ -359,7 +359,7 @@ void HybridClock::walltimeWithErrorOrDie(
 Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
   bool isExtrapolated = false;
   auto readTimeBefore = MonoTime::Now();
-  Status s = time_service_->walltimeWithError(nowUsec, errorUsec);
+  Status s = timeService_->walltimeWithError(nowUsec, errorUsec);
   auto readTimeAfter = MonoTime::Now();
 
   if (PREDICT_TRUE(s.ok())) {
@@ -387,26 +387,26 @@ Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
     MonoTime readTimeMaxLikelihood =
         readTimeBefore + MonoDelta::FromMicroseconds(readTimeErrorUs);
 
-    std::unique_lock<simple_spinlock> l(last_clock_read_lock_);
-    if (!last_clock_read_time_.Initialized() ||
-        last_clock_read_time_ < readTimeMaxLikelihood) {
-      last_clock_read_time_ = readTimeMaxLikelihood;
-      last_clock_read_physical_ = *nowUsec;
-      last_clock_read_error_ = *errorUsec + readTimeErrorUs;
+    std::unique_lock<simple_spinlock> l(lastClockReadLock_);
+    if (!lastClockReadTime_.Initialized() ||
+        lastClockReadTime_ < readTimeMaxLikelihood) {
+      lastClockReadTime_ = readTimeMaxLikelihood;
+      lastClockReadPhysical_ = *nowUsec;
+      lastClockReadError_ = *errorUsec + readTimeErrorUs;
     }
   } else {
     // We failed to read the clock. Extrapolate the new time based on our
     // last successful read.
-    std::unique_lock<simple_spinlock> l(last_clock_read_lock_);
-    if (!last_clock_read_time_.Initialized()) {
+    std::unique_lock<simple_spinlock> l(lastClockReadLock_);
+    if (!lastClockReadTime_.Initialized()) {
       RETURN_NOT_OK_PREPEND(s, "could not read system time source");
     }
-    MonoDelta timeSinceLastRead = readTimeAfter - last_clock_read_time_;
+    MonoDelta timeSinceLastRead = readTimeAfter - lastClockReadTime_;
     int64_t microsSinceLastRead = timeSinceLastRead.ToMicroseconds();
     int64_t accumErrorUs =
-        (microsSinceLastRead * time_service_->skewPpm()) / 1000000;
-    *nowUsec = last_clock_read_physical_ + microsSinceLastRead;
-    *errorUsec = last_clock_read_error_ + accumErrorUs;
+        (microsSinceLastRead * timeService_->skewPpm()) / 1000000;
+    *nowUsec = lastClockReadPhysical_ + microsSinceLastRead;
+    *errorUsec = lastClockReadError_ + accumErrorUs;
     isExtrapolated = true;
     l.unlock();
     // Log after unlocking to minimize the lock hold time.
@@ -447,11 +447,11 @@ void HybridClock::registerMetrics(
   METRIC_hybrid_clock_timestamp
       .instantiateFunctionGauge(
           metricEntity, Bind(&HybridClock::nowForMetrics, Unretained(this)))
-      ->autoDetachToLastValue(&metric_detacher_);
+      ->autoDetachToLastValue(&metricDetacher_);
   METRIC_hybrid_clock_error
       .instantiateFunctionGauge(
           metricEntity, Bind(&HybridClock::errorForMetrics, Unretained(this)))
-      ->autoDetachToLastValue(&metric_detacher_);
+      ->autoDetachToLastValue(&metricDetacher_);
 }
 
 string HybridClock::stringify(Timestamp timestamp) {
