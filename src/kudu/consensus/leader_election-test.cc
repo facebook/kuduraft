@@ -69,13 +69,13 @@ namespace {
 constexpr int kLeaderElectionTimeoutSecs = 10;
 
 // Generate a list of voter UUIDs for testing.
-inline vector<string> genVoterUuids(int num_voters) {
-  vector<string> voter_uuids;
-  voter_uuids.reserve(num_voters);
-  for (int i = 0; i < num_voters; ++i) {
-    voter_uuids.push_back(fmt::format("peer-{}", i));
+inline vector<string> genVoterUuids(int numVoters) {
+  vector<string> voterUuids;
+  voterUuids.reserve(numVoters);
+  for (int i = 0; i < numVoters; ++i) {
+    voterUuids.push_back(fmt::format("peer-{}", i));
   }
-  return voter_uuids;
+  return voterUuids;
 }
 
 } // namespace
@@ -103,9 +103,9 @@ class FromMapPeerProxyFactory : public PeerProxyFactory {
   explicit FromMapPeerProxyFactory(const ProxyMap* proxyMap)
       : proxyMap_(proxyMap) {}
 
-  Status newProxy(const RaftPeerPB& peer_pb, shared_ptr<PeerProxy>* proxy)
+  Status newProxy(const RaftPeerPB& peerPb, shared_ptr<PeerProxy>* proxy)
       override {
-    auto it = proxyMap_->find(peer_pb.permanent_uuid());
+    auto it = proxyMap_->find(peerPb.permanent_uuid());
     PeerProxy* proxyPtr = (it != proxyMap_->end()) ? it->second : nullptr;
     if (!proxyPtr) {
       return Status::NotFound("no proxy for peer");
@@ -139,26 +139,26 @@ class LeaderElectionTest : public KuduTest {
   void electionCallback(const ElectionResult& result);
 
  protected:
-  void initUuids(int num_voters);
+  void initUuids(int numVoters);
   void initNoOpPeerProxies();
-  void initJointConsensusNoOpPeerProxies(int num_added_voters);
+  void initJointConsensusNoOpPeerProxies(int numAddedVoters);
   void initDelayableMockedProxies(bool enableDelay);
   unique_ptr<VoteCounter>
-  initVoteCounter(int num_voters, int majority_size, bool do_self_vote = true);
+  initVoteCounter(int numVoters, int majoritySize, bool doSelfVote = true);
 
   // Voter 0 is the high-term voter.
   std::shared_ptr<LeaderElection> setUpElectionWithHighTermVoter(
-      ConsensusTerm election_term);
+      ConsensusTerm electionTerm);
 
   // Predetermine the election results using the specified number of
   // grant / deny / error responses.
-  // num_grant must be at least 1, for the candidate to vote for itself.
-  // num_grant + num_deny + num_error must add up to an odd number.
+  // numGrant must be at least 1, for the candidate to vote for itself.
+  // numGrant + numDeny + numError must add up to an odd number.
   std::shared_ptr<LeaderElection> setUpElectionWithGrantDenyErrorVotes(
-      ConsensusTerm election_term,
-      int num_grant,
-      int num_deny,
-      int num_error);
+      ConsensusTerm electionTerm,
+      int numGrant,
+      int numDeny,
+      int numError);
 
   const string tabletId_;
   string candidateUuid_;
@@ -178,8 +178,8 @@ void LeaderElectionTest::electionCallback(const ElectionResult& result) {
   latch_.countDown();
 }
 
-void LeaderElectionTest::initUuids(int num_voters) {
-  voterUuids_ = genVoterUuids(num_voters);
+void LeaderElectionTest::initUuids(int numVoters) {
+  voterUuids_ = genVoterUuids(numVoters);
   CHECK(!voterUuids_.empty());
   candidateUuid_ = voterUuids_.back();
   voterUuids_.pop_back();
@@ -188,60 +188,58 @@ void LeaderElectionTest::initUuids(int num_voters) {
 void LeaderElectionTest::initNoOpPeerProxies() {
   config_.Clear();
   for (const string& uuid : voterUuids_) {
-    RaftPeerPB* peer_pb = config_.add_peers();
-    peer_pb->set_permanent_uuid(uuid);
-    peer_pb->set_member_type(RaftPeerPB::VOTER);
-    PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
+    RaftPeerPB* peerPb = config_.add_peers();
+    peerPb->set_permanent_uuid(uuid);
+    peerPb->set_member_type(RaftPeerPB::VOTER);
+    PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peerPb);
     auto [it, inserted] = proxies_.insert({uuid, proxy});
     CHECK(inserted);
   }
 }
 
-void LeaderElectionTest::initJointConsensusNoOpPeerProxies(
-    int num_added_voters) {
-  CHECK_GT(num_added_voters, 0);
-  CHECK_LT(num_added_voters, voterUuids_.size());
+void LeaderElectionTest::initJointConsensusNoOpPeerProxies(int numAddedVoters) {
+  CHECK_GT(numAddedVoters, 0);
+  CHECK_LT(numAddedVoters, voterUuids_.size());
   config_.Clear();
-  int numCurrentVoters = (int)voterUuids_.size() - num_added_voters;
+  int numCurrentVoters = (int)voterUuids_.size() - numAddedVoters;
   // Generate proxies for the current voters (C_old)
   RaftPeerPB* candidatePeerPb = config_.add_peers();
   candidatePeerPb->set_permanent_uuid(candidateUuid_);
   candidatePeerPb->set_member_type(RaftPeerPB::VOTER);
   for (int i = 0; i < numCurrentVoters; ++i) {
     const string& uuid = voterUuids_[i];
-    RaftPeerPB* peer_pb = config_.add_peers();
-    peer_pb->set_permanent_uuid(uuid);
-    peer_pb->set_member_type(RaftPeerPB::VOTER);
-    auto proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
+    RaftPeerPB* peerPb = config_.add_peers();
+    peerPb->set_permanent_uuid(uuid);
+    peerPb->set_member_type(RaftPeerPB::VOTER);
+    auto proxy = new NoOpTestPeerProxy(pool_.get(), *peerPb);
     auto [it, inserted] = proxies_.insert({uuid, proxy});
     CHECK(inserted);
   }
   // Generate proxies for the current *and* added voters (C_new)
-  for (int i = 0; i < num_added_voters; ++i) {
+  for (int i = 0; i < numAddedVoters; ++i) {
     const int peerIdx = numCurrentVoters + i;
     const string& uuid = voterUuids_[peerIdx];
-    RaftPeerPB* peer_pb = config_.add_next_config_peers();
-    peer_pb->set_permanent_uuid(uuid);
-    peer_pb->set_member_type(RaftPeerPB::VOTER);
-    PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
-    auto [it, inserted] = proxies_.insert({peer_pb->permanent_uuid(), proxy});
+    RaftPeerPB* peerPb = config_.add_next_config_peers();
+    peerPb->set_permanent_uuid(uuid);
+    peerPb->set_member_type(RaftPeerPB::VOTER);
+    PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peerPb);
+    auto [it, inserted] = proxies_.insert({peerPb->permanent_uuid(), proxy});
     CHECK(inserted);
   }
-  for (const RaftPeerPB& peer_pb : config_.peers()) {
+  for (const RaftPeerPB& peerPb : config_.peers()) {
     RaftPeerPB* duplicatePeerPb = config_.add_next_config_peers();
-    duplicatePeerPb->CopyFrom(peer_pb);
+    duplicatePeerPb->CopyFrom(peerPb);
   }
   CHECK_EQ(
-      config_.next_config_peers_size(),
-      config_.peers_size() + num_added_voters);
+      config_.next_config_peers_size(), config_.peers_size() + numAddedVoters);
 }
 
 void LeaderElectionTest::initDelayableMockedProxies(bool enableDelay) {
   config_.Clear();
   for (const string& uuid : voterUuids_) {
-    RaftPeerPB* peer_pb = config_.add_peers();
-    peer_pb->set_permanent_uuid(uuid);
-    peer_pb->set_member_type(RaftPeerPB::VOTER);
+    RaftPeerPB* peerPb = config_.add_peers();
+    peerPb->set_permanent_uuid(uuid);
+    peerPb->set_member_type(RaftPeerPB::VOTER);
     auto proxy = new DelayablePeerProxy<MockedPeerProxy>(
         pool_.get(), new MockedPeerProxy(pool_.get()));
     if (enableDelay) {
@@ -253,23 +251,22 @@ void LeaderElectionTest::initDelayableMockedProxies(bool enableDelay) {
 }
 
 unique_ptr<VoteCounter> LeaderElectionTest::initVoteCounter(
-    int num_voters,
-    int majority_size,
-    bool do_self_vote) {
-  unique_ptr<VoteCounter> counter(new VoteCounter(num_voters, majority_size));
-  if (do_self_vote) {
+    int numVoters,
+    int majoritySize,
+    bool doSelfVote) {
+  unique_ptr<VoteCounter> counter(new VoteCounter(numVoters, majoritySize));
+  if (doSelfVote) {
     bool duplicate;
-    VoteInfo vote_info;
-    vote_info.vote = VOTE_GRANTED;
-    CHECK_OK(counter->RegisterVote(candidateUuid_, vote_info, &duplicate));
+    VoteInfo voteInfo;
+    voteInfo.vote = VOTE_GRANTED;
+    CHECK_OK(counter->RegisterVote(candidateUuid_, voteInfo, &duplicate));
     CHECK(!duplicate);
   }
   return counter;
 }
 
 std::shared_ptr<LeaderElection>
-LeaderElectionTest::setUpElectionWithHighTermVoter(
-    ConsensusTerm election_term) {
+LeaderElectionTest::setUpElectionWithHighTermVoter(ConsensusTerm electionTerm) {
   const int kNumVoters = 3;
   const int kMajoritySize = 2;
 
@@ -279,7 +276,7 @@ LeaderElectionTest::setUpElectionWithHighTermVoter(
 
   VoteResponsePB response;
   response.set_responder_uuid(voterUuids_[0]);
-  response.set_responder_term(election_term + 1);
+  response.set_responder_term(electionTerm + 1);
   response.set_vote_granted(false);
   response.mutable_consensus_error()->set_code(ConsensusErrorPB::INVALID_TERM);
   statusToPb(
@@ -292,7 +289,7 @@ LeaderElectionTest::setUpElectionWithHighTermVoter(
 
   response.Clear();
   response.set_responder_uuid(voterUuids_[1]);
-  response.set_responder_term(election_term);
+  response.set_responder_term(electionTerm);
   response.set_vote_granted(true);
   kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
       proxies_[voterUuids_[1]])
@@ -301,7 +298,7 @@ LeaderElectionTest::setUpElectionWithHighTermVoter(
 
   VoteRequestPB request;
   request.set_candidate_uuid(candidateUuid_);
-  request.set_candidate_term(election_term);
+  request.set_candidate_term(electionTerm);
   request.set_tablet_id(tabletId_);
 
   std::shared_ptr<LeaderElection> election(new LeaderElection(
@@ -318,19 +315,19 @@ LeaderElectionTest::setUpElectionWithHighTermVoter(
 
 std::shared_ptr<LeaderElection>
 LeaderElectionTest::setUpElectionWithGrantDenyErrorVotes(
-    ConsensusTerm election_term,
-    int num_grant,
-    int num_deny,
-    int num_error) {
-  const int kNumVoters = num_grant + num_deny + num_error;
-  CHECK_GE(num_grant, 1); // Gotta vote for yourself.
+    ConsensusTerm electionTerm,
+    int numGrant,
+    int numDeny,
+    int numError) {
+  const int kNumVoters = numGrant + numDeny + numError;
+  CHECK_GE(numGrant, 1); // Gotta vote for yourself.
   CHECK_EQ(1, kNumVoters % 2); // RaftConfig size must be odd.
   const int kMajoritySize = (kNumVoters / 2) + 1;
 
   initUuids(kNumVoters);
   initDelayableMockedProxies(false); // Don't delay the vote responses.
   unique_ptr<VoteCounter> counter = initVoteCounter(kNumVoters, kMajoritySize);
-  int numGrantFollowers = num_grant - 1;
+  int numGrantFollowers = numGrant - 1;
 
   // Set up mocked responses based on the params specified in the method
   // arguments.
@@ -339,24 +336,24 @@ LeaderElectionTest::setUpElectionWithGrantDenyErrorVotes(
     VoteResponsePB response;
     if (numGrantFollowers > 0) {
       response.set_responder_uuid(voterUuids_[voterIndex]);
-      response.set_responder_term(election_term);
+      response.set_responder_term(electionTerm);
       response.set_vote_granted(true);
       --numGrantFollowers;
-    } else if (num_deny > 0) {
+    } else if (numDeny > 0) {
       response.set_responder_uuid(voterUuids_[voterIndex]);
-      response.set_responder_term(election_term);
+      response.set_responder_term(electionTerm);
       response.set_vote_granted(false);
       response.mutable_consensus_error()->set_code(
           ConsensusErrorPB::LAST_OPID_TOO_OLD);
       statusToPb(
           Status::InvalidArgument("Last OpId"),
           response.mutable_consensus_error()->mutable_status());
-      --num_deny;
-    } else if (num_error > 0) {
+      --numDeny;
+    } else if (numError > 0) {
       statusToPb(
           Status::NotFound("Unknown Tablet"),
           response.mutable_error()->mutable_status());
-      --num_error;
+      --numError;
     } else {
       LOG(FATAL) << "Unexpected fallthrough";
     }
@@ -370,7 +367,7 @@ LeaderElectionTest::setUpElectionWithGrantDenyErrorVotes(
 
   VoteRequestPB request;
   request.set_candidate_uuid(candidateUuid_);
-  request.set_candidate_term(election_term);
+  request.set_candidate_term(electionTerm);
   request.set_tablet_id(tabletId_);
 
   std::shared_ptr<LeaderElection> election(new LeaderElection(
@@ -389,20 +386,19 @@ LeaderElectionTest::setUpElectionWithGrantDenyErrorVotes(
 TEST_F(LeaderElectionTest, TestPerfectElection) {
   // Try configuration sizes of 1, 3, 5.
   vector<int> configSizes = {1, 3, 5};
-  for (int num_voters : configSizes) {
-    LOG(INFO) << "Testing election with config size of " << num_voters;
-    int majority_size = (num_voters / 2) + 1;
-    ConsensusTerm election_term =
-        10L + num_voters; // Just to be able to differentiate.
+  for (int numVoters : configSizes) {
+    LOG(INFO) << "Testing election with config size of " << numVoters;
+    int majoritySize = (numVoters / 2) + 1;
+    ConsensusTerm electionTerm =
+        10L + numVoters; // Just to be able to differentiate.
 
-    initUuids(num_voters);
+    initUuids(numVoters);
     initNoOpPeerProxies();
-    unique_ptr<VoteCounter> counter =
-        initVoteCounter(num_voters, majority_size);
+    unique_ptr<VoteCounter> counter = initVoteCounter(numVoters, majoritySize);
 
     VoteRequestPB request;
     request.set_candidate_uuid(candidateUuid_);
-    request.set_candidate_term(election_term);
+    request.set_candidate_term(electionTerm);
     request.set_tablet_id(tabletId_);
 
     std::shared_ptr<LeaderElection> election(new LeaderElection(
@@ -417,7 +413,7 @@ TEST_F(LeaderElectionTest, TestPerfectElection) {
     election->Run();
     latch_.wait();
 
-    ASSERT_EQ(election_term, result_->vote_request.candidate_term());
+    ASSERT_EQ(electionTerm, result_->vote_request.candidate_term());
     ASSERT_EQ(VOTE_GRANTED, result_->decision);
 
     waitForPool(*pool_);
@@ -586,7 +582,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
   //  C_new = {peer-0, peer-1, peer-2, peer-3, *peer-4}.
   initUuids(kNumCurrVoters + kNumAddedVoters);
   EXPECT_EQ(candidateUuid_, "peer-4");
-  initJointConsensusNoOpPeerProxies(/*num_added_voters=*/kNumAddedVoters);
+  initJointConsensusNoOpPeerProxies(/*numAddedVoters=*/kNumAddedVoters);
   ASSERT_EQ(kNumCurrVoters, config_.peers_size());
   ASSERT_EQ(kNumCurrVoters + kNumAddedVoters, config_.next_config_peers_size());
 
@@ -599,11 +595,11 @@ TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
   // Prepare vanilla vote counter for the old and new config.
   // They share some of the peer proxies.
   unique_ptr<VoteCounter> oldConfCounter =
-      initVoteCounter(kNumCurrVoters, kOldMajoritySize, /*do_self_vote=*/false);
+      initVoteCounter(kNumCurrVoters, kOldMajoritySize, /*doSelfVote=*/false);
   unique_ptr<VoteCounter> newConfCounter = initVoteCounter(
       kNumCurrVoters + kNumAddedVoters,
       kNewMajoritySize,
-      /*do_self_vote=*/false);
+      /*doSelfVote=*/false);
 
   // Prepare the joint-consensus vote counter.
   unique_ptr<JointConsensusVoteCounter> jointCounter;
@@ -657,7 +653,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
   // because RPC error is treated as "no" vote.
   initUuids(kNumCurrVoters + kNumAddedVoters);
   EXPECT_EQ(candidateUuid_, "peer-4");
-  initJointConsensusNoOpPeerProxies(/*num_added_voters=*/kNumAddedVoters);
+  initJointConsensusNoOpPeerProxies(/*numAddedVoters=*/kNumAddedVoters);
   delete EraseKeyReturnValuePtr(&proxies_, "peer-0");
   delete EraseKeyReturnValuePtr(&proxies_, "peer-2");
   delete EraseKeyReturnValuePtr(&proxies_, "peer-3");
@@ -671,11 +667,11 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
 
   // Prepare vanilla vote counter for the old and new config.
   unique_ptr<VoteCounter> oldConfCounter =
-      initVoteCounter(kNumCurrVoters, kOldMajoritySize, /*do_self_vote=*/false);
+      initVoteCounter(kNumCurrVoters, kOldMajoritySize, /*doSelfVote=*/false);
   unique_ptr<VoteCounter> newConfCounter = initVoteCounter(
       kNumCurrVoters + kNumAddedVoters,
       kNewMajoritySize,
-      /*do_self_vote=*/false);
+      /*doSelfVote=*/false);
 
   // Prepare the joint-consensus vote counter.
   unique_ptr<JointConsensusVoteCounter> jointCounter;
@@ -717,28 +713,28 @@ class VoteCounterTest : public KuduTest {
  protected:
   static void assertUndecided(const VoteCounter& counter);
   static void
-  assertVoteCount(const VoteCounter& counter, int yes_votes, int no_votes);
+  assertVoteCount(const VoteCounter& counter, int yesVotes, int noVotes);
 };
 
 void VoteCounterTest::assertUndecided(const VoteCounter& counter) {
-  ElectionDecisionState decision_state = counter.GetDecision();
-  ASSERT_FALSE(decision_state.decided());
+  ElectionDecisionState decisionState = counter.GetDecision();
+  ASSERT_FALSE(decisionState.decided());
 }
 
 void VoteCounterTest::assertVoteCount(
     const VoteCounter& counter,
-    int yes_votes,
-    int no_votes) {
-  ASSERT_EQ(yes_votes, counter.yes_votes_);
-  ASSERT_EQ(no_votes, counter.no_votes_);
-  ASSERT_EQ(yes_votes + no_votes, counter.GetTotalVotesCounted());
+    int yesVotes,
+    int noVotes) {
+  ASSERT_EQ(yesVotes, counter.yes_votes_);
+  ASSERT_EQ(noVotes, counter.no_votes_);
+  ASSERT_EQ(yesVotes + noVotes, counter.GetTotalVotesCounted());
 }
 
 // Test basic vote counting functionality with an early majority.
 TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
   const int kNumVoters = 3;
   const int kMajoritySize = 2;
-  vector<string> voter_uuids = genVoterUuids(kNumVoters);
+  vector<string> voterUuids = genVoterUuids(kNumVoters);
 
   // "Yes" decision.
   {
@@ -750,16 +746,16 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
 
     // First yes vote.
     bool duplicate;
-    VoteInfo vote_info;
-    vote_info.vote = VOTE_GRANTED;
-    ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
+    VoteInfo voteInfo;
+    voteInfo.vote = VOTE_GRANTED;
+    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
     ASSERT_FALSE(counter.AreAllVotesIn());
 
     // Second yes vote wins it in a configuration of 3.
-    ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
+    ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decisionState = counter.GetDecision();
     ASSERT_TRUE(decisionState.decided());
@@ -778,16 +774,16 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
 
     // First no vote.
     bool duplicate;
-    VoteInfo vote_info;
-    vote_info.vote = VOTE_DENIED;
-    ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
+    VoteInfo voteInfo;
+    voteInfo.vote = VOTE_DENIED;
+    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 0, 1));
     ASSERT_FALSE(counter.AreAllVotesIn());
 
     // Second no vote loses it in a configuration of 3.
-    ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
+    ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decisionState = counter.GetDecision();
     ASSERT_TRUE(decisionState.decided());
@@ -802,7 +798,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
 TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   const int kNumVoters = 5;
   const int kMajoritySize = 3;
-  vector<string> voter_uuids = genVoterUuids(kNumVoters);
+  vector<string> voterUuids = genVoterUuids(kNumVoters);
 
   // Start off undecided.
   VoteCounter counter(kNumVoters, kMajoritySize);
@@ -812,24 +808,24 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
 
   // Add single yes vote, still undecided.
   bool duplicate;
-  VoteInfo vote_info;
-  vote_info.vote = VOTE_GRANTED;
-  ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
+  VoteInfo voteInfo;
+  voteInfo.vote = VOTE_GRANTED;
+  ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
   ASSERT_FALSE(counter.AreAllVotesIn());
 
   // Attempt duplicate vote.
-  ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
+  ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
   ASSERT_TRUE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
   ASSERT_FALSE(counter.AreAllVotesIn());
 
   // Attempt to change vote.
-  vote_info.vote = VOTE_DENIED;
-  Status s = counter.RegisterVote(voter_uuids[0], vote_info, &duplicate);
+  voteInfo.vote = VOTE_DENIED;
+  Status s = counter.RegisterVote(voterUuids[0], voteInfo, &duplicate);
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_STR_CONTAINS(s.ToString(), "voted a different way twice");
   LOG(INFO) << "Expected vote-changed error: " << s.ToString();
@@ -838,29 +834,29 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   ASSERT_FALSE(counter.AreAllVotesIn());
 
   // Add more votes...
-  ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
+  ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 1));
   ASSERT_FALSE(counter.AreAllVotesIn());
 
-  vote_info.vote = VOTE_GRANTED;
-  ASSERT_OK(counter.RegisterVote(voter_uuids[2], vote_info, &duplicate));
+  voteInfo.vote = VOTE_GRANTED;
+  ASSERT_OK(counter.RegisterVote(voterUuids[2], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 2, 1));
   ASSERT_FALSE(counter.AreAllVotesIn());
 
-  vote_info.vote = VOTE_DENIED;
-  ASSERT_OK(counter.RegisterVote(voter_uuids[3], vote_info, &duplicate));
+  voteInfo.vote = VOTE_DENIED;
+  ASSERT_OK(counter.RegisterVote(voterUuids[3], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 2, 2));
   ASSERT_FALSE(counter.AreAllVotesIn());
 
   // Win the election.
-  vote_info.vote = VOTE_GRANTED;
-  ASSERT_OK(counter.RegisterVote(voter_uuids[4], vote_info, &duplicate));
+  voteInfo.vote = VOTE_GRANTED;
+  ASSERT_OK(counter.RegisterVote(voterUuids[4], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ElectionDecisionState decisionState = counter.GetDecision();
   ASSERT_TRUE(decisionState.decided());
@@ -869,7 +865,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   ASSERT_TRUE(counter.AreAllVotesIn());
 
   // Attempt to vote with > the whole configuration.
-  s = counter.RegisterVote("some-random-node", vote_info, &duplicate);
+  s = counter.RegisterVote("some-random-node", voteInfo, &duplicate);
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_STR_CONTAINS(
       s.ToString(), "cause the number of votes to exceed the expected number");
@@ -883,7 +879,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
 TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
   const int kNumVoters = 2;
   const int kMajoritySize = 2;
-  vector<string> voter_uuids = genVoterUuids(kNumVoters);
+  vector<string> voterUuids = genVoterUuids(kNumVoters);
 
   // "Yes" decision.
   {
@@ -894,16 +890,16 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
 
     // Initial yes vote.
     bool duplicate;
-    VoteInfo vote_info;
-    vote_info.vote = VOTE_GRANTED;
-    ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
+    VoteInfo voteInfo;
+    voteInfo.vote = VOTE_GRANTED;
+    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     NO_FATALS(assertUndecided(counter));
     NO_FATALS(assertVoteCount(counter, 1, 0));
     ASSERT_FALSE(counter.AreAllVotesIn());
 
     // Second yes vote wins it.
-    ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
+    ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decisionState = counter.GetDecision();
     ASSERT_TRUE(decisionState.decided());
@@ -921,9 +917,9 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
 
     // The first "no" vote guarantees a failed election when num voters == 2.
     bool duplicate;
-    VoteInfo vote_info;
-    vote_info.vote = VOTE_DENIED;
-    ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
+    VoteInfo voteInfo;
+    voteInfo.vote = VOTE_DENIED;
+    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decisionState = counter.GetDecision();
     ASSERT_TRUE(decisionState.decided());
