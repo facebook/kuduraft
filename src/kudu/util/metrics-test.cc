@@ -88,15 +88,15 @@ METRIC_DEFINE_gauge_uint64(
     "Description of Test Gauge");
 
 TEST_F(MetricsTest, SimpleAtomicGaugeTest) {
-  std::shared_ptr<AtomicGauge<uint64_t>> mem_usage =
+  std::shared_ptr<AtomicGauge<uint64_t>> memUsage =
       METRIC_test_gauge.instantiate(entity_, 0);
   ASSERT_EQ(
-      METRIC_test_gauge.description(), mem_usage->prototype()->description());
-  ASSERT_EQ(0, mem_usage->value());
-  mem_usage->incrementBy(7);
-  ASSERT_EQ(7, mem_usage->value());
-  mem_usage->setValue(5);
-  ASSERT_EQ(5, mem_usage->value());
+      METRIC_test_gauge.description(), memUsage->prototype()->description());
+  ASSERT_EQ(0, memUsage->value());
+  memUsage->incrementBy(7);
+  ASSERT_EQ(7, memUsage->value());
+  memUsage->setValue(5);
+  ASSERT_EQ(5, memUsage->value());
 }
 
 METRIC_DEFINE_gauge_int64(
@@ -106,15 +106,15 @@ METRIC_DEFINE_gauge_int64(
     MetricUnit::kBytes,
     "Test Gauge 2");
 
-static int64_t MyFunction(int* metric_val) {
-  return (*metric_val)++;
+static int64_t myFunction(int* metricVal) {
+  return (*metricVal)++;
 }
 
 TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
-  int metric_val = 1000;
+  int metricVal = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&MyFunction, Unretained(&metric_val)));
+          entity_, Bind(&myFunction, Unretained(&metricVal)));
 
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
@@ -130,10 +130,10 @@ TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
 }
 
 TEST_F(MetricsTest, AutoDetachToLastValue) {
-  int metric_val = 1000;
+  int metricVal = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&MyFunction, Unretained(&metric_val)));
+          entity_, Bind(&myFunction, Unretained(&metricVal)));
 
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
@@ -149,10 +149,10 @@ TEST_F(MetricsTest, AutoDetachToLastValue) {
 }
 
 TEST_F(MetricsTest, AutoDetachToConstant) {
-  int metric_val = 1000;
+  int metricVal = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&MyFunction, Unretained(&metric_val)));
+          entity_, Bind(&myFunction, Unretained(&metricVal)));
 
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
@@ -199,9 +199,9 @@ TEST_F(MetricsTest, SimpleHistogramTest) {
 }
 
 TEST_F(MetricsTest, JsonPrintTest) {
-  std::shared_ptr<Counter> test_counter =
+  std::shared_ptr<Counter> testCounter =
       METRIC_test_counter.instantiate(entity_);
-  test_counter->increment();
+  testCounter->increment();
   entity_->setAttribute("test_attr", "attr_val");
 
   // Generate the JSON.
@@ -216,18 +216,18 @@ TEST_F(MetricsTest, JsonPrintTest) {
   vector<const rapidjson::Value*> metrics;
   ASSERT_OK(reader.extractObjectArray(reader.root(), "metrics", &metrics));
   ASSERT_EQ(1, metrics.size());
-  string metric_name;
-  ASSERT_OK(reader.extractString(metrics[0], "name", &metric_name));
-  ASSERT_EQ("test_counter", metric_name);
-  int64_t metric_value;
-  ASSERT_OK(reader.extractInt64(metrics[0], "value", &metric_value));
-  ASSERT_EQ(1L, metric_value);
+  string metricName;
+  ASSERT_OK(reader.extractString(metrics[0], "name", &metricName));
+  ASSERT_EQ("test_counter", metricName);
+  int64_t metricValue;
+  ASSERT_OK(reader.extractInt64(metrics[0], "value", &metricValue));
+  ASSERT_EQ(1L, metricValue);
 
   const rapidjson::Value* attributes;
   ASSERT_OK(reader.extractObject(reader.root(), "attributes", &attributes));
-  string attr_value;
-  ASSERT_OK(reader.extractString(attributes, "test_attr", &attr_value));
-  ASSERT_EQ("attr_val", attr_value);
+  string attrValue;
+  ASSERT_OK(reader.extractString(attributes, "test_attr", &attrValue));
+  ASSERT_EQ("attr_val", attrValue);
 
   // Verify that metric filtering matches on substrings.
   out.str("");
@@ -302,15 +302,15 @@ TEST_F(MetricsTest, NeverRetireTest) {
 
 TEST_F(MetricsTest, TestInstantiatingTwice) {
   // Test that re-instantiating the same entity ID returns the same object.
-  std::shared_ptr<MetricEntity> new_entity =
+  std::shared_ptr<MetricEntity> newEntity =
       METRIC_ENTITY_test_entity.instantiate(&registry_, entity_->id());
-  ASSERT_EQ(new_entity.get(), entity_.get());
+  ASSERT_EQ(newEntity.get(), entity_.get());
 }
 
 TEST_F(MetricsTest, TestInstantiatingDifferentEntities) {
-  std::shared_ptr<MetricEntity> new_entity =
+  std::shared_ptr<MetricEntity> newEntity =
       METRIC_ENTITY_test_entity.instantiate(&registry_, "some other ID");
-  ASSERT_NE(new_entity.get(), entity_.get());
+  ASSERT_NE(newEntity.get(), entity_.get());
 }
 
 TEST_F(MetricsTest, TestDumpJsonPrototypes) {
@@ -337,71 +337,70 @@ TEST_F(MetricsTest, TestDumpJsonPrototypes) {
   d.Parse<0>(json.c_str());
 
   // Ensure that we got a reasonable number of metrics.
-  int num_metrics = d["metrics"].Size();
-  int num_entities = d["entities"].Size();
-  LOG(INFO) << "Parsed " << num_metrics << " metrics and " << num_entities
+  int numMetrics = d["metrics"].Size();
+  int numEntities = d["entities"].Size();
+  LOG(INFO) << "Parsed " << numMetrics << " metrics and " << numEntities
             << " entities";
-  ASSERT_GT(num_metrics, 5);
-  ASSERT_EQ(num_entities, 2);
+  ASSERT_GT(numMetrics, 5);
+  ASSERT_EQ(numEntities, 2);
 
   // Spot-check that some metrics were properly registered and that the JSON was
   // properly formed.
-  unordered_set<string> seen_metrics;
+  unordered_set<string> seenMetrics;
   for (int i = 0; i < d["metrics"].Size(); i++) {
     auto [it, inserted] =
-        seen_metrics.insert(d["metrics"][i]["name"].GetString());
+        seenMetrics.insert(d["metrics"][i]["name"].GetString());
     CHECK(inserted);
   }
-  ASSERT_TRUE(seen_metrics.contains("threads_started"));
-  ASSERT_TRUE(seen_metrics.contains("test_hist"));
+  ASSERT_TRUE(seenMetrics.contains("threads_started"));
+  ASSERT_TRUE(seenMetrics.contains("test_hist"));
 }
 
 TEST_F(MetricsTest, TestDumpOnlyChanged) {
-  auto GetJson = [&](int64_t since_epoch) {
+  auto getJson = [&](int64_t sinceEpoch) {
     MetricJsonOptions opts;
-    opts.onlyModifiedInOrAfterEpoch = since_epoch;
+    opts.onlyModifiedInOrAfterEpoch = sinceEpoch;
     std::ostringstream out;
     JsonWriter writer(&out, JsonWriter::kCompact);
     CHECK_OK(entity_->writeAsJson(&writer, {"*"}, opts));
     return out.str();
   };
 
-  std::shared_ptr<Counter> test_counter =
+  std::shared_ptr<Counter> testCounter =
       METRIC_test_counter.instantiate(entity_);
 
-  int64_t epoch_when_modified = Metric::currentEpoch();
-  test_counter->increment();
+  int64_t epochWhenModified = Metric::currentEpoch();
+  testCounter->increment();
 
   // If we pass a "since dirty" epoch from before we incremented it, we should
   // see the metric.
   for (int i = 0; i < 2; i++) {
     ASSERT_STR_CONTAINS(
-        GetJson(epoch_when_modified),
-        "{\"name\":\"test_counter\",\"value\":1}");
+        getJson(epochWhenModified), "{\"name\":\"test_counter\",\"value\":1}");
     Metric::incrementEpoch();
   }
 
   // If we pass a current epoch, we should see that the metric was not modified.
-  int64_t new_epoch = Metric::currentEpoch();
-  ASSERT_STR_NOT_CONTAINS(GetJson(new_epoch), "test_counter");
+  int64_t newEpoch = Metric::currentEpoch();
+  ASSERT_STR_NOT_CONTAINS(getJson(newEpoch), "test_counter");
   // ... until we modify it again.
-  test_counter->increment();
+  testCounter->increment();
   ASSERT_STR_CONTAINS(
-      GetJson(new_epoch), "{\"name\":\"test_counter\",\"value\":2}");
+      getJson(newEpoch), "{\"name\":\"test_counter\",\"value\":2}");
 }
 
 // Test that 'includeUntouchedMetrics=false' prevents dumping counters and
 // histograms which have never been incremented.
 TEST_F(MetricsTest, TestDontDumpUntouched) {
   // Instantiate a bunch of metrics.
-  int metric_val = 1000;
-  std::shared_ptr<Counter> test_counter =
+  int metricVal = 1000;
+  std::shared_ptr<Counter> testCounter =
       METRIC_test_counter.instantiate(entity_);
   std::shared_ptr<Histogram> hist = METRIC_test_hist.instantiate(entity_);
-  std::shared_ptr<FunctionGauge<int64_t>> function_gauge =
+  std::shared_ptr<FunctionGauge<int64_t>> functionGauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&MyFunction, Unretained(&metric_val)));
-  std::shared_ptr<AtomicGauge<uint64_t>> atomic_gauge =
+          entity_, Bind(&myFunction, Unretained(&metricVal)));
+  std::shared_ptr<AtomicGauge<uint64_t>> atomicGauge =
       METRIC_test_gauge.instantiate(entity_, 0);
 
   MetricJsonOptions opts;
