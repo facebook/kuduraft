@@ -677,7 +677,7 @@ Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
   RETURN_NOT_OK(getHistogramSnapshotPb(&snapshot, opts));
   writer->protobuf(snapshot);
   if (opts.refreshHistogramMetrics) {
-    histogram_->ResetHistogram();
+    histogram_->resetHistogram();
   }
   return Status::OK();
 }
@@ -712,14 +712,14 @@ Status Histogram::getHistogramSnapshotPb(
     HdrHistogram snapshot(*histogram_);
     snapshotPb->set_total_count(snapshot.totalCount());
     snapshotPb->set_total_sum(snapshot.totalSum());
-    snapshotPb->set_min(snapshot.MinValue());
-    snapshotPb->set_mean(snapshot.MeanValue());
-    snapshotPb->set_percentile_75(snapshot.ValueAtPercentile(75));
-    snapshotPb->set_percentile_95(snapshot.ValueAtPercentile(95));
-    snapshotPb->set_percentile_99(snapshot.ValueAtPercentile(99));
-    snapshotPb->set_percentile_99_9(snapshot.ValueAtPercentile(99.9));
-    snapshotPb->set_percentile_99_99(snapshot.ValueAtPercentile(99.99));
-    snapshotPb->set_max(snapshot.MaxValue());
+    snapshotPb->set_min(snapshot.minValue());
+    snapshotPb->set_mean(snapshot.meanValue());
+    snapshotPb->set_percentile_75(snapshot.valueAtPercentile(75));
+    snapshotPb->set_percentile_95(snapshot.valueAtPercentile(95));
+    snapshotPb->set_percentile_99(snapshot.valueAtPercentile(99));
+    snapshotPb->set_percentile_99_9(snapshot.valueAtPercentile(99.9));
+    snapshotPb->set_percentile_99_99(snapshot.valueAtPercentile(99.99));
+    snapshotPb->set_max(snapshot.maxValue());
 
     if (opts.includeRawHistograms) {
       RecordedValuesIterator iter(&snapshot);
@@ -743,14 +743,14 @@ uint64_t Histogram::totalCount() const {
 }
 
 uint64_t Histogram::minValueForTests() const {
-  return histogram_->MinValue();
+  return histogram_->minValue();
 }
 
 uint64_t Histogram::maxValueForTests() const {
-  return histogram_->MaxValue();
+  return histogram_->maxValue();
 }
 double Histogram::meanValueForTests() const {
-  return histogram_->MeanValue();
+  return histogram_->meanValue();
 }
 
 ScopedLatencyMetric::ScopedLatencyMetric(Histogram* latencyHist)

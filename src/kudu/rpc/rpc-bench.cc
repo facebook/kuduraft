@@ -133,14 +133,14 @@ class RpcBench : public RpcTestBase {
     LOG(INFO) << "User CPU per req: " << userCpuMicrosPerReq << "us";
     LOG(INFO) << "Sys CPU per req:  " << sysCpuMicrosPerReq << "us";
     LOG(INFO) << "Ctx Sw. per req:  " << cswPerReq;
-    LOG(INFO) << "Server Reactor load (mean):     " << reactorLoad.MeanValue()
+    LOG(INFO) << "Server Reactor load (mean):     " << reactorLoad.meanValue()
               << "%";
     LOG(INFO) << "Server Reactor load (95p):      "
-              << reactorLoad.ValueAtPercentile(95) << "%";
+              << reactorLoad.valueAtPercentile(95) << "%";
     LOG(INFO) << "Server Reactor Latency (mean):  "
-              << reactorLatency.MeanValue() << "us";
+              << reactorLatency.meanValue() << "us";
     LOG(INFO) << "Server Reactor Latency (95p):   "
-              << reactorLatency.ValueAtPercentile(95) << "us";
+              << reactorLatency.valueAtPercentile(95) << "us";
   }
 
  protected:

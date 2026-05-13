@@ -133,44 +133,44 @@ class HdrHistogram {
   // to the given value within the histogram's resolution. Where "equivalent"
   // means that value samples recorded for any two equivalent values are
   // counted in a common total count.
-  uint64_t SizeOfEquivalentValueRange(uint64_t value) const;
+  uint64_t sizeOfEquivalentValueRange(uint64_t value) const;
 
   // Get the lowest value that is equivalent to the given value within the
   // histogram's resolution. Where "equivalent" means that value samples
   // recorded for any two equivalent values are counted in a common total
   // count.
-  uint64_t LowestEquivalentValue(uint64_t value) const;
+  uint64_t lowestEquivalentValue(uint64_t value) const;
 
   // Get the highest value that is equivalent to the given value within the
   // histogram's resolution.
-  uint64_t HighestEquivalentValue(uint64_t value) const;
+  uint64_t highestEquivalentValue(uint64_t value) const;
 
   // Get a value that lies in the middle (rounded up) of the range of values
   // equivalent the given value.
-  uint64_t MedianEquivalentValue(uint64_t value) const;
+  uint64_t medianEquivalentValue(uint64_t value) const;
 
   // Get the next value that is not equivalent to the given value within the
   // histogram's resolution.
-  uint64_t NextNonEquivalentValue(uint64_t value) const;
+  uint64_t nextNonEquivalentValue(uint64_t value) const;
 
   // Determine if two values are equivalent with the histogram's resolution.
-  bool ValuesAreEquivalent(uint64_t value1, uint64_t value2) const;
+  bool valuesAreEquivalent(uint64_t value1, uint64_t value2) const;
 
   // Get the exact minimum value (may lie outside the histogram).
-  uint64_t MinValue() const;
+  uint64_t minValue() const;
 
   // Get the exact maximum value (may lie outside the histogram).
-  uint64_t MaxValue() const;
+  uint64_t maxValue() const;
 
   // Get the exact mean value of all recorded values in the histogram.
-  double MeanValue() const;
+  double meanValue() const;
 
   // Get the value at a given percentile.
   // This is a percentile in percents, i.e. 99.99 percentile.
-  uint64_t ValueAtPercentile(double percentile) const;
+  uint64_t valueAtPercentile(double percentile) const;
 
   // Reset the underlying histogram values.
-  void ResetHistogram();
+  void resetHistogram();
 
   // Get the percentile at a given value
   // TODO: implement

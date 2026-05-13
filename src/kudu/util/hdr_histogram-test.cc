@@ -88,20 +88,20 @@ static void validatePercentiles(HdrHistogram* hist, uint64_t specifiedMax) {
   double expectedMean =
       static_cast<double>(kExpectedSum) / (80 + 10 + 5 + 3 + 1 + 1);
 
-  ASSERT_EQ(kExpectedMin, hist->MinValue());
-  ASSERT_EQ(kExpectedMax, hist->MaxValue());
+  ASSERT_EQ(kExpectedMin, hist->minValue());
+  ASSERT_EQ(kExpectedMax, hist->maxValue());
   ASSERT_EQ(kExpectedSum, hist->totalSum());
-  ASSERT_NEAR(expectedMean, hist->MeanValue(), 0.001);
+  ASSERT_NEAR(expectedMean, hist->meanValue(), 0.001);
   ASSERT_EQ(kExpectedCount, hist->totalCount());
-  ASSERT_EQ(10, hist->ValueAtPercentile(80));
-  ASSERT_EQ(kExpectedCount, hist->ValueAtPercentile(90));
+  ASSERT_EQ(10, hist->valueAtPercentile(80));
+  ASSERT_EQ(kExpectedCount, hist->valueAtPercentile(90));
   ASSERT_EQ(
-      hist->LowestEquivalentValue(specifiedMax), hist->ValueAtPercentile(99));
+      hist->lowestEquivalentValue(specifiedMax), hist->valueAtPercentile(99));
   ASSERT_EQ(
-      hist->LowestEquivalentValue(specifiedMax),
-      hist->ValueAtPercentile(99.99));
+      hist->lowestEquivalentValue(specifiedMax),
+      hist->valueAtPercentile(99.99));
   ASSERT_EQ(
-      hist->LowestEquivalentValue(specifiedMax), hist->ValueAtPercentile(100));
+      hist->lowestEquivalentValue(specifiedMax), hist->valueAtPercentile(100));
 }
 
 TEST_F(HdrHistogramTest, PercentileAndCopyTest) {

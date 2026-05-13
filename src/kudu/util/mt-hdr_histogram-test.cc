@@ -122,7 +122,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
   }
   for (int i = 0; i < kNumCopies; i++) {
     snapshots[i]
-        ->MeanValue(); // Will crash if underlying iterator is inconsistent.
+        ->meanValue(); // Will crash if underlying iterator is inconsistent.
   }
 
   for (int i = 0; i < numThreads_; i++) {

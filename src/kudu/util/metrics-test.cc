@@ -190,9 +190,9 @@ TEST_F(MetricsTest, SimpleHistogramTest) {
   std::shared_ptr<Histogram> hist = METRIC_test_hist.instantiate(entity_);
   hist->increment(2);
   hist->incrementBy(4, 1);
-  ASSERT_EQ(2, hist->histogram_->MinValue());
-  ASSERT_EQ(3, hist->histogram_->MeanValue());
-  ASSERT_EQ(4, hist->histogram_->MaxValue());
+  ASSERT_EQ(2, hist->histogram_->minValue());
+  ASSERT_EQ(3, hist->histogram_->meanValue());
+  ASSERT_EQ(4, hist->histogram_->maxValue());
   ASSERT_EQ(2, hist->histogram_->totalCount());
   ASSERT_EQ(6, hist->histogram_->totalSum());
   // TODO: Test coverage needs to be improved a lot.

@@ -178,7 +178,7 @@ void HdrHistogram::incrementBy(int64_t value, int64_t count) {
   // Update min, if needed.
   {
     Atomic64 min_val;
-    while (PREDICT_FALSE(value < (min_val = MinValue()))) {
+    while (PREDICT_FALSE(value < (min_val = minValue()))) {
       Atomic64 old_val = NoBarrier_CompareAndSwap(&min_value_, min_val, value);
       if (PREDICT_TRUE(old_val == min_val)) {
         break; // CAS success.
@@ -189,7 +189,7 @@ void HdrHistogram::incrementBy(int64_t value, int64_t count) {
   // Update max, if needed.
   {
     Atomic64 max_val;
-    while (PREDICT_FALSE(value > (max_val = MaxValue()))) {
+    while (PREDICT_FALSE(value > (max_val = maxValue()))) {
       Atomic64 old_val = NoBarrier_CompareAndSwap(&max_value_, max_val, value);
       if (PREDICT_TRUE(old_val == max_val)) {
         break; // CAS success.
@@ -265,7 +265,7 @@ uint64_t HdrHistogram::valueFromIndex(int bucket_index, int sub_bucket_index) {
 
 ////////////////////////////////////
 
-uint64_t HdrHistogram::SizeOfEquivalentValueRange(uint64_t value) const {
+uint64_t HdrHistogram::sizeOfEquivalentValueRange(uint64_t value) const {
   int bucket_index = bucketIndex(value);
   int sub_bucket_index = subBucketIndex(value, bucket_index);
   uint64_t distance_to_next_value =
@@ -275,7 +275,7 @@ uint64_t HdrHistogram::SizeOfEquivalentValueRange(uint64_t value) const {
   return distance_to_next_value;
 }
 
-uint64_t HdrHistogram::LowestEquivalentValue(uint64_t value) const {
+uint64_t HdrHistogram::lowestEquivalentValue(uint64_t value) const {
   int bucket_index = bucketIndex(value);
   int sub_bucket_index = subBucketIndex(value, bucket_index);
   uint64_t this_value_base_level =
@@ -283,38 +283,38 @@ uint64_t HdrHistogram::LowestEquivalentValue(uint64_t value) const {
   return this_value_base_level;
 }
 
-uint64_t HdrHistogram::HighestEquivalentValue(uint64_t value) const {
-  return NextNonEquivalentValue(value) - 1;
+uint64_t HdrHistogram::highestEquivalentValue(uint64_t value) const {
+  return nextNonEquivalentValue(value) - 1;
 }
 
-uint64_t HdrHistogram::MedianEquivalentValue(uint64_t value) const {
+uint64_t HdrHistogram::medianEquivalentValue(uint64_t value) const {
   return (
-      LowestEquivalentValue(value) + (SizeOfEquivalentValueRange(value) >> 1));
+      lowestEquivalentValue(value) + (sizeOfEquivalentValueRange(value) >> 1));
 }
 
-uint64_t HdrHistogram::NextNonEquivalentValue(uint64_t value) const {
-  return LowestEquivalentValue(value) + SizeOfEquivalentValueRange(value);
+uint64_t HdrHistogram::nextNonEquivalentValue(uint64_t value) const {
+  return lowestEquivalentValue(value) + sizeOfEquivalentValueRange(value);
 }
 
-bool HdrHistogram::ValuesAreEquivalent(uint64_t value1, uint64_t value2) const {
-  return (LowestEquivalentValue(value1) == LowestEquivalentValue(value2));
+bool HdrHistogram::valuesAreEquivalent(uint64_t value1, uint64_t value2) const {
+  return (lowestEquivalentValue(value1) == lowestEquivalentValue(value2));
 }
 
-uint64_t HdrHistogram::MinValue() const {
+uint64_t HdrHistogram::minValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
   return NoBarrier_Load(&min_value_);
 }
 
-uint64_t HdrHistogram::MaxValue() const {
+uint64_t HdrHistogram::maxValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
   return NoBarrier_Load(&max_value_);
 }
 
-double HdrHistogram::MeanValue() const {
+double HdrHistogram::meanValue() const {
   uint64_t count = totalCount();
   if (PREDICT_FALSE(count == 0)) {
     return 0.0;
@@ -322,7 +322,7 @@ double HdrHistogram::MeanValue() const {
   return static_cast<double>(totalSum()) / count;
 }
 
-uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
+uint64_t HdrHistogram::valueAtPercentile(double percentile) const {
   uint64_t count = totalCount();
   if (PREDICT_FALSE(count == 0)) {
     return 0;
@@ -354,7 +354,7 @@ uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
   return 0;
 }
 
-void HdrHistogram::ResetHistogram() {
+void HdrHistogram::resetHistogram() {
   std::lock_guard<rw_spinlock> lock(histogram_mutex_);
   total_count_ = 0;
   total_sum_ = 0;
@@ -404,7 +404,7 @@ Status AbstractHistogramIterator::Next(HistogramIterationValue* value) {
                              // bucket...
       total_count_to_current_index_ += count_at_this_value_;
       total_value_to_current_index_ += count_at_this_value_ *
-          histogram_->MedianEquivalentValue(current_value_at_index_);
+          histogram_->medianEquivalentValue(current_value_at_index_);
       fresh_sub_bucket_ = false;
     }
     if (ReachedIterationLevel()) {
@@ -447,7 +447,7 @@ double AbstractHistogramIterator::PercentileIteratedFrom() const {
 }
 
 uint64_t AbstractHistogramIterator::ValueIteratedTo() const {
-  return histogram_->HighestEquivalentValue(current_value_at_index_);
+  return histogram_->highestEquivalentValue(current_value_at_index_);
 }
 
 bool AbstractHistogramIterator::ExhaustedSubBuckets() const {
