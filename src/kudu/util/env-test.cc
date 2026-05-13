@@ -624,7 +624,7 @@ TEST_F(TestEnv, TestOverwrite) {
 
   // File exists, try to overwrite (and fail).
   WritableFileOptions opts;
-  opts.mode = Env::CREATE_NON_EXISTING;
+  opts.mode = Env::kCreateNonExisting;
   Status s = env_util::openFileForWrite(opts, env_, testPath, &writer);
   ASSERT_TRUE(s.IsAlreadyPresent());
 }
@@ -646,7 +646,7 @@ TEST_F(TestEnv, TestReopen) {
 
   // Reopen it and append to it.
   WritableFileOptions reopenOpts;
-  reopenOpts.mode = Env::OPEN_EXISTING;
+  reopenOpts.mode = Env::kOpenExisting;
   ASSERT_OK(env_util::openFileForWrite(reopenOpts, env_, testPath, &writer));
   ASSERT_EQ(first.length(), writer->Size());
   ASSERT_OK(writer->Append(second));
@@ -687,8 +687,8 @@ INSTANTIATE_TEST_CASE_P(
     ResourceLimitTypes,
     ResourceLimitTypeTest,
     ::testing::Values(
-        Env::ResourceLimitType::OPEN_FILES_PER_PROCESS,
-        Env::ResourceLimitType::RUNNING_THREADS_PER_EUID));
+        Env::ResourceLimitType::OpenFilesPerProcess,
+        Env::ResourceLimitType::RunningThreadsPerEuid));
 
 // Regression test for KUDU-1798.
 TEST_P(ResourceLimitTypeTest, TestIncreaseLimit) {
@@ -768,14 +768,14 @@ TEST_F(TestEnv, TestWalk) {
 
   // Do the walk.
   unordered_set<string> actual;
-  ASSERT_OK(env_->Walk(root, Env::PRE_ORDER, Bind(&testWalkCb, &actual)));
+  ASSERT_OK(env_->Walk(root, Env::kPreOrder, Bind(&testWalkCb, &actual)));
   ASSERT_EQ(expected, actual);
 }
 
 TEST_F(TestEnv, TestWalkNonExistentPath) {
   // A walk on a non-existent path should fail.
   Status s =
-      env_->Walk("/not/a/real/path", Env::PRE_ORDER, Bind(&noopTestWalkCb));
+      env_->Walk("/not/a/real/path", Env::kPreOrder, Bind(&noopTestWalkCb));
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "One or more errors occurred");
 }
@@ -793,7 +793,7 @@ TEST_F(TestEnv, TestWalkBadPermissions) {
   };
 
   // A walk on a directory without execute permission should fail.
-  Status s = env_->Walk(kTestPath, Env::PRE_ORDER, Bind(&noopTestWalkCb));
+  Status s = env_->Walk(kTestPath, Env::kPreOrder, Bind(&noopTestWalkCb));
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "One or more errors occurred");
 }
@@ -815,7 +815,7 @@ TEST_F(TestEnv, TestWalkCbReturnsError) {
   ASSERT_OK(env_->NewWritableFile(JoinPathSegments(newDir, newFile), &writer));
   int numCalls = 0;
   ASSERT_TRUE(
-      env_->Walk(newDir, Env::PRE_ORDER, Bind(&testWalkErrorCb, &numCalls))
+      env_->Walk(newDir, Env::kPreOrder, Bind(&testWalkErrorCb, &numCalls))
           .IsIOError());
 
   // Once for the directory and once for the file inside it.
@@ -951,12 +951,12 @@ TEST_F(TestEnv, TestRWFile) {
 
   // Make sure we can't overwrite it.
   RWFileOptions opts;
-  opts.mode = Env::CREATE_NON_EXISTING;
+  opts.mode = Env::kCreateNonExisting;
   ASSERT_TRUE(
       env_->NewRWFile(opts, GetTestPath("foo"), &file).IsAlreadyPresent());
 
   // Reopen it without truncating the existing data.
-  opts.mode = Env::OPEN_EXISTING;
+  opts.mode = Env::kOpenExisting;
   ASSERT_OK(env_->NewRWFile(opts, GetTestPath("foo"), &file));
   uint8_t scratch4[newTestData.length()];
   Slice result4(scratch4, newTestData.length());
@@ -1090,7 +1090,7 @@ TEST_F(TestEnv, TestGetExtentMap) {
   // Create a test file of a particular size.
   unique_ptr<RWFile> f;
   ASSERT_OK(env_->NewRWFile(kTestFilePath, &f));
-  ASSERT_OK(f->PreAllocate(0, kFileSizeBytes, RWFile::CHANGE_FILE_SIZE));
+  ASSERT_OK(f->PreAllocate(0, kFileSizeBytes, RWFile::kChangeFileSize));
   ASSERT_OK(f->Sync());
 
   // The number and distribution of extents differs depending on the

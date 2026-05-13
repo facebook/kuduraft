@@ -86,12 +86,11 @@ int getThreadPoolThreadLimit(Env* env) {
   // Maximize this process' running thread limit first, if possible.
   static std::once_flag once;
   std::call_once(once, [&]() {
-    env->IncreaseResourceLimit(
-        Env::ResourceLimitType::RUNNING_THREADS_PER_EUID);
+    env->IncreaseResourceLimit(Env::ResourceLimitType::RunningThreadsPerEuid);
   });
 
   uint64_t rlimit =
-      env->GetResourceLimit(Env::ResourceLimitType::RUNNING_THREADS_PER_EUID);
+      env->GetResourceLimit(Env::ResourceLimitType::RunningThreadsPerEuid);
   // See server_thread_pool_max_thread_count.
   if (FLAGS_server_thread_pool_max_thread_count == -1) {
     // Use both pid_max and threads-max as possible upper bounds.

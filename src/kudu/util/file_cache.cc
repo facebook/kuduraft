@@ -339,7 +339,7 @@ class Descriptor<RWFile> : public RWFile {
 
     // The file was evicted, reopen it.
     RWFileOptions opts;
-    opts.mode = Env::OPEN_EXISTING;
+    opts.mode = Env::kOpenExisting;
     unique_ptr<RWFile> f;
     RETURN_NOT_OK(base_.env()->NewRWFile(opts, base_.filename(), &f));
 

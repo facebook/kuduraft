@@ -294,7 +294,7 @@ static Status deleteTmpFilesRecursivelyCb(
     Env::FileType fileType,
     const string& dirname,
     const string& basename) {
-  if (fileType != Env::FILE_TYPE) {
+  if (fileType != Env::kFileType) {
     // Skip directories.
     return Status::OK();
   }
@@ -310,7 +310,7 @@ static Status deleteTmpFilesRecursivelyCb(
 
 Status deleteTmpFilesRecursively(Env* env, const string& path) {
   return env->Walk(
-      path, Env::PRE_ORDER, Bind(&deleteTmpFilesRecursivelyCb, env));
+      path, Env::kPreOrder, Bind(&deleteTmpFilesRecursivelyCb, env));
 }
 
 Status isDirectoryEmpty(Env* env, const string& path, bool* isEmpty) {

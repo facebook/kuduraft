@@ -834,7 +834,7 @@ Status WritablePBContainerFile::Flush() {
 
   // TODO: Flush just the dirty bytes.
   RETURN_NOT_OK_PREPEND(
-      writer_->Flush(RWFile::FLUSH_ASYNC, 0, 0), "Failed to Flush() file");
+      writer_->Flush(RWFile::kFlushAsync, 0, 0), "Failed to Flush() file");
 
   return Status::OK();
 }

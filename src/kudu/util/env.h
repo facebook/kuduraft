@@ -51,15 +51,15 @@ class Env {
  public:
   // Governs if/how the file is created.
   //
-  // enum value                      | file exists       | file does not exist
-  // --------------------------------+-------------------+--------------------
-  // CREATE_IF_NON_EXISTING_TRUNCATE | opens + truncates | creates
-  // CREATE_NON_EXISTING             | fails             | creates
-  // OPEN_EXISTING                   | opens             | fails
+  // enum value                        | file exists       | file does not exist
+  // ----------------------------------+-------------------+--------------------
+  // kCreateIfNonExistingTruncate      | opens + truncates | creates
+  // kCreateNonExisting                | fails             | creates
+  // kOpenExisting                     | opens             | fails
   enum CreateMode {
-    CREATE_IF_NON_EXISTING_TRUNCATE,
-    CREATE_NON_EXISTING,
-    OPEN_EXISTING
+    kCreateIfNonExistingTruncate,
+    kCreateNonExisting,
+    kOpenExisting
   };
 
   Env() {}
@@ -277,10 +277,10 @@ class Env {
   virtual Status IsDirectory(const std::string& path, bool* isDir) = 0;
 
   // The kind of file found during a walk. Note that symbolic links are
-  // reported as FILE_TYPE.
+  // reported as kFileType.
   enum FileType {
-    DIRECTORY_TYPE,
-    FILE_TYPE,
+    kDirectoryType,
+    kFileType,
   };
 
   // Called for each file/directory in the walk.
@@ -296,8 +296,8 @@ class Env {
 
   // Whether to walk directories in pre-order or post-order.
   enum DirectoryOrder {
-    PRE_ORDER,
-    POST_ORDER,
+    kPreOrder,
+    kPostOrder,
   };
 
   // Walk the filesystem subtree from 'root' down, invoking 'cb' for each
@@ -335,13 +335,13 @@ class Env {
     // at any given time.
     //
     // Corresponds to RLIMIT_NOFILE on UNIX platforms.
-    OPEN_FILES_PER_PROCESS,
+    OpenFilesPerProcess,
 
     // The maximum number of threads (or processes) that this process's
     // effective user ID may have spawned and running at any given time.
     //
     // Corresponds to RLIMIT_NPROC on UNIX platforms.
-    RUNNING_THREADS_PER_EUID,
+    RunningThreadsPerEuid,
   };
 
   // Gets the process' current limit for the given resource type.
@@ -479,7 +479,7 @@ struct WritableFileOptions {
   Env::CreateMode mode;
 
   WritableFileOptions()
-      : syncOnClose(false), mode(Env::CREATE_IF_NON_EXISTING_TRUNCATE) {}
+      : syncOnClose(false), mode(Env::kCreateIfNonExistingTruncate) {}
 };
 
 // Options specified when a file is opened for random access.
@@ -492,7 +492,7 @@ struct RandomAccessFileOptions {
 // at a time to the file.
 class WritableFile {
  public:
-  enum FlushMode { FLUSH_SYNC, FLUSH_ASYNC };
+  enum FlushMode { kFlushSync, kFlushAsync };
 
   WritableFile() {}
   virtual ~WritableFile();
@@ -548,7 +548,7 @@ struct RWFileOptions {
   Env::CreateMode mode;
 
   RWFileOptions()
-      : syncOnClose(false), mode(Env::CREATE_IF_NON_EXISTING_TRUNCATE) {}
+      : syncOnClose(false), mode(Env::kCreateIfNonExistingTruncate) {}
 };
 
 // A file abstraction for both reading and writing. No notion of a built-in
@@ -566,7 +566,7 @@ struct RWFileOptions {
 // reloading events) do not affect correctness.
 class RWFile {
  public:
-  enum FlushMode { FLUSH_SYNC, FLUSH_ASYNC };
+  enum FlushMode { kFlushSync, kFlushAsync };
 
   RWFile() {}
 
@@ -615,7 +615,7 @@ class RWFile {
   //
   // 'mode' controls whether the file's logical size grows to include the
   // preallocated space, or whether it remains the same.
-  enum PreAllocateMode { CHANGE_FILE_SIZE, DONT_CHANGE_FILE_SIZE };
+  enum PreAllocateMode { kChangeFileSize, kDontChangeFileSize };
   virtual Status
   PreAllocate(uint64_t offset, size_t length, PreAllocateMode mode) = 0;
 

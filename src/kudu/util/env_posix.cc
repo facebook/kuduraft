@@ -279,13 +279,13 @@ Status doOpen(const string& filename, Env::CreateMode mode, int* fd) {
   ThreadRestrictions::assertIoAllowed();
   int flags = O_RDWR;
   switch (mode) {
-    case Env::CREATE_IF_NON_EXISTING_TRUNCATE:
+    case Env::kCreateIfNonExistingTruncate:
       flags |= O_CREAT | O_TRUNC;
       break;
-    case Env::CREATE_NON_EXISTING:
+    case Env::kCreateNonExisting:
       flags |= O_CREAT | O_EXCL;
       break;
-    case Env::OPEN_EXISTING:
+    case Env::kOpenExisting:
       break;
     default:
       return Status::NotSupported(fmt::format("Unknown create mode {}", mode));
@@ -456,9 +456,9 @@ Status doIsOnXfsFilesystem(const string& path, bool* result) {
 
 const char* resourceLimitTypeToString(Env::ResourceLimitType t) {
   switch (t) {
-    case Env::ResourceLimitType::OPEN_FILES_PER_PROCESS:
+    case Env::ResourceLimitType::OpenFilesPerProcess:
       return "open files per process";
-    case Env::ResourceLimitType::RUNNING_THREADS_PER_EUID:
+    case Env::ResourceLimitType::RunningThreadsPerEuid:
       return "running threads per effective uid";
     default:
       LOG(FATAL) << "Unknown resource limit type";
@@ -467,9 +467,9 @@ const char* resourceLimitTypeToString(Env::ResourceLimitType t) {
 
 int resourceLimitTypeToUnixRlimit(Env::ResourceLimitType t) {
   switch (t) {
-    case Env::ResourceLimitType::OPEN_FILES_PER_PROCESS:
+    case Env::ResourceLimitType::OpenFilesPerProcess:
       return RLIMIT_NOFILE;
-    case Env::ResourceLimitType::RUNNING_THREADS_PER_EUID:
+    case Env::ResourceLimitType::RunningThreadsPerEuid:
       return RLIMIT_NPROC;
     default:
       LOG(FATAL) << "Unknown resource limit type: " << t;
@@ -683,7 +683,7 @@ class PosixWritableFile : public WritableFile {
     MAYBE_RETURN_EIO(filename_, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
     int flags = SYNC_FILE_RANGE_WRITE;
-    if (mode == FLUSH_SYNC) {
+    if (mode == kFlushSync) {
       flags |= SYNC_FILE_RANGE_WAIT_BEFORE;
       flags |= SYNC_FILE_RANGE_WAIT_AFTER;
     }
@@ -762,7 +762,7 @@ class PosixRWFile : public RWFile {
     TRACE_EVENT1("io", "PosixRWFile::PreAllocate", "path", filename_);
     ThreadRestrictions::assertIoAllowed();
     int falloc_mode = 0;
-    if (mode == DONT_CHANGE_FILE_SIZE) {
+    if (mode == kDontChangeFileSize) {
       falloc_mode = FALLOC_FL_KEEP_SIZE;
     }
     int ret;
@@ -847,7 +847,7 @@ class PosixRWFile : public RWFile {
     MAYBE_RETURN_EIO(filename_, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
     int flags = SYNC_FILE_RANGE_WRITE;
-    if (mode == FLUSH_SYNC) {
+    if (mode == kFlushSync) {
       flags |= SYNC_FILE_RANGE_WAIT_AFTER;
     }
     if (sync_file_range(fd_, offset, length, flags) < 0) {
@@ -1206,7 +1206,7 @@ class PosixEnv : public Env {
   virtual Status DeleteRecursively(const string& name) override {
     return Walk(
         name,
-        POST_ORDER,
+        kPostOrder,
         Bind(&PosixEnv::DeleteRecursivelyCb, Unretained(this)));
   }
 
@@ -1251,7 +1251,7 @@ class PosixEnv : public Env {
     uint64_t total = 0;
     RETURN_NOT_OK(Walk(
         root,
-        Env::PRE_ORDER,
+        Env::kPreOrder,
         Bind(
             &PosixEnv::GetFileSizeOnDiskRecursivelyCb,
             Unretained(this),
@@ -1473,15 +1473,15 @@ class PosixEnv : public Env {
     bool had_errors = false;
     while ((ent = fts_read(tree.get())) != nullptr) {
       bool doCb = false;
-      FileType type = DIRECTORY_TYPE;
+      FileType type = kDirectoryType;
       switch (ent->fts_info) {
         case FTS_D: // Directory in pre-order
-          if (order == PRE_ORDER) {
+          if (order == kPreOrder) {
             doCb = true;
           }
           break;
         case FTS_DP: // Directory in post-order
-          if (order == POST_ORDER) {
+          if (order == kPostOrder) {
             doCb = true;
           }
           break;
@@ -1490,7 +1490,7 @@ class PosixEnv : public Env {
         case FTS_SLNONE: // A broken symbolic link
         case FTS_DEFAULT: // Unknown type of file
           doCb = true;
-          type = FILE_TYPE;
+          type = kFileType;
           break;
 
         case FTS_DNR:
@@ -1717,7 +1717,7 @@ class PosixEnv : public Env {
       const WritableFileOptions& opts,
       unique_ptr<WritableFile>* result) {
     uint64_t file_size = 0;
-    if (opts.mode == OPEN_EXISTING) {
+    if (opts.mode == kOpenExisting) {
       RETURN_NOT_OK(GetFileSize(fname, &file_size));
     }
     result->reset(
@@ -1732,11 +1732,11 @@ class PosixEnv : public Env {
     string full_path = JoinPathSegments(dirname, basename);
     Status s;
     switch (type) {
-      case FILE_TYPE:
+      case kFileType:
         s = DeleteFile(full_path);
         WARN_NOT_OK(s, "Could not delete file");
         return s;
-      case DIRECTORY_TYPE:
+      case kDirectoryType:
         s = DeleteDir(full_path);
         WARN_NOT_OK(s, "Could not delete directory");
         return s;
@@ -1752,12 +1752,12 @@ class PosixEnv : public Env {
       const string& basename) {
     uint64_t fileBytesUsed = 0;
     switch (type) {
-      case Env::FILE_TYPE:
+      case Env::kFileType:
         RETURN_NOT_OK(GetFileSizeOnDisk(
             JoinPathSegments(dirname, basename), &fileBytesUsed));
         *bytesUsed += fileBytesUsed;
         break;
-      case Env::DIRECTORY_TYPE:
+      case Env::kDirectoryType:
         // Ignore directory space consumption as it varies from filesystem to
         // filesystem.
         break;
