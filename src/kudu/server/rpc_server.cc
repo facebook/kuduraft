@@ -152,19 +152,19 @@ Status RpcServer::init(const shared_ptr<Messenger>& messenger) {
 Status RpcServer::registerService(unique_ptr<rpc::ServiceIf> service) {
   CHECK(serverState_ == kInitialized || serverState_ == kBound)
       << "bad state: " << serverState_;
-  string service_name = service->serviceName();
-  std::shared_ptr<rpc::ServicePool> service_pool(new rpc::ServicePool(
+  string serviceName = service->serviceName();
+  std::shared_ptr<rpc::ServicePool> newServicePool(new rpc::ServicePool(
       std::move(service),
       messenger_->metric_entity(),
       options_.serviceQueueLength));
-  RETURN_NOT_OK(service_pool->init(options_.numServiceThreads));
-  auto* service_pool_raw_ptr = service_pool.get();
-  service_pool->setTooBusyHook([this, service_pool_raw_ptr]() {
+  RETURN_NOT_OK(newServicePool->init(options_.numServiceThreads));
+  auto* newServicePoolRawPtr = newServicePool.get();
+  newServicePool->setTooBusyHook([this, newServicePoolRawPtr]() {
     if (tooBusyHook_) {
-      tooBusyHook_(service_pool_raw_ptr);
+      tooBusyHook_(newServicePoolRawPtr);
     }
   });
-  RETURN_NOT_OK(messenger_->RegisterService(service_name, service_pool));
+  RETURN_NOT_OK(messenger_->RegisterService(serviceName, newServicePool));
   return Status::OK();
 }
 
@@ -172,21 +172,21 @@ Status RpcServer::bind() {
   CHECK_EQ(serverState_, kInitialized);
 
   // Create the Acceptor pools (one per bind address)
-  vector<shared_ptr<AcceptorPool>> new_acceptor_pools;
+  vector<shared_ptr<AcceptorPool>> newAcceptorPools;
   // Create the AcceptorPool for each bind address.
-  for (const Sockaddr& bind_addr : rpcBindAddresses_) {
+  for (const Sockaddr& bindAddr : rpcBindAddresses_) {
     shared_ptr<rpc::AcceptorPool> pool;
 
     Socket sock;
     RETURN_NOT_OK(sock.init(0));
     RETURN_NOT_OK(sock.setReuseAddr(true));
-    RETURN_NOT_OK(sock.bind(bind_addr));
+    RETURN_NOT_OK(sock.bind(bindAddr));
     Sockaddr remote;
     RETURN_NOT_OK(sock.getSocketAddress(&remote));
-    new_acceptor_pools.push_back(
+    newAcceptorPools.push_back(
         std::make_shared<AcceptorPool>(messenger_.get(), &sock, remote));
   }
-  acceptorPools_.swap(new_acceptor_pools);
+  acceptorPools_.swap(newAcceptorPools);
 
   serverState_ = kBound;
   return Status::OK();
@@ -203,16 +203,16 @@ Status RpcServer::start() {
     RETURN_NOT_OK(pool->start(options_.numAcceptorsPerAddress));
   }
 
-  vector<Sockaddr> bound_addrs;
-  RETURN_NOT_OK(getBoundAddresses(&bound_addrs));
-  string bound_addrs_str;
-  for (const Sockaddr& bind_addr : bound_addrs) {
-    if (!bound_addrs_str.empty()) {
-      bound_addrs_str += ", ";
+  vector<Sockaddr> boundAddrs;
+  RETURN_NOT_OK(getBoundAddresses(&boundAddrs));
+  string boundAddrsStr;
+  for (const Sockaddr& bindAddr : boundAddrs) {
+    if (!boundAddrsStr.empty()) {
+      boundAddrsStr += ", ";
     }
-    bound_addrs_str += bind_addr.ToString();
+    boundAddrsStr += bindAddr.ToString();
   }
-  LOG(INFO) << "RPC server started. Bound to: " << bound_addrs_str;
+  LOG(INFO) << "RPC server started. Bound to: " << boundAddrsStr;
 
   return Status::OK();
 }
@@ -234,11 +234,11 @@ Status RpcServer::getBoundAddresses(vector<Sockaddr>* addresses) const {
         fmt::format("bad state: {}", serverState_));
   }
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
-    Sockaddr bound_addr;
+    Sockaddr boundAddr;
     RETURN_NOT_OK_PREPEND(
-        pool->getBoundAddress(&bound_addr),
+        pool->getBoundAddress(&boundAddr),
         "Unable to get bound address from AcceptorPool");
-    addresses->push_back(bound_addr);
+    addresses->push_back(boundAddr);
   }
   return Status::OK();
 }
