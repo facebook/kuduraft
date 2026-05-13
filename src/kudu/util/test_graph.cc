@@ -99,7 +99,7 @@ void TimeSeriesCollector::dumperThread() {
     metricsStr.clear();
     metricsStr.append("metrics: ");
     buildMetricsString(wallTimeNow() - startTime, &metricsStr);
-    LOG(INFO) << metricsStr.ToString();
+    LOG(INFO) << metricsStr.toString();
 
     // Sleep until next dump time, or return if we should exit
     if (exitLatch_.waitFor(MonoDelta::FromMilliseconds(250))) {

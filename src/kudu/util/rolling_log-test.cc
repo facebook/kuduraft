@@ -99,7 +99,7 @@ TEST_F(RollingLogTest, TestLog) {
   faststring data;
   string path = JoinPathSegments(logDir_, children[0]);
   ASSERT_OK(ReadFileToString(env_, path, &data));
-  ASSERT_TRUE(hasPrefixString(data.ToString(), kTestString)) << "Data missing";
+  ASSERT_TRUE(hasPrefixString(data.toString(), kTestString)) << "Data missing";
   ASSERT_LE(data.size(), 100 + kTestString.length())
       << "Roll threshold not respected";
 }

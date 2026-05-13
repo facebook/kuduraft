@@ -359,7 +359,7 @@ int countOpenFds(Env* env, const string& path_pattern) {
       PLOG(FATAL) << "Unknown error in readlink: " << proc_file;
     }
     path_buf.resize(path_len);
-    if (!matchPattern(path_buf.ToString(), path_pattern)) {
+    if (!matchPattern(path_buf.toString(), path_pattern)) {
       continue;
     }
     num_fds++;

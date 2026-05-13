@@ -343,7 +343,7 @@ Utf8StringStreamBuffer::~Utf8StringStreamBuffer() {
 }
 
 void Utf8StringStreamBuffer::Put(rapidjson::UTF8<>::Ch c) {
-  buf_.push_back(c);
+  buf_.pushBack(c);
 }
 
 void Utf8StringStreamBuffer::Flush() {

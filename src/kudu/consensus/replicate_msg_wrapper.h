@@ -139,7 +139,7 @@ class ReplicateMsgWrapper {
     repMsg->set_op_type(compressedMsg_->get()->op_type());
 
     WritePayloadPB* writePayload = repMsg->mutable_write_payload();
-    writePayload->set_payload(buffer->ToString());
+    writePayload->set_payload(buffer->toString());
 
     msg_ =
         makeScopedRefptrReplicate(std::move(repMsg), compressedMsg_->source());
@@ -194,7 +194,7 @@ class ReplicateMsgWrapper {
     repMsg->set_op_type(msg_->get()->op_type());
 
     WritePayloadPB* writePayload = repMsg->mutable_write_payload();
-    writePayload->set_payload(buffer->ToString());
+    writePayload->set_payload(buffer->toString());
     writePayload->set_compression_codec(codec_->type());
     writePayload->set_uncompressed_size(payloadStr.size());
 

@@ -88,9 +88,9 @@ TEST(TestPstackWatcher, TestPstackWatcherRunning) {
 
   faststring contents;
   CHECK_OK(ReadFileToString(Env::Default(), stdoutFile, &contents));
-  ASSERT_STR_CONTAINS(contents.ToString(), "BEGIN STACKS");
+  ASSERT_STR_CONTAINS(contents.toString(), "BEGIN STACKS");
   CHECK_ERR(unlink(stdoutFile.c_str()));
-  ASSERT_GE(fprintf(stdout, "%s\n", contents.ToString().c_str()), 0)
+  ASSERT_GE(fprintf(stdout, "%s\n", contents.toString().c_str()), 0)
       << "errno=" << errno << ": " << errnoToString(errno);
 }
 

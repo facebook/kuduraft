@@ -33,7 +33,7 @@ namespace kudu {
 static std::string encodeInt(int k) {
   faststring result;
   putFixed32(&result, k);
-  return result.ToString();
+  return result.toString();
 }
 static int decodeInt(const Slice& k) {
   assert(k.size() == 4);

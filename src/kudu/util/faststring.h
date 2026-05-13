@@ -105,13 +105,13 @@ class faststring {
     if (PREDICT_TRUE(newCapacity <= capacity_)) {
       return;
     }
-    GrowArray(newCapacity);
+    growArray(newCapacity);
   }
 
   // Append the given data to the string, resizing capacity as necessary.
   void append(const void* srcV, size_t count) {
     const uint8_t* src = reinterpret_cast<const uint8_t*>(srcV);
-    EnsureRoomForAppend(count);
+    ensureRoomForAppend(count);
     KUDU_ASAN_UNPOISON_MEMORY_REGION(data_ + len_, count);
 
     // appending short values is common enough that this
@@ -136,8 +136,8 @@ class faststring {
   }
 
   // Append the given character to this string.
-  void push_back(const char byte) {
-    EnsureRoomForAppend(1);
+  void pushBack(const char byte) {
+    ensureRoomForAppend(1);
     KUDU_ASAN_UNPOISON_MEMORY_REGION(data_ + len_, 1);
     data_[len_] = byte;
     len_++;
@@ -189,7 +189,7 @@ class faststring {
   }
 
   // Reset the contents of this string by copying 'len' bytes from 'src'.
-  void assign_copy(const uint8_t* src, size_t len) {
+  void assignCopy(const uint8_t* src, size_t len) {
     // Reset length so that the first resize doesn't need to copy the current
     // contents of the array.
     len_ = 0;
@@ -198,8 +198,8 @@ class faststring {
   }
 
   // Reset the contents of this string by copying from the given std::string.
-  void assign_copy(const std::string& str) {
-    assign_copy(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
+  void assignCopy(const std::string& str) {
+    assignCopy(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
   }
 
   // Reallocates the internal storage to fit only the current data.
@@ -209,15 +209,15 @@ class faststring {
   // will return a capacity larger than the data length.
   //
   // Any pointers within this instance are invalidated.
-  void shrink_to_fit() {
+  void shrinkToFit() {
     if (data_ == initialData_ || capacity_ == len_) {
       return;
     }
-    ShrinkToFitInternal();
+    shrinkToFitInternal();
   }
 
   // Return a copy of this string as a std::string.
-  std::string ToString() const {
+  std::string toString() const {
     return std::string(reinterpret_cast<const char*>(data()), len_);
   }
 
@@ -228,25 +228,25 @@ class faststring {
 
   // If necessary, expand the buffer to fit at least 'count' more bytes.
   // If the array has to be grown, it is grown by at least 50%.
-  void EnsureRoomForAppend(size_t count) {
+  void ensureRoomForAppend(size_t count) {
     if (PREDICT_TRUE(len_ + count <= capacity_)) {
       return;
     }
 
     // Call the non-inline slow path - this reduces the number of instructions
     // on the hot path.
-    GrowByAtLeast(count);
+    growByAtLeast(count);
   }
 
   // The slow path of MakeRoomFor. Grows the buffer by either
   // 'count' bytes, or 50%, whichever is more.
-  void GrowByAtLeast(size_t count);
+  void growByAtLeast(size_t count);
 
   // Grow the array to the given capacity, which must be more than
   // the current capacity.
-  void GrowArray(size_t newCapacity);
+  void growArray(size_t newCapacity);
 
-  void ShrinkToFitInternal();
+  void shrinkToFitInternal();
 
   uint8_t* data_;
   uint8_t initialData_[kInitialCapacity];

@@ -735,7 +735,7 @@ Status StackTraceSnapshot::snapshotAllStacks() {
       if (!s.ok()) {
         info.threadName = "<unknown name>";
       } else {
-        info.threadName = buf.ToString();
+        info.threadName = buf.toString();
         StripTrailingNewline(&info.threadName);
       }
     }

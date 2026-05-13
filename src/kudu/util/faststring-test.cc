@@ -31,17 +31,17 @@ class FaststringTest : public KuduTest {};
 
 TEST_F(FaststringTest, TestShrinkToFit_Empty) {
   faststring s;
-  s.shrink_to_fit();
+  s.shrinkToFit();
   ASSERT_EQ(faststring::kInitialCapacity, s.capacity());
 }
 
 // Test that, if the string contents is shorter than the initial capacity
-// of the faststring, shrink_to_fit() leaves the string in the built-in
+// of the faststring, shrinkToFit() leaves the string in the built-in
 // array.
 TEST_F(FaststringTest, TestShrinkToFit_SmallerThanInitialCapacity) {
   faststring s;
   s.append("hello");
-  s.shrink_to_fit();
+  s.shrinkToFit();
   ASSERT_EQ(faststring::kInitialCapacity, s.capacity());
 }
 
@@ -56,7 +56,7 @@ TEST_F(FaststringTest, TestShrinkToFit_Random) {
     int newSize = r.uniform(maxSize);
     s.resize(newSize);
     memcpy(s.data(), randomBytes.get(), newSize);
-    s.shrink_to_fit();
+    s.shrinkToFit();
     ASSERT_EQ(0, memcmp(s.data(), randomBytes.get(), newSize));
     ASSERT_EQ(
         std::max<int>(faststring::kInitialCapacity, newSize), s.capacity());

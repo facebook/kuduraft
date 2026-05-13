@@ -224,8 +224,8 @@ TEST_F(WireProtocolTest, TestColumnarRowBlockToPB) {
   faststring direct, indirect;
   SerializeRowBlock(block, &pb, nullptr, &direct, &indirect);
   SCOPED_TRACE(pb_util::SecureDebugString(pb));
-  SCOPED_TRACE("Row data: " + direct.ToString());
-  SCOPED_TRACE("Indirect data: " + indirect.ToString());
+  SCOPED_TRACE("Row data: " + direct.toString());
+  SCOPED_TRACE("Indirect data: " + indirect.toString());
 
   // Convert back to a row, ensure that the resulting row is the same
   // as the one we put in.

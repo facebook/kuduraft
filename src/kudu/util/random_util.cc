@@ -51,7 +51,7 @@ string randomString(size_t n, Random* rng) {
   faststring s;
   s.resize(n);
   randomString(s.data(), n, rng);
-  return s.ToString();
+  return s.toString();
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER

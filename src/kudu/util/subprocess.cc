@@ -546,7 +546,7 @@ Status Subprocess::getProcfsState(int pid, ProcfsState* state) {
   // To extract the state, we scan backwards looking for the last ')', then
   // increment past it and the separating space. This is safer than scanning
   // forward as it properly handles commands containing parens.
-  string dataStr = data.ToString();
+  string dataStr = data.toString();
   const char* endParens = strrchr(dataStr.c_str(), ')');
   if (endParens == nullptr) {
     return Status::RuntimeError(

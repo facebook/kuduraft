@@ -22,7 +22,7 @@
 
 namespace kudu {
 
-void faststring::GrowByAtLeast(size_t count) {
+void faststring::growByAtLeast(size_t count) {
   // Not enough space, need to reserve more.
   // Don't reserve exactly enough space for the new string -- that makes it
   // too easy to write perf bugs where you get O(n^2) append.
@@ -32,10 +32,10 @@ void faststring::GrowByAtLeast(size_t count) {
   if (len_ + count < len_ * 3 / 2) {
     toReserve = len_ * 3 / 2;
   }
-  GrowArray(toReserve);
+  growArray(toReserve);
 }
 
-void faststring::GrowArray(size_t newCapacity) {
+void faststring::growArray(size_t newCapacity) {
   DCHECK_GE(newCapacity, capacity_);
   std::unique_ptr<uint8_t[]> newData(new uint8_t[newCapacity]);
   if (len_ > 0) {
@@ -52,7 +52,7 @@ void faststring::GrowArray(size_t newCapacity) {
   KUDU_ASAN_POISON_MEMORY_REGION(data_ + len_, capacity_ - len_);
 }
 
-void faststring::ShrinkToFitInternal() {
+void faststring::shrinkToFitInternal() {
   DCHECK_NE(data_, initialData_);
   if (len_ <= kInitialCapacity) {
     KUDU_ASAN_UNPOISON_MEMORY_REGION(initialData_, len_);
