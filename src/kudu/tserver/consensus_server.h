@@ -142,13 +142,13 @@ class RaftConsensusInstance {
 
   ~RaftConsensusInstance();
 
-  Status Init(bool isFirstRun);
+  Status init(bool isFirstRun);
 
-  Status Start(bool isFirstRun);
+  Status start(bool isFirstRun);
 
-  bool IsInitialized() const;
+  bool isInitialized() const;
 
-  void Shutdown();
+  void shutdown();
 
   std::shared_ptr<consensus::RaftConsensus> sharedConsensus() const;
 

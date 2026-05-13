@@ -222,19 +222,19 @@ RaftConsensusInstance::~RaftConsensusInstance() {
   }
 }
 
-Status RaftConsensusInstance::Init(bool isFirstRun) {
+Status RaftConsensusInstance::init(bool isFirstRun) {
   LOG_WITH_PREFIX(INFO) << "Initializing RaftConsensusInstance";
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
   if (isFirstRun) {
     LOG_WITH_PREFIX(INFO)
-        << "RaftConsensusInstance::Init: is_first_run detected. Calling createNew";
+        << "RaftConsensusInstance::init: is_first_run detected. Calling createNew";
     RETURN_NOT_OK_PREPEND(
         createNew(server_->fsManager()),
         "Failed to createNew in TabletManager");
   } else {
     LOG_WITH_PREFIX(INFO)
-        << "RaftConsensusInstance::Init: existing cmeta dir. Calling load";
+        << "RaftConsensusInstance::init: existing cmeta dir. Calling load";
     RETURN_NOT_OK_PREPEND(
         load(server_->fsManager()), "Failed to load in TabletManager");
   }
@@ -243,7 +243,7 @@ Status RaftConsensusInstance::Init(bool isFirstRun) {
   return Status::OK();
 }
 
-Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
+Status RaftConsensusInstance::start(bool /*isFirstRun*/) {
   LOG_WITH_PREFIX(INFO) << "Starting RaftConsensusInstance";
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
@@ -309,11 +309,11 @@ Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
   return Status::OK();
 }
 
-bool RaftConsensusInstance::IsInitialized() const {
+bool RaftConsensusInstance::isInitialized() const {
   return state() == MANAGER_INITIALIZED;
 }
 
-void RaftConsensusInstance::Shutdown() {
+void RaftConsensusInstance::shutdown() {
   LOG_WITH_PREFIX(INFO) << "Shutting down RaftConsensusInstance";
   {
     const std::lock_guard lock(lock_);
@@ -585,7 +585,7 @@ Status RaftConsensusInstance::setupRaft() {
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
   // is populated during that step. Capture it so as to pass it
-  // to RaftConsensus::Start, in RaftConsensusInstance::Start
+  // to RaftConsensus::Start, in RaftConsensusInstance::start
   //
   // Skip recovery on "is_first_run" because you are creating a
   // fresh raft instance (the raft metadata directories are new).
@@ -714,7 +714,7 @@ Status RaftConsensusManager::Init(bool isFirstRun) {
   LOG(INFO) << "Initializing RaftConsensusManager";
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
-    RETURN_NOT_OK(entry.second->Init(isFirstRun));
+    RETURN_NOT_OK(entry.second->init(isFirstRun));
   }
   return Status::OK();
 }
@@ -723,7 +723,7 @@ Status RaftConsensusManager::Start(bool isFirstRun) {
   LOG(INFO) << "Starting RaftConsensusManager";
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
-    RETURN_NOT_OK(entry.second->Start(isFirstRun));
+    RETURN_NOT_OK(entry.second->start(isFirstRun));
   }
   return Status::OK();
 }
@@ -731,7 +731,7 @@ Status RaftConsensusManager::Start(bool isFirstRun) {
 bool RaftConsensusManager::IsInitialized() const {
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
-    if (!entry.second->IsInitialized()) {
+    if (!entry.second->isInitialized()) {
       return false;
     }
   }
@@ -742,7 +742,7 @@ void RaftConsensusManager::Shutdown() {
   LOG(INFO) << "Shutting down RaftConsensusManager";
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
-    entry.second->Shutdown();
+    entry.second->shutdown();
   }
 }
 
