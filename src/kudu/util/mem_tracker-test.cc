@@ -117,12 +117,12 @@ TEST(MemTrackerTest, TrackerHierarchy) {
 
 TEST(MemTrackerTest, STLContainerAllocator) {
   shared_ptr<MemTracker> t = MemTracker::createTracker(-1, "t");
-  MemTrackerAllocator<int> vec_alloc(t);
-  MemTrackerAllocator<pair<const int, int>> map_alloc(t);
+  MemTrackerAllocator<int> vecAlloc(t);
+  MemTrackerAllocator<pair<const int, int>> mapAlloc(t);
 
   // Simple test: use the allocator in a vector.
   {
-    vector<int, MemTrackerAllocator<int>> v(vec_alloc);
+    vector<int, MemTrackerAllocator<int>> v(vecAlloc);
     ASSERT_EQ(0, t->consumption());
     v.reserve(5);
     ASSERT_EQ(5 * sizeof(int), t->consumption());
@@ -140,7 +140,7 @@ TEST(MemTrackerTest, STLContainerAllocator) {
         hash<int>,
         equal_to<int>,
         MemTrackerAllocator<pair<const int, int>>>
-        um(10, hash<int>(), equal_to<int>(), map_alloc);
+        um(10, hash<int>(), equal_to<int>(), mapAlloc);
 
     // Don't care about the value (it depends on map internals).
     ASSERT_GT(t->consumption(), 0);
@@ -204,8 +204,8 @@ TEST(MemTrackerTest, CollisionDetection) {
   c.reset();
   MemTracker::listTrackers(&all);
   ASSERT_EQ(2, all.size());
-  shared_ptr<MemTracker> not_found;
-  ASSERT_FALSE(MemTracker::findTracker("child", &not_found, p));
+  shared_ptr<MemTracker> notFound;
+  ASSERT_FALSE(MemTracker::findTracker("child", &notFound, p));
 
   // Let's duplicate the parent. It's not recommended, but it's allowed.
   shared_ptr<MemTracker> p2 = MemTracker::createTracker(-1, "parent");
@@ -251,8 +251,8 @@ TEST(MemTrackerTest, TestMultiThreadedCreateFind) {
   vector<std::thread> threads;
   threads.emplace_back([&] {
     while (!done.load()) {
-      shared_ptr<MemTracker> c1_copy;
-      CHECK(MemTracker::findTracker(c1->id(), &c1_copy, p));
+      shared_ptr<MemTracker> c1Copy;
+      CHECK(MemTracker::findTracker(c1->id(), &c1Copy, p));
     }
   });
   for (int i = 0; i < 5; i++) {

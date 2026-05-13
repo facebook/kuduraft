@@ -156,7 +156,7 @@ bool MemTracker::findTrackerInternal(
 }
 
 shared_ptr<MemTracker> MemTracker::findOrCreateGlobalTracker(
-    int64_t byte_limit,
+    int64_t byteLimit,
     const string& id) {
   // The calls below comprise a critical section, but we can't use the root
   // tracker's childTrackersLock_ to synchronize it as the lock must be
@@ -170,7 +170,7 @@ shared_ptr<MemTracker> MemTracker::findOrCreateGlobalTracker(
   if (findTrackerInternal(id, &found, getRootTracker())) {
     return found;
   }
-  return createTracker(byte_limit, id, getRootTracker());
+  return createTracker(byteLimit, id, getRootTracker());
 }
 
 void MemTracker::listTrackers(vector<shared_ptr<MemTracker>>* trackers) {

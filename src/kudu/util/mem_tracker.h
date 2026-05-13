@@ -62,7 +62,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   // Creates and adds the tracker to the tree so that it can be retrieved with
   // findTracker/findOrCreateTracker.
   //
-  // byte_limit < 0 means no limit; 'id' is a used as a label to uniquely
+  // byteLimit < 0 means no limit; 'id' is a used as a label to uniquely
   // identify the MemTracker for the below Find...() calls as well as the web
   // UI.
   //
@@ -88,7 +88,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
 
   // If a global tracker with the specified 'id' exists in the tree, returns a
   // shared_ptr to that instance. Otherwise, creates a new MemTracker with the
-  // specified byte_limit and id, parented to the root MemTracker.
+  // specified byteLimit and id, parented to the root MemTracker.
   //
   // Note: this function will enforce that 'id' is unique amongst the children
   // of the root MemTracker.
