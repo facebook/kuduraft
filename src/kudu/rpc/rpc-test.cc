@@ -1617,26 +1617,26 @@ TEST_P(TestRpc, TestCancellation) {
       serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
-  for (int i = OutboundCall::READY; i <= OutboundCall::FINISHED_SUCCESS; ++i) {
+  for (int i = OutboundCall::kReady; i <= OutboundCall::kFinishedSuccess; ++i) {
     FLAGS_rpc_inject_cancellation_state = i;
     switch (i) {
-      case OutboundCall::READY:
-      case OutboundCall::ON_OUTBOUND_QUEUE:
-      case OutboundCall::SENDING:
-      case OutboundCall::SENT:
+      case OutboundCall::kReady:
+      case OutboundCall::kOnOutboundQueue:
+      case OutboundCall::kSending:
+      case OutboundCall::kSent:
         ASSERT_TRUE(doTestOutgoingSidecar(p, 0, 0).IsAborted());
         ASSERT_TRUE(doTestOutgoingSidecar(p, 123, 456).IsAborted());
         ASSERT_TRUE(
             doTestOutgoingSidecar(p, 3000 * 1024, 2000 * 1024).IsAborted());
         break;
-      case OutboundCall::NEGOTIATION_TIMED_OUT:
-      case OutboundCall::TIMED_OUT:
+      case OutboundCall::kNegotiationTimedOut:
+      case OutboundCall::kTimedOut:
         doTestExpectTimeout(p, MonoDelta::FromMilliseconds(1000));
         break;
-      case OutboundCall::CANCELLED:
+      case OutboundCall::kCancelled:
         break;
-      case OutboundCall::FINISHED_NEGOTIATION_ERROR:
-      case OutboundCall::FINISHED_ERROR: {
+      case OutboundCall::kFinishedNegotiationError:
+      case OutboundCall::kFinishedError: {
         AddRequestPB req;
         req.set_x(1);
         req.set_y(2);
@@ -1648,7 +1648,7 @@ TEST_P(TestRpc, TestCancellation) {
         ASSERT_TRUE(s.IsRemoteError());
         break;
       }
-      case OutboundCall::FINISHED_SUCCESS:
+      case OutboundCall::kFinishedSuccess:
         doTestOutgoingSidecarExpectOk(p, 0, 0);
         doTestOutgoingSidecarExpectOk(p, 123, 456);
         doTestOutgoingSidecarExpectOk(p, 3000 * 1024, 2000 * 1024);

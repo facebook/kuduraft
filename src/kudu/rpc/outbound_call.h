@@ -76,10 +76,10 @@ class OutboundCall {
   // is made only once the connection to the server is established.
   enum class Phase {
     // The phase of connection negotiation between the caller and the callee.
-    CONNECTION_NEGOTIATION,
+    ConnectionNegotiation,
 
     // The phase of sending a call over already established connection.
-    REMOTE_CALL,
+    RemoteCall,
   };
 
   OutboundCall(
@@ -134,7 +134,7 @@ class OutboundCall {
   // should be set to the error returned by the remote server.
   void SetFailed(
       Status status,
-      Phase phase = Phase::REMOTE_CALL,
+      Phase phase = Phase::RemoteCall,
       std::unique_ptr<ErrorStatusPB> errPb = nullptr);
 
   // Mark the call as timed out. This also triggers the callback to notify
@@ -211,16 +211,16 @@ class OutboundCall {
   // NB: if adding another state, be sure to update OutboundCall::IsFinished()
   // and OutboundCall::StateName(State state) as well.
   enum State {
-    READY = 0,
-    ON_OUTBOUND_QUEUE,
-    SENDING,
-    SENT,
-    NEGOTIATION_TIMED_OUT,
-    TIMED_OUT,
-    CANCELLED,
-    FINISHED_NEGOTIATION_ERROR,
-    FINISHED_ERROR,
-    FINISHED_SUCCESS
+    kReady = 0,
+    kOnOutboundQueue,
+    kSending,
+    kSent,
+    kNegotiationTimedOut,
+    kTimedOut,
+    kCancelled,
+    kFinishedNegotiationError,
+    kFinishedError,
+    kFinishedSuccess
   };
 
   static std::string StateName(State state);

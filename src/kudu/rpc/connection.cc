@@ -193,8 +193,8 @@ void Connection::shutdown(
       }
       c->call->SetFailed(
           status,
-          negotiationComplete_ ? Phase::REMOTE_CALL
-                               : Phase::CONNECTION_NEGOTIATION,
+          negotiationComplete_ ? Phase::RemoteCall
+                               : Phase::ConnectionNegotiation,
           std::move(error));
     }
     // And we must return the CallAwaitingResponse to the pool
@@ -279,8 +279,7 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
 
   // Mark the call object as failed.
   car->call->SetTimedOut(
-      negotiationComplete_ ? Phase::REMOTE_CALL
-                           : Phase::CONNECTION_NEGOTIATION);
+      negotiationComplete_ ? Phase::RemoteCall : Phase::ConnectionNegotiation);
 
   // Test cancellation when 'car->call' is in 'TIMED_OUT' state
   maybeInjectCancellation(car->call);
@@ -376,8 +375,8 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
     // Already shutdown
     call->SetFailed(
         shutdownStatus_,
-        negotiationComplete_ ? Phase::REMOTE_CALL
-                             : Phase::CONNECTION_NEGOTIATION);
+        negotiationComplete_ ? Phase::RemoteCall
+                             : Phase::ConnectionNegotiation);
     return;
   }
 
@@ -761,8 +760,8 @@ Connection::processOutboundTransfers() {
           Status s = Status::NotSupported(
               "server does not support the required RPC features");
           transfer->abort(s);
-          Phase phase = negotiationComplete_ ? Phase::REMOTE_CALL
-                                             : Phase::CONNECTION_NEGOTIATION;
+          Phase phase = negotiationComplete_ ? Phase::RemoteCall
+                                             : Phase::ConnectionNegotiation;
           car->call->SetFailed(std::move(s), phase);
           // Test cancellation when 'call_' is in 'FINISHED_ERROR' state.
           maybeInjectCancellation(car->call);

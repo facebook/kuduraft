@@ -84,7 +84,7 @@ OutboundCall::OutboundCall(
     google::protobuf::Message* responseStorage,
     RpcController* controller,
     ResponseCallback callback)
-    : state_(READY),
+    : state_(kReady),
       remote_method_(remoteMethod),
       conn_id_(connId),
       callback_(std::move(callback)),
@@ -181,25 +181,25 @@ const ErrorStatusPB* OutboundCall::error_pb() const {
 
 string OutboundCall::StateName(State state) {
   switch (state) {
-    case READY:
+    case kReady:
       return "READY";
-    case ON_OUTBOUND_QUEUE:
+    case kOnOutboundQueue:
       return "ON_OUTBOUND_QUEUE";
-    case SENDING:
+    case kSending:
       return "SENDING";
-    case SENT:
+    case kSent:
       return "SENT";
-    case NEGOTIATION_TIMED_OUT:
+    case kNegotiationTimedOut:
       return "NEGOTIATION_TIMED_OUT";
-    case TIMED_OUT:
+    case kTimedOut:
       return "TIMED_OUT";
-    case CANCELLED:
+    case kCancelled:
       return "CANCELLED";
-    case FINISHED_NEGOTIATION_ERROR:
+    case kFinishedNegotiationError:
       return "FINISHED_NEGOTIATION_ERROR";
-    case FINISHED_ERROR:
+    case kFinishedError:
       return "FINISHED_ERROR";
-    case FINISHED_SUCCESS:
+    case kFinishedSuccess:
       return "FINISHED_SUCCESS";
     default:
       LOG(DFATAL) << "Unknown state in OutboundCall: " << state;
@@ -226,32 +226,33 @@ void OutboundCall::set_state_unlocked(State newState) {
              << ") switching from " << StateName(oldState) << " to "
              << StateName(newState);
     switch (newState) {
-      case ON_OUTBOUND_QUEUE:
-        DCHECK_EQ(oldState, READY);
+      case kOnOutboundQueue:
+        DCHECK_EQ(oldState, kReady);
         break;
-      case SENDING:
-        // Allow SENDING to be set idempotently so we don't have to specifically
-        // check whether the state is transitioning in the RPC code.
-        DCHECK(oldState == ON_OUTBOUND_QUEUE || oldState == SENDING);
+      case kSending:
+        // Allow kSending to be set idempotently so we don't have to
+        // specifically check whether the state is transitioning in the RPC
+        // code.
+        DCHECK(oldState == kOnOutboundQueue || oldState == kSending);
         break;
-      case SENT:
-        DCHECK_EQ(oldState, SENDING);
+      case kSent:
+        DCHECK_EQ(oldState, kSending);
         break;
-      case NEGOTIATION_TIMED_OUT:
-        DCHECK(oldState == ON_OUTBOUND_QUEUE);
+      case kNegotiationTimedOut:
+        DCHECK(oldState == kOnOutboundQueue);
         break;
-      case TIMED_OUT:
+      case kTimedOut:
         DCHECK(
-            oldState == SENT || oldState == ON_OUTBOUND_QUEUE ||
-            oldState == SENDING);
+            oldState == kSent || oldState == kOnOutboundQueue ||
+            oldState == kSending);
         break;
-      case CANCELLED:
+      case kCancelled:
         DCHECK(
-            oldState == READY || oldState == ON_OUTBOUND_QUEUE ||
-            oldState == SENT);
+            oldState == kReady || oldState == kOnOutboundQueue ||
+            oldState == kSent);
         break;
-      case FINISHED_SUCCESS:
-        DCHECK_EQ(oldState, SENT);
+      case kFinishedSuccess:
+        DCHECK_EQ(oldState, kSent);
         break;
       default:
         // No sanity checks for others.
@@ -270,19 +271,19 @@ void OutboundCall::set_state_unlocked(State newState) {
 void OutboundCall::Cancel() {
   cancellation_requested_ = true;
   switch (state_.load(std::memory_order_acquire)) {
-    case READY:
-    case ON_OUTBOUND_QUEUE:
-    case SENT: {
+    case kReady:
+    case kOnOutboundQueue:
+    case kSent: {
       SetCancelled();
       break;
     }
-    case SENDING:
-    case NEGOTIATION_TIMED_OUT:
-    case TIMED_OUT:
-    case CANCELLED:
-    case FINISHED_NEGOTIATION_ERROR:
-    case FINISHED_ERROR:
-    case FINISHED_SUCCESS:
+    case kSending:
+    case kNegotiationTimedOut:
+    case kTimedOut:
+    case kCancelled:
+    case kFinishedNegotiationError:
+    case kFinishedError:
+    case kFinishedSuccess:
       break;
   }
 }
@@ -327,7 +328,7 @@ void OutboundCall::SetResponse(unique_ptr<CallResponse> resp) {
               response_->InitializationErrorString()));
       return;
     }
-    set_state(FINISHED_SUCCESS);
+    set_state(kFinishedSuccess);
     CallCallback();
   } else {
     // Error
@@ -340,20 +341,20 @@ void OutboundCall::SetResponse(unique_ptr<CallResponse> resp) {
       return;
     }
     Status s = Status::RemoteError(err->message());
-    SetFailed(std::move(s), Phase::REMOTE_CALL, std::move(err));
+    SetFailed(std::move(s), Phase::RemoteCall, std::move(err));
   }
 }
 
 void OutboundCall::SetQueued() {
-  set_state(ON_OUTBOUND_QUEUE);
+  set_state(kOnOutboundQueue);
 }
 
 void OutboundCall::SetSending() {
-  set_state(SENDING);
+  set_state(kSending);
 }
 
 void OutboundCall::SetSent() {
-  set_state(SENT);
+  set_state(kSent);
 
   // This method is called in the reactor thread, so free the header buf,
   // which was also allocated from this thread. tcmalloc's thread caching
@@ -378,27 +379,27 @@ void OutboundCall::SetFailed(
     Phase phase,
     unique_ptr<ErrorStatusPB> errPb) {
   DCHECK(!status.ok());
-  DCHECK(phase == Phase::CONNECTION_NEGOTIATION || phase == Phase::REMOTE_CALL);
+  DCHECK(phase == Phase::ConnectionNegotiation || phase == Phase::RemoteCall);
   {
     std::lock_guard<simple_spinlock> l(lock_);
     status_ = std::move(status);
     error_pb_ = std::move(errPb);
     set_state_unlocked(
-        phase == Phase::CONNECTION_NEGOTIATION ? FINISHED_NEGOTIATION_ERROR
-                                               : FINISHED_ERROR);
+        phase == Phase::ConnectionNegotiation ? kFinishedNegotiationError
+                                              : kFinishedError);
   }
   CallCallback();
 }
 
 void OutboundCall::SetTimedOut(Phase phase) {
-  DCHECK(phase == Phase::CONNECTION_NEGOTIATION || phase == Phase::REMOTE_CALL);
+  DCHECK(phase == Phase::ConnectionNegotiation || phase == Phase::RemoteCall);
 
   // We have to fetch timeout outside the lock to avoid a lock
   // order inversion between this class and RpcController.
   const MonoDelta timeout = controller_->timeout();
   {
     std::lock_guard<simple_spinlock> l(lock_);
-    if (phase == Phase::REMOTE_CALL) {
+    if (phase == Phase::RemoteCall) {
       status_ = Status::TimedOut(
           fmt::format(
               "{} RPC to {} timed out after {} ({})",
@@ -416,7 +417,7 @@ void OutboundCall::SetTimedOut(Phase phase) {
               StateName(state_.load(std::memory_order_relaxed))));
     }
     set_state_unlocked(
-        (phase == Phase::REMOTE_CALL) ? TIMED_OUT : NEGOTIATION_TIMED_OUT);
+        (phase == Phase::RemoteCall) ? kTimedOut : kNegotiationTimedOut);
   }
   CallCallback();
 }
@@ -431,15 +432,15 @@ void OutboundCall::SetCancelled() {
             remote_method_.methodName(),
             conn_id_.remote().ToString(),
             StateName(state_.load(std::memory_order_relaxed))));
-    set_state_unlocked(CANCELLED);
+    set_state_unlocked(kCancelled);
   }
   CallCallback();
 }
 
 bool OutboundCall::IsTimedOut() const {
   switch (state_.load(std::memory_order_acquire)) {
-    case NEGOTIATION_TIMED_OUT: // fall-through
-    case TIMED_OUT:
+    case kNegotiationTimedOut: // fall-through
+    case kTimedOut:
       return true;
     default:
       return false;
@@ -447,13 +448,13 @@ bool OutboundCall::IsTimedOut() const {
 }
 
 bool OutboundCall::IsCancelled() const {
-  return state_.load(std::memory_order_acquire) == CANCELLED;
+  return state_.load(std::memory_order_acquire) == kCancelled;
 }
 
 bool OutboundCall::IsNegotiationError() const {
   switch (state_.load(std::memory_order_acquire)) {
-    case FINISHED_NEGOTIATION_ERROR: // fall-through
-    case NEGOTIATION_TIMED_OUT:
+    case kFinishedNegotiationError: // fall-through
+    case kNegotiationTimedOut:
       return true;
     default:
       return false;
@@ -463,17 +464,17 @@ bool OutboundCall::IsNegotiationError() const {
 bool OutboundCall::IsFinished() const {
   State currentState = state_.load(std::memory_order_acquire);
   switch (currentState) {
-    case READY:
-    case SENDING:
-    case ON_OUTBOUND_QUEUE:
-    case SENT:
+    case kReady:
+    case kSending:
+    case kOnOutboundQueue:
+    case kSent:
       return false;
-    case NEGOTIATION_TIMED_OUT:
-    case TIMED_OUT:
-    case CANCELLED:
-    case FINISHED_NEGOTIATION_ERROR:
-    case FINISHED_ERROR:
-    case FINISHED_SUCCESS:
+    case kNegotiationTimedOut:
+    case kTimedOut:
+    case kCancelled:
+    case kFinishedNegotiationError:
+    case kFinishedError:
+    case kFinishedSuccess:
       return true;
     default:
       LOG(FATAL) << "Unknown call state: " << currentState;
@@ -492,35 +493,35 @@ void OutboundCall::DumpPB(
   resp->set_micros_elapsed((MonoTime::Now() - start_time_).ToMicroseconds());
 
   switch (state_.load(std::memory_order_acquire)) {
-    case READY:
-      // Don't bother setting a state for "READY" since we don't expose a call
+    case kReady:
+      // Don't bother setting a state for "kReady" since we don't expose a call
       // until it's at least on the queue of a connection.
       break;
-    case ON_OUTBOUND_QUEUE:
+    case kOnOutboundQueue:
       resp->set_state(RpcCallInProgressPB::ON_OUTBOUND_QUEUE);
       break;
-    case SENDING:
+    case kSending:
       resp->set_state(RpcCallInProgressPB::SENDING);
       break;
-    case SENT:
+    case kSent:
       resp->set_state(RpcCallInProgressPB::SENT);
       break;
-    case NEGOTIATION_TIMED_OUT:
+    case kNegotiationTimedOut:
       resp->set_state(RpcCallInProgressPB::NEGOTIATION_TIMED_OUT);
       break;
-    case TIMED_OUT:
+    case kTimedOut:
       resp->set_state(RpcCallInProgressPB::TIMED_OUT);
       break;
-    case CANCELLED:
+    case kCancelled:
       resp->set_state(RpcCallInProgressPB::CANCELLED);
       break;
-    case FINISHED_NEGOTIATION_ERROR:
+    case kFinishedNegotiationError:
       resp->set_state(RpcCallInProgressPB::FINISHED_NEGOTIATION_ERROR);
       break;
-    case FINISHED_ERROR:
+    case kFinishedError:
       resp->set_state(RpcCallInProgressPB::FINISHED_ERROR);
       break;
-    case FINISHED_SUCCESS:
+    case kFinishedSuccess:
       resp->set_state(RpcCallInProgressPB::FINISHED_SUCCESS);
       break;
   }

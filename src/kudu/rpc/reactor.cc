@@ -392,7 +392,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
       &conn,
       metricEntity_);
   if (PREDICT_FALSE(!s.ok())) {
-    call->SetFailed(std::move(s), OutboundCall::Phase::CONNECTION_NEGOTIATION);
+    call->SetFailed(std::move(s), OutboundCall::Phase::ConnectionNegotiation);
     return;
   }
 
@@ -952,8 +952,8 @@ class AssignOutboundCallTask : public ReactorTask {
 
   void abort(const Status& status) override {
     // It doesn't matter what is the actual phase of the OutboundCall: just set
-    // it to Phase::REMOTE_CALL to finalize the state of the call.
-    call_->SetFailed(status, OutboundCall::Phase::REMOTE_CALL);
+    // it to Phase::RemoteCall to finalize the state of the call.
+    call_->SetFailed(status, OutboundCall::Phase::RemoteCall);
     delete this;
   }
 

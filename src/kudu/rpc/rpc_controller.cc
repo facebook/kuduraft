@@ -117,7 +117,7 @@ Status RpcController::getInboundSidecar(int idx, Slice* sidecar) const {
 
 void RpcController::set_timeout(const MonoDelta& timeout) {
   std::lock_guard<SimpleSpinlock> l(lock_);
-  DCHECK(!call_ || call_->state() == OutboundCall::READY);
+  DCHECK(!call_ || call_->state() == OutboundCall::kReady);
   // Store timeout as atomic nanoseconds for lock-free reads
   timeout_nanos_.store(timeout.ToNanoseconds(), std::memory_order_relaxed);
 }
@@ -140,7 +140,7 @@ const RequestIdPB& RpcController::request_id() const {
 }
 
 void RpcController::requireServerFeature(uint32_t feature) {
-  DCHECK(!call_ || call_->state() == OutboundCall::READY);
+  DCHECK(!call_ || call_->state() == OutboundCall::kReady);
   required_server_features_.insert(feature);
 }
 
