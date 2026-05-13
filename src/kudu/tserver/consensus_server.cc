@@ -144,7 +144,7 @@ Status RaftConsensusServer::Init() {
   RETURN_NOT_OK(RegisterService(std::move(consensusService)));
   RETURN_NOT_OK(KuduServer::Start());
 
-  if (consensusManager_->IsInitialized()) {
+  if (consensusManager_->isInitialized()) {
     return Status::IllegalState("Consensus manager is already initialized");
   }
 
@@ -167,7 +167,7 @@ Status RaftConsensusServer::Start() {
 
   LOG(INFO) << "Starting RaftConsensusServer";
 
-  if (!consensusManager_->IsInitialized()) {
+  if (!consensusManager_->isInitialized()) {
     return Status::IllegalState("Consensus manager is not initialized");
   }
 
@@ -464,9 +464,9 @@ Status RaftConsensusInstance::createDistributedConfig(
   // not use both modes, till we remove support for tserverAddresses
   if (!options.tserverAddresses.empty()) {
     RETURN_NOT_OK(
-        TabletManagerIf::CreateConfigFromTserverAddresses(options, &newConfig));
+        TabletManagerIf::createConfigFromTserverAddresses(options, &newConfig));
   } else {
-    TabletManagerIf::CreateConfigFromBootstrapPeers(options, &newConfig);
+    TabletManagerIf::createConfigFromBootstrapPeers(options, &newConfig);
   }
 
   // Now resolve UUIDs.
@@ -695,13 +695,13 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
   }
 }
 
-const NodeInstancePB& RaftConsensusManager::NodeInstance() const {
+const NodeInstancePB& RaftConsensusManager::nodeInstance() const {
   // TODO(abhinav): is this ok?
   return server_->instancePb();
 }
 
-std::shared_ptr<consensus::RaftConsensus>
-RaftConsensusManager::shared_consensus(const std::string& id) const {
+std::shared_ptr<consensus::RaftConsensus> RaftConsensusManager::sharedConsensus(
+    const std::string& id) const {
   const std::shared_lock lock(mapLock_);
   auto itr = map_.find(id);
   if (itr == map_.end()) {
@@ -728,7 +728,7 @@ Status RaftConsensusManager::Start(bool isFirstRun) {
   return Status::OK();
 }
 
-bool RaftConsensusManager::IsInitialized() const {
+bool RaftConsensusManager::isInitialized() const {
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
     if (!entry.second->isInitialized()) {

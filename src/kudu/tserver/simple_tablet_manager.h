@@ -72,17 +72,17 @@ struct TabletServerOptions;
 class TabletManagerIf {
  public:
   virtual ~TabletManagerIf() {}
-  virtual const NodeInstancePB& NodeInstance() const = 0;
-  virtual std::shared_ptr<consensus::RaftConsensus> shared_consensus(
+  virtual const NodeInstancePB& nodeInstance() const = 0;
+  virtual std::shared_ptr<consensus::RaftConsensus> sharedConsensus(
       const std::string& id = "") const = 0;
   virtual Status Init(bool isFirstRun) = 0;
   virtual Status Start(bool isFirstRun) = 0;
-  virtual bool IsInitialized() const = 0;
+  virtual bool isInitialized() const = 0;
   virtual void Shutdown() = 0;
-  static Status CreateConfigFromTserverAddresses(
+  static Status createConfigFromTserverAddresses(
       const TabletServerOptions& options,
       KC::RaftConfigPB* newConfig);
-  static void CreateConfigFromBootstrapPeers(
+  static void createConfigFromBootstrapPeers(
       const TabletServerOptions& options,
       KC::RaftConfigPB* newConfig);
 };
@@ -92,15 +92,15 @@ class TabletManagerIf {
 // TODO(todd): will also be responsible for keeping the local metadata about
 // which tablets are hosted on this server persistent on disk, as well as
 // re-opening all the tablets at startup, etc.
-class TSTabletManager : public TabletManagerIf,
+class TsTabletManager : public TabletManagerIf,
                         consensus::ConsensusRoundHandler {
  public:
   // Construct the tablet manager.
-  explicit TSTabletManager(TabletServer* server);
+  explicit TsTabletManager(TabletServer* server);
 
   static const std::string kSysCatalogTabletId;
 
-  virtual ~TSTabletManager();
+  virtual ~TsTabletManager();
 
   Status load(FsManager* fsManager);
 
@@ -115,14 +115,14 @@ class TSTabletManager : public TabletManagerIf,
   // In case of isFirstRun, some parts of bootstrapping are bypassed
   Status Start(bool isFirstRun) override;
 
-  bool IsInitialized() const override;
+  bool isInitialized() const override;
 
   bool isRunning() const;
 
   // Shut down all of the tablets, gracefully flushing before shutdown.
   void Shutdown() override;
 
-  const NodeInstancePB& NodeInstance() const override;
+  const NodeInstancePB& nodeInstance() const override;
 
   // Used by consensus to create and start a new ReplicaTransaction.
   virtual Status startFollowerTransaction(
@@ -138,7 +138,7 @@ class TSTabletManager : public TabletManagerIf,
 
   virtual bool isLeaderEligible() const override;
 
-  std::shared_ptr<consensus::RaftConsensus> shared_consensus(
+  std::shared_ptr<consensus::RaftConsensus> sharedConsensus(
       const std::string& /*id*/) const override {
     shared_lock l(lock_);
     return consensus_;
@@ -224,7 +224,7 @@ class TSTabletManager : public TabletManagerIf,
   TSTabletManagerStatePB state_;
 
   // Function to mark this TabletReplica's tablet as dirty in the
-  // TSTabletManager.
+  // TsTabletManager.
   //
   // Must be called whenever cluster membership or leadership changes, or when
   // the tablet's schema changes.
@@ -232,7 +232,7 @@ class TSTabletManager : public TabletManagerIf,
 
   std::shared_ptr<consensus::RaftConsensus> consensus_;
 
-  DISALLOW_COPY_AND_ASSIGN(TSTabletManager);
+  DISALLOW_COPY_AND_ASSIGN(TsTabletManager);
 };
 
 } // namespace tserver

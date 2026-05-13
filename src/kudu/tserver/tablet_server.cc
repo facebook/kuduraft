@@ -81,7 +81,7 @@ TabletServer::TabletServer(const TabletServerOptions& opts)
     : RaftConsensusServerIf("TabletServer", opts, "kudu.tabletserver"),
       initted_(false),
       opts_(opts),
-      tabletManager_(new TSTabletManager(this)) {}
+      tabletManager_(new TsTabletManager(this)) {}
 
 TabletServer::TabletServer(
     const TabletServerOptions& opts,
@@ -121,7 +121,7 @@ Status TabletServer::Init() {
 
   // Moving tablet manager initialization to Init phase of
   // tablet server
-  if (tabletManager_->IsInitialized()) {
+  if (tabletManager_->isInitialized()) {
     return Status::IllegalState("Catalog manager is already initialized");
   }
   RETURN_NOT_OK_PREPEND(
@@ -136,7 +136,7 @@ Status TabletServer::Init() {
 Status TabletServer::Start() {
   CHECK(initted_);
 
-  if (!tabletManager_->IsInitialized()) {
+  if (!tabletManager_->isInitialized()) {
     return Status::IllegalState("Tablet manager is not initialized");
   }
 

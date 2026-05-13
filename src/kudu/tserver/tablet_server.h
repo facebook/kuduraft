@@ -35,7 +35,7 @@ class ThreadPool;
 
 namespace tserver {
 
-class TSTabletManager;
+class TsTabletManager;
 class TabletManagerIf;
 
 class RaftConsensusServerIf : public kserver::KuduServer {
@@ -114,7 +114,7 @@ class TabletServer : public RaftConsensusServerIf {
 
  private:
   friend class TabletServerTestBase;
-  friend class TSTabletManager;
+  friend class TsTabletManager;
 
   bool initted_;
 

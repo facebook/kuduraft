@@ -223,13 +223,13 @@ class RaftConsensusManager : public TabletManagerIf {
 
   Status Start(bool isFirstRun) override;
 
-  bool IsInitialized() const override;
+  bool isInitialized() const override;
 
   void Shutdown() override;
 
-  const NodeInstancePB& NodeInstance() const override;
+  const NodeInstancePB& nodeInstance() const override;
 
-  std::shared_ptr<consensus::RaftConsensus> shared_consensus(
+  std::shared_ptr<consensus::RaftConsensus> sharedConsensus(
       const std::string& id) const override;
 
  private:

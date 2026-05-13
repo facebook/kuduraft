@@ -119,7 +119,7 @@ bool checkUuidMatchOrRespondGeneric(
     const ReqClass* req,
     RespClass* resp,
     rpc::RpcContext* context) {
-  const string& localUuid = tabletManager.NodeInstance().permanent_uuid();
+  const string& localUuid = tabletManager.nodeInstance().permanent_uuid();
   if (PREDICT_FALSE(!req->has_dest_uuid())) {
     // Maintain compat in release mode, but complain.
     string msg = fmt::format(
@@ -169,7 +169,7 @@ bool checkUuidMatchOrRespond(
     const ConsensusRequestPB* req,
     ConsensusResponsePB* resp,
     rpc::RpcContext* context) {
-  const string& localUuid = tabletManager.NodeInstance().permanent_uuid();
+  const string& localUuid = tabletManager.nodeInstance().permanent_uuid();
   if (req->has_proxy_dest_uuid()) {
     if (PREDICT_FALSE(req->proxy_dest_uuid() != localUuid)) {
       Status s = Status::InvalidArgument(
@@ -199,7 +199,7 @@ bool getConsensusOrRespond(
     rpc::RpcContext* context,
     shared_ptr<RaftConsensus>* consensusOut) {
   shared_ptr<RaftConsensus> tmpConsensus =
-      tabletManager.shared_consensus(req->tablet_id());
+      tabletManager.sharedConsensus(req->tablet_id());
   if (!tmpConsensus) {
     Status s = Status::ServiceUnavailable(
         "Raft Consensus unavailable", "Tablet replica not initialized");
@@ -328,14 +328,14 @@ bool ConsensusServiceImpl::AuthorizeServiceUser(
 
 void ConsensusServiceImpl::LongUpdateConsensusLoading() {
   if (shared_ptr<RaftConsensus> consensus =
-          tabletManager_.shared_consensus("")) {
+          tabletManager_.sharedConsensus("")) {
     consensus->pauseFailureDetector();
   }
 }
 
 void ConsensusServiceImpl::LongUpdateConsensusLoaded() {
   if (shared_ptr<RaftConsensus> consensus =
-          tabletManager_.shared_consensus("")) {
+          tabletManager_.sharedConsensus("")) {
     consensus->resumeFailureDetector();
   }
 }
@@ -551,7 +551,7 @@ void ConsensusServiceImpl::GetNodeInstance(
     GetNodeInstanceResponsePB* resp,
     rpc::RpcContext* context) {
   VLOG(1) << "Received Get Node Instance RPC: " << SecureDebugString(*req);
-  resp->mutable_node_instance()->CopyFrom(tabletManager_.NodeInstance());
+  resp->mutable_node_instance()->CopyFrom(tabletManager_.nodeInstance());
   context->respondSuccess();
 }
 

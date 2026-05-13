@@ -98,7 +98,7 @@ using pb_util::SecureShortDebugString;
 
 namespace tserver {
 
-/*static*/ Status TabletManagerIf::CreateConfigFromTserverAddresses(
+/*static*/ Status TabletManagerIf::createConfigFromTserverAddresses(
     const TabletServerOptions& options,
     KC::RaftConfigPB* newConfig) {
   size_t tsIndex = 0;
@@ -127,7 +127,7 @@ namespace tserver {
   return Status::OK();
 }
 
-/*static*/ void TabletManagerIf::CreateConfigFromBootstrapPeers(
+/*static*/ void TabletManagerIf::createConfigFromBootstrapPeers(
     const TabletServerOptions& options,
     KC::RaftConfigPB* newConfig) {
   for (const RaftPeerPB& peer : options.bootstrapTservers) {
@@ -135,10 +135,10 @@ namespace tserver {
   }
 }
 
-const std::string TSTabletManager::kSysCatalogTabletId(
+const std::string TsTabletManager::kSysCatalogTabletId(
     "00000000000000000000000000000000");
 
-TSTabletManager::TSTabletManager(TabletServer* server)
+TsTabletManager::TsTabletManager(TabletServer* server)
     : fsManager_(server->fsManager()),
       cmetaManager_(std::make_shared<ConsensusMetadataManager>(fsManager_)),
       persistentVarsManager_(
@@ -147,9 +147,9 @@ TSTabletManager::TSTabletManager(TabletServer* server)
       metricRegistry_(server->metricRegistry()),
       state_(MANAGER_INITIALIZING),
       markDirtyClbk_(
-          Bind(&TSTabletManager::markTabletDirty, Unretained(this))) {}
+          Bind(&TsTabletManager::markTabletDirty, Unretained(this))) {}
 
-TSTabletManager::~TSTabletManager() {
+TsTabletManager::~TsTabletManager() {
   // Close cannot be called from the destructor any more.
   // as Close from Log::~Log will call the base class Close()
   // Another way to think about it is that Init and Close go in
@@ -159,7 +159,7 @@ TSTabletManager::~TSTabletManager() {
   }
 }
 
-Status TSTabletManager::load(FsManager* /* fsManager */) {
+Status TsTabletManager::load(FsManager* /* fsManager */) {
   if (server_->opts().isDistributed()) {
     LOG(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
@@ -209,16 +209,16 @@ Status TSTabletManager::load(FsManager* /* fsManager */) {
   return setupRaft();
 }
 
-Status TSTabletManager::createNew(FsManager* fsManager) {
+Status TsTabletManager::createNew(FsManager* fsManager) {
   RaftConfigPB config;
   if (server_->opts().isDistributed()) {
-    LOG(INFO) << "TSTabletManager::createNew - Calling createDistributedConfig";
+    LOG(INFO) << "TsTabletManager::createNew - Calling createDistributedConfig";
     RETURN_NOT_OK_PREPEND(
         createDistributedConfig(server_->opts(), &config),
         "Failed to create new distributed Raft config");
   } else {
     LOG(INFO)
-        << "TSTabletManager::createNew - Setting up single peer local config";
+        << "TsTabletManager::createNew - Setting up single peer local config";
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
     peer->set_permanent_uuid(fsManager->uuid());
@@ -241,7 +241,7 @@ Status TSTabletManager::createNew(FsManager* fsManager) {
   return setupRaft();
 }
 
-Status TSTabletManager::createDistributedConfig(
+Status TsTabletManager::createDistributedConfig(
     const TabletServerOptions& options,
     RaftConfigPB* committedConfig) {
   DCHECK(options.isDistributed());
@@ -265,9 +265,9 @@ Status TSTabletManager::createDistributedConfig(
   // not use both modes, till we remove support for tserverAddresses
   if (!options.tserverAddresses.empty()) {
     RETURN_NOT_OK(
-        TabletManagerIf::CreateConfigFromTserverAddresses(options, &newConfig));
+        TabletManagerIf::createConfigFromTserverAddresses(options, &newConfig));
   } else {
-    TabletManagerIf::CreateConfigFromBootstrapPeers(options, &newConfig);
+    TabletManagerIf::createConfigFromBootstrapPeers(options, &newConfig);
   }
 
   // Now resolve UUIDs.
@@ -310,7 +310,7 @@ Status TSTabletManager::createDistributedConfig(
   return Status::OK();
 }
 
-Status TSTabletManager::waitUntilConsensusRunning(const MonoDelta& timeout) {
+Status TsTabletManager::waitUntilConsensusRunning(const MonoDelta& timeout) {
   MonoTime start(MonoTime::Now());
 
   int backoffExp = 0;
@@ -333,7 +333,7 @@ Status TSTabletManager::waitUntilConsensusRunning(const MonoDelta& timeout) {
   return Status::OK();
 }
 
-Status TSTabletManager::waitUntilRunning() {
+Status TsTabletManager::waitUntilRunning() {
   TRACE_EVENT0("master", "SysCatalogTable::WaitUntilRunning");
   int secondsWaited = 0;
   while (true) {
@@ -355,25 +355,25 @@ Status TSTabletManager::waitUntilRunning() {
   return Status::OK();
 }
 
-bool TSTabletManager::IsInitialized() const {
+bool TsTabletManager::isInitialized() const {
   return state() == MANAGER_INITIALIZED;
 }
 
-bool TSTabletManager::isRunning() const {
+bool TsTabletManager::isRunning() const {
   return state() == MANAGER_RUNNING;
 }
 
-Status TSTabletManager::Init(bool isFirstRun) {
+Status TsTabletManager::Init(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
   if (isFirstRun) {
     LOG(INFO)
-        << "TSTabletManager::Init: is_first_run detected. Calling createNew";
+        << "TsTabletManager::Init: is_first_run detected. Calling createNew";
     RETURN_NOT_OK_PREPEND(
         createNew(server_->fsManager()),
         "Failed to createNew in TabletManager");
   } else {
-    LOG(INFO) << "TSTabletManager::Init: existing cmeta dir. Calling load";
+    LOG(INFO) << "TsTabletManager::Init: existing cmeta dir. Calling load";
     RETURN_NOT_OK_PREPEND(
         load(server_->fsManager()), "Failed to load in TabletManager");
   }
@@ -382,7 +382,7 @@ Status TSTabletManager::Init(bool isFirstRun) {
   return Status::OK();
 }
 
-Status TSTabletManager::Start(bool isFirstRun) {
+Status TsTabletManager::Start(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
   // setState(INITIALIZED);
@@ -452,7 +452,7 @@ Status TSTabletManager::Start(bool isFirstRun) {
   return Status::OK();
 }
 
-Status TSTabletManager::setupRaft() {
+Status TsTabletManager::setupRaft() {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
   initLocalRaftPeerPb();
@@ -537,7 +537,7 @@ Status TSTabletManager::setupRaft() {
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
   // is populated during that step. Capture it so as to pass it
-  // to RaftConsensus::Start, in TSTabletManager::Start
+  // to RaftConsensus::Start, in TsTabletManager::Start
   //
   // Skip recovery on "is_first_run" because you are creating a
   // fresh raft instance (the raft metadata directories are new).
@@ -569,7 +569,7 @@ Status TSTabletManager::setupRaft() {
   return s1;
 }
 
-void TSTabletManager::Shutdown() {
+void TsTabletManager::Shutdown() {
   {
     std::lock_guard lock(lock_);
     switch (state_) {
@@ -601,11 +601,11 @@ void TSTabletManager::Shutdown() {
   state_ = MANAGER_SHUTDOWN;
 }
 
-const NodeInstancePB& TSTabletManager::NodeInstance() const {
+const NodeInstancePB& TsTabletManager::nodeInstance() const {
   return server_->instancePb();
 }
 
-void TSTabletManager::initLocalRaftPeerPb() {
+void TsTabletManager::initLocalRaftPeerPb() {
   DCHECK_EQ(state(), MANAGER_INITIALIZING);
   localPeerPb_.set_permanent_uuid(fsManager_->uuid());
   Sockaddr addr = server_->firstRpcAddress();
@@ -622,25 +622,25 @@ void TSTabletManager::initLocalRaftPeerPb() {
   }
 }
 
-string TSTabletManager::LogPrefix(
+string TsTabletManager::LogPrefix(
     const string& tabletId,
     FsManager* fsManager) {
   DCHECK(fsManager != nullptr);
   return fmt::format("T {} P {}: ", tabletId, fsManager->uuid());
 }
 
-string TSTabletManager::LogPrefix() const {
+string TsTabletManager::LogPrefix() const {
   return LogPrefix(kSysCatalogTabletId);
 }
 
-Status TSTabletManager::startConsensusOnlyRound(
+Status TsTabletManager::startConsensusOnlyRound(
     const std::shared_ptr<consensus::ConsensusRound>& /* round */) {
   // this is currently a no-op but other implementations
   // can provide their own version
   return Status::OK();
 }
 
-Status TSTabletManager::startFollowerTransaction(
+Status TsTabletManager::startFollowerTransaction(
     const std::shared_ptr<ConsensusRound>& round) {
   // THIS IS CURRENTLY A NO-OP
   consensus::ReplicateMsg* replicateMsg = round->replicate_msg();
@@ -648,14 +648,14 @@ Status TSTabletManager::startFollowerTransaction(
   return Status::OK();
 }
 
-void TSTabletManager::finishConsensusOnlyRound(ConsensusRound* round) {
+void TsTabletManager::finishConsensusOnlyRound(ConsensusRound* round) {
   consensus::ReplicateMsg* replicateMsg = round->replicate_msg();
   consensus::OperationType opType = replicateMsg->op_type();
   (void)opType;
   (void)replicateMsg;
 }
 
-bool TSTabletManager::isLeaderEligible() const {
+bool TsTabletManager::isLeaderEligible() const {
   // Currently no-op
   return true;
 }
