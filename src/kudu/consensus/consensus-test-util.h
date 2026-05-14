@@ -548,7 +548,7 @@ class NoOpTestPeerProxyFactory : public PeerProxyFactory {
  public:
   NoOpTestPeerProxyFactory() {
     CHECK_OK(
-        ThreadPoolBuilder("test-peer-pool").set_max_threads(3).Build(&pool_));
+        ThreadPoolBuilder("test-peer-pool").setMaxThreads(3).build(&pool_));
     CHECK_OK(rpc::MessengerBuilder("test").Build(&messenger_));
   }
 
@@ -786,7 +786,7 @@ class LocalTestPeerProxyFactory : public PeerProxyFactory {
   explicit LocalTestPeerProxyFactory(TestPeerMapManager* peers)
       : peers_(peers) {
     CHECK_OK(
-        ThreadPoolBuilder("test-peer-pool").set_max_threads(3).Build(&pool_));
+        ThreadPoolBuilder("test-peer-pool").setMaxThreads(3).build(&pool_));
     CHECK_OK(rpc::MessengerBuilder("test").Build(&messenger_));
   }
 
@@ -867,7 +867,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
  public:
   explicit TestTransactionFactory() : consensus_(nullptr) {
     CHECK_OK(
-        ThreadPoolBuilder("test-txn-factory").set_max_threads(1).Build(&pool_));
+        ThreadPoolBuilder("test-txn-factory").setMaxThreads(1).build(&pool_));
   }
 
   void SetConsensus(RaftConsensus* consensus) {

@@ -79,15 +79,15 @@ class ThreadPoolBuilder {
 
   // Note: We violate the style guide by returning mutable references here
   // in order to provide traditional Builder pattern conveniences.
-  ThreadPoolBuilder& set_trace_metric_prefix(const std::string& prefix);
-  ThreadPoolBuilder& set_min_threads(int min_threads);
-  ThreadPoolBuilder& set_max_threads(int max_threads);
-  ThreadPoolBuilder& set_max_queue_size(int max_queue_size);
-  ThreadPoolBuilder& set_idle_timeout(const MonoDelta& idle_timeout);
-  ThreadPoolBuilder& set_metrics(ThreadPoolMetrics metrics);
+  ThreadPoolBuilder& setTraceMetricPrefix(const std::string& prefix);
+  ThreadPoolBuilder& setMinThreads(int minThreads);
+  ThreadPoolBuilder& setMaxThreads(int maxThreads);
+  ThreadPoolBuilder& setMaxQueueSize(int maxQueueSize);
+  ThreadPoolBuilder& setIdleTimeout(const MonoDelta& idleTimeout);
+  ThreadPoolBuilder& setMetrics(ThreadPoolMetrics metrics);
 
   // Instantiate a new ThreadPool with the existing builder arguments.
-  Status Build(std::unique_ptr<ThreadPool>* pool) const;
+  Status build(std::unique_ptr<ThreadPool>* pool) const;
 
   // Delete copy and move operations
   ThreadPoolBuilder(const ThreadPoolBuilder&) = delete;
@@ -97,11 +97,11 @@ class ThreadPoolBuilder {
 
  private:
   const std::string name_;
-  std::string trace_metric_prefix_;
-  int min_threads_;
-  int max_threads_;
-  int max_queue_size_;
-  MonoDelta idle_timeout_;
+  std::string traceMetricPrefix_;
+  int minThreads_;
+  int maxThreads_;
+  int maxQueueSize_;
+  MonoDelta idleTimeout_;
   ThreadPoolMetrics metrics_;
 };
 

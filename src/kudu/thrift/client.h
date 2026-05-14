@@ -152,9 +152,9 @@ Status HaClient<Service>::start(
   // The thread pool must be capped at one thread to ensure serialized access to
   // the fields of the service client (which isn't thread safe).
   RETURN_NOT_OK(ThreadPoolBuilder(Service::kServiceName)
-                    .set_min_threads(1)
-                    .set_max_threads(1)
-                    .Build(&threadpool_));
+                    .setMinThreads(1)
+                    .setMaxThreads(1)
+                    .build(&threadpool_));
 
   return Status::OK();
 }

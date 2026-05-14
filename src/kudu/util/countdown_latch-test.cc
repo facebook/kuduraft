@@ -39,7 +39,7 @@ static void decrementLatch(CountDownLatch* latch, int amount) {
 // as 1 by one.
 TEST(TestCountDownLatch, TestLatch) {
   std::unique_ptr<ThreadPool> pool;
-  ASSERT_OK(ThreadPoolBuilder("cdl-test").set_max_threads(1).Build(&pool));
+  ASSERT_OK(ThreadPoolBuilder("cdl-test").setMaxThreads(1).build(&pool));
 
   CountDownLatch latch(1000);
 

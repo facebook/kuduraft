@@ -121,7 +121,7 @@ class RaftConsensusQuorumTest : public KuduTest {
             METRIC_ENTITY_server.instantiate(&metricRegistry_, "raft-test")) {
     options_.tablet_id = kTestTablet;
     FLAGS_enable_leader_failure_detection = false;
-    CHECK_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
+    CHECK_OK(ThreadPoolBuilder("raft").build(&raftPool_));
   }
 
   // Builds an initial configuration of 'num' elements.

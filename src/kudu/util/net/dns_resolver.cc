@@ -42,8 +42,8 @@ namespace kudu {
 
 DnsResolver::DnsResolver() {
   CHECK_OK(ThreadPoolBuilder("dns-resolver")
-               .set_max_threads(FLAGS_dns_num_resolver_threads)
-               .Build(&pool_));
+               .setMaxThreads(FLAGS_dns_num_resolver_threads)
+               .build(&pool_));
 }
 
 DnsResolver::~DnsResolver() {

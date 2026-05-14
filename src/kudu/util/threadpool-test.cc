@@ -74,18 +74,18 @@ class ThreadPoolTest : public KuduTest {
  public:
   virtual void SetUp() override {
     KuduTest::SetUp();
-    ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).Build(&pool_));
+    ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).build(&pool_));
   }
 
   Status rebuildPoolWithBuilder(const ThreadPoolBuilder& builder) {
-    return builder.Build(&pool_);
+    return builder.build(&pool_);
   }
 
   Status rebuildPoolWithMinMax(int minThreads, int maxThreads) {
     return ThreadPoolBuilder(kDefaultPoolName)
-        .set_min_threads(minThreads)
-        .set_max_threads(maxThreads)
-        .Build(&pool_);
+        .setMinThreads(minThreads)
+        .setMaxThreads(maxThreads)
+        .build(&pool_);
   }
 
  protected:
@@ -179,9 +179,9 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
   FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName)
-          .set_min_threads(0)
-          .set_max_threads(3)
-          .set_idle_timeout(MonoDelta::FromMilliseconds(1))));
+          .setMinThreads(0)
+          .setMaxThreads(3)
+          .setIdleTimeout(MonoDelta::FromMilliseconds(1))));
 
   // There are no threads to start with.
   ASSERT_TRUE(pool_->numThreads() == 0);
@@ -216,7 +216,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
   // Build a threadpool with no limit on the maximum number of threads.
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName)
-          .set_max_threads(std::numeric_limits<int>::max())));
+          .setMaxThreads(std::numeric_limits<int>::max())));
   CountDownLatch latch(1);
   auto cleanupLatch = folly::makeGuard([&]() { latch.countDown(); });
 
@@ -257,9 +257,9 @@ TEST_F(ThreadPoolTest, TestRace) {
   });
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName)
-          .set_min_threads(0)
-          .set_max_threads(1)
-          .set_idle_timeout(MonoDelta::FromMicroseconds(1))));
+          .setMinThreads(0)
+          .setMaxThreads(1)
+          .setIdleTimeout(MonoDelta::FromMicroseconds(1))));
 
   for (int i = 0; i < 500; i++) {
     CountDownLatch l(1);
@@ -275,9 +275,9 @@ TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
   FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName)
-          .set_min_threads(1)
-          .set_max_threads(4)
-          .set_idle_timeout(MonoDelta::FromMilliseconds(1))));
+          .setMinThreads(1)
+          .setMaxThreads(4)
+          .setIdleTimeout(MonoDelta::FromMilliseconds(1))));
 
   // There is 1 thread to start with.
   ASSERT_EQ(1, pool_->numThreads());
@@ -305,9 +305,9 @@ TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
 TEST_F(ThreadPoolTest, TestMaxQueueSize) {
   FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
-                                       .set_min_threads(1)
-                                       .set_max_threads(1)
-                                       .set_max_queue_size(1)));
+                                       .setMinThreads(1)
+                                       .setMaxThreads(1)
+                                       .setMaxQueueSize(1)));
 
   CountDownLatch latch(1);
   // We will be able to submit two tasks: one for max_threads == 1 and one for
@@ -328,8 +328,8 @@ TEST_F(ThreadPoolTest, TestZeroQueueSize) {
   FLAGS_use_folly_threadpool = false;
   const int kMaxThreads = 4;
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
-                                       .set_max_queue_size(0)
-                                       .set_max_threads(kMaxThreads)));
+                                       .setMaxQueueSize(0)
+                                       .setMaxThreads(kMaxThreads)));
 
   CountDownLatch latch(1);
   for (int i = 0; i < kMaxThreads; i++) {
@@ -352,9 +352,9 @@ TEST_F(ThreadPoolTest, TestSlowThreadStart) {
   // Start a pool of threads from which we'll submit tasks.
   unique_ptr<ThreadPool> submitterPool;
   ASSERT_OK(ThreadPoolBuilder("submitter")
-                .set_min_threads(5)
-                .set_max_threads(5)
-                .Build(&submitterPool));
+                .setMinThreads(5)
+                .setMaxThreads(5)
+                .build(&submitterPool));
 
   // Start the actual test pool, which starts with one thread
   // but will start a second one on-demand.
@@ -405,9 +405,9 @@ TEST_F(ThreadPoolTest, TestSlowThreadStart) {
 // a value on the current thread.
 TEST_F(ThreadPoolTest, TestPromises) {
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
-                                       .set_min_threads(1)
-                                       .set_max_threads(1)
-                                       .set_max_queue_size(1)));
+                                       .setMinThreads(1)
+                                       .setMaxThreads(1)
+                                       .setMaxQueueSize(1)));
 
   Promise<int> myPromise;
   ASSERT_OK(pool_->submitClosure(
@@ -461,9 +461,9 @@ TEST_F(ThreadPoolTest, TestMetrics) {
 
   // Enable metrics for the thread pool.
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
-                                       .set_min_threads(1)
-                                       .set_max_threads(1)
-                                       .set_metrics(allMetrics[0])));
+                                       .setMinThreads(1)
+                                       .setMaxThreads(1)
+                                       .setMetrics(allMetrics[0])));
 
   unique_ptr<ThreadPoolToken> t1 = pool_->newTokenWithMetrics(
       ThreadPool::ExecutionMode::Serial, allMetrics[1]);
@@ -577,7 +577,7 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsProcessedSerially) {
 TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitsProcessedConcurrently) {
   const int kNumTokens = 5;
   ASSERT_OK(rebuildPoolWithBuilder(
-      ThreadPoolBuilder(kDefaultPoolName).set_max_threads(kNumTokens)));
+      ThreadPoolBuilder(kDefaultPoolName).setMaxThreads(kNumTokens)));
   vector<unique_ptr<ThreadPoolToken>> tokens;
 
   // A violation to the tested invariant would yield a deadlock, so let's set
@@ -599,7 +599,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitsProcessedConcurrently) {
 TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
   const int kNumSubmissions = 5;
   ASSERT_OK(rebuildPoolWithBuilder(
-      ThreadPoolBuilder(kDefaultPoolName).set_max_threads(kNumSubmissions)));
+      ThreadPoolBuilder(kDefaultPoolName).setMaxThreads(kNumSubmissions)));
 
   // A violation to the tested invariant would yield a deadlock, so let's set
   // up an alarm to bail us out.
@@ -621,7 +621,7 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
 TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
   FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(
-      ThreadPoolBuilder(kDefaultPoolName).set_max_threads(4)));
+      ThreadPoolBuilder(kDefaultPoolName).setMaxThreads(4)));
 
   unique_ptr<ThreadPoolToken> t1(pool_->NewToken(GetParam()));
   unique_ptr<ThreadPoolToken> t2(pool_->NewToken(GetParam()));
@@ -659,7 +659,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
 
 TEST_F(ThreadPoolTest, TestFuzz) {
   FLAGS_use_folly_threadpool = false;
-  ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).Build(&pool_));
+  ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).build(&pool_));
   const int kNumOperations = 1000;
   Random r(SeedRandom());
   vector<unique_ptr<ThreadPoolToken>> tokens;
@@ -729,9 +729,9 @@ TEST_F(ThreadPoolTest, TestFuzz) {
 TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
   FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
-                                       .set_min_threads(1)
-                                       .set_max_threads(1)
-                                       .set_max_queue_size(1)));
+                                       .setMinThreads(1)
+                                       .setMaxThreads(1)
+                                       .setMaxQueueSize(1)));
 
   CountDownLatch latch(1);
   unique_ptr<ThreadPoolToken> t = pool_->NewToken(GetParam());
@@ -748,7 +748,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
 
 TEST_F(ThreadPoolTest, TestTokenConcurrency) {
   FLAGS_use_folly_threadpool = false;
-  ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).Build(&pool_));
+  ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).build(&pool_));
   const int kNumTokens = 20;
   const int kTestRuntimeSecs = 1;
   const int kCycleThreads = 2;
@@ -869,7 +869,7 @@ TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
 
   // Test with a pool that allows for kNumThreads concurrent threads.
   ASSERT_OK(rebuildPoolWithBuilder(
-      ThreadPoolBuilder(kDefaultPoolName).set_max_threads(kNumThreads)));
+      ThreadPoolBuilder(kDefaultPoolName).setMaxThreads(kNumThreads)));
 
   // Submit kNumThreads slow tasks and unblock them, in order to produce
   // kNumThreads worker threads.

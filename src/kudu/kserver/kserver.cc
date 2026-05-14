@@ -137,17 +137,17 @@ Status KuduServer::Init() {
   // are capped at a portion of the overall per-euid thread resource limit.
   int serverWidePoolLimit = getThreadPoolThreadLimit(fs_manager_->env());
   RETURN_NOT_OK(ThreadPoolBuilder("raft")
-                    .set_trace_metric_prefix("raft")
-                    .set_min_threads(FLAGS_raft_thread_pool_min_size)
-                    .set_max_threads(
+                    .setTraceMetricPrefix("raft")
+                    .setMinThreads(FLAGS_raft_thread_pool_min_size)
+                    .setMaxThreads(
                         FLAGS_raft_thread_pool_max_size
                             ? FLAGS_raft_thread_pool_max_size
                             : serverWidePoolLimit)
-                    .set_idle_timeout(
+                    .setIdleTimeout(
                         MonoDelta::FromSeconds(
                             static_cast<double>(
                                 FLAGS_raft_thread_pool_idle_timeout_second)))
-                    .Build(&raftPool_));
+                    .build(&raftPool_));
 
   return Status::OK();
 }

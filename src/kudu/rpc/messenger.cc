@@ -367,13 +367,13 @@ Messenger::Messenger(const MessengerBuilder& bld)
     reactors_.push_back(new Reactor(retain_self_, i, bld));
   }
   CHECK_OK(ThreadPoolBuilder("client-negotiator")
-               .set_min_threads(bld.minNegotiationThreads_)
-               .set_max_threads(bld.maxNegotiationThreads_)
-               .Build(&client_negotiation_pool_));
+               .setMinThreads(bld.minNegotiationThreads_)
+               .setMaxThreads(bld.maxNegotiationThreads_)
+               .build(&client_negotiation_pool_));
   CHECK_OK(ThreadPoolBuilder("server-negotiator")
-               .set_min_threads(bld.minNegotiationThreads_)
-               .set_max_threads(bld.maxNegotiationThreads_)
-               .Build(&server_negotiation_pool_));
+               .setMinThreads(bld.minNegotiationThreads_)
+               .setMaxThreads(bld.maxNegotiationThreads_)
+               .build(&server_negotiation_pool_));
 }
 
 Messenger::~Messenger() {

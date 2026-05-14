@@ -133,7 +133,7 @@ class LeaderElectionTest : public KuduTest {
         proxyFactory_(new FromMapPeerProxyFactory(&proxies_)),
         latch_(1) {
     CHECK_OK(
-        ThreadPoolBuilder("test-peer-pool").set_max_threads(5).Build(&pool_));
+        ThreadPoolBuilder("test-peer-pool").setMaxThreads(5).build(&pool_));
   }
 
   void electionCallback(const ElectionResult& result);

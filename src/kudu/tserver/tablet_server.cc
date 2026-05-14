@@ -105,7 +105,7 @@ Status TabletServer::Init() {
   CHECK(!initted_);
 
   // This pool will be used to wait for Raft
-  RETURN_NOT_OK(ThreadPoolBuilder("init").set_max_threads(1).Build(&initPool_));
+  RETURN_NOT_OK(ThreadPoolBuilder("init").setMaxThreads(1).build(&initPool_));
 
   // Initialize FS, rpc_server, rpc messenger and Raft pool
   RETURN_NOT_OK(KuduServer::Init());

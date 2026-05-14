@@ -117,7 +117,7 @@ class ConsensusQueueTest : public KuduTest {
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->init());
 
-    ASSERT_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
+    ASSERT_OK(ThreadPoolBuilder("raft").build(&raftPool_));
     closeAndReopenQueue(MinimumOpId(), MinimumOpId());
   }
 

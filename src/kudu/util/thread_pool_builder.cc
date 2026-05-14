@@ -42,59 +42,59 @@ namespace kudu {
 
 ThreadPoolBuilder::ThreadPoolBuilder(string name)
     : name_(std::move(name)),
-      min_threads_(0),
-      max_threads_(base::numCpus()),
-      max_queue_size_(std::numeric_limits<int>::max()),
-      idle_timeout_(MonoDelta::FromMilliseconds(500)) {}
+      minThreads_(0),
+      maxThreads_(base::numCpus()),
+      maxQueueSize_(std::numeric_limits<int>::max()),
+      idleTimeout_(MonoDelta::FromMilliseconds(500)) {}
 
-ThreadPoolBuilder& ThreadPoolBuilder::set_trace_metric_prefix(
+ThreadPoolBuilder& ThreadPoolBuilder::setTraceMetricPrefix(
     const string& prefix) {
-  trace_metric_prefix_ = prefix;
+  traceMetricPrefix_ = prefix;
   return *this;
 }
 
-ThreadPoolBuilder& ThreadPoolBuilder::set_min_threads(int min_threads) {
-  CHECK_GE(min_threads, 0);
-  min_threads_ = min_threads;
+ThreadPoolBuilder& ThreadPoolBuilder::setMinThreads(int minThreads) {
+  CHECK_GE(minThreads, 0);
+  minThreads_ = minThreads;
   return *this;
 }
 
-ThreadPoolBuilder& ThreadPoolBuilder::set_max_threads(int max_threads) {
-  CHECK_GT(max_threads, 0);
-  max_threads_ = max_threads;
+ThreadPoolBuilder& ThreadPoolBuilder::setMaxThreads(int maxThreads) {
+  CHECK_GT(maxThreads, 0);
+  maxThreads_ = maxThreads;
   return *this;
 }
 
-ThreadPoolBuilder& ThreadPoolBuilder::set_max_queue_size(int max_queue_size) {
-  max_queue_size_ = max_queue_size;
+ThreadPoolBuilder& ThreadPoolBuilder::setMaxQueueSize(int maxQueueSize) {
+  maxQueueSize_ = maxQueueSize;
   return *this;
 }
 
-ThreadPoolBuilder& ThreadPoolBuilder::set_idle_timeout(
-    const MonoDelta& idle_timeout) {
-  idle_timeout_ = idle_timeout;
+ThreadPoolBuilder& ThreadPoolBuilder::setIdleTimeout(
+    const MonoDelta& idleTimeout) {
+  idleTimeout_ = idleTimeout;
   return *this;
 }
 
-ThreadPoolBuilder& ThreadPoolBuilder::set_metrics(ThreadPoolMetrics metrics) {
+ThreadPoolBuilder& ThreadPoolBuilder::setMetrics(ThreadPoolMetrics metrics) {
   metrics_ = std::move(metrics);
   return *this;
 }
 
-Status ThreadPoolBuilder::Build(unique_ptr<ThreadPool>* pool) const {
+Status ThreadPoolBuilder::build(unique_ptr<ThreadPool>* pool) const {
   std::unique_ptr<ThreadPool> threadPool;
   if (FLAGS_use_folly_threadpool) {
-    threadPool = std::make_unique<FollyThreadPool>(name_, max_threads_);
+    threadPool = std::make_unique<FollyThreadPool>(name_, maxThreads_);
     LOG(INFO) << "Using folly::CPUThreadPoolExecutor for " << name_;
   } else {
     LOG(INFO) << "Using KuduThreadPool for " << name_;
     auto kuduPool = std::make_unique<KuduThreadPool>(
         name_,
-        min_threads_,
-        max_threads_,
-        max_queue_size_,
-        idle_timeout_,
-        trace_metric_prefix_,
+        minThreads_,
+        maxThreads_,
+        maxQueueSize_,
+        idleTimeout_,
+        traceMetricPrefix_,
         metrics_);
     RETURN_NOT_OK(kuduPool->Init());
     threadPool = std::move(kuduPool);

@@ -76,11 +76,11 @@ class Trace;
 //    std::unique_ptr<KuduThreadPool> thread_pool;
 //    CHECK_OK(
 //        ThreadPoolBuilder("my_pool")
-//            .set_min_threads(0)
-//            .set_max_threads(5)
-//            .set_max_queue_size(10)
-//            .set_idle_timeout(MonoDelta::FromMilliseconds(2000))
-//            .Build(&thread_pool));
+//            .setMinThreads(0)
+//            .setMaxThreads(5)
+//            .setMaxQueueSize(10)
+//            .setIdleTimeout(MonoDelta::FromMilliseconds(2000))
+//            .build(&thread_pool));
 //    thread_pool->Submit(shared_ptr<Runnable>(new Task()));
 //    thread_pool->SubmitFunc(boost::bind(&Func, 10));
 class KuduThreadPool : public ThreadPool {

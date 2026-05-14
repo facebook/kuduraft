@@ -101,7 +101,7 @@ class ConsensusQueueBenchmark {
     clock_ = std::make_shared<clock::HybridClock>();
     CHECK_OK(clock_->init());
 
-    CHECK_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
+    CHECK_OK(ThreadPoolBuilder("raft").build(&raftPool_));
     closeAndReopenQueue(MinimumOpId(), MinimumOpId());
 
     // Set leader mode and track peers once during initialization
