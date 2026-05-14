@@ -111,14 +111,14 @@ OutboundCall::OutboundCall(
 }
 
 OutboundCall::~OutboundCall() {
-  DCHECK(IsFinished());
+  DCHECK(isFinished());
   DVLOG(4) << "OutboundCall " << this << " destroyed with state_: "
            << StateName(state_.load(std::memory_order_relaxed));
 }
 
-size_t OutboundCall::SerializeTo(TransferPayload* slices) {
+size_t OutboundCall::serializeTo(TransferPayload* slices) {
   DCHECK_LT(0, request_buf_.size())
-      << "Must call SetRequestPayload() before SerializeTo()";
+      << "Must call setRequestPayload() before serializeTo()";
 
   const MonoDelta& timeout = controller_->timeout();
   if (timeout.Initialized()) {
@@ -145,7 +145,7 @@ size_t OutboundCall::SerializeTo(TransferPayload* slices) {
   return nSlices;
 }
 
-void OutboundCall::SetRequestPayload(
+void OutboundCall::setRequestPayload(
     const Message& req,
     vector<unique_ptr<RpcSidecar>>&& sidecars) {
   DCHECK_EQ(-1, sidecar_byte_size_);
@@ -268,13 +268,13 @@ void OutboundCall::set_state_unlocked(State newState) {
       std::memory_order_relaxed));
 }
 
-void OutboundCall::Cancel() {
+void OutboundCall::cancel() {
   cancellation_requested_ = true;
   switch (state_.load(std::memory_order_acquire)) {
     case kReady:
     case kOnOutboundQueue:
     case kSent: {
-      SetCancelled();
+      setCancelled();
       break;
     }
     case kSending:
@@ -288,7 +288,7 @@ void OutboundCall::Cancel() {
   }
 }
 
-void OutboundCall::CallCallback() {
+void OutboundCall::callCallback() {
   // Clear references to outbound sidecars before invoking callback.
   sidecars_.clear();
 
@@ -313,7 +313,7 @@ void OutboundCall::CallCallback() {
   }
 }
 
-void OutboundCall::SetResponse(unique_ptr<CallResponse> resp) {
+void OutboundCall::setResponse(unique_ptr<CallResponse> resp) {
   call_response_ = std::move(resp);
   Slice r(call_response_->serialized_response());
 
@@ -322,38 +322,38 @@ void OutboundCall::SetResponse(unique_ptr<CallResponse> resp) {
     // thread, which isn't great, since it would block processing of other RPCs
     // in parallel. Should look into a way to avoid this.
     if (!response_->ParseFromArray(r.data(), r.size())) {
-      SetFailed(
+      setFailed(
           Status::IOError(
               "invalid RPC response, missing fields",
               response_->InitializationErrorString()));
       return;
     }
     set_state(kFinishedSuccess);
-    CallCallback();
+    callCallback();
   } else {
     // Error
     unique_ptr<ErrorStatusPB> err(new ErrorStatusPB());
     if (!err->ParseFromArray(r.data(), r.size())) {
-      SetFailed(
+      setFailed(
           Status::IOError(
               "Was an RPC error but could not parse error response",
               err->InitializationErrorString()));
       return;
     }
     Status s = Status::RemoteError(err->message());
-    SetFailed(std::move(s), Phase::RemoteCall, std::move(err));
+    setFailed(std::move(s), Phase::RemoteCall, std::move(err));
   }
 }
 
-void OutboundCall::SetQueued() {
+void OutboundCall::setQueued() {
   set_state(kOnOutboundQueue);
 }
 
-void OutboundCall::SetSending() {
+void OutboundCall::setSending() {
   set_state(kSending);
 }
 
-void OutboundCall::SetSent() {
+void OutboundCall::setSent() {
   set_state(kSent);
 
   // This method is called in the reactor thread, so free the header buf,
@@ -370,11 +370,11 @@ void OutboundCall::SetSent() {
   // If cancellation was requested, it's now a good time to do the actual
   // cancellation.
   if (cancellation_requested()) {
-    SetCancelled();
+    setCancelled();
   }
 }
 
-void OutboundCall::SetFailed(
+void OutboundCall::setFailed(
     Status status,
     Phase phase,
     unique_ptr<ErrorStatusPB> errPb) {
@@ -388,10 +388,10 @@ void OutboundCall::SetFailed(
         phase == Phase::ConnectionNegotiation ? kFinishedNegotiationError
                                               : kFinishedError);
   }
-  CallCallback();
+  callCallback();
 }
 
-void OutboundCall::SetTimedOut(Phase phase) {
+void OutboundCall::setTimedOut(Phase phase) {
   DCHECK(phase == Phase::ConnectionNegotiation || phase == Phase::RemoteCall);
 
   // We have to fetch timeout outside the lock to avoid a lock
@@ -419,11 +419,11 @@ void OutboundCall::SetTimedOut(Phase phase) {
     set_state_unlocked(
         (phase == Phase::RemoteCall) ? kTimedOut : kNegotiationTimedOut);
   }
-  CallCallback();
+  callCallback();
 }
 
-void OutboundCall::SetCancelled() {
-  DCHECK(!IsFinished());
+void OutboundCall::setCancelled() {
+  DCHECK(!isFinished());
   {
     std::lock_guard<simple_spinlock> l(lock_);
     status_ = Status::Aborted(
@@ -434,10 +434,10 @@ void OutboundCall::SetCancelled() {
             StateName(state_.load(std::memory_order_relaxed))));
     set_state_unlocked(kCancelled);
   }
-  CallCallback();
+  callCallback();
 }
 
-bool OutboundCall::IsTimedOut() const {
+bool OutboundCall::isTimedOut() const {
   switch (state_.load(std::memory_order_acquire)) {
     case kNegotiationTimedOut: // fall-through
     case kTimedOut:
@@ -447,11 +447,11 @@ bool OutboundCall::IsTimedOut() const {
   }
 }
 
-bool OutboundCall::IsCancelled() const {
+bool OutboundCall::isCancelled() const {
   return state_.load(std::memory_order_acquire) == kCancelled;
 }
 
-bool OutboundCall::IsNegotiationError() const {
+bool OutboundCall::isNegotiationError() const {
   switch (state_.load(std::memory_order_acquire)) {
     case kFinishedNegotiationError: // fall-through
     case kNegotiationTimedOut:
@@ -461,7 +461,7 @@ bool OutboundCall::IsNegotiationError() const {
   }
 }
 
-bool OutboundCall::IsFinished() const {
+bool OutboundCall::isFinished() const {
   State currentState = state_.load(std::memory_order_acquire);
   switch (currentState) {
     case kReady:

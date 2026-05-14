@@ -381,7 +381,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(isCurrentThread());
 
   // Skip if the outbound has been cancelled already.
-  if (PREDICT_FALSE(call->IsCancelled())) {
+  if (PREDICT_FALSE(call->isCancelled())) {
     return;
   }
 
@@ -392,7 +392,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
       &conn,
       metricEntity_);
   if (PREDICT_FALSE(!s.ok())) {
-    call->SetFailed(std::move(s), OutboundCall::Phase::ConnectionNegotiation);
+    call->setFailed(std::move(s), OutboundCall::Phase::ConnectionNegotiation);
     return;
   }
 
@@ -404,7 +404,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 
   // If the callback has been invoked already, the cancellation is a no-op.
   // The controller may be gone already if the callback has been invoked.
-  if (call->IsFinished()) {
+  if (call->isFinished()) {
     return;
   }
 
@@ -413,7 +413,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
           call->conn_id(), call->controller()->credentials_policy(), &conn)) {
     conn->cancelOutboundCall(call);
   }
-  call->Cancel();
+  call->cancel();
 }
 
 //
@@ -953,7 +953,7 @@ class AssignOutboundCallTask : public ReactorTask {
   void abort(const Status& status) override {
     // It doesn't matter what is the actual phase of the OutboundCall: just set
     // it to Phase::RemoteCall to finalize the state of the call.
-    call_->SetFailed(status, OutboundCall::Phase::RemoteCall);
+    call_->setFailed(status, OutboundCall::Phase::RemoteCall);
     delete this;
   }
 

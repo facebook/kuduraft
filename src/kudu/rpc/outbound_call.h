@@ -96,7 +96,7 @@ class OutboundCall {
   //
   // Because the request data is fully serialized by this call, 'req' may be
   // subsequently mutated with no ill effects.
-  void SetRequestPayload(
+  void setRequestPayload(
       const google::protobuf::Message& req,
       std::vector<std::unique_ptr<RpcSidecar>>&& sidecars);
 
@@ -107,50 +107,50 @@ class OutboundCall {
     header_.set_call_id(call_id);
   }
 
-  // Serialize the call for the wire. Requires that SetRequestPayload()
+  // Serialize the call for the wire. Requires that setRequestPayload()
   // is called first. This is called from the Reactor thread.
   // Returns the number of slices in the serialized call.
-  size_t SerializeTo(TransferPayload* slices);
+  size_t serializeTo(TransferPayload* slices);
 
   // Mark in the call that cancellation has been requested. If the call hasn't
   // yet started sending or has finished sending the RPC request but is waiting
   // for a response, cancel the RPC right away. Otherwise, wait until the RPC
   // has finished sending before cancelling it. If the call is finished, it's a
   // no-op. REQUIRES: must be called from the reactor thread.
-  void Cancel();
+  void cancel();
 
   // Callback after the call has been put on the outbound connection queue.
-  void SetQueued();
+  void setQueued();
 
   // Update the call state to show that the request has started being sent
   // on the socket.
-  void SetSending();
+  void setSending();
 
   // Update the call state to show that the request has been sent.
-  void SetSent();
+  void setSent();
 
   // Mark the call as failed. This also triggers the callback to notify
   // the caller. If the call failed due to a remote error, then errPb
   // should be set to the error returned by the remote server.
-  void SetFailed(
+  void setFailed(
       Status status,
       Phase phase = Phase::RemoteCall,
       std::unique_ptr<ErrorStatusPB> errPb = nullptr);
 
   // Mark the call as timed out. This also triggers the callback to notify
   // the caller.
-  void SetTimedOut(Phase phase);
-  bool IsTimedOut() const;
+  void setTimedOut(Phase phase);
+  bool isTimedOut() const;
 
-  bool IsNegotiationError() const;
+  bool isNegotiationError() const;
 
-  bool IsCancelled() const;
+  bool isCancelled() const;
 
   // Is the call finished?
-  bool IsFinished() const;
+  bool isFinished() const;
 
   // Fill in the call response.
-  void SetResponse(std::unique_ptr<CallResponse> resp);
+  void setResponse(std::unique_ptr<CallResponse> resp);
 
   const std::set<RpcFeatureFlag>& required_rpc_features() const {
     return required_rpc_features_;
@@ -208,7 +208,7 @@ class OutboundCall {
   FRIEND_TEST(TestRpc, TestCancellation);
 
   // Various states the call propagates through.
-  // NB: if adding another state, be sure to update OutboundCall::IsFinished()
+  // NB: if adding another state, be sure to update OutboundCall::isFinished()
   // and OutboundCall::StateName(State state) as well.
   enum State {
     kReady = 0,
@@ -227,7 +227,7 @@ class OutboundCall {
 
   // Mark the call as cancelled. This also invokes the callback to notify the
   // caller.
-  void SetCancelled();
+  void setCancelled();
 
   void set_state(State new_state);
   State state() const;
@@ -257,7 +257,7 @@ class OutboundCall {
   // Call the user-provided callback. Note that entries in 'sidecars_' are
   // cleared prior to invoking the callback so the client can assume that the
   // call doesn't hold references to outbound sidecars.
-  void CallCallback();
+  void callCallback();
 
   // The RPC header.
   // Parts of this (eg the call ID) are only assigned once this call has been
@@ -303,7 +303,7 @@ class OutboundCall {
 
 // A response to a call, on the client side.
 // Upon receiving a response, this is allocated in the reactor thread and filled
-// into the OutboundCall instance via OutboundCall::SetResponse.
+// into the OutboundCall instance via OutboundCall::setResponse.
 //
 // This may either be a success or error response.
 //

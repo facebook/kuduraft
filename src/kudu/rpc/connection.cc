@@ -191,7 +191,7 @@ void Connection::shutdown(
       if (rpcError) {
         error.reset(new ErrorStatusPB(*rpcError));
       }
-      c->call->SetFailed(
+      c->call->setFailed(
           status,
           negotiationComplete_ ? Phase::RemoteCall
                                : Phase::ConnectionNegotiation,
@@ -275,10 +275,10 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
   DCHECK(car->call);
   // The timeout timer is stopped by the car destructor exiting
   // Connection::handleCallResponse()
-  DCHECK(!car->call->IsFinished());
+  DCHECK(!car->call->isFinished());
 
   // Mark the call object as failed.
-  car->call->SetTimedOut(
+  car->call->setTimedOut(
       negotiationComplete_ ? Phase::RemoteCall : Phase::ConnectionNegotiation);
 
   // Test cancellation when 'car->call' is in 'TIMED_OUT' state
@@ -345,10 +345,10 @@ struct CallTransferCallbacks : public TransferCallbacks {
     // TODO: would be better to cancel the transfer while it is still on the
     // queue if we timed out before the transfer started, but there is still a
     // race in the case of a partial send that we have to handle here
-    if (call_->IsFinished()) {
-      DCHECK(call_->IsTimedOut() || call_->IsCancelled());
+    if (call_->isFinished()) {
+      DCHECK(call_->isTimedOut() || call_->isCancelled());
     } else {
-      call_->SetSent();
+      call_->setSent();
       // Test cancellation when 'call_' is in 'SENT' state.
       conn_->maybeInjectCancellation(call_);
     }
@@ -373,7 +373,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
 
   if (PREDICT_FALSE(!shutdownStatus_.ok())) {
     // Already shutdown
-    call->SetFailed(
+    call->setFailed(
         shutdownStatus_,
         negotiationComplete_ ? Phase::RemoteCall
                              : Phase::ConnectionNegotiation);
@@ -393,9 +393,9 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
 
   // Serialize the actual bytes to be put on the wire.
   TransferPayload tmpSlices;
-  size_t nSlices = call->SerializeTo(&tmpSlices);
+  size_t nSlices = call->serializeTo(&tmpSlices);
 
-  call->SetQueued();
+  call->setQueued();
 
   // Test cancellation when 'call_' is in 'ON_OUTBOUND_QUEUE' state.
   maybeInjectCancellation(call);
@@ -692,7 +692,7 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
 
   clientConsecutiveTimeouts_ = 0;
 
-  car->call->SetResponse(std::move(resp));
+  car->call->setResponse(std::move(resp));
 
   // Test cancellation when 'car->call' is in 'FINISHED_SUCCESS' or
   // 'FINISHED_ERROR' state.
@@ -762,7 +762,7 @@ Connection::processOutboundTransfers() {
           transfer->abort(s);
           Phase phase = negotiationComplete_ ? Phase::RemoteCall
                                              : Phase::ConnectionNegotiation;
-          car->call->SetFailed(std::move(s), phase);
+          car->call->setFailed(std::move(s), phase);
           // Test cancellation when 'call_' is in 'FINISHED_ERROR' state.
           maybeInjectCancellation(car->call);
           car->call.reset();
@@ -770,7 +770,7 @@ Connection::processOutboundTransfers() {
           continue;
         }
 
-        car->call->SetSending();
+        car->call->setSending();
 
         // Test cancellation when 'call_' is in 'SENDING' state.
         maybeInjectCancellation(car->call);

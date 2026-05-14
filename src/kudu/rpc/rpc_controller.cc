@@ -84,7 +84,7 @@ void RpcController::Reset() {
 
 bool RpcController::finished() const {
   if (call_) {
-    return call_->IsFinished();
+    return call_->isFinished();
   }
   return false;
 }
@@ -92,7 +92,7 @@ bool RpcController::finished() const {
 bool RpcController::negotiationFailed() const {
   if (call_) {
     DCHECK(finished());
-    return call_->IsNegotiationError();
+    return call_->isNegotiationError();
   }
   return false;
 }
@@ -174,7 +174,7 @@ Status RpcController::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
 
 void RpcController::setRequestParam(const google::protobuf::Message& req) {
   DCHECK(call_ != nullptr);
-  call_->SetRequestPayload(req, std::move(outbound_sidecars_));
+  call_->setRequestPayload(req, std::move(outbound_sidecars_));
 }
 
 void RpcController::Cancel() {
