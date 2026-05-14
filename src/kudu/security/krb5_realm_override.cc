@@ -59,8 +59,8 @@ static void* origKrb5FreeDefaultRealm;
 // We only enable our workaround if this environment variable is set.
 constexpr static const char* kEnvVar = "KUDU_ENABLE_KRB5_REALM_FIX";
 
-#define CALL_ORIG(func_name, orig_ptr, ...) \
-  ((decltype(&func_name))orig_ptr)(__VA_ARGS__)
+#define CALL_ORIG(funcName, origPtr, ...) \
+  ((decltype(&funcName))origPtr)(__VA_ARGS__)
 
 __attribute__((constructor)) static void initOrigFunc() {
   origKrb5GetHostRealm = dlsym(RTLD_NEXT, "krb5_get_host_realm");
