@@ -411,7 +411,7 @@ TEST_F(RpcStubTest, TestRpcPanic) {
     // there are already threads started up.
     vector<string> argv;
     string executablePath;
-    CHECK_OK(env_->GetExecutablePath(&executablePath));
+    CHECK_OK(env_->getExecutablePath(&executablePath));
     argv.push_back(executablePath);
     argv.emplace_back("--is_panic_test_child");
     argv.emplace_back("--gtest_filter=RpcStubTest.TestRpcPanic");

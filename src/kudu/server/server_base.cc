@@ -294,7 +294,7 @@ void ServerBase::GenerateInstanceID() {
   instance_pb_->set_permanent_uuid(fs_manager_->uuid());
   // TODO: maybe actually bump a sequence number on local disk instead of
   // using time.
-  instance_pb_->set_instance_seqno(Env::Default()->NowMicros());
+  instance_pb_->set_instance_seqno(Env::Default()->nowMicros());
 }
 
 Status ServerBase::Init() {

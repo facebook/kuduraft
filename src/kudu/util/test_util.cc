@@ -69,7 +69,7 @@ namespace kudu {
 const char* kInvalidPath = "/dev/invalid-path-for-kudu-tests";
 static const char* const kSlowTestsEnvVariable = "KUDU_ALLOW_SLOW_TESTS";
 
-static const uint64_t kTestBeganAtMicros = Env::Default()->NowMicros();
+static const uint64_t kTestBeganAtMicros = Env::Default()->nowMicros();
 
 // Global which production code can check to see if it is running
 // in a GTest environment (assuming the test binary links in this module,
@@ -222,7 +222,7 @@ string GetTestDataDirectory() {
   CHECK(test_info)
       << "Must be running in a gtest unit test to call this function";
   string dir;
-  CHECK_OK(Env::Default()->GetTestDirectory(&dir));
+  CHECK_OK(Env::Default()->getTestDirectory(&dir));
 
   // The directory name includes some strings for specific reasons:
   // - program name: identifies the directory to the test invoker
@@ -268,7 +268,7 @@ string GetTestDataDirectory() {
 
 string getTestExecutableDirectory() {
   string exec;
-  CHECK_OK(Env::Default()->GetExecutablePath(&exec));
+  CHECK_OK(Env::Default()->getExecutablePath(&exec));
   return dirName(exec);
 }
 

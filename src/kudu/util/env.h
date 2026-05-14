@@ -173,10 +173,10 @@ class Env {
   virtual Status DeleteDir(const std::string& dirname) = 0;
 
   // Return the current working directory.
-  virtual Status GetCurrentWorkingDir(std::string* cwd) const = 0;
+  virtual Status getCurrentWorkingDir(std::string* cwd) const = 0;
 
   // Change the current working directory.
-  virtual Status ChangeDir(const std::string& dest) = 0;
+  virtual Status changeDir(const std::string& dest) = 0;
 
   // Synchronize the entry for a specific directory.
   virtual Status SyncDir(const std::string& dirname) = 0;
@@ -257,20 +257,20 @@ class Env {
   // or many not have just been created. The directory may or may not differ
   // between runs of the same process, but subsequent calls will return the
   // same directory.
-  virtual Status GetTestDirectory(std::string* path) = 0;
+  virtual Status getTestDirectory(std::string* path) = 0;
 
   // Returns the number of micro-seconds since some fixed point in time. Only
   // useful for computing deltas of time.
-  virtual uint64_t NowMicros() = 0;
+  virtual uint64_t nowMicros() = 0;
 
   // Sleep/delay the thread for the perscribed number of micro-seconds.
-  virtual void SleepForMicroseconds(int micros) = 0;
+  virtual void sleepForMicroseconds(int micros) = 0;
 
   // Get caller's thread id.
   virtual uint64_t gettid() = 0;
 
   // Return the full path of the currently running executable.
-  virtual Status GetExecutablePath(std::string* path) = 0;
+  virtual Status getExecutablePath(std::string* path) = 0;
 
   // Checks if the file is a directory. Returns an error if it doesn't
   // exist, otherwise writes true or false into 'isDir' appropriately.
@@ -328,7 +328,7 @@ class Env {
   virtual Status Canonicalize(const std::string& path, std::string* result) = 0;
 
   // Gets the total amount of RAM installed on this machine.
-  virtual Status GetTotalRAMBytes(int64_t* ram) = 0;
+  virtual Status getTotalRamBytes(int64_t* ram) = 0;
 
   enum class ResourceLimitType {
     // The maximum number of file descriptors that this process can have open
@@ -347,27 +347,27 @@ class Env {
   // Gets the process' current limit for the given resource type.
   //
   // On UNIX platforms, this is equivalent to the resource's soft limit.
-  virtual uint64_t GetResourceLimit(ResourceLimitType t) = 0;
+  virtual uint64_t getResourceLimit(ResourceLimitType t) = 0;
 
   // Increases the resource limit by as much as possible.
   //
   // On UNIX platforms, this means increasing the resource's soft limit (the
   // limit actually enforced by the kernel) to be equal to the hard limit.
-  virtual void IncreaseResourceLimit(ResourceLimitType t) = 0;
+  virtual void increaseResourceLimit(ResourceLimitType t) = 0;
 
   // Checks whether the given path resides on an ext2, ext3, or ext4
   // filesystem.
   //
   // On success, 'result' contains the answer. On failure, 'result' is unset.
-  virtual Status IsOnExtFilesystem(const std::string& path, bool* result) = 0;
+  virtual Status isOnExtFilesystem(const std::string& path, bool* result) = 0;
 
   // Checks whether the given path resides on an xfs filesystem.
   //
   // On success, 'result' contains the answer. On failure, 'result' is unset.
-  virtual Status IsOnXfsFilesystem(const std::string& path, bool* result) = 0;
+  virtual Status isOnXfsFilesystem(const std::string& path, bool* result) = 0;
 
   // Gets the kernel release string for this machine.
-  virtual std::string GetKernelRelease() = 0;
+  virtual std::string getKernelRelease() = 0;
 
   // Ensure that the file with the given path has permissions which adhere
   // to the current configured umask (from flags.h). If the permissions are
@@ -376,12 +376,12 @@ class Env {
   //
   // Returns a bad Status if the file does not exist or the permissions cannot
   // be changed.
-  virtual Status EnsureFileModeAdheresToUmask(const std::string& path) = 0;
+  virtual Status ensureFileModeAdheresToUmask(const std::string& path) = 0;
 
   // Checks whether the given path has world-readable permissions.
   //
   // On success, 'result' contains the answer. On failure, 'result' is unset.
-  virtual Status IsFileWorldReadable(const std::string& path, bool* result) = 0;
+  virtual Status isFileWorldReadable(const std::string& path, bool* result) = 0;
 
   // Special string injected into file-growing operations' random failures
   // (if enabled).

@@ -630,7 +630,7 @@ void FsManager::checkAndFixPermissions() {
       continue;
     }
     WARN_NOT_OK(
-        env_->EnsureFileModeAdheresToUmask(root.path),
+        env_->ensureFileModeAdheresToUmask(root.path),
         fmt::format(
             "could not check and fix permissions for path: {}", root.path));
   }

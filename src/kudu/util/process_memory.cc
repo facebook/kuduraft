@@ -178,7 +178,7 @@ void doInitLimits() {
   if (limit == 0) {
     // If no limit is provided, we'll use 80% of system RAM.
     int64_t totalRam;
-    CHECK_OK(Env::Default()->GetTotalRAMBytes(&totalRam));
+    CHECK_OK(Env::Default()->getTotalRamBytes(&totalRam));
     limit = totalRam * 4;
     limit /= 5;
   }

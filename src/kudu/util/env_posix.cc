@@ -1160,8 +1160,8 @@ class PosixEnv : public Env {
     return result;
   };
 
-  Status GetCurrentWorkingDir(string* cwd) const override {
-    TRACE_EVENT0("io", "PosixEnv::GetCurrentWorkingDir");
+  Status getCurrentWorkingDir(string* cwd) const override {
+    TRACE_EVENT0("io", "PosixEnv::getCurrentWorkingDir");
     ThreadRestrictions::assertIoAllowed();
     unique_ptr<char, FreeDeleter> wd(getcwd(nullptr, 0));
     if (!wd) {
@@ -1173,8 +1173,8 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status ChangeDir(const string& dest) override {
-    TRACE_EVENT1("io", "PosixEnv::ChangeDir", "dest", dest);
+  Status changeDir(const string& dest) override {
+    TRACE_EVENT1("io", "PosixEnv::changeDir", "dest", dest);
     MAYBE_RETURN_EIO(dest, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
     Status result;
@@ -1367,7 +1367,7 @@ class PosixEnv : public Env {
     return result;
   }
 
-  virtual Status GetTestDirectory(string* result) override {
+  virtual Status getTestDirectory(string* result) override {
     string dir;
     const char* env = getenv("TEST_TMPDIR");
     if (env && env[0] != '\0') {
@@ -1394,18 +1394,18 @@ class PosixEnv : public Env {
     return threadLocalId;
   }
 
-  virtual uint64_t NowMicros() override {
+  virtual uint64_t nowMicros() override {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
     return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
   }
 
-  virtual void SleepForMicroseconds(int micros) override {
+  virtual void sleepForMicroseconds(int micros) override {
     ThreadRestrictions::assertWaitAllowed();
     SleepFor(MonoDelta::FromMicroseconds(micros));
   }
 
-  virtual Status GetExecutablePath(string* path) override {
+  virtual Status getExecutablePath(string* path) override {
     MAYBE_RETURN_EIO(
         "/proc/self/exe", ioError(Env::kInjectedFailureStatusMsg, EIO));
     uint32_t size = 64;
@@ -1561,7 +1561,7 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  virtual Status GetTotalRAMBytes(int64_t* ram) override {
+  virtual Status getTotalRamBytes(int64_t* ram) override {
     struct sysinfo info;
     if (sysinfo(&info) < 0) {
       return ioError("sysinfo() failed", errno);
@@ -1570,7 +1570,7 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  virtual uint64_t GetResourceLimit(ResourceLimitType t) override {
+  virtual uint64_t getResourceLimit(ResourceLimitType t) override {
     static_assert(std::is_unsigned<rlim_t>::value, "rlim_t must be unsigned");
     static_assert(RLIM_INFINITY > 0, "RLIM_INFINITY must be positive");
 
@@ -1580,7 +1580,7 @@ class PosixEnv : public Env {
     return l.rlim_cur;
   }
 
-  virtual void IncreaseResourceLimit(ResourceLimitType t) override {
+  virtual void increaseResourceLimit(ResourceLimitType t) override {
     // There's no reason for this to ever fail; any process should have
     // sufficient privilege to increase its soft limit up to the hard limit.
     //
@@ -1607,8 +1607,8 @@ class PosixEnv : public Env {
     }
   }
 
-  virtual Status IsOnExtFilesystem(const string& path, bool* result) override {
-    TRACE_EVENT1("io", "PosixEnv::IsOnExtFilesystem", "path", path);
+  virtual Status isOnExtFilesystem(const string& path, bool* result) override {
+    TRACE_EVENT1("io", "PosixEnv::isOnExtFilesystem", "path", path);
     MAYBE_RETURN_EIO(path, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
 
@@ -1622,21 +1622,21 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  virtual Status IsOnXfsFilesystem(const string& path, bool* result) override {
-    TRACE_EVENT1("io", "PosixEnv::IsOnXfsFilesystem", "path", path);
+  virtual Status isOnXfsFilesystem(const string& path, bool* result) override {
+    TRACE_EVENT1("io", "PosixEnv::isOnXfsFilesystem", "path", path);
     MAYBE_RETURN_EIO(path, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
     return doIsOnXfsFilesystem(path, result);
   }
 
-  virtual string GetKernelRelease() override {
+  virtual string getKernelRelease() override {
     // There's no reason for this to ever fail.
     struct utsname u;
     PCHECK(uname(&u) == 0);
     return string(u.release);
   }
 
-  Status EnsureFileModeAdheresToUmask(const string& path) override {
+  Status ensureFileModeAdheresToUmask(const string& path) override {
     MAYBE_RETURN_EIO(path, ioError(Env::kInjectedFailureStatusMsg, EIO));
     struct stat s;
     if (stat(path.c_str(), &s) != 0) {
@@ -1659,9 +1659,9 @@ class PosixEnv : public Env {
     return Status::OK();
   }
 
-  Status IsFileWorldReadable(const string& path, bool* result) override {
+  Status isFileWorldReadable(const string& path, bool* result) override {
     ThreadRestrictions::assertIoAllowed();
-    TRACE_EVENT1("io", "PosixEnv::IsFileWorldReadable", "path", path);
+    TRACE_EVENT1("io", "PosixEnv::isFileWorldReadable", "path", path);
     MAYBE_RETURN_EIO(path, ioError(Env::kInjectedFailureStatusMsg, EIO));
     struct stat s;
     if (stat(path.c_str(), &s) != 0) {

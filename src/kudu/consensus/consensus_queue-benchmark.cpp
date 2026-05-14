@@ -66,7 +66,7 @@ class ConsensusQueueBenchmark {
     // Create a unique temporary directory for this benchmark run
     // Add random component to avoid collisions if running multiple benchmarks
     testDir_ = "/tmp/consensus_queue_bench_" + std::to_string(getpid()) + "_" +
-        std::to_string(env_->NowMicros()) + "_" + std::to_string(rand());
+        std::to_string(env_->nowMicros()) + "_" + std::to_string(rand());
 
     // Forcibly remove any leftover directory using system commands
     // This handles permission issues that env_->DeleteRecursively might fail on

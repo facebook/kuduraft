@@ -597,7 +597,7 @@ TEST_F(TestEnv, TestAppendV) {
 
 TEST_F(TestEnv, TestGetExecutablePath) {
   string p;
-  ASSERT_OK(Env::Default()->GetExecutablePath(&p));
+  ASSERT_OK(Env::Default()->getExecutablePath(&p));
   ASSERT_TRUE(hasSuffixString(p, "env-test")) << p;
 }
 
@@ -694,14 +694,14 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(ResourceLimitTypeTest, TestIncreaseLimit) {
   // Increase the resource limit. It should either increase or remain the same.
   Env::ResourceLimitType t = GetParam();
-  int64_t limitBefore = env_->GetResourceLimit(t);
-  env_->IncreaseResourceLimit(t);
-  int64_t limitAfter = env_->GetResourceLimit(t);
+  int64_t limitBefore = env_->getResourceLimit(t);
+  env_->increaseResourceLimit(t);
+  int64_t limitAfter = env_->getResourceLimit(t);
   ASSERT_GE(limitAfter, limitBefore);
 
   // Try again. It should definitely be the same now.
-  env_->IncreaseResourceLimit(t);
-  int64_t limitAfterAgain = env_->GetResourceLimit(t);
+  env_->increaseResourceLimit(t);
+  int64_t limitAfterAgain = env_->getResourceLimit(t);
   ASSERT_EQ(limitAfter, limitAfterAgain);
 }
 
@@ -984,7 +984,7 @@ TEST_F(TestEnv, TestCanonicalize) {
 
 TEST_F(TestEnv, TestGetTotalRAMBytes) {
   int64_t ram = 0;
-  ASSERT_OK(env_->GetTotalRAMBytes(&ram));
+  ASSERT_OK(env_->getTotalRamBytes(&ram));
 
   // Can't test much about it.
   ASSERT_GT(ram, 0);
@@ -1062,19 +1062,19 @@ TEST_F(TestEnv, TestGetSpaceInfoBasicInvariants) {
 
 TEST_F(TestEnv, TestChangeDir) {
   string origDir;
-  ASSERT_OK(env_->GetCurrentWorkingDir(&origDir));
+  ASSERT_OK(env_->getCurrentWorkingDir(&origDir));
 
   string cwd;
-  ASSERT_OK(env_->ChangeDir("/"));
-  ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
+  ASSERT_OK(env_->changeDir("/"));
+  ASSERT_OK(env_->getCurrentWorkingDir(&cwd));
   ASSERT_EQ("/", cwd);
 
-  ASSERT_OK(env_->ChangeDir(testDir_));
-  ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
+  ASSERT_OK(env_->changeDir(testDir_));
+  ASSERT_OK(env_->getCurrentWorkingDir(&cwd));
   ASSERT_EQ(testDir_, cwd);
 
-  ASSERT_OK(env_->ChangeDir(origDir));
-  ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
+  ASSERT_OK(env_->changeDir(origDir));
+  ASSERT_OK(env_->getCurrentWorkingDir(&cwd));
   ASSERT_EQ(origDir, cwd);
 }
 

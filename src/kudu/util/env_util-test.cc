@@ -105,7 +105,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_TRUE(isDir);
 
   // Relative path.
-  ASSERT_OK(env_->ChangeDir(testDir_)); // Change to test dir to keep CWD clean.
+  ASSERT_OK(env_->changeDir(testDir_)); // Change to test dir to keep CWD clean.
   string relBase =
       fmt::format("{}-{}", CURRENT_TEST_CASE_NAME(), CURRENT_TEST_NAME());
   ASSERT_FALSE(env_->FileExists(relBase));

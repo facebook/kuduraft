@@ -57,7 +57,7 @@ TEST(TestPstackWatcher, TestDumpStacks) {
 
 static FILE* redirectStdout(string* tempPath) {
   string tempDir;
-  CHECK_OK(Env::Default()->GetTestDirectory(&tempDir));
+  CHECK_OK(Env::Default()->getTestDirectory(&tempDir));
   *tempPath = fmt::format("{}/pstack_watcher-dump.{}.txt", tempDir, getpid());
   FILE* reopened;
   POINTER_RETRY_ON_EINTR(reopened, freopen(tempPath->c_str(), "w", stdout));
