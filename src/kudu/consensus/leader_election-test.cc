@@ -654,9 +654,9 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
   initUuids(kNumCurrVoters + kNumAddedVoters);
   EXPECT_EQ(candidateUuid_, "peer-4");
   initJointConsensusNoOpPeerProxies(/*numAddedVoters=*/kNumAddedVoters);
-  delete EraseKeyReturnValuePtr(&proxies_, "peer-0");
-  delete EraseKeyReturnValuePtr(&proxies_, "peer-2");
-  delete EraseKeyReturnValuePtr(&proxies_, "peer-3");
+  delete eraseKeyReturnValuePtr(&proxies_, "peer-0");
+  delete eraseKeyReturnValuePtr(&proxies_, "peer-2");
+  delete eraseKeyReturnValuePtr(&proxies_, "peer-3");
   EXPECT_EQ(proxies_.size(), kOldMajoritySize - 1);
 
   // Prepare the election request from the candidate.

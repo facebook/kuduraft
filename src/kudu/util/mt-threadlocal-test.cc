@@ -68,7 +68,7 @@ class CounterRegistry {
 
   bool registerUnlocked(Counter* counter) {
     LOG(INFO) << "Called registerUnlocked()";
-    return InsertIfNotPresent(&counters_, counter);
+    return insertIfNotPresent(&counters_, counter);
   }
 
   bool unregisterUnlocked(Counter* counter) {

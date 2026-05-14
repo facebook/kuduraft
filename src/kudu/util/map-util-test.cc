@@ -36,36 +36,36 @@ namespace kudu {
 TEST(FloorTest, TestMapUtil) {
   map<int, int> myMap;
 
-  ASSERT_EQ(nullptr, FindFloorOrNull(myMap, 5));
+  ASSERT_EQ(nullptr, findFloorOrNull(myMap, 5));
 
   myMap[5] = 5;
-  ASSERT_EQ(5, *FindFloorOrNull(myMap, 6));
-  ASSERT_EQ(5, *FindFloorOrNull(myMap, 5));
-  ASSERT_EQ(nullptr, FindFloorOrNull(myMap, 4));
+  ASSERT_EQ(5, *findFloorOrNull(myMap, 6));
+  ASSERT_EQ(5, *findFloorOrNull(myMap, 5));
+  ASSERT_EQ(nullptr, findFloorOrNull(myMap, 4));
 
   myMap[1] = 1;
-  ASSERT_EQ(5, *FindFloorOrNull(myMap, 6));
-  ASSERT_EQ(5, *FindFloorOrNull(myMap, 5));
-  ASSERT_EQ(1, *FindFloorOrNull(myMap, 4));
-  ASSERT_EQ(1, *FindFloorOrNull(myMap, 1));
-  ASSERT_EQ(nullptr, FindFloorOrNull(myMap, 0));
+  ASSERT_EQ(5, *findFloorOrNull(myMap, 6));
+  ASSERT_EQ(5, *findFloorOrNull(myMap, 5));
+  ASSERT_EQ(1, *findFloorOrNull(myMap, 4));
+  ASSERT_EQ(1, *findFloorOrNull(myMap, 1));
+  ASSERT_EQ(nullptr, findFloorOrNull(myMap, 0));
 }
 
 TEST(ComputeIfAbsentTest, TestComputeIfAbsent) {
   map<string, string> myMap;
-  auto result = ComputeIfAbsent(&myMap, "key", [] { return "hello_world"; });
+  auto result = computeIfAbsent(&myMap, "key", [] { return "hello_world"; });
   ASSERT_EQ(*result, "hello_world");
-  auto result2 = ComputeIfAbsent(&myMap, "key", [] { return "hello_world2"; });
+  auto result2 = computeIfAbsent(&myMap, "key", [] { return "hello_world2"; });
   ASSERT_EQ(*result2, "hello_world");
 }
 
 TEST(ComputeIfAbsentTest, TestComputeIfAbsentAndReturnAbsense) {
   map<string, string> myMap;
   auto result =
-      ComputeIfAbsentReturnAbsense(&myMap, "key", [] { return "hello_world"; });
+      computeIfAbsentReturnAbsense(&myMap, "key", [] { return "hello_world"; });
   ASSERT_TRUE(result.second);
   ASSERT_EQ(*result.first, "hello_world");
-  auto result2 = ComputeIfAbsentReturnAbsense(
+  auto result2 = computeIfAbsentReturnAbsense(
       &myMap, "key", [] { return "hello_world2"; });
   ASSERT_FALSE(result2.second);
   ASSERT_EQ(*result2.first, "hello_world");
@@ -76,33 +76,33 @@ TEST(FindPointeeOrNullTest, TestFindPointeeOrNull) {
   auto iter =
       myMap.emplace("key", unique_ptr<string>(new string("hello_world")));
   ASSERT_TRUE(iter.second);
-  string* value = FindPointeeOrNull(myMap, "key");
+  string* value = findPointeeOrNull(myMap, "key");
   ASSERT_TRUE(value != nullptr);
   ASSERT_EQ(*value, "hello_world");
   myMap.erase(iter.first);
-  value = FindPointeeOrNull(myMap, "key");
+  value = findPointeeOrNull(myMap, "key");
   ASSERT_TRUE(value == nullptr);
 }
 
 TEST(EraseKeyReturnValuePtrTest, TestRawAndSmartSmartPointers) {
   map<string, unique_ptr<string>> myMap;
-  unique_ptr<string> value = EraseKeyReturnValuePtr(&myMap, "key");
+  unique_ptr<string> value = eraseKeyReturnValuePtr(&myMap, "key");
   ASSERT_TRUE(value.get() == nullptr);
   myMap.emplace("key", unique_ptr<string>(new string("hello_world")));
-  value = EraseKeyReturnValuePtr(&myMap, "key");
+  value = eraseKeyReturnValuePtr(&myMap, "key");
   ASSERT_EQ(*value, "hello_world");
   value.reset();
-  value = EraseKeyReturnValuePtr(&myMap, "key");
+  value = eraseKeyReturnValuePtr(&myMap, "key");
   ASSERT_TRUE(value.get() == nullptr);
   map<string, shared_ptr<string>> myMap2;
-  shared_ptr<string> value2 = EraseKeyReturnValuePtr(&myMap2, "key");
+  shared_ptr<string> value2 = eraseKeyReturnValuePtr(&myMap2, "key");
   ASSERT_TRUE(value2.get() == nullptr);
   myMap2.emplace("key", std::make_shared<string>("hello_world"));
-  value2 = EraseKeyReturnValuePtr(&myMap2, "key");
+  value2 = eraseKeyReturnValuePtr(&myMap2, "key");
   ASSERT_EQ(*value2, "hello_world");
   map<string, string*> myMapRaw;
   myMapRaw.emplace("key", new string("hello_world"));
-  value.reset(EraseKeyReturnValuePtr(&myMapRaw, "key"));
+  value.reset(eraseKeyReturnValuePtr(&myMapRaw, "key"));
   ASSERT_EQ(*value, "hello_world");
 }
 
@@ -112,19 +112,19 @@ TEST(EmplaceTest, TestEmplace) {
   // Map with move-only value type.
   map<string, unique_ptr<string>> myMap;
   unique_ptr<string> val(new string("foo"));
-  ASSERT_TRUE(EmplaceIfNotPresent(&myMap, key1, std::move(val)));
+  ASSERT_TRUE(emplaceIfNotPresent(&myMap, key1, std::move(val)));
   ASSERT_TRUE(myMap.contains(key1));
-  ASSERT_FALSE(EmplaceIfNotPresent(&myMap, key1, nullptr))
+  ASSERT_FALSE(emplaceIfNotPresent(&myMap, key1, nullptr))
       << "Should return false for already-present";
 
   val = unique_ptr<string>(new string("bar"));
-  ASSERT_TRUE(EmplaceOrUpdate(&myMap, key2, std::move(val)));
+  ASSERT_TRUE(emplaceOrUpdate(&myMap, key2, std::move(val)));
   ASSERT_TRUE(myMap.contains(key2));
   auto it = myMap.find(key2);
   CHECK(it != myMap.end()) << "Map key not found: " << key2;
   ASSERT_EQ("bar", *it->second);
   val = unique_ptr<string>(new string("foobar"));
-  ASSERT_FALSE(EmplaceOrUpdate(&myMap, key2, std::move(val)));
+  ASSERT_FALSE(emplaceOrUpdate(&myMap, key2, std::move(val)));
   auto it2 = myMap.find(key2);
   CHECK(it2 != myMap.end()) << "Map key not found: " << key2;
   ASSERT_EQ("foobar", *it2->second);
@@ -135,25 +135,25 @@ TEST(LookupOrEmplaceTest, IntMap) {
   map<string, int> intMap;
 
   {
-    const auto& val = LookupOrEmplace(&intMap, key, 0);
+    const auto& val = lookupOrEmplace(&intMap, key, 0);
     ASSERT_EQ(0, val);
-    auto* valPtr = FindOrNull(intMap, key);
+    auto* valPtr = findOrNull(intMap, key);
     ASSERT_NE(nullptr, valPtr);
     ASSERT_EQ(0, *valPtr);
   }
 
   {
-    auto& val = LookupOrEmplace(&intMap, key, 10);
+    auto& val = lookupOrEmplace(&intMap, key, 10);
     ASSERT_EQ(0, val);
     ++val;
-    auto* valPtr = FindOrNull(intMap, key);
+    auto* valPtr = findOrNull(intMap, key);
     ASSERT_NE(nullptr, valPtr);
     ASSERT_EQ(1, *valPtr);
   }
 
   {
-    LookupOrEmplace(&intMap, key, 100) += 1000;
-    auto* valPtr = FindOrNull(intMap, key);
+    lookupOrEmplace(&intMap, key, 100) += 1000;
+    auto* valPtr = findOrNull(intMap, key);
     ASSERT_NE(nullptr, valPtr);
     ASSERT_EQ(1001, *valPtr);
   }
@@ -166,7 +166,7 @@ TEST(LookupOrEmplaceTest, UniquePtrMap) {
 
   {
     unique_ptr<string> val(new string(refStr));
-    const auto& lookupVal = LookupOrEmplace(&uptrMap, key, std::move(val));
+    const auto& lookupVal = lookupOrEmplace(&uptrMap, key, std::move(val));
     ASSERT_EQ(nullptr, val.get());
     ASSERT_NE(nullptr, lookupVal.get());
     ASSERT_EQ(refStr, *lookupVal);
@@ -174,7 +174,7 @@ TEST(LookupOrEmplaceTest, UniquePtrMap) {
 
   {
     unique_ptr<string> val(new string("giga"));
-    auto& lookupVal = LookupOrEmplace(&uptrMap, key, std::move(val));
+    auto& lookupVal = lookupOrEmplace(&uptrMap, key, std::move(val));
     ASSERT_NE(nullptr, lookupVal.get());
     ASSERT_EQ(refStr, *lookupVal);
     // Update the stored value.
@@ -183,7 +183,7 @@ TEST(LookupOrEmplaceTest, UniquePtrMap) {
 
   {
     unique_ptr<string> val(new string(refStr));
-    const auto& lookupVal = LookupOrEmplace(&uptrMap, key, std::move(val));
+    const auto& lookupVal = lookupOrEmplace(&uptrMap, key, std::move(val));
     ASSERT_NE(nullptr, lookupVal.get());
     ASSERT_EQ("giga", *lookupVal);
   }

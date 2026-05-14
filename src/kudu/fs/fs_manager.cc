@@ -225,7 +225,7 @@ Status FsManager::init() {
     CHECK(it_meta != canonicalized_roots.end())
         << "Map key not found: " << opts_.metadata_root;
     canonicalizedMetadataFsRoot_ = it_meta->second;
-    if (InsertIfNotPresent(&unique_roots, canonicalizedMetadataFsRoot_.path)) {
+    if (insertIfNotPresent(&unique_roots, canonicalizedMetadataFsRoot_.path)) {
       canonicalizedAllFsRoots_.emplace_back(canonicalizedMetadataFsRoot_);
     }
   }

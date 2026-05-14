@@ -75,7 +75,7 @@
 // Returns a pointer to the const value associated with the given key if it
 // exists, or NULL otherwise.
 template <class Collection>
-const typename Collection::mapped_type* FindOrNull(
+const typename Collection::mapped_type* findOrNull(
     const Collection& collection,
     const typename Collection::key_type& key) {
   auto it = collection.find(key);
@@ -87,7 +87,7 @@ const typename Collection::mapped_type* FindOrNull(
 
 // Same as above but returns a pointer to the non-const value.
 template <class Collection>
-typename Collection::mapped_type* FindOrNull(
+typename Collection::mapped_type* findOrNull(
     Collection& collection, // NOLINT
     const typename Collection::key_type& key) {
   auto it = collection.find(key);
@@ -100,7 +100,7 @@ typename Collection::mapped_type* FindOrNull(
 // Returns a pointer to the const value associated with the greatest key
 // that's less than or equal to the given key, or NULL if no such key exists.
 template <class Collection>
-const typename Collection::mapped_type* FindFloorOrNull(
+const typename Collection::mapped_type* findFloorOrNull(
     const Collection& collection,
     const typename Collection::key_type& key) {
   auto it = collection.upper_bound(key);
@@ -112,7 +112,7 @@ const typename Collection::mapped_type* FindFloorOrNull(
 
 // Same as above but returns a pointer to the non-const value.
 template <class Collection>
-typename Collection::mapped_type* FindFloorOrNull(
+typename Collection::mapped_type* findFloorOrNull(
     Collection& collection, // NOLINT
     const typename Collection::key_type& key) {
   auto it = collection.upper_bound(key);
@@ -126,7 +126,7 @@ typename Collection::mapped_type* FindFloorOrNull(
 // shared_ptr or unique_ptr. Returns the raw pointer contained in the smart
 // pointer for the first found key, if it exists, or null if it doesn't.
 template <class Collection>
-typename Collection::mapped_type::element_type* FindPointeeOrNull(
+typename Collection::mapped_type::element_type* findPointeeOrNull(
     const Collection& collection, // NOLINT,
     const typename Collection::key_type& key) {
   auto it = collection.find(key);
@@ -139,7 +139,7 @@ typename Collection::mapped_type::element_type* FindPointeeOrNull(
 // Finds the value associated with the given key and copies it to *value (if not
 // NULL). Returns false if the key was not found, true otherwise.
 template <class Collection, class Key, class Value>
-bool FindCopy(
+bool findCopy(
     const Collection& collection,
     const Key& key,
     Value* const value) {
@@ -162,7 +162,7 @@ bool FindCopy(
 // collection, the value is not changed. Returns true if the key-value pair was
 // inserted; returns false if the key was already present.
 template <class Collection>
-bool InsertIfNotPresent(
+bool insertIfNotPresent(
     Collection* const collection,
     const typename Collection::value_type& vt) {
   return collection->insert(vt).second;
@@ -170,11 +170,11 @@ bool InsertIfNotPresent(
 
 // Same as above except the key and value are passed separately.
 template <class Collection>
-bool InsertIfNotPresent(
+bool insertIfNotPresent(
     Collection* const collection,
     const typename Collection::key_type& key,
     const typename Collection::mapped_type& value) {
-  return InsertIfNotPresent(
+  return insertIfNotPresent(
       collection, typename Collection::value_type(key, value));
 }
 
@@ -182,7 +182,7 @@ bool InsertIfNotPresent(
 // Emplace*()
 //
 template <class Collection, class... Args>
-bool EmplaceIfNotPresent(Collection* const collection, Args&&... args) {
+bool emplaceIfNotPresent(Collection* const collection, Args&&... args) {
   return collection->emplace(std::forward<Args>(args)...).second;
 }
 
@@ -190,7 +190,7 @@ bool EmplaceIfNotPresent(Collection* const collection, Args&&... args) {
 // given key didn't previously exist. If the given key already existed in the
 // map, its value is changed to the given "value" and false is returned.
 template <class Collection>
-bool EmplaceOrUpdate(
+bool emplaceOrUpdate(
     Collection* const collection,
     const typename Collection::key_type& key,
     typename Collection::mapped_type&& value) {
@@ -218,7 +218,7 @@ bool EmplaceOrUpdate(
 //   https://en.cppreference.com/w/cpp/container/map/emplace
 //   https://en.cppreference.com/w/cpp/container/unordered_map/emplace
 template <class Collection, class... Args>
-typename Collection::mapped_type& LookupOrEmplace(
+typename Collection::mapped_type& lookupOrEmplace(
     Collection* const collection,
     Args&&... args) {
   return collection->emplace(std::forward<Args>(args)...).first->second;
@@ -237,17 +237,17 @@ typename Collection::mapped_type& LookupOrEmplace(
 //   map<string, MyType*> my_map;
 //
 // One line cleanup:
-//     delete EraseKeyReturnValuePtr(&my_map, "abc");
+//     delete eraseKeyReturnValuePtr(&my_map, "abc");
 //
 // Use returned value:
-//     unique_ptr<MyType> value_ptr(EraseKeyReturnValuePtr(&my_map, "abc"));
+//     unique_ptr<MyType> value_ptr(eraseKeyReturnValuePtr(&my_map, "abc"));
 //     if (value_ptr.get())
 //       value_ptr->DoSomething();
 //
 // Note: if 'collection' is a multimap, this will only erase and return the
 // first value.
 template <class Collection>
-typename Collection::mapped_type EraseKeyReturnValuePtr(
+typename Collection::mapped_type eraseKeyReturnValuePtr(
     Collection* const collection,
     const typename Collection::key_type& key) {
   auto it = collection->find(key);
@@ -275,7 +275,7 @@ typename Collection::mapped_type EraseKeyReturnValuePtr(
 //
 // Example usage:
 //
-// auto result = ComputeIfAbsentReturnAbsense(&my_collection,
+// auto result = computeIfAbsentReturnAbsense(&my_collection,
 //                                            my_key,
 //                                            [] { return new_value; });
 // MyValue* const value = result.first;
@@ -283,32 +283,32 @@ typename Collection::mapped_type EraseKeyReturnValuePtr(
 //
 template <class MapContainer, typename Function>
 std::pair<typename MapContainer::mapped_type* const, bool>
-ComputeIfAbsentReturnAbsense(
+computeIfAbsentReturnAbsense(
     MapContainer* container,
     const typename MapContainer::key_type& key,
-    Function compute_func) {
+    Function computeFunc) {
   typename MapContainer::iterator iter = container->find(key);
-  bool new_value = iter == container->end();
-  if (new_value) {
+  bool newValue = iter == container->end();
+  if (newValue) {
     std::pair<typename MapContainer::iterator, bool> result =
-        container->emplace(key, compute_func());
+        container->emplace(key, computeFunc());
     DCHECK(result.second) << "duplicate key: " << key;
     iter = result.first;
   }
-  return std::make_pair(&iter->second, new_value);
+  return std::make_pair(&iter->second, newValue);
 }
 
 // Like the above but doesn't return a pair, just returns a pointer to the
 // value. Example usage:
 //
-// MyValue* const value = ComputeIfAbsent(&my_collection,
+// MyValue* const value = computeIfAbsent(&my_collection,
 //                                        my_key,
 //                                        [] { return new_value; });
 //
 template <class MapContainer, typename Function>
-typename MapContainer::mapped_type* const ComputeIfAbsent(
+typename MapContainer::mapped_type* const computeIfAbsent(
     MapContainer* container,
     const typename MapContainer::key_type& key,
-    Function compute_func) {
-  return ComputeIfAbsentReturnAbsense(container, key, compute_func).first;
+    Function computeFunc) {
+  return computeIfAbsentReturnAbsense(container, key, computeFunc).first;
 }

@@ -522,7 +522,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     for (const auto& entry : entries) {
       if (entry->has_replicate()) {
         ASSERT_TRUE(
-            InsertIfNotPresent(&replicationOps, entry->replicate().id()))
+            insertIfNotPresent(&replicationOps, entry->replicate().id()))
             << "REPLICATE op id showed up twice: "
             << SecureShortDebugString(*entry);
       } else if (entry->has_commit()) {

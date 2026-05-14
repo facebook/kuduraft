@@ -594,7 +594,7 @@ class TestPeerMapManager {
       const std::string& peer_uuid,
       std::shared_ptr<RaftConsensus>* peer_out) const {
     std::lock_guard<SimpleSpinlock> lock(lock_);
-    if (!FindCopy(peers_, peer_uuid, peer_out)) {
+    if (!findCopy(peers_, peer_uuid, peer_out)) {
       return Status::NotFound("Other consensus instance was destroyed");
     }
     return Status::OK();
