@@ -441,42 +441,42 @@ class KUDU_EXPORT Status {
   }
 
   /// @return @c true iff the status indicates Uninitialized.
-  bool IsUninitialized() const {
+  bool isUninitialized() const {
     return code() == kUninitialized;
   }
 
   /// @return @c true iff the status indicates ConfigurationError.
-  bool IsConfigurationError() const {
+  bool isConfigurationError() const {
     return code() == kConfigurationError;
   }
 
   /// @return @c true iff the status indicates Incomplete.
-  bool IsIncomplete() const {
+  bool isIncomplete() const {
     return code() == kIncomplete;
   }
 
   /// @return @c true iff the status indicates end of file.
-  bool IsEndOfFile() const {
+  bool isEndOfFile() const {
     return code() == kEndOfFile;
   }
 
   /// @return @c true iff the status indicates compression dict mismatch
-  bool IsCompressionDictMismatch() const {
+  bool isCompressionDictMismatch() const {
     return code() == kCompressionDictMismatch;
   }
 
   /// @return @c true iff the status indicates operation needs to continue later
-  bool IsContinue() const {
+  bool isContinue() const {
     return code() == kContinue;
   }
 
   /// @return @c true iff the status indicates operation needs to ignored
-  bool IsIgnore() const {
+  bool isIgnore() const {
     return code() == kIgnore;
   }
 
   /// @return @c true iff the status indicates a disk failure.
-  bool IsDiskFailure() const {
+  bool isDiskFailure() const {
     switch (posixCode()) {
       case EIO:
       case ENODEV:

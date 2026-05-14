@@ -329,7 +329,7 @@ Status ClientNegotiation::handleTlsHandshake(const NegotiatePB& response) {
 
   string token;
   Status s = tlsHandshake_.continueHandshake(response.tls_handshake(), &token);
-  if (s.IsIncomplete()) {
+  if (s.isIncomplete()) {
     // Another roundtrip is required to complete the handshake.
     RETURN_NOT_OK(sendTlsHandshake(std::move(token)));
   }

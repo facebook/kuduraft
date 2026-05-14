@@ -435,13 +435,13 @@ Status readFullPb(
     Message* msg) {
   bool had_cached_size = cached_file_size->has_value();
   Status s = readPbStartingAt(reader, version, cached_file_size, offset, msg);
-  if (PREDICT_FALSE(s.IsIncomplete() && version == 1)) {
+  if (PREDICT_FALSE(s.isIncomplete() && version == 1)) {
     return Status::Corruption("Unrecoverable incomplete record", s.ToString());
   }
   // If we hit EOF, but we were using a cached view of the file size, then it
   // might be that the file has been extended. Invalidate the cache and try
   // again.
-  if (had_cached_size && (s.IsIncomplete() || s.IsEndOfFile())) {
+  if (had_cached_size && (s.isIncomplete() || s.isEndOfFile())) {
     *cached_file_size = {};
     return readFullPb(reader, version, cached_file_size, offset, msg);
   }
@@ -1096,7 +1096,7 @@ Status ReadablePBContainerFile::Dump(
     prev_offset = offset_;
     count++;
   }
-  if (format == Format::Debug && !s.IsEndOfFile()) {
+  if (format == Format::Debug && !s.isEndOfFile()) {
     *os << "Message " << count << endl;
     *os << "error: failed to parse protobuf message" << endl;
     *os << "offset: " << prev_offset << endl;
@@ -1104,7 +1104,7 @@ Status ReadablePBContainerFile::Dump(
         << endl;
     *os << kDashes << endl;
   }
-  return s.IsEndOfFile() ? Status::OK() : s;
+  return s.isEndOfFile() ? Status::OK() : s;
 }
 
 Status ReadablePBContainerFile::Close() {

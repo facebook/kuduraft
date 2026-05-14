@@ -80,7 +80,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
   RoutingTable routingTable;
   Status s = routingTable.init(raftConfig, proxyTopology, kLeaderUuid);
   ASSERT_FALSE(s.ok()) << s.ToString();
-  ASSERT_TRUE(s.IsIncomplete()) << s.ToString();
+  ASSERT_TRUE(s.isIncomplete()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "have been ignored: " + kBogusUuid);
 
   string nextHop;

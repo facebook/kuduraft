@@ -174,7 +174,7 @@ Status FsManager::init() {
     string canonicalized;
     Status s = env_->Canonicalize(dirName(root), &canonicalized);
     if (PREDICT_FALSE(!s.ok())) {
-      if (s.IsNotFound() || s.IsDiskFailure()) {
+      if (s.IsNotFound() || s.isDiskFailure()) {
         // If the directory fails to canonicalize due to disk failure, store
         // the non-canonicalized form and the returned error.
         canonicalized = dirName(root);
@@ -275,7 +275,7 @@ Status FsManager::Open(FsReport* report) {
         missing_roots.emplace_back(root);
         continue;
       }
-      if (s.IsDiskFailure()) {
+      if (s.isDiskFailure()) {
         root.status = s.cloneAndPrepend("Failed to open instance file");
         continue;
       }

@@ -87,7 +87,7 @@ Status compress(Slice input, ostream* out) {
     zs.next_out = chunk.get();
     flush = (zs.avail_in == 0) ? Z_FINISH : Z_NO_FLUSH;
     Status s = zlibResultToStatus(deflate(&zs, flush));
-    if (!s.ok() && !s.IsEndOfFile()) {
+    if (!s.ok() && !s.isEndOfFile()) {
       return s;
     }
     int outSize = zs.next_out - chunk.get();
@@ -113,7 +113,7 @@ Status uncompress(Slice compressed, std::ostream* out) {
     zs.avail_out = arraysize(buf);
     flush = zs.avail_in > 0 ? Z_NO_FLUSH : Z_FINISH;
     s = zlibResultToStatus(inflate(&zs, flush));
-    if (!s.ok() && !s.IsEndOfFile()) {
+    if (!s.ok() && !s.isEndOfFile()) {
       return s;
     }
     out->write(reinterpret_cast<char*>(buf), zs.next_out - buf);

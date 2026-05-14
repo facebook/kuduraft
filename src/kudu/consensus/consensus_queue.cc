@@ -1329,14 +1329,14 @@ Status PeerMessageQueue::RequestForPeer(
         walCatchupFailure = true;
         return s;
       }
-      if (s.IsUninitialized()) {
+      if (s.isUninitialized()) {
         LOG_WITH_PREFIX_UNLOCKED_EVERY_N(ERROR, 10)
             << "Log is not ready to be read yet while preparing peer request: "
             << s.ToString() << ". Destination peer: " << peerCopy.ToString();
         return s;
       }
-      if (s.IsIncomplete()) {
-        // IsIncomplete() means that we tried to read beyond the head of the log
+      if (s.isIncomplete()) {
+        // isIncomplete() means that we tried to read beyond the head of the log
         // (in the future). See KUDU-1078.
         LOG_WITH_PREFIX_UNLOCKED(ERROR)
             << "Error trying to read ahead of the log "
@@ -2011,7 +2011,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
 void PeerMessageQueue::UpdatePeerAppendFailure(
     TrackedPeer* peer,
     const Status& status) {
-  if (status.IsCompressionDictMismatch()) {
+  if (status.isCompressionDictMismatch()) {
     peer->shouldSendCompressionDict = true;
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Got compression dict error from peer: " << peer->ToString();
@@ -2907,7 +2907,7 @@ bool PeerMessageQueue::IsOpInLog(const OpId& desired_op) const {
   if (PREDICT_TRUE(s.ok())) {
     return OpIdEquals(desired_op, log_op);
   }
-  if (PREDICT_TRUE(s.IsNotFound() || s.IsIncomplete())) {
+  if (PREDICT_TRUE(s.IsNotFound() || s.isIncomplete())) {
     return false;
   }
   LOG_WITH_PREFIX_UNLOCKED(FATAL)

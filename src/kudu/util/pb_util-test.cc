@@ -281,7 +281,7 @@ TEST_P(TestPbContainerVersions, TestCorruption) {
     ASSERT_OK(file->Close());
   }
   s = ReadPBContainerFromPath(env_, path_, &testPb);
-  ASSERT_TRUE(s.IsIncomplete())
+  ASSERT_TRUE(s.isIncomplete())
       << "Should be zero length: " << path_ << ": " << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "File size not large enough to be valid");
 
@@ -295,7 +295,7 @@ TEST_P(TestPbContainerVersions, TestCorruption) {
     ASSERT_TRUE(s.IsCorruption())
         << "Should be incorrect size: " << path_ << ": " << s.ToString();
   } else {
-    ASSERT_TRUE(s.IsIncomplete())
+    ASSERT_TRUE(s.isIncomplete())
         << "Should be incorrect size: " << path_ << ": " << s.ToString();
   }
   ASSERT_STR_CONTAINS(s.ToString(), "File size not large enough to be valid");
@@ -381,7 +381,7 @@ TEST_P(TestPbContainerVersions, TestPartialRecord) {
     if (version_ == 1) {
       ASSERT_TRUE(s.IsCorruption()) << s.ToString();
     } else {
-      ASSERT_TRUE(s.IsIncomplete()) << s.ToString();
+      ASSERT_TRUE(s.isIncomplete()) << s.ToString();
     }
     ASSERT_STR_CONTAINS(s.ToString(), "File size not large enough to be valid");
   }
@@ -409,7 +409,7 @@ TEST_P(TestPbContainerVersions, TestExtraNullBytes) {
     Status s = pbFile.ReadNextPB(&testPb);
     // Loop to verify that the same response is repeatably returned.
     for (int i = 0; i < 2; i++) {
-      ASSERT_TRUE(version_ == 1 ? s.IsCorruption() : s.IsIncomplete())
+      ASSERT_TRUE(version_ == 1 ? s.IsCorruption() : s.isIncomplete())
           << s.ToString();
       if (extraBytes < 8) {
         ASSERT_STR_CONTAINS(
@@ -451,12 +451,12 @@ TEST_P(TestPbContainerVersions, TestAppendAfterPartialWrite) {
     ASSERT_TRUE(s.IsCorruption()) << s.ToString();
     return; // The rest of the test does not apply to version 1.
   }
-  ASSERT_TRUE(s.IsIncomplete()) << s.ToString();
+  ASSERT_TRUE(s.isIncomplete()) << s.ToString();
 
   // Now truncate cleanly.
   ASSERT_OK(truncateFile(path_, reader.offset()));
   s = reader.ReadNextPB(&testPb);
-  ASSERT_TRUE(s.IsEndOfFile()) << s.ToString();
+  ASSERT_TRUE(s.isEndOfFile()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "Reached end of file");
 
   // Reopen the writer to allow appending more records.
@@ -504,7 +504,7 @@ TEST_P(TestPbContainerVersions, TestMultipleMessages) {
   for (int i = 0;; i++) {
     ProtoContainerTestPB readPb;
     Status s = pbReader.ReadNextPB(&readPb);
-    if (s.IsEndOfFile()) {
+    if (s.isEndOfFile()) {
       break;
     }
     ASSERT_OK(s);
@@ -547,7 +547,7 @@ TEST_P(TestPbContainerVersions, TestInterleavedReadWrite) {
 
   // After closing the writer, the reader should be out of data.
   ASSERT_OK(pbWriter->Close());
-  ASSERT_TRUE(pbReader.ReadNextPB(nullptr).IsEndOfFile());
+  ASSERT_TRUE(pbReader.ReadNextPB(nullptr).isEndOfFile());
   ASSERT_OK(pbReader.Close());
 }
 

@@ -82,15 +82,15 @@ void statusToPb(const Status& status, AppStatusPB* pb) {
     pb->set_code(AppStatusPB::SERVICE_UNAVAILABLE);
   } else if (status.IsTimedOut()) {
     pb->set_code(AppStatusPB::TIMED_OUT);
-  } else if (status.IsUninitialized()) {
+  } else if (status.isUninitialized()) {
     pb->set_code(AppStatusPB::UNINITIALIZED);
-  } else if (status.IsConfigurationError()) {
+  } else if (status.isConfigurationError()) {
     pb->set_code(AppStatusPB::CONFIGURATION_ERROR);
-  } else if (status.IsIncomplete()) {
+  } else if (status.isIncomplete()) {
     pb->set_code(AppStatusPB::INCOMPLETE);
-  } else if (status.IsEndOfFile()) {
+  } else if (status.isEndOfFile()) {
     pb->set_code(AppStatusPB::END_OF_FILE);
-  } else if (status.IsCompressionDictMismatch()) {
+  } else if (status.isCompressionDictMismatch()) {
     pb->set_code(AppStatusPB::COMPRESSION_DICT_MISMATCH);
   } else {
     LOG(WARNING) << "Unknown error code translation from internal error "

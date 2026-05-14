@@ -86,7 +86,7 @@ Status doNegotiationSide(Socket* sock, TlsHandshake* tls, const char* side) {
     Status s = tls->continueHandshake(received, &toSend);
     if (s.ok()) {
       done = true;
-    } else if (!s.IsIncomplete()) {
+    } else if (!s.isIncomplete()) {
       RETURN_NOT_OK_PREPEND(s, "unexpected tls error");
     }
     if (!toSend.empty()) {

@@ -238,7 +238,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   // in the cache.
   status = cache_->readOps(2, 100, ReadContext(), &messages);
   auto s = status.status;
-  ASSERT_TRUE(s.IsIncomplete()) << "unexpected status: " << s.ToString();
+  ASSERT_TRUE(s.isIncomplete()) << "unexpected status: " << s.ToString();
   ASSERT_EQ(0, messages.size());
   ASSERT_FALSE(status.precedingOp.IsInitialized());
 
@@ -375,7 +375,7 @@ TEST_F(LogCacheTest, TestTruncation) {
 
     // Op 4 should have been removed.
     Status s = cache_->lookupOpId(4, &op);
-    ASSERT_TRUE(s.IsIncomplete())
+    ASSERT_TRUE(s.isIncomplete())
         << "should be truncated, but got: " << s.ToString();
     ASSERT_FALSE(cache_->hasOpBeenWritten(4));
   }

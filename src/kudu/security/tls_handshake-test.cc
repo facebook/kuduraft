@@ -108,7 +108,7 @@ class TestTlsHandshakeBase : public KuduTest {
         VLOG(1) << "client->server: " << toServer.size() << " bytes";
         if (s.ok()) {
           clientDone = true;
-        } else if (!s.IsIncomplete()) {
+        } else if (!s.isIncomplete()) {
           CHECK(s.IsRuntimeError());
           return s.cloneAndPrepend("client error");
         }
@@ -119,7 +119,7 @@ class TestTlsHandshakeBase : public KuduTest {
         VLOG(1) << "server->client: " << toClient.size() << " bytes";
         if (s.ok()) {
           serverDone = true;
-        } else if (!s.IsIncomplete()) {
+        } else if (!s.isIncomplete()) {
           CHECK(s.IsRuntimeError());
           return s.cloneAndPrepend("server error");
         }
@@ -199,15 +199,15 @@ TEST_F(TestTlsHandshake, TestHandshakeSequence) {
   string buf2;
 
   // Client sends Hello
-  ASSERT_TRUE(client.continueHandshake(buf1, &buf2).IsIncomplete());
+  ASSERT_TRUE(client.continueHandshake(buf1, &buf2).isIncomplete());
   ASSERT_GT(buf2.size(), 0);
 
   // Server receives client Hello, and sends server Hello
-  ASSERT_TRUE(server.continueHandshake(buf2, &buf1).IsIncomplete());
+  ASSERT_TRUE(server.continueHandshake(buf2, &buf1).isIncomplete());
   ASSERT_GT(buf1.size(), 0);
 
   // Client receives server Hello and sends client Finished
-  ASSERT_TRUE(client.continueHandshake(buf1, &buf2).IsIncomplete());
+  ASSERT_TRUE(client.continueHandshake(buf1, &buf2).isIncomplete());
   ASSERT_GT(buf2.size(), 0);
 
   // Server receives client Finished and sends server Finished

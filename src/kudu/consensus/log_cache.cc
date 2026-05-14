@@ -653,7 +653,7 @@ LogCache::ReadOpsStatus LogCache::readOps(
       auto read_status = log_->readReplicatesInRange(
           next_index, up_to, remaining_space, context, &replicate_ptrs);
 
-      if (read_status.IsUninitialized() && !replicate_ptrs.empty()) {
+      if (read_status.isUninitialized() && !replicate_ptrs.empty()) {
         // When a Warm Storage stream ends, opening a new stream may result in
         // an Uninitialized status because the stream has to initialize. If we
         // discard any transactions returned from previous stream, ingestion can

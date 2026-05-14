@@ -405,7 +405,7 @@ Status ReadableLogSegment::rebuildFooterByScanning() {
   while (true) {
     unique_ptr<LogEntryPB> entry;
     Status s = reader.readNextEntry(&entry);
-    if (s.IsEndOfFile()) {
+    if (s.isEndOfFile()) {
       break;
     }
     RETURN_NOT_OK(s);
@@ -607,7 +607,7 @@ Status ReadableLogSegment::readEntries(LogEntries* entries) {
   while (true) {
     unique_ptr<LogEntryPB> entry;
     Status s = reader.readNextEntry(&entry);
-    if (s.IsEndOfFile()) {
+    if (s.isEndOfFile()) {
       break;
     }
     RETURN_NOT_OK(s);

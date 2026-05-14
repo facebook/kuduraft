@@ -56,7 +56,7 @@ Status RoutingTable::init(
   unordered_map<string, unique_ptr<Node>> forest;
 
   Status s = constructForest(raftConfig, proxyTopology, &index, &forest);
-  if (PREDICT_FALSE(!s.ok() && !s.IsIncomplete())) {
+  if (PREDICT_FALSE(!s.ok() && !s.isIncomplete())) {
     return s;
   }
   RETURN_NOT_OK(mergeForestIntoSingleRoutingTree(leaderUuid, index, &forest));
@@ -352,7 +352,7 @@ Status DurableRoutingTable::updateProxyTopology(ProxyTopologyPB proxyTopology) {
   RoutingTable routingTable;
   if (leaderUuid_) {
     Status s = routingTable.init(raftConfig_, proxyTopology, *leaderUuid_);
-    if (PREDICT_FALSE(s.IsIncomplete())) {
+    if (PREDICT_FALSE(s.isIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
     } else {
@@ -400,7 +400,7 @@ Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raftConfig) {
   }
   if (leaderInConfig) {
     Status s = routingTable.init(raftConfig, proxyTopology_, *leaderUuid_);
-    if (PREDICT_FALSE(s.IsIncomplete())) {
+    if (PREDICT_FALSE(s.isIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
     } else {
@@ -441,7 +441,7 @@ void DurableRoutingTable::updateLeader(string leaderUuid) {
   if (isRaftConfigMember(leaderUuid, raftConfig_)) {
     // Rebuild the routing table. If this fails, remember the new leader anyway.
     Status s = routingTable.init(raftConfig_, proxyTopology_, leaderUuid);
-    if (PREDICT_FALSE(s.IsIncomplete())) {
+    if (PREDICT_FALSE(s.isIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
       initialized = true;

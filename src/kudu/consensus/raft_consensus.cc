@@ -2415,7 +2415,7 @@ Status RaftConsensus::updateReplica(
         }
 
         Status s;
-        if (prepareStatus.IsCompressionDictMismatch()) {
+        if (prepareStatus.isCompressionDictMismatch()) {
           s = Status::CompressionDictMismatch(std::move(msg));
         } else if (prepareStatus.IsCorruption()) {
           s = Status::Corruption(std::move(msg));

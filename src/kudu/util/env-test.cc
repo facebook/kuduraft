@@ -509,7 +509,7 @@ TEST_F(TestEnv, TestReadFully) {
   Slice s2(scratch.get(), 200);
   Status status = raf->Read(kFileSize - 100, s2);
   ASSERT_FALSE(status.ok());
-  ASSERT_TRUE(status.IsEndOfFile());
+  ASSERT_TRUE(status.isEndOfFile());
   ASSERT_STR_CONTAINS(status.ToString(), "EOF");
 }
 
@@ -545,7 +545,7 @@ TEST_F(TestEnv, TestReadVFully) {
   // Verify that Read fails with an EndOfFile error at EOF.
   Status status = file->ReadV(5, results);
   ASSERT_FALSE(status.ok());
-  ASSERT_TRUE(status.IsEndOfFile());
+  ASSERT_TRUE(status.isEndOfFile());
   ASSERT_STR_CONTAINS(status.ToString(), "EOF");
 }
 

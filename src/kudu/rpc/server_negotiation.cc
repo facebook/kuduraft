@@ -221,7 +221,7 @@ Status ServerNegotiation::negotiate() {
       if (s.ok()) {
         break;
       }
-      if (!s.IsIncomplete()) {
+      if (!s.isIncomplete()) {
         return s;
       }
     }
@@ -542,7 +542,7 @@ Status ServerNegotiation::handleTlsHandshake(const NegotiatePB& request) {
   string token;
   Status s = tlsHandshake_.continueHandshake(request.tls_handshake(), &token);
 
-  if (PREDICT_FALSE(!s.IsIncomplete() && !s.ok())) {
+  if (PREDICT_FALSE(!s.isIncomplete() && !s.ok())) {
     RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }

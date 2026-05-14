@@ -273,7 +273,7 @@ KuduThreadPool::~KuduThreadPool() {
 }
 
 Status KuduThreadPool::Init() {
-  if (!poolStatus_.IsUninitialized()) {
+  if (!poolStatus_.isUninitialized()) {
     return Status::NotSupported("The thread pool is already initialized");
   }
   poolStatus_ = Status::OK();
