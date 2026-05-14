@@ -83,7 +83,7 @@ class CacheTest : public KuduTest,
     cache->setMetrics(entity);
   }
 
-  int Lookup(int key) {
+  int lookup(int key) {
     Cache::Handle* handle =
         cache->lookup(encodeInt(key), Cache::kExpectInCache);
     const int r = (handle == nullptr) ? -1 : decodeInt(cache->value(handle));
@@ -93,7 +93,7 @@ class CacheTest : public KuduTest,
     return r;
   }
 
-  void Insert(int key, int value, int charge = 1) {
+  void insert(int key, int value, int charge = 1) {
     std::string keyStr = encodeInt(key);
     std::string valStr = encodeInt(value);
     Cache::PendingHandle* handle =
@@ -103,7 +103,7 @@ class CacheTest : public KuduTest,
     cache->release(cache->insert(handle, this));
   }
 
-  void Erase(int key) {
+  void erase(int key) {
     cache->erase(encodeInt(key));
   }
 };
@@ -120,31 +120,31 @@ INSTANTIATE_TEST_CASE_P(CacheTypes, CacheTest, ::testing::Values(kDramCache));
 
 TEST_P(CacheTest, TrackMemory) {
   if (memTracker) {
-    Insert(100, 100, 1);
+    insert(100, 100, 1);
     ASSERT_EQ(1, memTracker->consumption());
-    Erase(100);
+    erase(100);
     ASSERT_EQ(0, memTracker->consumption());
     ASSERT_EQ(1, memTracker->peakConsumption());
   }
 }
 
 TEST_P(CacheTest, HitAndMiss) {
-  ASSERT_EQ(-1, Lookup(100));
+  ASSERT_EQ(-1, lookup(100));
 
-  Insert(100, 101);
-  ASSERT_EQ(101, Lookup(100));
-  ASSERT_EQ(-1, Lookup(200));
-  ASSERT_EQ(-1, Lookup(300));
+  insert(100, 101);
+  ASSERT_EQ(101, lookup(100));
+  ASSERT_EQ(-1, lookup(200));
+  ASSERT_EQ(-1, lookup(300));
 
-  Insert(200, 201);
-  ASSERT_EQ(101, Lookup(100));
-  ASSERT_EQ(201, Lookup(200));
-  ASSERT_EQ(-1, Lookup(300));
+  insert(200, 201);
+  ASSERT_EQ(101, lookup(100));
+  ASSERT_EQ(201, lookup(200));
+  ASSERT_EQ(-1, lookup(300));
 
-  Insert(100, 102);
-  ASSERT_EQ(102, Lookup(100));
-  ASSERT_EQ(201, Lookup(200));
-  ASSERT_EQ(-1, Lookup(300));
+  insert(100, 102);
+  ASSERT_EQ(102, lookup(100));
+  ASSERT_EQ(201, lookup(200));
+  ASSERT_EQ(-1, lookup(300));
 
   ASSERT_EQ(1, evictedKeys.size());
   ASSERT_EQ(100, evictedKeys[0]);
@@ -152,30 +152,30 @@ TEST_P(CacheTest, HitAndMiss) {
 }
 
 TEST_P(CacheTest, Erase) {
-  Erase(200);
+  erase(200);
   ASSERT_EQ(0, evictedKeys.size());
 
-  Insert(100, 101);
-  Insert(200, 201);
-  Erase(100);
-  ASSERT_EQ(-1, Lookup(100));
-  ASSERT_EQ(201, Lookup(200));
+  insert(100, 101);
+  insert(200, 201);
+  erase(100);
+  ASSERT_EQ(-1, lookup(100));
+  ASSERT_EQ(201, lookup(200));
   ASSERT_EQ(1, evictedKeys.size());
   ASSERT_EQ(100, evictedKeys[0]);
   ASSERT_EQ(101, evictedValues[0]);
 
-  Erase(100);
-  ASSERT_EQ(-1, Lookup(100));
-  ASSERT_EQ(201, Lookup(200));
+  erase(100);
+  ASSERT_EQ(-1, lookup(100));
+  ASSERT_EQ(201, lookup(200));
   ASSERT_EQ(1, evictedKeys.size());
 }
 
 TEST_P(CacheTest, EntriesArePinned) {
-  Insert(100, 101);
+  insert(100, 101);
   Cache::Handle* h1 = cache->lookup(encodeInt(100), Cache::kExpectInCache);
   ASSERT_EQ(101, decodeInt(cache->value(h1)));
 
-  Insert(100, 102);
+  insert(100, 102);
   Cache::Handle* h2 = cache->lookup(encodeInt(100), Cache::kExpectInCache);
   ASSERT_EQ(102, decodeInt(cache->value(h2)));
   ASSERT_EQ(0, evictedKeys.size());
@@ -185,8 +185,8 @@ TEST_P(CacheTest, EntriesArePinned) {
   ASSERT_EQ(100, evictedKeys[0]);
   ASSERT_EQ(101, evictedValues[0]);
 
-  Erase(100);
-  ASSERT_EQ(-1, Lookup(100));
+  erase(100);
+  ASSERT_EQ(-1, lookup(100));
   ASSERT_EQ(1, evictedKeys.size());
 
   cache->release(h2);
@@ -196,8 +196,8 @@ TEST_P(CacheTest, EntriesArePinned) {
 }
 
 TEST_P(CacheTest, EvictionPolicy) {
-  Insert(100, 101);
-  Insert(200, 201);
+  insert(100, 101);
+  insert(200, 201);
 
   const int kNumElems = 1000;
   const int kSizePerElem = kCacheSize / kNumElems;
@@ -205,14 +205,14 @@ TEST_P(CacheTest, EvictionPolicy) {
   // Loop adding and looking up new entries, but repeatedly accessing key 101.
   // This frequently-used entry should not be evicted.
   for (int i = 0; i < kNumElems + 1000; i++) {
-    Insert(1000 + i, 2000 + i, kSizePerElem);
-    ASSERT_EQ(2000 + i, Lookup(1000 + i));
-    ASSERT_EQ(101, Lookup(100));
+    insert(1000 + i, 2000 + i, kSizePerElem);
+    ASSERT_EQ(2000 + i, lookup(1000 + i));
+    ASSERT_EQ(101, lookup(100));
   }
-  ASSERT_EQ(101, Lookup(100));
+  ASSERT_EQ(101, lookup(100));
   // Since '200' wasn't accessed in the loop above, it should have
   // been evicted.
-  ASSERT_EQ(-1, Lookup(200));
+  ASSERT_EQ(-1, lookup(200));
 }
 
 TEST_P(CacheTest, HeavyEntries) {
@@ -225,7 +225,7 @@ TEST_P(CacheTest, HeavyEntries) {
   int index = 0;
   while (added < 2 * kCacheSize) {
     const int weight = (index & 1) ? kLight : kHeavy;
-    Insert(index, 1000 + index, weight);
+    insert(index, 1000 + index, weight);
     added += weight;
     index++;
   }
@@ -233,7 +233,7 @@ TEST_P(CacheTest, HeavyEntries) {
   int cachedWeight = 0;
   for (int i = 0; i < index; i++) {
     const int weight = (i & 1 ? kLight : kHeavy);
-    int r = Lookup(i);
+    int r = lookup(i);
     if (r >= 0) {
       cachedWeight += weight;
       ASSERT_EQ(1000 + i, r);
