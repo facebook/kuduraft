@@ -53,9 +53,10 @@ class ReplicateMsgWrapper {
       return Status::IllegalState(
           "Both compressed and uncompressed msg are not populated!");
     }
+    std::shared_ptr<faststring> compressionBufferLocal;
     if (!compressionBuffer) {
-      compressionBuffer_ = std::make_shared<faststring>();
-      compressionBuffer = compressionBuffer_.get();
+      compressionBufferLocal = std::make_shared<faststring>();
+      compressionBuffer = compressionBufferLocal.get();
     }
     if (compressedMsg_ && !msg_) {
       return uncompressMsg(compressionBuffer);
@@ -213,8 +214,6 @@ class ReplicateMsgWrapper {
   bool shouldCompress_ = false;
   // The compression codec to use
   std::shared_ptr<CompressionCodec> codec_ = nullptr;
-  // Buffer used for compression if user hasn't provided one
-  std::shared_ptr<faststring> compressionBuffer_;
 };
 
 } // namespace kudu::consensus
