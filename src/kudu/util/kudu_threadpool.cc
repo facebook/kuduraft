@@ -86,7 +86,7 @@ KuduThreadPoolToken::KuduThreadPoolToken(
     : mode_(mode),
       metrics_(std::move(metrics)),
       pool_(pool),
-      state_(State::IDLE),
+      state_(State::Idle),
       notRunningCond_(&pool->lock_),
       activeThreads_(0) {}
 
@@ -108,29 +108,29 @@ Status KuduThreadPoolToken::Submit(shared_ptr<Runnable> r) {
 }
 
 void KuduThreadPoolToken::Shutdown() {
-  MutexLock unique_lock(pool_->lock_);
+  MutexLock uniqueLock(pool_->lock_);
   pool_->checkNotPoolThreadUnlocked();
 
   // Clear the queue under the lock, but defer the releasing of the tasks
   // outside the lock, in case there are concurrent threads wanting to access
   // the KuduThreadPool. The task's destructors may acquire locks, etc, so this
   // also prevents lock inversions.
-  std::deque<KuduThreadPool::Task> to_release = std::move(entries_);
-  pool_->totalQueuedTasks_ -= to_release.size();
+  std::deque<KuduThreadPool::Task> toRelease = std::move(entries_);
+  pool_->totalQueuedTasks_ -= toRelease.size();
 
   switch (state()) {
-    case State::IDLE:
+    case State::Idle:
       // There were no tasks outstanding; we can quiesce the token immediately.
-      transition(State::QUIESCED);
+      transition(State::Quiesced);
       break;
-    case State::RUNNING:
+    case State::Running:
       // There were outstanding tasks. If any are still running, switch to
-      // QUIESCING and wait for them to finish (the worker thread executing
-      // the token's last task will switch the token to QUIESCED). Otherwise,
+      // Quiescing and wait for them to finish (the worker thread executing
+      // the token's last task will switch the token to Quiesced). Otherwise,
       // we can quiesce the token immediately.
 
       // Note: this is an O(n) operation, but it's expected to be infrequent.
-      // Plus doing it this way (rather than switching to QUIESCING and waiting
+      // Plus doing it this way (rather than switching to Quiescing and waiting
       // for a worker thread to process the queue entry) helps retain state
       // transition symmetry with KuduThreadPool::Shutdown.
       for (auto it = pool_->queue_.begin(); it != pool_->queue_.end();) {
@@ -142,15 +142,15 @@ void KuduThreadPoolToken::Shutdown() {
       }
 
       if (activeThreads_ == 0) {
-        transition(State::QUIESCED);
+        transition(State::Quiesced);
         break;
       }
-      transition(State::QUIESCING);
+      transition(State::Quiescing);
       FALLTHROUGH_INTENDED;
-    case State::QUIESCING:
+    case State::Quiescing:
       // The token is already quiescing. Just wait for a worker thread to
-      // switch it to QUIESCED.
-      while (state() != State::QUIESCED) {
+      // switch it to Quiesced.
+      while (state() != State::Quiesced) {
         notRunningCond_.wait();
       }
       break;
@@ -159,8 +159,8 @@ void KuduThreadPoolToken::Shutdown() {
   }
 
   // Finally release the queued tasks, outside the lock.
-  unique_lock.unlock();
-  // to_release contains shared_ptr<Trace>, no manual release needed
+  uniqueLock.unlock();
+  // toRelease contains shared_ptr<Trace>, no manual release needed
 }
 
 void KuduThreadPoolToken::transition(State newState) {
@@ -168,30 +168,30 @@ void KuduThreadPoolToken::transition(State newState) {
   CHECK_NE(state_, newState);
 
   switch (state_) {
-    case State::IDLE:
-      CHECK(newState == State::RUNNING || newState == State::QUIESCED);
-      if (newState == State::RUNNING) {
+    case State::Idle:
+      CHECK(newState == State::Running || newState == State::Quiesced);
+      if (newState == State::Running) {
         CHECK(!entries_.empty());
       } else {
         CHECK(entries_.empty());
         CHECK_EQ(activeThreads_, 0);
       }
       break;
-    case State::RUNNING:
+    case State::Running:
       CHECK(
-          newState == State::IDLE || newState == State::QUIESCING ||
-          newState == State::QUIESCED);
+          newState == State::Idle || newState == State::Quiescing ||
+          newState == State::Quiesced);
       CHECK(entries_.empty());
-      if (newState == State::QUIESCING) {
+      if (newState == State::Quiescing) {
         CHECK_GT(activeThreads_, 0);
       }
       break;
-    case State::QUIESCING:
-      CHECK(newState == State::QUIESCED);
+    case State::Quiescing:
+      CHECK(newState == State::Quiesced);
       CHECK_EQ(activeThreads_, 0);
       break;
-    case State::QUIESCED:
-      CHECK(false); // QUIESCED is a terminal state
+    case State::Quiesced:
+      CHECK(false); // Quiesced is a terminal state
 
     default:
       LOG(FATAL) << "Unknown token state: " << state_;
@@ -200,8 +200,8 @@ void KuduThreadPoolToken::transition(State newState) {
 
   // Take actions based on the state we're entering.
   switch (newState) {
-    case State::IDLE:
-    case State::QUIESCED:
+    case State::Idle:
+    case State::Quiesced:
       notRunningCond_.broadcast();
       break;
     default:
@@ -213,16 +213,16 @@ void KuduThreadPoolToken::transition(State newState) {
 
 const char* KuduThreadPoolToken::stateToString(State s) {
   switch (s) {
-    case State::IDLE:
+    case State::Idle:
       return "IDLE";
 
-    case State::RUNNING:
+    case State::Running:
       return "RUNNING";
 
-    case State::QUIESCING:
+    case State::Quiescing:
       return "QUIESCING";
 
-    case State::QUIESCED:
+    case State::Quiesced:
       return "QUIESCED";
   }
   return "<cannot reach here>";
@@ -234,17 +234,17 @@ const char* KuduThreadPoolToken::stateToString(State s) {
 
 KuduThreadPool::KuduThreadPool(
     std::string name,
-    int min_threads,
-    int max_threads,
-    int max_queue_size,
-    MonoDelta idle_timeout,
-    std::string trace_metric_prefix,
+    int minThreads,
+    int maxThreads,
+    int maxQueueSize,
+    MonoDelta idleTimeout,
+    std::string traceMetricPrefix,
     ThreadPoolMetrics metrics)
     : name_(std::move(name)),
-      minThreads_(min_threads),
-      maxThreads_(max_threads),
-      maxQueueSize_(max_queue_size),
-      idleTimeout_(idle_timeout),
+      minThreads_(minThreads),
+      maxThreads_(maxThreads),
+      maxQueueSize_(maxQueueSize),
+      idleTimeout_(idleTimeout),
       poolStatus_(Status::Uninitialized("The pool was not initialized.")),
       idleCond_(&lock_),
       noThreadsCond_(&lock_),
@@ -255,7 +255,7 @@ KuduThreadPool::KuduThreadPool(
       tokenless_(NewToken(ThreadPool::ExecutionMode::Concurrent)),
       metrics_(std::move(metrics)) {
   string prefix =
-      !trace_metric_prefix.empty() ? std::move(trace_metric_prefix) : name_;
+      !traceMetricPrefix.empty() ? std::move(traceMetricPrefix) : name_;
 
   queueTimeTraceMetricName_ =
       TraceMetrics::internName(prefix + ".queue_time_us");
@@ -272,7 +272,7 @@ KuduThreadPool::~KuduThreadPool() {
   Shutdown();
 }
 
-Status KuduThreadPool::Init() {
+Status KuduThreadPool::init() {
   if (!poolStatus_.isUninitialized()) {
     return Status::NotSupported("The thread pool is already initialized");
   }
@@ -289,7 +289,7 @@ Status KuduThreadPool::Init() {
 }
 
 void KuduThreadPool::Shutdown() {
-  MutexLock unique_lock(lock_);
+  MutexLock uniqueLock(lock_);
   checkNotPoolThreadUnlocked();
 
   // Wait for all queued and running tasks to complete before shutting down.
@@ -308,24 +308,24 @@ void KuduThreadPool::Shutdown() {
   // wanting to access the KuduThreadPool. The task's destructors may acquire
   // locks, etc, so this also prevents lock inversions.
   queue_.clear();
-  std::deque<std::deque<Task>> to_release;
+  std::deque<std::deque<Task>> toRelease;
   for (auto* t : tokens_) {
     if (!t->entries_.empty()) {
-      to_release.emplace_back(std::move(t->entries_));
+      toRelease.emplace_back(std::move(t->entries_));
     }
     switch (t->state()) {
-      case KuduThreadPoolToken::State::IDLE:
+      case KuduThreadPoolToken::State::Idle:
         // The token is idle; we can quiesce it immediately.
-        t->transition(KuduThreadPoolToken::State::QUIESCED);
+        t->transition(KuduThreadPoolToken::State::Quiesced);
         break;
-      case KuduThreadPoolToken::State::RUNNING:
+      case KuduThreadPoolToken::State::Running:
         // The token has tasks associated with it. If they're merely queued
         // (i.e. there are no active threads), the tasks will have been removed
         // above and we can quiesce immediately. Otherwise, we need to wait for
         // the threads to finish.
         t->transition(
-            t->activeThreads_ > 0 ? KuduThreadPoolToken::State::QUIESCING
-                                  : KuduThreadPoolToken::State::QUIESCED);
+            t->activeThreads_ > 0 ? KuduThreadPoolToken::State::Quiescing
+                                  : KuduThreadPoolToken::State::Quiesced);
         break;
       default:
         break;
@@ -347,14 +347,14 @@ void KuduThreadPool::Shutdown() {
   // All the threads have exited. Check the state of each token.
   for (auto* t : tokens_) {
     DCHECK(
-        t->state() == KuduThreadPoolToken::State::IDLE ||
-        t->state() == KuduThreadPoolToken::State::QUIESCED);
+        t->state() == KuduThreadPoolToken::State::Idle ||
+        t->state() == KuduThreadPoolToken::State::Quiesced);
   }
 
   // Finally release the queued tasks, outside the lock.
-  unique_lock.unlock();
+  uniqueLock.unlock();
   // Automatic cleanup via std::shared_ptr, no manual release needed
-  to_release.clear();
+  toRelease.clear();
 }
 
 unique_ptr<ThreadPoolToken> KuduThreadPool::NewToken(
@@ -398,7 +398,7 @@ Status KuduThreadPool::doSubmit(
     shared_ptr<Runnable> r,
     KuduThreadPoolToken* token) {
   DCHECK(token);
-  MonoTime submit_time = MonoTime::Now();
+  MonoTime submitTime = MonoTime::Now();
 
   MutexLock guard(lock_);
   if (PREDICT_FALSE(!poolStatus_.ok())) {
@@ -410,9 +410,9 @@ Status KuduThreadPool::doSubmit(
   }
 
   // Size limit check.
-  int64_t capacity_remaining = static_cast<int64_t>(maxThreads_) -
+  int64_t capacityRemaining = static_cast<int64_t>(maxThreads_) -
       activeThreads_ + static_cast<int64_t>(maxQueueSize_) - totalQueuedTasks_;
-  if (capacity_remaining < 1) {
+  if (capacityRemaining < 1) {
     return Status::ServiceUnavailable(
         fmt::format(
             "Thread pool is at capacity ({}/{} tasks running, {}/{} tasks queued)",
@@ -438,17 +438,17 @@ Status KuduThreadPool::doSubmit(
   // and harmless.
   //
   // Of course, we never create more than maxThreads_ threads no matter what.
-  int threads_from_this_submit =
+  int threadsFromThisSubmit =
       token->isActive() && token->mode() == ThreadPool::ExecutionMode::Serial
       ? 0
       : 1;
-  int inactive_threads = numThreads_ + numThreadsPendingStart_ - activeThreads_;
-  int additional_threads = static_cast<int>(queue_.size()) +
-      threads_from_this_submit - inactive_threads;
-  bool need_a_thread = false;
-  if (additional_threads > 0 &&
+  int inactiveThreads = numThreads_ + numThreadsPendingStart_ - activeThreads_;
+  int additionalThreads =
+      static_cast<int>(queue_.size()) + threadsFromThisSubmit - inactiveThreads;
+  bool needAThread = false;
+  if (additionalThreads > 0 &&
       numThreads_ + numThreadsPendingStart_ < maxThreads_) {
-    need_a_thread = true;
+    needAThread = true;
     numThreadsPendingStart_++;
   }
 
@@ -456,22 +456,22 @@ Status KuduThreadPool::doSubmit(
   task.runnable = std::move(r);
   task.trace = Trace::currentTrace() ? Trace::currentTrace()->shared_from_this()
                                      : nullptr;
-  task.submit_time = submit_time;
+  task.submitTime = submitTime;
 
   // Add the task to the token's queue.
   KuduThreadPoolToken::State state = token->state();
   DCHECK(
-      state == KuduThreadPoolToken::State::IDLE ||
-      state == KuduThreadPoolToken::State::RUNNING);
+      state == KuduThreadPoolToken::State::Idle ||
+      state == KuduThreadPoolToken::State::Running);
   token->entries_.emplace_back(std::move(task));
-  if (state == KuduThreadPoolToken::State::IDLE ||
+  if (state == KuduThreadPoolToken::State::Idle ||
       token->mode() == ThreadPool::ExecutionMode::Concurrent) {
     queue_.emplace_back(token);
-    if (state == KuduThreadPoolToken::State::IDLE) {
-      token->transition(KuduThreadPoolToken::State::RUNNING);
+    if (state == KuduThreadPoolToken::State::Idle) {
+      token->transition(KuduThreadPoolToken::State::Running);
     }
   }
-  int length_at_submit = totalQueuedTasks_++;
+  int lengthAtSubmit = totalQueuedTasks_++;
 
   // Wake up an idle thread for this task. Choosing the thread at the front of
   // the list ensures LIFO semantics as idling threads are also added to the
@@ -487,13 +487,13 @@ Status KuduThreadPool::doSubmit(
   guard.unlock();
 
   if (metrics_.queueLengthHistogram) {
-    metrics_.queueLengthHistogram->increment(length_at_submit);
+    metrics_.queueLengthHistogram->increment(lengthAtSubmit);
   }
   if (token->metrics_.queueLengthHistogram) {
-    token->metrics_.queueLengthHistogram->increment(length_at_submit);
+    token->metrics_.queueLengthHistogram->increment(lengthAtSubmit);
   }
 
-  if (need_a_thread) {
+  if (needAThread) {
     Status status = createThread();
     if (!status.ok()) {
       guard.lock();
@@ -513,7 +513,7 @@ Status KuduThreadPool::doSubmit(
 }
 
 void KuduThreadPool::dispatchThread() {
-  MutexLock unique_lock(lock_);
+  MutexLock uniqueLock(lock_);
   auto [it, inserted] = threads_.insert(Thread::currentThread());
   CHECK(inserted) << "Thread already exists in the set";
   DCHECK_GT(numThreadsPendingStart_, 0);
@@ -572,7 +572,7 @@ void KuduThreadPool::dispatchThread() {
     // Get the next token and task to execute.
     KuduThreadPoolToken* token = queue_.front();
     queue_.pop_front();
-    DCHECK_EQ(KuduThreadPoolToken::State::RUNNING, token->state());
+    DCHECK_EQ(KuduThreadPoolToken::State::Running, token->state());
     DCHECK(!token->entries_.empty());
     Task task = std::move(token->entries_.front());
     token->entries_.pop_front();
@@ -580,7 +580,7 @@ void KuduThreadPool::dispatchThread() {
     --totalQueuedTasks_;
     ++activeThreads_;
 
-    unique_lock.unlock();
+    uniqueLock.unlock();
 
     // Release the reference which was held by the queued item.
     ADOPT_TRACE(task.trace);
@@ -588,30 +588,30 @@ void KuduThreadPool::dispatchThread() {
 
     // Update metrics
     MonoTime now(MonoTime::Now());
-    int64_t queue_time_us = (now - task.submit_time).ToMicroseconds();
-    TRACE_COUNTER_INCREMENT(queueTimeTraceMetricName_, queue_time_us);
+    int64_t queueTimeUs = (now - task.submitTime).ToMicroseconds();
+    TRACE_COUNTER_INCREMENT(queueTimeTraceMetricName_, queueTimeUs);
     if (metrics_.queueTimeUsHistogram) {
-      metrics_.queueTimeUsHistogram->increment(queue_time_us);
+      metrics_.queueTimeUsHistogram->increment(queueTimeUs);
     }
     if (token->metrics_.queueTimeUsHistogram) {
-      token->metrics_.queueTimeUsHistogram->increment(queue_time_us);
+      token->metrics_.queueTimeUsHistogram->increment(queueTimeUs);
     }
 
     // Execute the task
     {
-      kudu::MicrosecondsInt64 start_wall_us = getMonoTimeMicros();
+      kudu::MicrosecondsInt64 startWallUs = getMonoTimeMicros();
 
       task.runnable->run();
 
-      int64_t wall_us = getMonoTimeMicros() - start_wall_us;
+      int64_t wallUs = getMonoTimeMicros() - startWallUs;
 
       if (metrics_.runTimeUsHistogram) {
-        metrics_.runTimeUsHistogram->increment(wall_us);
+        metrics_.runTimeUsHistogram->increment(wallUs);
       }
       if (token->metrics_.runTimeUsHistogram) {
-        token->metrics_.runTimeUsHistogram->increment(wall_us);
+        token->metrics_.runTimeUsHistogram->increment(wallUs);
       }
-      TRACE_COUNTER_INCREMENT(runWallTimeTraceMetricName_, wall_us);
+      TRACE_COUNTER_INCREMENT(runWallTimeTraceMetricName_, wallUs);
     }
     // Destruct the task while we do not hold the lock.
     //
@@ -620,22 +620,22 @@ void KuduThreadPool::dispatchThread() {
     // In the worst case, the destructor might even try to do something
     // with this threadpool, and produce a deadlock.
     task.runnable.reset();
-    unique_lock.lock();
+    uniqueLock.lock();
 
     // Possible states:
-    // 1. The token was shut down while we ran its task. Transition to QUIESCED.
-    // 2. The token has no more queued tasks. Transition back to IDLE.
+    // 1. The token was shut down while we ran its task. Transition to Quiesced.
+    // 2. The token has no more queued tasks. Transition back to Idle.
     // 3. The token has more tasks. Requeue it and transition back to RUNNABLE.
     KuduThreadPoolToken::State state = token->state();
     DCHECK(
-        state == KuduThreadPoolToken::State::RUNNING ||
-        state == KuduThreadPoolToken::State::QUIESCING);
+        state == KuduThreadPoolToken::State::Running ||
+        state == KuduThreadPoolToken::State::Quiescing);
     if (--token->activeThreads_ == 0) {
-      if (state == KuduThreadPoolToken::State::QUIESCING) {
+      if (state == KuduThreadPoolToken::State::Quiescing) {
         DCHECK(token->entries_.empty());
-        token->transition(KuduThreadPoolToken::State::QUIESCED);
+        token->transition(KuduThreadPoolToken::State::Quiesced);
       } else if (token->entries_.empty()) {
-        token->transition(KuduThreadPoolToken::State::IDLE);
+        token->transition(KuduThreadPoolToken::State::Idle);
       } else if (token->mode() == ThreadPool::ExecutionMode::Serial) {
         queue_.emplace_back(token);
       }
@@ -648,7 +648,7 @@ void KuduThreadPool::dispatchThread() {
   // It's important that we hold the lock between exiting the loop and dropping
   // numThreads_. Otherwise it's possible someone else could come along here
   // and add a new task just as the last running thread is about to exit.
-  CHECK(unique_lock.ownsLock());
+  CHECK(uniqueLock.ownsLock());
 
   CHECK_EQ(threads_.erase(Thread::currentThread()), 1);
   numThreads_--;

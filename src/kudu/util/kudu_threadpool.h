@@ -88,18 +88,18 @@ class KuduThreadPool : public ThreadPool {
   // Creates a new thread pool.
   KuduThreadPool(
       std::string name,
-      int min_threads,
-      int max_threads,
-      int max_queue_size,
-      MonoDelta idle_timeout,
-      std::string trace_metric_prefix,
+      int minThreads,
+      int maxThreads,
+      int maxQueueSize,
+      MonoDelta idleTimeout,
+      std::string traceMetricPrefix,
       ThreadPoolMetrics metrics);
 
   virtual ~KuduThreadPool() override;
 
   // Initializes the thread pool by starting the minimum number of threads.
   // Must be called before submitting any tasks.
-  Status Init();
+  Status init();
 
   // Wait for the running tasks to complete and then shutdown the threads.
   // All the other pending tasks in the queue will be removed.
@@ -158,7 +158,7 @@ class KuduThreadPool : public ThreadPool {
     std::shared_ptr<Trace> trace;
 
     // Time at which the entry was submitted to the pool.
-    MonoTime submit_time;
+    MonoTime submitTime;
   };
 
   // Dispatcher responsible for dequeueing and executing the tasks
@@ -306,29 +306,29 @@ class KuduThreadPoolToken : public ThreadPoolToken {
 
  private:
   // All possible token states. Legal state transitions:
-  //   IDLE      -> RUNNING: task is submitted via token
-  //   IDLE      -> QUIESCED: token or pool is shut down
-  //   RUNNING   -> IDLE: worker thread finishes executing a task and
+  //   Idle      -> Running: task is submitted via token
+  //   Idle      -> Quiesced: token or pool is shut down
+  //   Running   -> Idle: worker thread finishes executing a task and
   //                      there are no more tasks queued to the token
-  //   RUNNING   -> QUIESCING: token or pool is shut down while worker thread
+  //   Running   -> Quiescing: token or pool is shut down while worker thread
   //                           is executing a task
-  //   RUNNING   -> QUIESCED: token or pool is shut down
-  //   QUIESCING -> QUIESCED:  worker thread finishes executing a task
+  //   Running   -> Quiesced: token or pool is shut down
+  //   Quiescing -> Quiesced:  worker thread finishes executing a task
   //                           belonging to a shut down token or pool
   enum class State {
     // Token has no queued tasks.
-    IDLE,
+    Idle,
 
     // A worker thread is running one of the token's previously queued tasks.
-    RUNNING,
+    Running,
 
     // No new tasks may be submitted to the token. A worker thread is still
     // running a previously queued task.
-    QUIESCING,
+    Quiescing,
 
     // No new tasks may be submitted to the token. There are no active tasks
     // either. At this state, the token may only be destroyed.
-    QUIESCED,
+    Quiesced,
   };
 
   // Writes a textual representation of the token state in 's' to 'o'.
@@ -355,12 +355,12 @@ class KuduThreadPoolToken : public ThreadPoolToken {
   // Returns true if this token has a task queued and ready to run, or if a
   // task belonging to this token is already running.
   bool isActive() const {
-    return state_ == State::RUNNING || state_ == State::QUIESCING;
+    return state_ == State::Running || state_ == State::Quiescing;
   }
 
   // Returns true if new tasks may be submitted to this token.
   bool maySubmitNewTasks() const {
-    return state_ != State::QUIESCING && state_ != State::QUIESCED;
+    return state_ != State::Quiescing && state_ != State::Quiesced;
   }
 
   State state() const {
@@ -386,7 +386,7 @@ class KuduThreadPoolToken : public ThreadPoolToken {
   std::deque<KuduThreadPool::Task> entries_;
 
   // Condition variable for "token is idle". Waiters wake up when the token
-  // transitions to IDLE or QUIESCED.
+  // transitions to Idle or Quiesced.
   ConditionVariable notRunningCond_;
 
   // Number of worker threads currently executing tasks belonging to this

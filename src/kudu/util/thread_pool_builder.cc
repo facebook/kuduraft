@@ -96,7 +96,7 @@ Status ThreadPoolBuilder::build(unique_ptr<ThreadPool>* pool) const {
         idleTimeout_,
         traceMetricPrefix_,
         metrics_);
-    RETURN_NOT_OK(kuduPool->Init());
+    RETURN_NOT_OK(kuduPool->init());
     threadPool = std::move(kuduPool);
   }
   *pool = std::move(threadPool);
