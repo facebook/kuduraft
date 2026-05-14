@@ -237,7 +237,7 @@ Status Cert::getServerEndPointChannelBindings(string* channelBindings) const {
   BIO_push(mdBio.get(), nullBio.get());
 
   // Write the cert to the digest BIO.
-  RETURN_NOT_OK(toBio(mdBio.get(), DataFormat::DER, data_.get()));
+  RETURN_NOT_OK(toBio(mdBio.get(), DataFormat::Der, data_.get()));
 
   // Read the digest from the BIO and append it to 'channelBindings'.
   char buf[EVP_MAX_MD_SIZE];

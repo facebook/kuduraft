@@ -45,12 +45,12 @@ namespace ca {
 class CertManagementTest : public KuduTest {
  public:
   void SetUp() override {
-    ASSERT_OK(caCert_.FromString(kCaCert, DataFormat::PEM));
-    ASSERT_OK(caPrivateKey_.FromString(kCaPrivateKey, DataFormat::PEM));
-    ASSERT_OK(caPublicKey_.FromString(kCaPublicKey, DataFormat::PEM));
-    ASSERT_OK(caExpCert_.FromString(kCaExpiredCert, DataFormat::PEM));
+    ASSERT_OK(caCert_.FromString(kCaCert, DataFormat::Pem));
+    ASSERT_OK(caPrivateKey_.FromString(kCaPrivateKey, DataFormat::Pem));
+    ASSERT_OK(caPublicKey_.FromString(kCaPublicKey, DataFormat::Pem));
+    ASSERT_OK(caExpCert_.FromString(kCaExpiredCert, DataFormat::Pem));
     ASSERT_OK(
-        caExpPrivateKey_.FromString(kCaExpiredPrivateKey, DataFormat::PEM));
+        caExpPrivateKey_.FromString(kCaExpiredPrivateKey, DataFormat::Pem));
     // Sanity checks.
     ASSERT_OK(caCert_.checkKeyMatch(caPrivateKey_));
     ASSERT_OK(caExpCert_.checkKeyMatch(caExpPrivateKey_));
@@ -109,7 +109,7 @@ TEST_F(CertManagementTest, RequestGeneratorBasics) {
   CertRequestGenerator gen(genConfig);
   ASSERT_OK(gen.init());
   string keyStr;
-  ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
+  ASSERT_OK(key.ToString(&keyStr, DataFormat::Pem));
   // Check for non-supported number of bits for the key.
   Status s = GeneratePrivateKey(7, &key);
   ASSERT_TRUE(s.IsRuntimeError());
@@ -239,7 +239,7 @@ TEST_F(CertManagementTest, TestSelfSignedCA) {
 //   internal -> PEM -> internal -> PEM
 //   internal -> DER -> internal -> DER
 TEST_F(CertManagementTest, X509CsrFromAndToString) {
-  static const DataFormat kFormats[] = {DataFormat::PEM, DataFormat::DER};
+  static const DataFormat kFormats[] = {DataFormat::Pem, DataFormat::Der};
 
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
@@ -265,7 +265,7 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
 //   internal -> PEM -> internal -> PEM
 //   internal -> DER -> internal -> DER
 TEST_F(CertManagementTest, X509FromAndToString) {
-  static const DataFormat kFormats[] = {DataFormat::PEM, DataFormat::DER};
+  static const DataFormat kFormats[] = {DataFormat::Pem, DataFormat::Der};
 
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));

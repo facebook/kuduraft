@@ -410,7 +410,7 @@ Status TlsContext::dumpTrustedCertsUnlocked(
       Cert c;
       c.adoptAndAddRefX509(x509);
       string der;
-      RETURN_NOT_OK(c.ToString(&der, DataFormat::DER));
+      RETURN_NOT_OK(c.ToString(&der, DataFormat::Der));
       ret.emplace_back(std::move(der));
     } else {
       string fields;
@@ -556,9 +556,9 @@ Status TlsContext::loadCertificateAndKey(
     const string& keyPath) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::PEM));
+  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
   PrivateKey k;
-  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::PEM));
+  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::Pem));
 
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -576,11 +576,11 @@ Status TlsContext::loadCertificateAndPasswordProtectedKey(
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
   RETURN_NOT_OK_PREPEND(
-      c.FromFile(certificatePath, DataFormat::PEM),
+      c.FromFile(certificatePath, DataFormat::Pem),
       "failed to load certificate");
   PrivateKey k;
   RETURN_NOT_OK_PREPEND(
-      k.FromFile(keyPath, DataFormat::PEM, passwordCb),
+      k.FromFile(keyPath, DataFormat::Pem, passwordCb),
       "failed to load private key file");
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -595,7 +595,7 @@ Status TlsContext::loadCertificateAndPasswordProtectedKey(
 Status TlsContext::loadCertificateAuthority(const string& certificatePath) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::PEM));
+  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
 
   std::unique_lock lock(lock_);
   if (hasCert_) {
@@ -611,13 +611,13 @@ Status TlsContext::loadCertFiles(
     bool useNewStore) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert caCert;
-  RETURN_NOT_OK(caCert.FromFile(caPath, DataFormat::PEM));
+  RETURN_NOT_OK(caCert.FromFile(caPath, DataFormat::Pem));
 
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::PEM));
+  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
 
   PrivateKey k;
-  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::PEM));
+  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::Pem));
 
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));

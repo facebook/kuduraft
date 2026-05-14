@@ -223,7 +223,7 @@ Status PrivateKey::GetPublicKey(PublicKey* publicKey) const {
       i2d_RSA_PUBKEY_bio(tmp.get(), rsa.get()),
       "error extracting public RSA key");
   // Read the public key into the result placeholder.
-  RETURN_NOT_OK(publicKey->FromBIO(tmp.get(), DataFormat::DER));
+  RETURN_NOT_OK(publicKey->FromBIO(tmp.get(), DataFormat::Der));
 
   return Status::OK();
 }

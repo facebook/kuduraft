@@ -309,9 +309,9 @@ const string& dataFormatToString(DataFormat fmt) {
   static const string kStrFormatDer = "DER";
   static const string kStrFormatPem = "PEM";
   switch (fmt) {
-    case DataFormat::DER:
+    case DataFormat::Der:
       return kStrFormatDer;
-    case DataFormat::PEM:
+    case DataFormat::Pem:
       return kStrFormatPem;
     default:
       return kStrFormatUnknown;

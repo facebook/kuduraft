@@ -41,12 +41,12 @@ Status toBio(BIO* bio, DataFormat format, TYPE* obj) {
   CHECK(bio);
   CHECK(obj);
   switch (format) {
-    case DataFormat::DER:
+    case DataFormat::Der:
       OPENSSL_RET_NOT_OK(
           Traits::kWriteDerFunc(bio, obj),
           "error exporting data in DER format");
       break;
-    case DataFormat::PEM:
+    case DataFormat::Pem:
       OPENSSL_RET_NOT_OK(
           Traits::kWritePemFunc(bio, obj),
           "error exporting data in PEM format");
@@ -79,10 +79,10 @@ Status fromBio(
     const PasswordCallback& cb = PasswordCallback()) {
   CHECK(bio);
   switch (format) {
-    case DataFormat::DER:
+    case DataFormat::Der:
       *ret = sslMakeUnique(Traits::kReadDerFunc(bio, nullptr));
       break;
-    case DataFormat::PEM:
+    case DataFormat::Pem:
       *ret = sslMakeUnique(
           Traits::kReadPemFunc(
               bio,

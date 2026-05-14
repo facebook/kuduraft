@@ -69,7 +69,7 @@ Status generatePublicKeyStrDer(string* ret) {
   PublicKey publicKey;
   RETURN_NOT_OK(privateKey.GetPublicKey(&publicKey));
   string publicKeyStrDer;
-  RETURN_NOT_OK(publicKey.ToString(&publicKeyStrDer, DataFormat::DER));
+  RETURN_NOT_OK(publicKey.ToString(&publicKeyStrDer, DataFormat::Der));
   *ret = publicKeyStrDer;
   return Status::OK();
 }
@@ -128,7 +128,7 @@ TEST_F(TokenTest, TestInit) {
   PrivateKey privateKey;
   ASSERT_OK(GeneratePrivateKey(512, &privateKey));
   string privateKeyStrDer;
-  ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
+  ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
   TokenSigningPrivateKeyPB pb;
   pb.set_rsa_key_der(privateKeyStrDer);
   pb.set_key_seq_num(kKeySeqNum);
@@ -201,7 +201,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     PrivateKey privateKey;
     ASSERT_OK(GeneratePrivateKey(512, &privateKey));
     string privateKeyStrDer;
-    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
+    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
     TokenSigningPrivateKeyPB pb;
     pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kExpiredKeySeqNum);
@@ -223,7 +223,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     PrivateKey privateKey;
     ASSERT_OK(GeneratePrivateKey(512, &privateKey));
     string privateKeyStrDer;
-    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
+    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
     TokenSigningPrivateKeyPB pb;
     pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kKeySeqNum);
@@ -306,7 +306,7 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     PrivateKey privateKey;
     ASSERT_OK(GeneratePrivateKey(512, &privateKey));
     string privateKeyStrDer;
-    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
+    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
     TokenSigningPrivateKeyPB pb;
     pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kKeySeqNum);

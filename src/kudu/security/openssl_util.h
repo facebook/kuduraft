@@ -64,8 +64,8 @@ using X509 = struct x509_st;
 //      SCOPED_OPENSSL_NO_PENDING_ERRORS;
 //      ... use OpenSSL APIs ...
 //    }
-#define SCOPED_OPENSSL_NO_PENDING_ERRORS                                  \
-  kudu::security::internal::ScopedCheckNoPendingSslErrors _no_ssl_errors( \
+#define SCOPED_OPENSSL_NO_PENDING_ERRORS                               \
+  kudu::security::internal::ScopedCheckNoPendingSslErrors noSslErrors( \
       __PRETTY_FUNCTION__)
 
 namespace kudu {
@@ -115,7 +115,7 @@ using CUniquePtr = std::unique_ptr<T, std::function<void(T*)>>;
 
 // For each SSL type, the Traits class provides the important OpenSSL
 // API functions.
-template <typename SSL_TYPE>
+template <typename SslType>
 struct SslTypeTraits {};
 
 template <>
@@ -168,15 +168,15 @@ struct SslTypeTraits<SSL_CTX> {
   static constexpr auto kFreeFunc = &SSL_CTX_free;
 };
 
-template <typename SSL_TYPE, typename Traits = SslTypeTraits<SSL_TYPE>>
-CUniquePtr<SSL_TYPE> sslMakeUnique(SSL_TYPE* d) {
+template <typename SslType, typename Traits = SslTypeTraits<SslType>>
+CUniquePtr<SslType> sslMakeUnique(SslType* d) {
   return {d, Traits::kFreeFunc};
 }
 
 // Acceptable formats for keys, X509 certificates and X509 CSRs.
 enum class DataFormat {
-  DER = 0, // DER/ASN1 format (binary): for representing object on the wire
-  PEM = 1, // PEM format (ASCII): for storing on filesystem, printing, etc.
+  Der = 0, // DER/ASN1 format (binary): for representing object on the wire
+  Pem = 1, // PEM format (ASCII): for storing on filesystem, printing, etc.
 };
 
 // Data format representation as a string.
