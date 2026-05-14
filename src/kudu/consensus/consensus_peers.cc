@@ -188,7 +188,7 @@ Status Peer::init() {
   // Capture a weak_ptr reference into the functor so it can safely handle
   // outliving the peer.
   weak_ptr<Peer> w = shared_from_this();
-  heartbeater_ = PeriodicTimer::Create(
+  heartbeater_ = PeriodicTimer::create(
       messenger_,
       [w]() {
         if (auto p = w.lock()) {
@@ -196,7 +196,7 @@ Status Peer::init() {
         }
       },
       MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
-  heartbeater_->Start();
+  heartbeater_->start();
   return Status::OK();
 }
 
@@ -336,7 +336,7 @@ void Peer::sendNextRequest(bool evenIfQueueEmpty, bool isLeaderLeaseRevoke) {
 
   if (reqHasOps) {
     // If we're actually sending ops there's no need to heartbeat for a while.
-    heartbeater_->Snooze();
+    heartbeater_->snooze();
   }
 
   MAYBE_FAULT(FLAGS_fault_crash_on_leader_request_fraction);
@@ -557,7 +557,7 @@ void Peer::close() {
 Peer::~Peer() {
   close();
   if (heartbeater_) {
-    heartbeater_->Stop();
+    heartbeater_->stop();
   }
 
   // We don't own the ops (the queue does).

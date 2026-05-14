@@ -44,7 +44,7 @@ class Messenger;
 // Messenger::ScheduleOnReactor() to run itself again in the future. This
 // looping behavior is called a "callback loop".
 //
-// Every time Stop() and then Start() (or just Start(), if this is the first
+// Every time stop() and then start() (or just start(), if this is the first
 // such call) are invoked, PeriodicTimer will kick off a new callback loop. If
 // there was an old loop, it remains intact until its scheduled callback runs,
 // at which point it will detect that a new loop was created and exit.
@@ -55,13 +55,13 @@ class Messenger;
 //
 // PeriodicTimers have shared ownership, but that's largely an implementation
 // detail to support asynchronous stopping. Users can treat them as exclusively
-// owned (though care must be taken when writing the task functor; see Stop()
+// owned (though care must be taken when writing the task functor; see stop()
 // for more details).
 //
 // TODO(adar): eventually we should build directly on libev as it supports
-// timer cancelation, which would allow us to implement synchronous Stop(), use
+// timer cancelation, which would allow us to implement synchronous stop(), use
 // exclusive ownership, and remove the restriction that the delta passed
-// into Snooze() be greater than GetMinimumPeriod().
+// into snooze() be greater than getMinimumPeriod().
 class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
                       public EnableMakeShared<PeriodicTimer> {
  public:
@@ -81,8 +81,8 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
 
     // The timer will automatically stop after running the user's task.
     //
-    // Just as with a normal timer, Snooze() will postpone the running of the
-    // task, and Stop() will cancel the task outright. Unlike a normal timer,
+    // Just as with a normal timer, snooze() will postpone the running of the
+    // task, and stop() will cancel the task outright. Unlike a normal timer,
     // both operations will no-op if the timer has already fired.
     //
     // If not set, defaults to false.
@@ -100,7 +100,7 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   // 'period' defines the period between tasks.
   //
   // 'options' allows additional (optional) customization of the timer.
-  static std::shared_ptr<PeriodicTimer> Create(
+  static std::shared_ptr<PeriodicTimer> create(
       std::shared_ptr<Messenger> messenger,
       RunTaskFunctor functor,
       MonoDelta period,
@@ -118,35 +118,35 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   // subsequent tasks.
   //
   // Does nothing if the timer was already started.
-  void Start(std::optional<MonoDelta> nextTaskDelta = {});
+  void start(std::optional<MonoDelta> nextTaskDelta = {});
 
   // Snoozes the timer for one period.
   //
   // If 'nextTaskDelta' is set, it is used verbatim as the delay for the next
   // task. Subsequent tasks will revert to the timer's regular period. The
-  // value of 'nextTaskDelta' must be greater than GetMinimumPeriod();
+  // value of 'nextTaskDelta' must be greater than getMinimumPeriod();
   // otherwise the task is not guaranteed to run in a timely manner.
   //
-  // Note: Snooze() is not additive. That is, if called at time X and again at
+  // Note: snooze() is not additive. That is, if called at time X and again at
   // time X + P/2, the timer is snoozed until X+P/2+P, not X+2P.
   //
   // Does nothing if the timer is stopped.
-  void Snooze(std::optional<MonoDelta> nextTaskDelta = {});
+  void snooze(std::optional<MonoDelta> nextTaskDelta = {});
 
   // Stops the timer.
   //
   // Stopping is asynchronous; that is, it is still possible for the task to
-  // run after Stop() returns. Because of this, the task's functor should be
+  // run after stop() returns. Because of this, the task's functor should be
   // written to do nothing if objects it depends on have been destroyed.
   //
   // Does nothing if the timer is already stopped.
-  void Stop();
+  void stop();
 
   // Returns true iff the timer has been started.
   bool started() const;
 
   // Returns the time left till the next run if running
-  std::optional<MonoDelta> TimeLeft() const;
+  std::optional<MonoDelta> timeLeft() const;
 
  protected:
   PeriodicTimer(
@@ -159,25 +159,25 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   FRIEND_TEST(PeriodicTimerTest, TestCallbackRestartsTimer);
   // Calculate the minimum period for the timer, which varies depending on
   // 'jitterPct' and the output of the PRNG.
-  MonoDelta GetMinimumPeriod();
+  MonoDelta getMinimumPeriod();
 
   // Called by Messenger::ScheduleOnReactor when the timer fires.
   // 'myCallbackGeneration' is the callback generation assigned to this loop
   // when it was constructed.
-  void Callback(int64_t myCallbackGeneration);
+  void callback(int64_t myCallbackGeneration);
 
-  // Like Stop() but must be called with 'lock_' held.
-  void StopUnlocked();
+  // Like stop() but must be called with 'lock_' held.
+  void stopUnlocked();
 
-  // Like Snooze() but must be called with 'lock_' held.
-  void SnoozeUnlocked(std::optional<MonoDelta> nextTaskDelta = {});
+  // Like snooze() but must be called with 'lock_' held.
+  void snoozeUnlocked(std::optional<MonoDelta> nextTaskDelta = {});
 
-  // Returns the number of times that Callback() has been called by this timer.
+  // Returns the number of times that callback() has been called by this timer.
   //
   // Should only be used for tests!
-  int64_t NumCallbacksForTests() const;
+  int64_t numCallbacksForTests() const;
 
-  // Schedules invocations of Callback() in the future.
+  // Schedules invocations of callback() in the future.
   std::shared_ptr<Messenger> messenger_;
 
   // User-defined task functor.
@@ -206,7 +206,7 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   // the (now old) loop should exit.
   int64_t currentCallbackGeneration_;
 
-  // The number of times that Callback() has been invoked.
+  // The number of times that callback() has been invoked.
   int64_t numCallbacksForTests_;
 
   // Whether the timer is running or not.

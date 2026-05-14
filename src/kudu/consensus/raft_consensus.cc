@@ -548,7 +548,7 @@ Status RaftConsensus::start(
   // Capture a weak_ptr reference into the functor so it can safely handle
   // outliving the consensus instance.
   weak_ptr<RaftConsensus> w = shared_from_this();
-  failureDetector_ = PeriodicTimer::Create(
+  failureDetector_ = PeriodicTimer::create(
       peerProxyFactory_->messenger(),
       [w]() {
         if (auto consensus = w.lock()) {
@@ -559,7 +559,7 @@ Status RaftConsensus::start(
 
   PeriodicTimer::Options opts;
   opts.oneShot = true;
-  transferPeriodTimer_ = PeriodicTimer::Create(
+  transferPeriodTimer_ = PeriodicTimer::create(
       peerProxyFactory_->messenger(),
       [w]() {
         if (auto consensus = w.lock()) {
@@ -1144,7 +1144,7 @@ Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
   queue_->BeginWatchForSuccessor(
       successor_uuid, filter_fn, election_ctx.transferContext());
 
-  transferPeriodTimer_->Start();
+  transferPeriodTimer_->start();
 
   if (FLAGS_enable_raft_leader_lease) {
     // Revoke for Leader lease here
@@ -1156,7 +1156,7 @@ Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
 }
 
 void RaftConsensus::endLeaderTransferPeriod() {
-  transferPeriodTimer_->Stop();
+  transferPeriodTimer_->stop();
   queue_->EndWatchForSuccessor();
   leaderTransferInProgress_.store(false, kMemOrderRelease);
 }
@@ -4565,12 +4565,12 @@ void RaftConsensus::enableFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(FLAGS_enable_leader_failure_detection)) {
     failureDetectorLastSnoozed_.store(
         std::chrono::system_clock::now(), std::memory_order_relaxed);
-    failureDetector_->Start(std::move(delta));
+    failureDetector_->start(std::move(delta));
   }
 }
 
 void RaftConsensus::disableFailureDetector() {
-  failureDetector_->Stop();
+  failureDetector_->stop();
 }
 
 void RaftConsensus::setWithholdVotesForTests(bool withhold_votes) {
@@ -4616,7 +4616,7 @@ void RaftConsensus::SnoozeFailureDetector(
     if (!delta) {
       delta = minimumElectionTimeout();
     }
-    failureDetector_->Snooze(std::move(delta));
+    failureDetector_->snooze(std::move(delta));
     failureDetectorLastSnoozed_.store(
         std::chrono::system_clock::now(), std::memory_order_relaxed);
   }
@@ -4628,11 +4628,11 @@ void RaftConsensus::pauseFailureDetector(std::optional<MonoDelta> delta) {
       delta = updateReplicaSnoozeTimeout();
     }
 
-    if (std::optional<MonoDelta> time_left = failureDetector_->TimeLeft()) {
+    if (std::optional<MonoDelta> time_left = failureDetector_->timeLeft()) {
       VLOG(2) << "Pausing failure detector for " << delta->ToString()
               << " with " << time_left->ToString() << " left";
       *(failureDetectorTimeLeft_.wlock()) = std::move(time_left);
-      failureDetector_->Snooze(std::move(delta));
+      failureDetector_->snooze(std::move(delta));
     }
   }
 }
@@ -4649,7 +4649,7 @@ void RaftConsensus::resumeFailureDetector() {
     if (time_left) {
       VLOG(2) << "Resuming failure detector with " << time_left->ToString()
               << " left";
-      failureDetector_->Snooze(*std::move(time_left));
+      failureDetector_->snooze(*std::move(time_left));
     }
   }
 }
@@ -5766,7 +5766,7 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
   // Capture a weak_ptr reference into the functor so it can safely handle
   // outliving the consensus instance.
   weak_ptr<RaftConsensus> w = shared_from_this();
-  checkQuorumTimer_ = PeriodicTimer::Create(
+  checkQuorumTimer_ = PeriodicTimer::create(
       peerProxyFactory_->messenger(),
       [w]() {
         if (!FLAGS_check_quorum) {
@@ -5806,13 +5806,13 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
       },
       check_interval,
       opts);
-  checkQuorumTimer_->Start(check_interval);
+  checkQuorumTimer_->start(check_interval);
 }
 
 void RaftConsensus::SnoozeCheckQuorumDetector(MonoDelta snooze_time) {
   LockGuard l(lock_);
   if (checkQuorumTimer_) {
-    checkQuorumTimer_->Snooze(snooze_time);
+    checkQuorumTimer_->snooze(snooze_time);
   }
 }
 

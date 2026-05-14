@@ -37,7 +37,7 @@ namespace rpc {
 
 PeriodicTimer::Options::Options() : jitterPct(0.25), oneShot(false) {}
 
-shared_ptr<PeriodicTimer> PeriodicTimer::Create(
+shared_ptr<PeriodicTimer> PeriodicTimer::create(
     shared_ptr<Messenger> messenger,
     RunTaskFunctor functor,
     MonoDelta period,
@@ -64,38 +64,38 @@ PeriodicTimer::PeriodicTimer(
 }
 
 PeriodicTimer::~PeriodicTimer() {
-  Stop();
+  stop();
 }
 
-void PeriodicTimer::Start(std::optional<MonoDelta> nextTaskDelta) {
+void PeriodicTimer::start(std::optional<MonoDelta> nextTaskDelta) {
   std::unique_lock<simple_spinlock> l(lock_);
   if (!started_) {
     started_ = true;
-    SnoozeUnlocked(std::move(nextTaskDelta));
+    snoozeUnlocked(std::move(nextTaskDelta));
     int newCallbackGeneration = ++currentCallbackGeneration_;
 
-    // Invoke Callback() with the lock released.
+    // Invoke callback() with the lock released.
     l.unlock();
-    Callback(newCallbackGeneration);
+    callback(newCallbackGeneration);
   }
 }
 
-void PeriodicTimer::Stop() {
+void PeriodicTimer::stop() {
   std::lock_guard<simple_spinlock> l(lock_);
-  StopUnlocked();
+  stopUnlocked();
 }
 
-void PeriodicTimer::StopUnlocked() {
+void PeriodicTimer::stopUnlocked() {
   DCHECK(lock_.is_locked());
   started_ = false;
 }
 
-void PeriodicTimer::Snooze(std::optional<MonoDelta> nextTaskDelta) {
+void PeriodicTimer::snooze(std::optional<MonoDelta> nextTaskDelta) {
   std::lock_guard<simple_spinlock> l(lock_);
-  SnoozeUnlocked(std::move(nextTaskDelta));
+  snoozeUnlocked(std::move(nextTaskDelta));
 }
 
-void PeriodicTimer::SnoozeUnlocked(std::optional<MonoDelta> nextTaskDelta) {
+void PeriodicTimer::snoozeUnlocked(std::optional<MonoDelta> nextTaskDelta) {
   DCHECK(lock_.is_locked());
   if (!started_) {
     return;
@@ -105,7 +105,7 @@ void PeriodicTimer::SnoozeUnlocked(std::optional<MonoDelta> nextTaskDelta) {
     // Given jitter percentage J and period P, this yields a delay somewhere
     // between (1-J)*P and (1+J)*P.
     nextTaskDelta = MonoDelta::FromMilliseconds(
-        GetMinimumPeriod().ToMilliseconds() +
+        getMinimumPeriod().ToMilliseconds() +
         rng_.nextDoubleFraction() * options_.jitterPct *
             (2 * period_.ToMilliseconds()));
   }
@@ -117,7 +117,7 @@ bool PeriodicTimer::started() const {
   return started_;
 }
 
-std::optional<MonoDelta> PeriodicTimer::TimeLeft() const {
+std::optional<MonoDelta> PeriodicTimer::timeLeft() const {
   std::lock_guard<simple_spinlock> l(lock_);
   if (!started_) {
     return {};
@@ -130,35 +130,35 @@ std::optional<MonoDelta> PeriodicTimer::TimeLeft() const {
   }
 }
 
-MonoDelta PeriodicTimer::GetMinimumPeriod() {
+MonoDelta PeriodicTimer::getMinimumPeriod() {
   // Given jitter percentage J and period P, this returns (1-J)*P, which is
   // the lowest possible jittered value.
   return MonoDelta::FromMilliseconds(
       (1.0 - options_.jitterPct) * period_.ToMilliseconds());
 }
 
-int64_t PeriodicTimer::NumCallbacksForTests() const {
+int64_t PeriodicTimer::numCallbacksForTests() const {
   std::lock_guard<simple_spinlock> l(lock_);
   return numCallbacksForTests_;
 }
 
-void PeriodicTimer::Callback(int64_t myCallbackGeneration) {
+void PeriodicTimer::callback(int64_t myCallbackGeneration) {
   // To simplify the implementation, a timer may have only one outstanding
   // callback scheduled at a time. This means that once the callback is
   // scheduled, the timer's task cannot run any earlier than whenever the
   // callback runs. Thus, the delay used when scheduling the callback dictates
-  // the lowest possible value of 'nextTaskDelta' that Snooze() can honor.
+  // the lowest possible value of 'nextTaskDelta' that snooze() can honor.
   //
-  // If the callback's delay is very low, Snooze() can honor a low
+  // If the callback's delay is very low, snooze() can honor a low
   // 'nextTaskDelta', but the callback will run often and burn more CPU
   // cycles. If the delay is very high, the timer will be more efficient but
   // the granularity for 'nextTaskDelta' will rise accordingly.
   //
-  // As a "happy medium" we use GetMinimumPeriod() as the delay. This ensures
-  // that a no-arg Snooze() on a jittered timer will always be honored, and as
-  // long as the caller passes a value of at least GetMinimumPeriod() to
-  // Snooze(), that too will be honored.
-  MonoDelta delay = GetMinimumPeriod();
+  // As a "happy medium" we use getMinimumPeriod() as the delay. This ensures
+  // that a no-arg snooze() on a jittered timer will always be honored, and as
+  // long as the caller passes a value of at least getMinimumPeriod() to
+  // snooze(), that too will be honored.
+  MonoDelta delay = getMinimumPeriod();
   bool runTask = false;
   {
     std::lock_guard<simple_spinlock> l(lock_);
@@ -192,7 +192,7 @@ void PeriodicTimer::Callback(int64_t myCallbackGeneration) {
 
       if (options_.oneShot) {
         // Stop the timer first, in case the task wants to restart it.
-        StopUnlocked();
+        stopUnlocked();
       }
     }
   }
@@ -206,7 +206,7 @@ void PeriodicTimer::Callback(int64_t myCallbackGeneration) {
       // the correct thing to do.
       return;
     }
-    Snooze();
+    snooze();
   }
 
   // Capture a weak_ptr reference into the submitted functor so that we can
@@ -219,7 +219,7 @@ void PeriodicTimer::Callback(int64_t myCallbackGeneration) {
           return;
         }
         if (auto timer = w.lock()) {
-          timer->Callback(myCallbackGeneration);
+          timer->callback(myCallbackGeneration);
         }
       },
       delay);
