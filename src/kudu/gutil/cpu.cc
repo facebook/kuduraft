@@ -46,27 +46,22 @@ namespace {
 
 #if defined(__pic__) && defined(__i386__)
 
-void __cpuid(int cpu_info[4], int info_type) {
+void __cpuid(int cpuInfo[4], int infoType) {
   __asm__ volatile(
       "mov %%ebx, %%edi\n"
       "cpuid\n"
       "xchg %%edi, %%ebx\n"
-      : "=a"(cpu_info[0]),
-        "=D"(cpu_info[1]),
-        "=c"(cpu_info[2]),
-        "=d"(cpu_info[3])
-      : "a"(info_type));
+      : "=a"(cpuInfo[0]), "=D"(cpuInfo[1]), "=c"(cpuInfo[2]), "=d"(cpuInfo[3])
+      : "a"(infoType));
 }
 
 #else
 
-void __cpuid(int cpu_info[4], int info_type) {
-  __asm__ volatile("cpuid\n"
-                   : "=a"(cpu_info[0]),
-                     "=b"(cpu_info[1]),
-                     "=c"(cpu_info[2]),
-                     "=d"(cpu_info[3])
-                   : "a"(info_type), "c"(0));
+void __cpuid(int cpuInfo[4], int infoType) {
+  __asm__ volatile(
+      "cpuid\n"
+      : "=a"(cpuInfo[0]), "=b"(cpuInfo[1]), "=c"(cpuInfo[2]), "=d"(cpuInfo[3])
+      : "a"(infoType), "c"(0));
 }
 
 #endif
@@ -131,22 +126,22 @@ class LazyCpuInfoValue {
 
         if (line.compare(0, len, key) == 0 && line.size() >= len + 1 &&
             (line[len] == '\t' || line[len] == ' ' || line[len] == ':')) {
-          size_t colon_pos = line.find(':', len);
-          if (colon_pos == std::string::npos) {
+          size_t colonPos = line.find(':', len);
+          if (colonPos == std::string::npos) {
             continue;
           }
 
-          const StringPiece line_sp(line);
-          StringPiece value_sp = line_sp.substr(colon_pos + 1);
-          while (!value_sp.empty() &&
-                 (value_sp[0] == ' ' || value_sp[0] == '\t')) {
-            value_sp = value_sp.substr(1);
+          const StringPiece lineSp(line);
+          StringPiece valueSp = lineSp.substr(colonPos + 1);
+          while (!valueSp.empty() &&
+                 (valueSp[0] == ' ' || valueSp[0] == '\t')) {
+            valueSp = valueSp.substr(1);
           }
 
           // The string may have leading "0x" or not, so we use strtoul to
           // handle that.
           char* endptr;
-          std::string value(value_sp.asString());
+          std::string value(valueSp.asString());
           unsigned long int result = strtoul(value.c_str(), &endptr, 0);
           if (*endptr == 0 && result <= UINT_MAX) {
             *kUnsignedValues[i].result = result;
@@ -182,8 +177,8 @@ base::LazyInstance<LazyCpuInfoValue>::Leaky g_lazy_cpuinfo =
 
 void Cpu::initialize() {
 #if defined(__x86_64__)
-  int cpu_info[4] = {-1};
-  char cpu_string[48];
+  int cpuInfo[4] = {-1};
+  char cpuString[48];
 
   // __cpuid with an InfoType argument of 0 returns the number of
   // valid Ids in CPUInfo[0] and the CPU identification string in
@@ -191,36 +186,36 @@ void Cpu::initialize() {
   // not in linear order. The code below arranges the information
   // in a human readable form. The human readable order is CPUInfo[1] |
   // CPUInfo[3] | CPUInfo[2]. CPUInfo[2] and CPUInfo[3] are swapped
-  // before using memcpy to copy these three array elements to cpu_string.
-  __cpuid(cpu_info, 0);
-  int num_ids = cpu_info[0];
-  std::swap(cpu_info[2], cpu_info[3]);
-  memcpy(cpu_string, &cpu_info[1], 3 * sizeof(cpu_info[1]));
-  cpuVendor_.assign(cpu_string, 3 * sizeof(cpu_info[1]));
+  // before using memcpy to copy these three array elements to cpuString.
+  __cpuid(cpuInfo, 0);
+  int numIds = cpuInfo[0];
+  std::swap(cpuInfo[2], cpuInfo[3]);
+  memcpy(cpuString, &cpuInfo[1], 3 * sizeof(cpuInfo[1]));
+  cpuVendor_.assign(cpuString, 3 * sizeof(cpuInfo[1]));
 
   // Interpret CPU feature information.
-  if (num_ids > 0) {
-    int cpu_info7[4] = {0};
-    __cpuid(cpu_info, 1);
-    if (num_ids >= 7) {
-      __cpuid(cpu_info7, 7);
+  if (numIds > 0) {
+    int cpuInfo7[4] = {0};
+    __cpuid(cpuInfo, 1);
+    if (numIds >= 7) {
+      __cpuid(cpuInfo7, 7);
     }
-    signature_ = cpu_info[0];
-    stepping_ = cpu_info[0] & 0xf;
-    model_ = ((cpu_info[0] >> 4) & 0xf) + ((cpu_info[0] >> 12) & 0xf0);
-    family_ = (cpu_info[0] >> 8) & 0xf;
-    type_ = (cpu_info[0] >> 12) & 0x3;
-    extModel_ = (cpu_info[0] >> 16) & 0xf;
-    extFamily_ = (cpu_info[0] >> 20) & 0xff;
-    hasMmx_ = (cpu_info[3] & 0x00800000) != 0;
-    hasSse_ = (cpu_info[3] & 0x02000000) != 0;
-    hasSse2_ = (cpu_info[3] & 0x04000000) != 0;
-    hasSse3_ = (cpu_info[2] & 0x00000001) != 0;
-    hasPclmulqdq_ = (cpu_info[2] & 0x00000002) != 0;
-    hasSsse3_ = (cpu_info[2] & 0x00000200) != 0;
-    hasSse41_ = (cpu_info[2] & 0x00080000) != 0;
-    hasSse42_ = (cpu_info[2] & 0x00100000) != 0;
-    hasPopcnt_ = (cpu_info[2] & 0x00800000) != 0;
+    signature_ = cpuInfo[0];
+    stepping_ = cpuInfo[0] & 0xf;
+    model_ = ((cpuInfo[0] >> 4) & 0xf) + ((cpuInfo[0] >> 12) & 0xf0);
+    family_ = (cpuInfo[0] >> 8) & 0xf;
+    type_ = (cpuInfo[0] >> 12) & 0x3;
+    extModel_ = (cpuInfo[0] >> 16) & 0xf;
+    extFamily_ = (cpuInfo[0] >> 20) & 0xff;
+    hasMmx_ = (cpuInfo[3] & 0x00800000) != 0;
+    hasSse_ = (cpuInfo[3] & 0x02000000) != 0;
+    hasSse2_ = (cpuInfo[3] & 0x04000000) != 0;
+    hasSse3_ = (cpuInfo[2] & 0x00000001) != 0;
+    hasPclmulqdq_ = (cpuInfo[2] & 0x00000002) != 0;
+    hasSsse3_ = (cpuInfo[2] & 0x00000200) != 0;
+    hasSse41_ = (cpuInfo[2] & 0x00080000) != 0;
+    hasSse42_ = (cpuInfo[2] & 0x00100000) != 0;
+    hasPopcnt_ = (cpuInfo[2] & 0x00800000) != 0;
     // AVX instructions will generate an illegal instruction exception unless
     //   a) they are supported by the CPU,
     //   b) XSAVE is supported by the CPU and
@@ -231,38 +226,38 @@ void Cpu::initialize() {
     // even after following Intel's example code. (See crbug.com/375968.)
     // Because of that, we also test the XSAVE bit because its description in
     // the CPUID documentation suggests that it signals xgetbv support.
-    hasAvx_ = (cpu_info[2] & 0x10000000) != 0 &&
-        (cpu_info[2] & 0x04000000) != 0 /* XSAVE */ &&
-        (cpu_info[2] & 0x08000000) != 0 /* OSXSAVE */ &&
+    hasAvx_ = (cpuInfo[2] & 0x10000000) != 0 &&
+        (cpuInfo[2] & 0x04000000) != 0 /* XSAVE */ &&
+        (cpuInfo[2] & 0x08000000) != 0 /* OSXSAVE */ &&
         (_xgetbv(0) & 6) == 6 /* XSAVE enabled by kernel */;
-    hasAesni_ = (cpu_info[2] & 0x02000000) != 0;
-    hasAvx2_ = hasAvx_ && (cpu_info7[1] & 0x00000020) != 0;
-    hasBmi_ = cpu_info7[1] & (1 << 3);
-    hasBmi2_ = cpu_info7[1] & (1 << 8);
+    hasAesni_ = (cpuInfo[2] & 0x02000000) != 0;
+    hasAvx2_ = hasAvx_ && (cpuInfo7[1] & 0x00000020) != 0;
+    hasBmi_ = cpuInfo7[1] & (1 << 3);
+    hasBmi2_ = cpuInfo7[1] & (1 << 8);
   }
 
   // Get the brand string of the cpu.
-  __cpuid(cpu_info, 0x80000000);
-  const int parameter_end = 0x80000004;
-  int max_parameter = cpu_info[0];
+  __cpuid(cpuInfo, 0x80000000);
+  const int kParameterEnd = 0x80000004;
+  int maxParameter = cpuInfo[0];
 
-  if (cpu_info[0] >= parameter_end) {
-    char* cpu_string_ptr = cpu_string;
+  if (cpuInfo[0] >= kParameterEnd) {
+    char* cpuStringPtr = cpuString;
 
-    for (int parameter = 0x80000002; parameter <= parameter_end &&
-         cpu_string_ptr < &cpu_string[sizeof(cpu_string)];
+    for (int parameter = 0x80000002; parameter <= kParameterEnd &&
+         cpuStringPtr < &cpuString[sizeof(cpuString)];
          parameter++) {
-      __cpuid(cpu_info, parameter);
-      memcpy(cpu_string_ptr, cpu_info, sizeof(cpu_info));
-      cpu_string_ptr += sizeof(cpu_info);
+      __cpuid(cpuInfo, parameter);
+      memcpy(cpuStringPtr, cpuInfo, sizeof(cpuInfo));
+      cpuStringPtr += sizeof(cpuInfo);
     }
-    cpuBrand_.assign(cpu_string, cpu_string_ptr - cpu_string);
+    cpuBrand_.assign(cpuString, cpuStringPtr - cpuString);
   }
 
-  const int parameter_containing_non_stop_time_stamp_counter = 0x80000007;
-  if (max_parameter >= parameter_containing_non_stop_time_stamp_counter) {
-    __cpuid(cpu_info, parameter_containing_non_stop_time_stamp_counter);
-    hasNonStopTimeStampCounter_ = (cpu_info[3] & (1 << 8)) != 0;
+  const int kParameterContainingNonStopTimeStampCounter = 0x80000007;
+  if (maxParameter >= kParameterContainingNonStopTimeStampCounter) {
+    __cpuid(cpuInfo, kParameterContainingNonStopTimeStampCounter);
+    hasNonStopTimeStampCounter_ = (cpuInfo[3] & (1 << 8)) != 0;
   }
 #elif defined(ARCH_CPU_ARM_FAMILY) && (defined(OS_ANDROID) || defined(OS_LINUX))
   cpuBrand_.assign(g_lazy_cpuinfo.Get().brand());
