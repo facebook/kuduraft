@@ -141,12 +141,12 @@ namespace {
 // of the message.  This function attempts to distinguish between the two and
 // provide a useful error message.
 void byteSizeConsistencyError(
-    int byte_size_before_serialization,
-    int byte_size_after_serialization,
-    int bytes_produced_by_serialization) {
-  CHECK_EQ(byte_size_before_serialization, byte_size_after_serialization)
+    int byteSizeBeforeSerialization,
+    int byteSizeAfterSerialization,
+    int bytesProducedBySerialization) {
+  CHECK_EQ(byteSizeBeforeSerialization, byteSizeAfterSerialization)
       << "Protocol message was modified concurrently during serialization.";
-  CHECK_EQ(bytes_produced_by_serialization, byte_size_before_serialization)
+  CHECK_EQ(bytesProducedBySerialization, byteSizeBeforeSerialization)
       << "Byte size calculation and serialization were inconsistent.  This "
          "may indicate a bug in protocol buffers or it may be caused by "
          "concurrent modification of the message.";
@@ -237,9 +237,9 @@ Status validateAndReadData(
 // the 'slices'.
 // If they match, returns OK. Otherwise, returns Status::Corruption.
 Status parseAndCompareChecksum(
-    const uint8_t* checksum_buf,
+    const uint8_t* checksumBuf,
     const initializer_list<Slice>& slices) {
-  uint32_t written_checksum = DecodeFixed32(checksum_buf);
+  uint32_t written_checksum = DecodeFixed32(checksumBuf);
   uint64_t actual_checksum = 0;
   Crc* crc32c = crc::getCrc32cInstance();
   for (Slice s : slices) {
@@ -277,14 +277,14 @@ Status restOfFileIsAllZeros(
     ReadableFileType* reader,
     uint64_t filesize,
     uint64_t offset,
-    bool* all_zeros) {
+    bool* allZeros) {
   DCHECK(reader);
   DCHECK_GE(filesize, offset);
-  DCHECK(all_zeros);
-  constexpr uint64_t max_to_read = 4 * 1024 * 1024; // 4 MiB.
+  DCHECK(allZeros);
+  constexpr uint64_t kMaxToRead = 4 * 1024 * 1024; // 4 MiB.
   faststring buf;
   while (true) {
-    uint64_t to_read = std::min(max_to_read, filesize - offset);
+    uint64_t to_read = std::min(kMaxToRead, filesize - offset);
     if (to_read == 0) {
       break;
     }
@@ -292,11 +292,11 @@ Status restOfFileIsAllZeros(
     RETURN_NOT_OK(reader->Read(offset, Slice(buf)));
     offset += to_read;
     if (!isAllZeros(buf)) {
-      *all_zeros = false;
+      *allZeros = false;
       return Status::OK();
     }
   }
-  *all_zeros = true;
+  *allZeros = true;
   return Status::OK();
 }
 
@@ -345,10 +345,10 @@ Status readPbStartingAt(
     // filesize metadata is updated but the new data is not persisted.
     // See https://plus.google.com/+KentonVarda/posts/JDwHfAiLGNQ.
     if (isAllZeros(length_and_cksum_buf)) {
-      bool all_zeros;
+      bool allZeros;
       RETURN_NOT_OK(
-          restOfFileIsAllZeros(reader, file_size, tmp_offset, &all_zeros));
-      if (all_zeros) {
+          restOfFileIsAllZeros(reader, file_size, tmp_offset, &allZeros));
+      if (allZeros) {
         return Status::Incomplete(
             "incomplete write of PB: rest of file is NULL bytes");
       }
@@ -363,10 +363,10 @@ Status readPbStartingAt(
             reader->filename(),
             tmp_offset - kPbContainerChecksumLen));
   }
-  uint32_t data_length = DecodeFixed32(length.data());
+  uint32_t dataLength = DecodeFixed32(length.data());
 
   // Read body and checksum into buffer for checksum & parsing.
-  uint64_t data_and_cksum_buflen = data_length + kPbContainerChecksumLen;
+  uint64_t data_and_cksum_buflen = dataLength + kPbContainerChecksumLen;
   faststring body_and_cksum_buf;
   RETURN_NOT_OK_PREPEND(
       validateAndReadData(
@@ -380,9 +380,9 @@ Status readPbStartingAt(
           "at offset {}",
           reader->filename(),
           tmp_offset));
-  Slice body(body_and_cksum_buf.data(), data_length);
+  Slice body(body_and_cksum_buf.data(), dataLength);
   Slice record_checksum(
-      body_and_cksum_buf.data() + data_length, kPbContainerChecksumLen);
+      body_and_cksum_buf.data() + dataLength, kPbContainerChecksumLen);
 
   // Version 1 has a single checksum for length, body.
   // Version 2+ has individual checksums for length and body, respectively.
@@ -481,29 +481,29 @@ Status parsePbFileHeader(
   // Validate magic number.
   if (PREDICT_FALSE(!strings::memEq(
           kPbContainerMagic, header.data(), kPbContainerMagicLen))) {
-    string file_magic(
+    string fileMagic(
         reinterpret_cast<const char*>(header.data()), kPbContainerMagicLen);
     return Status::Corruption(
         "Invalid magic number",
         fmt::format(
             "Expected: {}, found: {}",
             utf8SafeCEscape(kPbContainerMagic),
-            utf8SafeCEscape(file_magic)));
+            utf8SafeCEscape(fileMagic)));
   }
 
   // Validate container file version.
-  uint32_t tmp_version = DecodeFixed32(header.data() + kPbContainerMagicLen);
-  if (PREDICT_FALSE(!isSupportedContainerVersion(tmp_version))) {
+  uint32_t tmpVersion = DecodeFixed32(header.data() + kPbContainerMagicLen);
+  if (PREDICT_FALSE(!isSupportedContainerVersion(tmpVersion))) {
     return Status::NotSupported(
         fmt::format(
             "Protobuf container has unsupported version: {}. Default version: {}",
-            tmp_version,
+            tmpVersion,
             kPbContainerDefaultVersion));
   }
 
   // Versions >= 2 have a checksum after the magic number and encoded version
   // to ensure the integrity of these fields.
-  if (tmp_version >= 2) {
+  if (tmpVersion >= 2) {
     RETURN_NOT_OK_PREPEND(
         parseAndCompareChecksum(checksum.data(), {magic_and_version}),
         CHECKSUM_ERR_MSG(
@@ -517,7 +517,7 @@ Status parsePbFileHeader(
   }
 
   *offset = tmp_offset;
-  *version = tmp_version;
+  *version = tmpVersion;
   return Status::OK();
 }
 
@@ -528,9 +528,9 @@ Status readSupplementalHeader(
     int version,
     std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
-    ContainerSupHeaderPB* sup_header) {
+    ContainerSupHeaderPB* supHeader) {
   RETURN_NOT_OK_PREPEND(
-      readFullPb(reader, version, cached_file_size, offset, sup_header),
+      readFullPb(reader, version, cached_file_size, offset, supHeader),
       fmt::format(
           "Could not read supplemental header from proto container file {} "
           "with version {} at offset {}",
@@ -548,17 +548,17 @@ void AppendToString(const MessageLite& msg, faststring* output) {
 }
 
 void AppendPartialToString(const MessageLite& msg, faststring* output) {
-  size_t old_size = output->size();
-  int byte_size = msg.ByteSize();
+  size_t oldSize = output->size();
+  int byteSize = msg.ByteSize();
   // Messages >2G cannot be serialized due to overflow computing ByteSize.
-  DCHECK_GE(byte_size, 0) << "Error computing ByteSize";
+  DCHECK_GE(byteSize, 0) << "Error computing ByteSize";
 
-  output->resize(old_size + static_cast<size_t>(byte_size));
+  output->resize(oldSize + static_cast<size_t>(byteSize));
 
-  uint8_t* start = &((*output)[old_size]);
+  uint8_t* start = &((*output)[oldSize]);
   uint8_t* end = msg.SerializeWithCachedSizesToArray(start);
-  if (end - start != byte_size) {
-    byteSizeConsistencyError(byte_size, msg.ByteSize(), end - start);
+  if (end - start != byteSize) {
+    byteSizeConsistencyError(byteSize, msg.ByteSize(), end - start);
   }
 }
 
@@ -646,9 +646,9 @@ void TruncateFields(Message* message, int max_len) {
       for (int i = 0; i < reflection->FieldSize(*message, field); i++) {
         switch (field->cpp_type()) {
           case FieldDescriptor::CPPTYPE_STRING: {
-            const string& s_const = reflection->GetRepeatedStringReference(
+            const string& sConst = reflection->GetRepeatedStringReference(
                 *message, field, i, nullptr);
-            truncateString(const_cast<string*>(&s_const), max_len);
+            truncateString(const_cast<string*>(&sConst), max_len);
             break;
           }
           case FieldDescriptor::CPPTYPE_MESSAGE: {
@@ -663,9 +663,9 @@ void TruncateFields(Message* message, int max_len) {
     } else {
       switch (field->cpp_type()) {
         case FieldDescriptor::CPPTYPE_STRING: {
-          const string& s_const =
+          const string& sConst =
               reflection->GetStringReference(*message, field, nullptr);
-          truncateString(const_cast<string*>(&s_const), max_len);
+          truncateString(const_cast<string*>(&sConst), max_len);
           break;
         }
         case FieldDescriptor::CPPTYPE_MESSAGE: {
@@ -713,27 +713,27 @@ class SecureFieldPrinter : public TextFormat::FieldValuePrinter {
 } // anonymous namespace
 
 string SecureDebugString(const Message& msg) {
-  string debug_string;
+  string debugString;
   TextFormat::Printer printer;
   printer.SetDefaultFieldValuePrinter(new SecureFieldPrinter());
-  printer.PrintToString(msg, &debug_string);
-  return debug_string;
+  printer.PrintToString(msg, &debugString);
+  return debugString;
 }
 
 string SecureShortDebugString(const Message& msg) {
-  string debug_string;
+  string debugString;
 
   TextFormat::Printer printer;
   printer.SetSingleLineMode(true);
   printer.SetDefaultFieldValuePrinter(new SecureFieldPrinter());
 
-  printer.PrintToString(msg, &debug_string);
+  printer.PrintToString(msg, &debugString);
   // Single line mode currently might have an extra space at the end.
-  if (!debug_string.empty() && debug_string[debug_string.size() - 1] == ' ') {
-    debug_string.resize(debug_string.size() - 1);
+  if (!debugString.empty() && debugString[debugString.size() - 1] == ' ') {
+    debugString.resize(debugString.size() - 1);
   }
 
-  return debug_string;
+  return debugString;
 }
 
 WritablePBContainerFile::WritablePBContainerFile(shared_ptr<RWFile> writer)
@@ -785,12 +785,12 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
   DCHECK_EQ(offset, kHeaderLen);
 
   // Serialize the supplemental header.
-  ContainerSupHeaderPB sup_header;
+  ContainerSupHeaderPB supHeader;
   PopulateDescriptorSet(
-      msg.GetDescriptor()->file(), sup_header.mutable_protos());
-  sup_header.set_pb_type(msg.GetTypeName());
+      msg.GetDescriptor()->file(), supHeader.mutable_protos());
+  supHeader.set_pb_type(msg.GetTypeName());
   RETURN_NOT_OK_PREPEND(
-      AppendMsgToBuffer(sup_header, &buf),
+      AppendMsgToBuffer(supHeader, &buf),
       "Failed to prepare supplemental header for writing");
 
   // Write the serialized buffer to the file.
@@ -803,9 +803,9 @@ Status WritablePBContainerFile::OpenExisting() {
   DCHECK_EQ(FileState::NotInitialized, state_);
   std::optional<uint64_t> size;
   RETURN_NOT_OK(parsePbFileHeader(writer_.get(), &size, &offset_, &version_));
-  ContainerSupHeaderPB sup_header;
+  ContainerSupHeaderPB supHeader;
   RETURN_NOT_OK(readSupplementalHeader(
-      writer_.get(), version_, &size, &offset_, &sup_header));
+      writer_.get(), version_, &size, &offset_, &supHeader));
   offset_ = *size; // Reset the write offset to the end of the file.
   state_ = FileState::Open;
   return Status::OK();
@@ -865,10 +865,10 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
     const Message& msg,
     faststring* buf) {
   DCHECK(msg.IsInitialized()) << initializationErrorMessage("serialize", msg);
-  int data_len = msg.ByteSize();
+  int dataLen = msg.ByteSize();
   // Messages >2G cannot be serialized due to overflow computing ByteSize.
-  DCHECK_GE(data_len, 0) << "Error computing ByteSize";
-  uint64_t record_buflen = sizeof(uint32_t) + data_len + sizeof(uint32_t);
+  DCHECK_GE(dataLen, 0) << "Error computing ByteSize";
+  uint64_t record_buflen = sizeof(uint32_t) + dataLen + sizeof(uint32_t);
   if (version_ >= 2) {
     record_buflen +=
         sizeof(uint32_t); // Additional checksum just for the length.
@@ -881,12 +881,12 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
 
   // Serialize the data length.
   size_t cur_offset = 0;
-  inlineEncodeFixed32(dst + cur_offset, static_cast<uint32_t>(data_len));
+  inlineEncodeFixed32(dst + cur_offset, static_cast<uint32_t>(dataLen));
   cur_offset += sizeof(uint32_t);
 
   // For version >= 2: Serialize the checksum of the data length.
   if (version_ >= 2) {
-    uint32_t length_checksum = crc::crc32c(&data_len, sizeof(data_len));
+    uint32_t length_checksum = crc::crc32c(&dataLen, sizeof(dataLen));
     inlineEncodeFixed32(dst + cur_offset, length_checksum);
     cur_offset += sizeof(uint32_t);
   }
@@ -896,7 +896,7 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
   if (PREDICT_FALSE(!msg.SerializeWithCachedSizesToArray(dst + cur_offset))) {
     return Status::IOError("Failed to serialize PB to array");
   }
-  cur_offset += data_len;
+  cur_offset += dataLen;
 
   // Calculate and serialize the data checksum.
   // For version 1, this is the checksum of the len + data.
@@ -905,7 +905,7 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
   if (version_ == 1) {
     data_checksum = crc::crc32c(dst, cur_offset);
   } else {
-    data_checksum = crc::crc32c(dst + data_offset, data_len);
+    data_checksum = crc::crc32c(dst + data_offset, dataLen);
   }
   inlineEncodeFixed32(dst + cur_offset, data_checksum);
   cur_offset += sizeof(uint32_t);
@@ -973,11 +973,11 @@ Status ReadablePBContainerFile::Open() {
   DCHECK_EQ(FileState::NotInitialized, state_);
   RETURN_NOT_OK(
       parsePbFileHeader(reader_.get(), &cachedFileSize_, &offset_, &version_));
-  ContainerSupHeaderPB sup_header;
+  ContainerSupHeaderPB supHeader;
   RETURN_NOT_OK(readSupplementalHeader(
-      reader_.get(), version_, &cachedFileSize_, &offset_, &sup_header));
-  protos_.reset(sup_header.release_protos());
-  pbType_ = sup_header.pb_type();
+      reader_.get(), version_, &cachedFileSize_, &offset_, &supHeader));
+  protos_.reset(supHeader.release_protos());
+  pbType_ = supHeader.pb_type();
   state_ = FileState::Open;
   return Status::OK();
 }
