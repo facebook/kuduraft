@@ -54,24 +54,24 @@ namespace kudu {
 // disk, you should go add the assertIoAllowed checks in the helper functions.
 class ThreadRestrictions {
  public:
-  // Constructing a ScopedAllowIO temporarily allows IO for the current
+  // Constructing a ScopedAllowIo temporarily allows IO for the current
   // thread.  Doing this is almost certainly always incorrect, but sometimes
   // it makes more sense to allow an exception and file a bug in the backlog
   // to improve it later.
-  class ScopedAllowIO {
+  class ScopedAllowIo {
    public:
-    ScopedAllowIO() {
+    ScopedAllowIo() {
       previousValue_ = setIoAllowed(true);
     }
-    ~ScopedAllowIO() {
+    ~ScopedAllowIo() {
       setIoAllowed(previousValue_);
     }
 
    private:
-    // Whether IO is allowed when the ScopedAllowIO was constructed.
+    // Whether IO is allowed when the ScopedAllowIo was constructed.
     bool previousValue_;
 
-    DISALLOW_COPY_AND_ASSIGN(ScopedAllowIO);
+    DISALLOW_COPY_AND_ASSIGN(ScopedAllowIo);
   };
 
   // Constructing a ScopedAllowWait temporarily allows waiting on the current

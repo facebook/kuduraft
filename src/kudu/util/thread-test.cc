@@ -118,7 +118,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_IO) {
 
   ThreadRestrictions::setIoAllowed(false);
   {
-    ThreadRestrictions::ScopedAllowIO allowIo;
+    ThreadRestrictions::ScopedAllowIo allowIo;
     ASSERT_TRUE(Env::Default()->FileExists("/"));
   }
   ThreadRestrictions::setIoAllowed(true);
