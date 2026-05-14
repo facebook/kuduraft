@@ -63,7 +63,7 @@ FollyThreadPoolToken::~FollyThreadPoolToken() {
   Shutdown();
 }
 
-Status FollyThreadPoolToken::SubmitClosure(Closure c) {
+Status FollyThreadPoolToken::submitClosure(Closure c) {
   return Submit(std::make_shared<ClosureRunnable>(std::move(c)));
 }
 
@@ -111,7 +111,7 @@ void FollyThreadPool::Shutdown() {
   executor_->join();
 }
 
-Status FollyThreadPool::SubmitClosure(Closure c) {
+Status FollyThreadPool::submitClosure(Closure c) {
   return Submit(std::make_shared<ClosureRunnable>(std::move(c)));
 }
 
@@ -138,10 +138,10 @@ int FollyThreadPool::activeThreads() const {
 }
 
 std::unique_ptr<ThreadPoolToken> FollyThreadPool::NewToken(ExecutionMode mode) {
-  return NewTokenWithMetrics(mode, {});
+  return newTokenWithMetrics(mode, {});
 }
 
-std::unique_ptr<ThreadPoolToken> FollyThreadPool::NewTokenWithMetrics(
+std::unique_ptr<ThreadPoolToken> FollyThreadPool::newTokenWithMetrics(
     ExecutionMode mode,
     ThreadPoolMetrics metrics) {
   return std::make_unique<FollyThreadPoolToken>(

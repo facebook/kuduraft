@@ -656,7 +656,7 @@ Status ReactorThread::startConnectionNegotiation(
   auto encryption = reactor()->messenger()->encryption();
   ThreadPool* negotiationPool =
       reactor()->messenger()->negotiation_pool(conn->direction());
-  RETURN_NOT_OK(negotiationPool->SubmitClosure(Bind(
+  RETURN_NOT_OK(negotiationPool->submitClosure(Bind(
       &Negotiation::runNegotiation,
       conn,
       authentication,

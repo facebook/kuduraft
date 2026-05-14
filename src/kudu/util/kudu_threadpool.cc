@@ -95,7 +95,7 @@ KuduThreadPoolToken::~KuduThreadPoolToken() {
   pool_->releaseToken(this);
 }
 
-Status KuduThreadPoolToken::SubmitClosure(Closure c) {
+Status KuduThreadPoolToken::submitClosure(Closure c) {
   return Submit(std::make_shared<ClosureRunnable>(std::move(c)));
 }
 
@@ -359,10 +359,10 @@ void KuduThreadPool::Shutdown() {
 
 unique_ptr<ThreadPoolToken> KuduThreadPool::NewToken(
     ThreadPool::ExecutionMode mode) {
-  return NewTokenWithMetrics(mode, {});
+  return newTokenWithMetrics(mode, {});
 }
 
-unique_ptr<ThreadPoolToken> KuduThreadPool::NewTokenWithMetrics(
+unique_ptr<ThreadPoolToken> KuduThreadPool::newTokenWithMetrics(
     ThreadPool::ExecutionMode mode,
     ThreadPoolMetrics metrics) {
   MutexLock guard(lock_);
@@ -381,7 +381,7 @@ void KuduThreadPool::releaseToken(KuduThreadPoolToken* t) {
   CHECK_EQ(1, tokens_.erase(t));
 }
 
-Status KuduThreadPool::SubmitClosure(Closure c) {
+Status KuduThreadPool::submitClosure(Closure c) {
   return Submit(std::make_shared<ClosureRunnable>(std::move(c)));
 }
 

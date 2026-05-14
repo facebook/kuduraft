@@ -110,7 +110,7 @@ class KuduThreadPool : public ThreadPool {
   void Shutdown() override;
 
   // Submits a function using the kudu Closure system.
-  Status SubmitClosure(Closure c) override WARN_UNUSED_RESULT;
+  Status submitClosure(Closure c) override WARN_UNUSED_RESULT;
 
   // Submits a function bound using boost::bind(&FuncName, args...).
   Status SubmitFunc(boost::function<void()> f) override WARN_UNUSED_RESULT;
@@ -129,7 +129,7 @@ class KuduThreadPool : public ThreadPool {
   // Like NewToken(), but lets the caller provide metrics for the token. These
   // metrics are incremented/decremented in addition to the configured
   // pool-wide metrics (if any).
-  std::unique_ptr<ThreadPoolToken> NewTokenWithMetrics(
+  std::unique_ptr<ThreadPoolToken> newTokenWithMetrics(
       ThreadPool::ExecutionMode mode,
       ThreadPoolMetrics metrics) override;
 
@@ -291,7 +291,7 @@ class KuduThreadPoolToken : public ThreadPoolToken {
   virtual ~KuduThreadPoolToken() override;
 
   // Submits a function using the kudu Closure system.
-  Status SubmitClosure(Closure c) override WARN_UNUSED_RESULT;
+  Status submitClosure(Closure c) override WARN_UNUSED_RESULT;
 
   // Submits a function bound using boost::bind(&FuncName, args...).
   Status SubmitFunc(boost::function<void()> f) override WARN_UNUSED_RESULT;

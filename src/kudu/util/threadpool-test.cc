@@ -127,7 +127,7 @@ TEST_F(ThreadPoolTest, TestSimpleTasks) {
   ASSERT_OK(pool_->Submit(task));
   ASSERT_OK(pool_->SubmitFunc(boost::bind(&simpleTaskMethod, 20, &counter)));
   ASSERT_OK(pool_->Submit(task));
-  ASSERT_OK(pool_->SubmitClosure(Bind(&simpleTaskMethod, 123, &counter)));
+  ASSERT_OK(pool_->submitClosure(Bind(&simpleTaskMethod, 123, &counter)));
   waitForPool(*pool_);
   ASSERT_EQ(10 + 15 + 20 + 15 + 123, base::subtle::NoBarrier_Load(&counter));
   pool_->Shutdown();
@@ -410,7 +410,7 @@ TEST_F(ThreadPoolTest, TestPromises) {
                                        .set_max_queue_size(1)));
 
   Promise<int> myPromise;
-  ASSERT_OK(pool_->SubmitClosure(
+  ASSERT_OK(pool_->submitClosure(
       Bind(&Promise<int>::set, Unretained(&myPromise), 5)));
   ASSERT_EQ(5, myPromise.get());
   pool_->Shutdown();
@@ -465,9 +465,9 @@ TEST_F(ThreadPoolTest, TestMetrics) {
                                        .set_max_threads(1)
                                        .set_metrics(allMetrics[0])));
 
-  unique_ptr<ThreadPoolToken> t1 = pool_->NewTokenWithMetrics(
+  unique_ptr<ThreadPoolToken> t1 = pool_->newTokenWithMetrics(
       ThreadPool::ExecutionMode::Serial, allMetrics[1]);
-  unique_ptr<ThreadPoolToken> t2 = pool_->NewTokenWithMetrics(
+  unique_ptr<ThreadPoolToken> t2 = pool_->newTokenWithMetrics(
       ThreadPool::ExecutionMode::Serial, allMetrics[2]);
 
   // Submit once to t1, twice to t2, and three times without a token.
@@ -511,7 +511,7 @@ TEST_F(ThreadPoolTest, TestDeadlocks) {
   ASSERT_DEATH(
       {
         ASSERT_OK(rebuildPoolWithMinMax(1, 1));
-        ASSERT_OK(pool_->SubmitClosure(
+        ASSERT_OK(pool_->submitClosure(
             Bind(&ThreadPool::Shutdown, Unretained(pool_.get()))));
         waitForPool(*pool_);
       },

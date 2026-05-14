@@ -791,7 +791,7 @@ void PeerMessageQueue::LocalPeerAppendFinished(
   // blocking on queue_lock_)
   OpId local_id = id;
   if (FLAGS_HANDLER(FLAGS_async_local_vote_count)) {
-    CHECK_OK(raftPoolObserversToken_->SubmitClosure(Bind(
+    CHECK_OK(raftPoolObserversToken_->submitClosure(Bind(
         &PeerMessageQueue::DoLocalPeerAppendFinished,
         Unretained(this),
         local_id,
@@ -2927,7 +2927,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
   // NOTE: if we're scheduling this to run async we always need to lock, so we
   // ignore the needs_lock param
   WARN_NOT_OK(
-      raftPoolObserversToken_->SubmitClosure(Bind(
+      raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2939,7 +2939,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
 
 void PeerMessageQueue::NotifyObserversOfTermChange(int64_t term) {
   WARN_NOT_OK(
-      raftPoolObserversToken_->SubmitClosure(Bind(
+      raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2953,7 +2953,7 @@ void PeerMessageQueue::NotifyObserversOfFailedFollower(
     int64_t term,
     const string& reason) {
   WARN_NOT_OK(
-      raftPoolObserversToken_->SubmitClosure(Bind(
+      raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2965,7 +2965,7 @@ void PeerMessageQueue::NotifyObserversOfFailedFollower(
 
 void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
   WARN_NOT_OK(
-      raftPoolObserversToken_->SubmitClosure(Bind(
+      raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2978,7 +2978,7 @@ void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
 void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
   DCHECK(queue_lock_.is_locked());
   WARN_NOT_OK(
-      raftPoolObserversToken_->SubmitClosure(Bind(
+      raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=, transfer_context = std::move(transfer_context_)](
@@ -3019,7 +3019,7 @@ Status PeerMessageQueue::GetSnapshotForMockElection(
 
 void PeerMessageQueue::NotifyObserversOfPeerHealthChange() {
   WARN_NOT_OK(
-      raftPoolObserversToken_->SubmitClosure(Bind(
+      raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [](PeerMessageQueueObserver* observer) {

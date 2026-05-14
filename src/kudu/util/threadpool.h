@@ -51,7 +51,7 @@ class ThreadPoolToken {
   virtual ~ThreadPoolToken() {}
 
   // Submits a function using the kudu Closure system.
-  [[nodiscard]] virtual Status SubmitClosure(Closure c) = 0;
+  [[nodiscard]] virtual Status submitClosure(Closure c) = 0;
 
   // Submits a function bound using boost::bind(&FuncName, args...).
   [[nodiscard]] virtual Status SubmitFunc(boost::function<void()> f) = 0;
@@ -92,7 +92,7 @@ class ThreadPool {
   virtual void Shutdown() = 0;
 
   // Submits a function using the kudu Closure system.
-  [[nodiscard]] virtual Status SubmitClosure(Closure c) = 0;
+  [[nodiscard]] virtual Status submitClosure(Closure c) = 0;
 
   // Submits a function bound using boost::bind(&FuncName, args...).
   [[nodiscard]] virtual Status SubmitFunc(boost::function<void()> f) = 0;
@@ -121,7 +121,7 @@ class ThreadPool {
   // Like NewToken(), but lets the caller provide metrics for the token. These
   // metrics are incremented/decremented in addition to the configured
   // pool-wide metrics (if any).
-  virtual std::unique_ptr<ThreadPoolToken> NewTokenWithMetrics(
+  virtual std::unique_ptr<ThreadPoolToken> newTokenWithMetrics(
       ThreadPool::ExecutionMode mode,
       ThreadPoolMetrics metrics) = 0;
 };

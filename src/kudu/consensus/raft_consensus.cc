@@ -1077,7 +1077,7 @@ Status RaftConsensus::mockTransferLeadership(
   std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise =
       std::make_shared<Promise<RunLeaderElectionResponsePB>>();
 
-  Status status = raftPoolToken_->SubmitClosure(Bind(
+  Status status = raftPoolToken_->submitClosure(Bind(
       &RaftConsensus::notifyPeerToStartElection,
       Unretained(this),
       new_leader_uuid,
@@ -4382,7 +4382,7 @@ log::RetentionIndexes RaftConsensus::getRetentionIndexes() {
 
 void RaftConsensus::MarkDirty(const std::string& reason) {
   WARN_NOT_OK(
-      raftPoolToken_->SubmitClosure(Bind(markDirtyClbk_, reason)),
+      raftPoolToken_->submitClosure(Bind(markDirtyClbk_, reason)),
       LogPrefixThreadSafe() + "Unable to run MarkDirty callback");
 }
 

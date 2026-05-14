@@ -32,7 +32,7 @@ class FollyThreadPoolToken : public ThreadPoolToken {
       ThreadPoolMetrics metrics);
   ~FollyThreadPoolToken() override;
 
-  Status SubmitClosure(Closure c) override WARN_UNUSED_RESULT;
+  Status submitClosure(Closure c) override WARN_UNUSED_RESULT;
   Status SubmitFunc(boost::function<void()> f) override WARN_UNUSED_RESULT;
   Status Submit(std::shared_ptr<Runnable> r) override WARN_UNUSED_RESULT;
   void Shutdown() override;
@@ -62,7 +62,7 @@ class FollyThreadPool : public ThreadPool {
   // complete. This is equivalent to folly::CPUThreadPoolExecutor::join().
   void Shutdown() override;
 
-  Status SubmitClosure(Closure c) override WARN_UNUSED_RESULT;
+  Status submitClosure(Closure c) override WARN_UNUSED_RESULT;
   Status SubmitFunc(boost::function<void()> f) override WARN_UNUSED_RESULT;
   Status Submit(std::shared_ptr<Runnable> r) override WARN_UNUSED_RESULT;
 
@@ -70,7 +70,7 @@ class FollyThreadPool : public ThreadPool {
   int activeThreads() const override;
 
   std::unique_ptr<ThreadPoolToken> NewToken(ExecutionMode mode) override;
-  std::unique_ptr<ThreadPoolToken> NewTokenWithMetrics(
+  std::unique_ptr<ThreadPoolToken> newTokenWithMetrics(
       ExecutionMode mode,
       ThreadPoolMetrics metrics) override;
 
