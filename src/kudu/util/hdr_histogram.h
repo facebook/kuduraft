@@ -217,34 +217,34 @@ class HdrHistogram {
 // Value returned from iterators.
 struct HistogramIterationValue {
   HistogramIterationValue()
-      : value_iterated_to(0),
-        value_iterated_from(0),
-        count_at_value_iterated_to(0),
-        count_added_in_this_iteration_step(0),
-        total_count_to_this_value(0),
-        total_value_to_this_value(0),
+      : valueIteratedTo(0),
+        valueIteratedFrom(0),
+        countAtValueIteratedTo(0),
+        countAddedInThisIterationStep(0),
+        totalCountToThisValue(0),
+        totalValueToThisValue(0),
         percentile(0.0),
-        percentile_level_iterated_to(0.0) {}
+        percentileLevelIteratedTo(0.0) {}
 
-  void Reset() {
-    value_iterated_to = 0;
-    value_iterated_from = 0;
-    count_at_value_iterated_to = 0;
-    count_added_in_this_iteration_step = 0;
-    total_count_to_this_value = 0;
-    total_value_to_this_value = 0;
+  void reset() {
+    valueIteratedTo = 0;
+    valueIteratedFrom = 0;
+    countAtValueIteratedTo = 0;
+    countAddedInThisIterationStep = 0;
+    totalCountToThisValue = 0;
+    totalValueToThisValue = 0;
     percentile = 0.0;
-    percentile_level_iterated_to = 0.0;
+    percentileLevelIteratedTo = 0.0;
   }
 
-  uint64_t value_iterated_to;
-  uint64_t value_iterated_from;
-  uint64_t count_at_value_iterated_to;
-  uint64_t count_added_in_this_iteration_step;
-  uint64_t total_count_to_this_value;
-  uint64_t total_value_to_this_value;
+  uint64_t valueIteratedTo;
+  uint64_t valueIteratedFrom;
+  uint64_t countAtValueIteratedTo;
+  uint64_t countAddedInThisIterationStep;
+  uint64_t totalCountToThisValue;
+  uint64_t totalValueToThisValue;
   double percentile;
-  double percentile_level_iterated_to;
+  double percentileLevelIteratedTo;
 };
 
 // Base class for iterating through histogram values.
@@ -261,19 +261,19 @@ class AbstractHistogramIterator {
   virtual ~AbstractHistogramIterator() {}
 
   // Returns true if the iteration has more elements.
-  virtual bool HasNext() const;
+  virtual bool hasNext() const;
 
   // Returns the next element in the iteration.
-  Status Next(HistogramIterationValue* value);
+  Status next(HistogramIterationValue* value);
 
-  virtual double PercentileIteratedTo() const;
-  virtual double PercentileIteratedFrom() const;
-  uint64_t ValueIteratedTo() const;
+  virtual double percentileIteratedTo() const;
+  virtual double percentileIteratedFrom() const;
+  uint64_t valueIteratedTo() const;
 
  protected:
   // Implementations must override these methods.
-  virtual void IncrementIterationLevel() = 0;
-  virtual bool ReachedIterationLevel() const = 0;
+  virtual void incrementIterationLevel() = 0;
+  virtual bool reachedIterationLevel() const = 0;
 
   const HdrHistogram* histogram_;
   HistogramIterationValue cur_iter_val_;
@@ -297,8 +297,8 @@ class AbstractHistogramIterator {
   uint64_t count_at_this_value_;
 
  private:
-  bool ExhaustedSubBuckets() const;
-  void IncrementSubBucket();
+  bool exhaustedSubBuckets() const;
+  void incrementSubBucket();
 
   bool fresh_sub_bucket_;
 
@@ -319,8 +319,8 @@ class RecordedValuesIterator : public AbstractHistogramIterator {
   explicit RecordedValuesIterator(const HdrHistogram* histogram);
 
  protected:
-  virtual void IncrementIterationLevel() override;
-  virtual bool ReachedIterationLevel() const override;
+  virtual void incrementIterationLevel() override;
+  virtual bool reachedIterationLevel() const override;
 
  private:
   int visited_sub_bucket_index_;
@@ -344,13 +344,13 @@ class PercentileIterator : public AbstractHistogramIterator {
   PercentileIterator(
       const HdrHistogram* histogram,
       int percentile_ticks_per_half_distance);
-  virtual bool HasNext() const override;
-  virtual double PercentileIteratedTo() const override;
-  virtual double PercentileIteratedFrom() const override;
+  virtual bool hasNext() const override;
+  virtual double percentileIteratedTo() const override;
+  virtual double percentileIteratedFrom() const override;
 
  protected:
-  virtual void IncrementIterationLevel() override;
-  virtual bool ReachedIterationLevel() const override;
+  virtual void incrementIterationLevel() override;
+  virtual bool reachedIterationLevel() const override;
 
  private:
   int percentile_ticks_per_half_distance_;

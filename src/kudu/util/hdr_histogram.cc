@@ -385,11 +385,11 @@ AbstractHistogramIterator::AbstractHistogramIterator(
       count_at_this_value_(0),
       fresh_sub_bucket_(true) {}
 
-bool AbstractHistogramIterator::HasNext() const {
+bool AbstractHistogramIterator::hasNext() const {
   return total_count_to_current_index_ < histogram_total_count_;
 }
 
-Status AbstractHistogramIterator::Next(HistogramIterationValue* value) {
+Status AbstractHistogramIterator::next(HistogramIterationValue* value) {
   if (histogram_->totalCount() != histogram_total_count_) {
     return Status::IllegalState(
         "Concurrently modified histogram while traversing it");
@@ -397,7 +397,7 @@ Status AbstractHistogramIterator::Next(HistogramIterationValue* value) {
 
   // Move through the sub buckets and buckets until we hit the next reporting
   // level:
-  while (!ExhaustedSubBuckets()) {
+  while (!exhaustedSubBuckets()) {
     count_at_this_value_ =
         histogram_->countAt(current_bucket_index_, current_sub_bucket_index_);
     if (fresh_sub_bucket_) { // Don't add unless we've incremented since last
@@ -407,54 +407,54 @@ Status AbstractHistogramIterator::Next(HistogramIterationValue* value) {
           histogram_->medianEquivalentValue(current_value_at_index_);
       fresh_sub_bucket_ = false;
     }
-    if (ReachedIterationLevel()) {
-      uint64_t value_iterated_to = ValueIteratedTo();
+    if (reachedIterationLevel()) {
+      uint64_t curValueIteratedTo = valueIteratedTo();
 
       // Update iterator value.
-      cur_iter_val_.value_iterated_to = value_iterated_to;
-      cur_iter_val_.value_iterated_from = prev_value_iterated_to_;
-      cur_iter_val_.count_at_value_iterated_to = count_at_this_value_;
-      cur_iter_val_.count_added_in_this_iteration_step =
+      cur_iter_val_.valueIteratedTo = curValueIteratedTo;
+      cur_iter_val_.valueIteratedFrom = prev_value_iterated_to_;
+      cur_iter_val_.countAtValueIteratedTo = count_at_this_value_;
+      cur_iter_val_.countAddedInThisIterationStep =
           (total_count_to_current_index_ - total_count_to_prev_index_);
-      cur_iter_val_.total_count_to_this_value = total_count_to_current_index_;
-      cur_iter_val_.total_value_to_this_value = total_value_to_current_index_;
+      cur_iter_val_.totalCountToThisValue = total_count_to_current_index_;
+      cur_iter_val_.totalValueToThisValue = total_value_to_current_index_;
       cur_iter_val_.percentile =
           ((100.0 * total_count_to_current_index_) / histogram_total_count_);
-      cur_iter_val_.percentile_level_iterated_to = PercentileIteratedTo();
+      cur_iter_val_.percentileLevelIteratedTo = percentileIteratedTo();
 
-      prev_value_iterated_to_ = value_iterated_to;
+      prev_value_iterated_to_ = curValueIteratedTo;
       total_count_to_prev_index_ = total_count_to_current_index_;
       // Move the next percentile reporting level forward.
-      IncrementIterationLevel();
+      incrementIterationLevel();
 
       *value = cur_iter_val_;
       return Status::OK();
     }
-    IncrementSubBucket();
+    incrementSubBucket();
   }
   return Status::IllegalState(
       "Histogram array index out of bounds while traversing");
 }
 
-double AbstractHistogramIterator::PercentileIteratedTo() const {
+double AbstractHistogramIterator::percentileIteratedTo() const {
   return (100.0 * static_cast<double>(total_count_to_current_index_)) /
       histogram_total_count_;
 }
 
-double AbstractHistogramIterator::PercentileIteratedFrom() const {
+double AbstractHistogramIterator::percentileIteratedFrom() const {
   return (100.0 * static_cast<double>(total_count_to_prev_index_)) /
       histogram_total_count_;
 }
 
-uint64_t AbstractHistogramIterator::ValueIteratedTo() const {
+uint64_t AbstractHistogramIterator::valueIteratedTo() const {
   return histogram_->highestEquivalentValue(current_value_at_index_);
 }
 
-bool AbstractHistogramIterator::ExhaustedSubBuckets() const {
+bool AbstractHistogramIterator::exhaustedSubBuckets() const {
   return (current_bucket_index_ >= histogram_->bucket_count_);
 }
 
-void AbstractHistogramIterator::IncrementSubBucket() {
+void AbstractHistogramIterator::incrementSubBucket() {
   fresh_sub_bucket_ = true;
   // Take on the next index:
   current_bucket_index_ = next_bucket_index_;
@@ -479,12 +479,12 @@ RecordedValuesIterator::RecordedValuesIterator(const HdrHistogram* histogram)
       visited_sub_bucket_index_(-1),
       visited_bucket_index_(-1) {}
 
-void RecordedValuesIterator::IncrementIterationLevel() {
+void RecordedValuesIterator::incrementIterationLevel() {
   visited_sub_bucket_index_ = current_sub_bucket_index_;
   visited_bucket_index_ = current_bucket_index_;
 }
 
-bool RecordedValuesIterator::ReachedIterationLevel() const {
+bool RecordedValuesIterator::reachedIterationLevel() const {
   uint64_t current_ij_count =
       histogram_->countAt(current_bucket_index_, current_sub_bucket_index_);
   return current_ij_count != 0 &&
@@ -505,8 +505,8 @@ PercentileIterator::PercentileIterator(
       percentile_level_to_iterate_from_(0.0),
       reached_last_recorded_value_(false) {}
 
-bool PercentileIterator::HasNext() const {
-  if (AbstractHistogramIterator::HasNext()) {
+bool PercentileIterator::hasNext() const {
+  if (AbstractHistogramIterator::hasNext()) {
     return true;
   }
   // We want one additional last step to 100%
@@ -519,15 +519,15 @@ bool PercentileIterator::HasNext() const {
   return false;
 }
 
-double PercentileIterator::PercentileIteratedTo() const {
+double PercentileIterator::percentileIteratedTo() const {
   return percentile_level_to_iterate_to_;
 }
 
-double PercentileIterator::PercentileIteratedFrom() const {
+double PercentileIterator::percentileIteratedFrom() const {
   return percentile_level_to_iterate_from_;
 }
 
-void PercentileIterator::IncrementIterationLevel() {
+void PercentileIterator::incrementIterationLevel() {
   percentile_level_to_iterate_from_ = percentile_level_to_iterate_to_;
   // TODO: Can this expression be simplified?
   uint64_t percentile_reporting_ticks = percentile_ticks_per_half_distance_ *
@@ -540,7 +540,7 @@ void PercentileIterator::IncrementIterationLevel() {
   percentile_level_to_iterate_to_ += 100.0 / percentile_reporting_ticks;
 }
 
-bool PercentileIterator::ReachedIterationLevel() const {
+bool PercentileIterator::reachedIterationLevel() const {
   if (count_at_this_value_ == 0) {
     return false;
   }

@@ -723,11 +723,11 @@ Status Histogram::getHistogramSnapshotPb(
 
     if (opts.includeRawHistograms) {
       RecordedValuesIterator iter(&snapshot);
-      while (iter.HasNext()) {
+      while (iter.hasNext()) {
         HistogramIterationValue value;
-        RETURN_NOT_OK(iter.Next(&value));
-        snapshotPb->add_values(value.value_iterated_to);
-        snapshotPb->add_counts(value.count_at_value_iterated_to);
+        RETURN_NOT_OK(iter.next(&value));
+        snapshotPb->add_values(value.valueIteratedTo);
+        snapshotPb->add_counts(value.countAtValueIteratedTo);
       }
     }
   }
