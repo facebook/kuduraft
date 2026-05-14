@@ -173,7 +173,7 @@ METRIC_DEFINE_gauge_uint64(
     MetricUnit::kBytes,
     "Gauge exposed as Counter",
     kExposeAsCounter);
-TEST_F(MetricsTest, TEstExposeGaugeAsCounter) {
+TEST_F(MetricsTest, TestExposeGaugeAsCounter) {
   ASSERT_EQ(MetricType::kCounter, METRIC_counter_as_gauge.type());
 }
 
