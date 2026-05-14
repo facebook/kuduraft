@@ -89,10 +89,10 @@ DECLARE_dynamic_quantile_stat(logEntryBatchesPerGroup, 1);
 DECLARE_dynamic_timeseries(logBytesLogged, 1);
 
 // --- consensus_peers.cc: counter ---
-DECLARE_dynamic_timeseries(raft_rpc_token_num_response_mismatches, 1);
+DECLARE_dynamic_timeseries(raftRpcTokenNumResponseMismatches, 1);
 
 // --- log_index.cc: counter ---
-DECLARE_dynamic_timeseries(log_index_chunk_mmap_for_read, 1);
+DECLARE_dynamic_timeseries(logIndexChunkMmapForRead, 1);
 
 // --- cache_metrics.cc: counters ---
 DECLARE_dynamic_timeseries(blockCacheInserts, 1);
@@ -107,7 +107,7 @@ DECLARE_dynamic_timeseries(blockCacheHitsCaching, 1);
 DECLARE_dynamic_quantile_stat(blockCacheUsage, 1);
 
 // --- RaftInterface.cpp: histogram ---
-DECLARE_dynamic_quantile_stat(leader_replicate_latency, 1);
+DECLARE_dynamic_quantile_stat(leaderReplicateLatency, 1);
 
 // --- thread.cc: gauges (bumped at thread create/destroy sites) ---
 DECLARE_dynamic_quantile_stat(threadsStarted, 1);
@@ -118,17 +118,17 @@ DECLARE_dynamic_quantile_stat(threadsRunning, 1);
 DECLARE_dynamic_timeseries(spinlockContentionTime, 1);
 DECLARE_dynamic_timeseries(cpuUtime, 1);
 DECLARE_dynamic_timeseries(cpuStime, 1);
-DECLARE_dynamic_timeseries(voluntary_context_switches, 1);
-DECLARE_dynamic_timeseries(involuntary_context_switches, 1);
+DECLARE_dynamic_timeseries(voluntaryContextSwitches, 1);
+DECLARE_dynamic_timeseries(involuntaryContextSwitches, 1);
 
 // --- rpc/reactor.cc: histograms ---
-DECLARE_dynamic_quantile_stat(reactor_load_percent, 1);
-DECLARE_dynamic_quantile_stat(reactor_active_latency_us, 1);
+DECLARE_dynamic_quantile_stat(reactorLoadPercent, 1);
+DECLARE_dynamic_quantile_stat(reactorActiveLatencyUs, 1);
 
 // --- rpc/inbound_call.cc: histogram ---
-DECLARE_dynamic_quantile_stat(rpc_incoming_queue_time_us, 1);
+DECLARE_dynamic_quantile_stat(rpcIncomingQueueTimeUs, 1);
 
 // --- rpc/connection.cc: counter ---
-DECLARE_dynamic_timeseries(timeout_connection_kill, 1);
+DECLARE_dynamic_timeseries(timeoutConnectionKill, 1);
 
 } // namespace kudu

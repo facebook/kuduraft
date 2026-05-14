@@ -192,7 +192,7 @@ void ReactorThread::invokePendingCb(struct ev_loop* loop) {
   if (thr->invokeUsHistogram_) {
     auto latencyUs = (int64_t)(durCycles / base::cyclesPerSecond()) * 1000000;
     thr->invokeUsHistogram_->increment(latencyUs);
-    STATS_reactor_active_latency_us.addValue(latencyUs, KUDU_STATS_TAG);
+    STATS_reactorActiveLatencyUs.addValue(latencyUs, KUDU_STATS_TAG);
   }
 }
 
@@ -444,7 +444,7 @@ void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
     if (loadPercentHistogram_) {
       auto loadPct = static_cast<int>(activeFraction * 100);
       loadPercentHistogram_->increment(loadPct);
-      STATS_reactor_load_percent.addValue(loadPct, KUDU_STATS_TAG);
+      STATS_reactorLoadPercent.addValue(loadPct, KUDU_STATS_TAG);
     }
   }
   lastLoadMeasurement_.timeCycles = nowCycles;

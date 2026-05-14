@@ -477,7 +477,7 @@ Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
 
       if (mmapForReads_) {
         mmapForReads_->increment(); // needed for tests
-        STATS_log_index_chunk_mmap_for_read.add(1, KUDU_STATS_TAG);
+        STATS_logIndexChunkMmapForRead.add(1, KUDU_STATS_TAG);
       }
     }
 

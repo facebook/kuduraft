@@ -220,14 +220,14 @@ DEFINE_dynamic_timeseries(
 // ---- consensus_peers.cc: counter ----
 
 DEFINE_dynamic_timeseries(
-    raft_rpc_token_num_response_mismatches,
+    raftRpcTokenNumResponseMismatches,
     "{}.raft_rpc_token_num_response_mismatches",
     facebook::fb303::ExportType::SUM);
 
 // ---- log_index.cc: counter ----
 
 DEFINE_dynamic_timeseries(
-    log_index_chunk_mmap_for_read,
+    logIndexChunkMmapForRead,
     "{}.log_index_chunk_mmap_for_read",
     facebook::fb303::ExportType::SUM);
 
@@ -280,7 +280,7 @@ DEFINE_dynamic_quantile_stat(
 // ---- RaftInterface.cpp: histogram ----
 
 DEFINE_dynamic_quantile_stat(
-    leader_replicate_latency,
+    leaderReplicateLatency,
     "{}.leader_replicate_latency_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -305,12 +305,12 @@ DEFINE_dynamic_timeseries(
     facebook::fb303::ExportType::AVG);
 
 DEFINE_dynamic_timeseries(
-    voluntary_context_switches,
+    voluntaryContextSwitches,
     "{}.voluntary_context_switches",
     facebook::fb303::ExportType::AVG);
 
 DEFINE_dynamic_timeseries(
-    involuntary_context_switches,
+    involuntaryContextSwitches,
     "{}.involuntary_context_switches",
     facebook::fb303::ExportType::AVG);
 
@@ -333,14 +333,14 @@ DEFINE_dynamic_quantile_stat(
 // ---- rpc/reactor.cc: histograms ----
 
 DEFINE_dynamic_quantile_stat(
-    reactor_load_percent,
+    reactorLoadPercent,
     "{}.reactor_load_percent",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 DEFINE_dynamic_quantile_stat(
-    reactor_active_latency_us,
+    reactorActiveLatencyUs,
     "{}.reactor_active_latency_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -349,7 +349,7 @@ DEFINE_dynamic_quantile_stat(
 // ---- rpc/inbound_call.cc: histogram ----
 
 DEFINE_dynamic_quantile_stat(
-    rpc_incoming_queue_time_us,
+    rpcIncomingQueueTimeUs,
     "{}.rpc_incoming_queue_time_us",
     facebook::fb303::ExportTypeConsts::kCountAvg,
     kRaftQuantiles,
@@ -358,7 +358,7 @@ DEFINE_dynamic_quantile_stat(
 // ---- rpc/connection.cc: counter ----
 
 DEFINE_dynamic_timeseries(
-    timeout_connection_kill,
+    timeoutConnectionKill,
     "{}.timeout_connection_kill",
     facebook::fb303::ExportType::SUM);
 

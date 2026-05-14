@@ -595,7 +595,7 @@ void checkAndEnforceResponseToken(
     return;
   }
 
-  STATS_raft_rpc_token_num_response_mismatches.add(1, KUDU_STATS_TAG);
+  STATS_raftRpcTokenNumResponseMismatches.add(1, KUDU_STATS_TAG);
 
   auto errorMessage = fmt::format(
       "Raft RPC token mismatch on response. Request token: {}. "

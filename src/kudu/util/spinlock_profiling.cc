@@ -302,8 +302,8 @@ void registerSpinLockContentionMetrics(
             STATS_cpuStime.add(
                 ru.ru_stime.tv_sec * 1000UL + ru.ru_stime.tv_usec / 1000UL,
                 kTag);
-            STATS_voluntary_context_switches.add(ru.ru_nvcsw, kTag);
-            STATS_involuntary_context_switches.add(ru.ru_nivcsw, kTag);
+            STATS_voluntaryContextSwitches.add(ru.ru_nvcsw, kTag);
+            STATS_involuntaryContextSwitches.add(ru.ru_nivcsw, kTag);
           }
         },
         std::chrono::seconds(60),

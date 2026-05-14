@@ -323,7 +323,7 @@ void InboundCall::recordHandlingStarted(Histogram* incomingQueueTime) {
   auto queueTimeUs =
       (timing_.timeHandled - timing_.timeReceived).ToMicroseconds();
   incomingQueueTime->increment(queueTimeUs);
-  STATS_rpc_incoming_queue_time_us.addValue(queueTimeUs, KUDU_STATS_TAG);
+  STATS_rpcIncomingQueueTimeUs.addValue(queueTimeUs, KUDU_STATS_TAG);
 }
 
 void InboundCall::recordHandlingCompleted() {
