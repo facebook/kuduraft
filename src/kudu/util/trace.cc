@@ -147,7 +147,7 @@ void Trace::dump(std::ostream* out, int flags) const {
     prevUsecs = e->timestampMicros;
 
     using std::setw;
-    *out << FormatTimestampForLog(e->timestampMicros);
+    *out << formatTimestampForLog(e->timestampMicros);
     *out << ' ';
     if (flags & kIncludeTimeDeltas) {
       out->fill(' ');

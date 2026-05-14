@@ -529,7 +529,7 @@ Status ServerBase::StartExcessLogFileDeleterThread() {
   // future. Same with minidumps.
   if (!FLAGS_logtostderr) {
     RETURN_NOT_OK_PREPEND(
-        DeleteExcessLogFiles(options_.env),
+        deleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
   }
   return Thread::create(
@@ -545,7 +545,7 @@ void ServerBase::ExcessLogFileDeleterThread() {
   const MonoDelta kWait = MonoDelta::FromSeconds(60);
   while (!stop_background_threads_latch_.waitUntil(MonoTime::Now() + kWait)) {
     WARN_NOT_OK(
-        DeleteExcessLogFiles(options_.env),
+        deleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
   }
 }
@@ -604,7 +604,7 @@ void ServerBase::ServiceQueueOverflowed(rpc::ServicePool* service) {
   const int kStackDumpFrequencySecs = 5;
   int suppressed = 0;
   if (PREDICT_TRUE(
-          !throttler.ShouldLog(kStackDumpFrequencySecs, "", &suppressed))) {
+          !throttler.shouldLog(kStackDumpFrequencySecs, "", &suppressed))) {
     return;
   }
 }

@@ -245,7 +245,7 @@ Status DiagnosticsLog::logMetrics() {
 
   std::ostringstream buf;
   kudu::MicrosecondsInt64 now = getCurrentTimeMicros();
-  buf << "I" << FormatTimestampForLog(now) << " metrics " << now << " ";
+  buf << "I" << formatTimestampForLog(now) << " metrics " << now << " ";
 
   // Collect the metrics JSON string.
   int64_t thisLogEpoch = Metric::currentEpoch();

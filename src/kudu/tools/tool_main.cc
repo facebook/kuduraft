@@ -260,7 +260,7 @@ int toolMain(int argc, char** argv) {
 
   FLAGS_logtostderr = true;
   const char* progName = argv[0];
-  kudu::InitGoogleLoggingSafe(progName);
+  kudu::initGoogleLoggingSafe(progName);
   bool showHelp = parseCommandLineFlags(progName);
 
   return kudu::tools::runTool(argc, argv, showHelp);

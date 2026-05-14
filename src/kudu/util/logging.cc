@@ -139,13 +139,13 @@ SpinLock loggingMutex(base::kLinkerInitialized);
 SimpleSink* registeredSink = nullptr;
 
 // Records the logging severity after the first call to
-// InitGoogleLoggingSafe{Basic}. Calls to UnregisterLoggingCallback()
+// initGoogleLoggingSafe{Basic}. Calls to unregisterLoggingCallback()
 // will restore stderr logging back to this severity level.
 //
 // Protected by 'loggingMutex'.
 int initialStderrSeverity;
 
-void UnregisterLoggingCallbackUnlocked() {
+void unregisterLoggingCallbackUnlocked() {
   CHECK(loggingMutex.isHeld());
   CHECK(registeredSink);
 
@@ -157,7 +157,7 @@ void UnregisterLoggingCallbackUnlocked() {
   registeredSink = nullptr;
 }
 
-void FlushCoverageOnExit() {
+void flushCoverageOnExit() {
   // Coverage flushing is not re-entrant, but this might be called from a
   // crash signal context, so avoid re-entrancy.
   static __thread bool inCall = false;
@@ -184,8 +184,8 @@ void FlushCoverageOnExit() {
 // coverage the first time it's called.
 //
 // NOTE: this is only used in coverage builds!
-void FailureWriterWithCoverage(const char* data, int size) {
-  FlushCoverageOnExit();
+void failureWriterWithCoverage(const char* data, int size) {
+  flushCoverageOnExit();
 
   // Original implementation from glog:
   if (write(STDERR_FILENO, data, size) < 0) {
@@ -197,13 +197,13 @@ void FailureWriterWithCoverage(const char* data, int size) {
 // ensure that we flush coverage even on crashes.
 //
 // NOTE: this is only used in coverage builds!
-[[noreturn]] void FlushCoverageAndAbort() {
-  FlushCoverageOnExit();
+[[noreturn]] void flushCoverageAndAbort() {
+  flushCoverageOnExit();
   abort();
 }
 } // anonymous namespace
 
-void EnableAsyncLogging() {
+void enableAsyncLogging() {
   static folly::once_flag once;
   folly::call_once(once, [] {
     debug::ScopedLeakCheckDisabler leaky;
@@ -224,7 +224,7 @@ void EnableAsyncLogging() {
   });
 }
 
-void InitGoogleLoggingSafe(const char* arg) {
+void initGoogleLoggingSafe(const char* arg) {
   SpinLockHolder l(loggingMutex);
   if (loggingInitialized) {
     return;
@@ -274,8 +274,8 @@ void InitGoogleLoggingSafe(const char* arg) {
     // We have to use both the "failure writer" and the "FailureFunction".
     // This allows us to handle both LOG(FATAL) and unintended crashes like
     // SEGVs.
-    google::InstallFailureWriter(FailureWriterWithCoverage);
-    google::InstallFailureFunction(FlushCoverageAndAbort);
+    google::InstallFailureWriter(failureWriterWithCoverage);
+    google::InstallFailureFunction(flushCoverageAndAbort);
   }
 
   // Needs to be done after InitGoogleLogging
@@ -298,13 +298,13 @@ void InitGoogleLoggingSafe(const char* arg) {
   CHECK_OK(blockSigUsr1());
 
   if (FLAGS_log_async) {
-    EnableAsyncLogging();
+    enableAsyncLogging();
   }
 
   loggingInitialized = true;
 }
 
-void InitGoogleLoggingSafeBasic(const char* arg) {
+void initGoogleLoggingSafeBasic(const char* arg) {
   SpinLockHolder l(loggingMutex);
   if (loggingInitialized) {
     return;
@@ -322,7 +322,7 @@ void InitGoogleLoggingSafeBasic(const char* arg) {
   loggingInitialized = true;
 }
 
-void RegisterLoggingCallback(const LoggingCallback& cb) {
+void registerLoggingCallback(const LoggingCallback& cb) {
   SpinLockHolder l(loggingMutex);
   CHECK(loggingInitialized);
 
@@ -341,12 +341,12 @@ void RegisterLoggingCallback(const LoggingCallback& cb) {
   // ERROR-level stuff. This is the default.
   google::SetStderrLogging(google::ERROR);
 
-  // File logging: yes, if InitGoogleLoggingSafe() was called earlier.
+  // File logging: yes, if initGoogleLoggingSafe() was called earlier.
   // Stderr logging threshold: ERROR.
   // Sink logging: on.
 }
 
-void UnregisterLoggingCallback() {
+void unregisterLoggingCallback() {
   SpinLockHolder l(loggingMutex);
   CHECK(loggingInitialized);
 
@@ -355,20 +355,20 @@ void UnregisterLoggingCallback() {
     return;
   }
 
-  UnregisterLoggingCallbackUnlocked();
-  // File logging: yes, if InitGoogleLoggingSafe() was called earlier.
+  unregisterLoggingCallbackUnlocked();
+  // File logging: yes, if initGoogleLoggingSafe() was called earlier.
   // Stderr logging threshold: initialStderrSeverity.
   // Sink logging: off.
 }
 
-void GetFullLogFilename(google::LogSeverity severity, string* filename) {
+void getFullLogFilename(google::LogSeverity severity, string* filename) {
   ostringstream ss;
   ss << FLAGS_log_dir << "/" << FLAGS_log_filename << "."
      << google::GetLogSeverityName(severity);
   *filename = ss.str();
 }
 
-std::string FormatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch) {
+std::string formatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch) {
   time_t secsSinceEpoch = microsSinceEpoch / 1000000;
   int usecs = microsSinceEpoch % 1000000;
   struct tm tm_time;
@@ -384,14 +384,14 @@ std::string FormatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch) {
       usecs);
 }
 
-void ShutdownLoggingSafe() {
+void shutdownLoggingSafe() {
   SpinLockHolder l(loggingMutex);
   if (!loggingInitialized) {
     return;
   }
 
   if (registeredSink) {
-    UnregisterLoggingCallbackUnlocked();
+    unregisterLoggingCallbackUnlocked();
   }
 
   google::ShutdownGoogleLogging();
@@ -399,7 +399,7 @@ void ShutdownLoggingSafe() {
   loggingInitialized = false;
 }
 
-Status DeleteExcessLogFiles(Env* env) {
+Status deleteExcessLogFiles(Env* env) {
   int32_t maxLogFiles = FLAGS_max_log_files;
   // Ignore bad input or disable log rotation.
   if (maxLogFiles <= 0) {

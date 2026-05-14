@@ -86,7 +86,7 @@ static void startStressThreads() {
 int main(int argc, char** argv) {
   google::InstallFailureSignalHandler();
 
-  // We don't use InitGoogleLoggingSafe() because gtest initializes glog, so we
+  // We don't use initGoogleLoggingSafe() because gtest initializes glog, so we
   // need to block SIGUSR1 explicitly in order to test minidump generation.
   CHECK_OK(kudu::blockSigUsr1());
 

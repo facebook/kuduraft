@@ -73,7 +73,7 @@ static int tabletServerMain(int argc, char** argv) {
     return 1;
   }
   std::string nonDefaultFlags = getNonDefaultFlags(defaultFlags);
-  InitGoogleLoggingSafe(argv[0]);
+  initGoogleLoggingSafe(argv[0]);
 
   LOG(INFO) << "Tablet server non-default flags:\n"
             << nonDefaultFlags << '\n'

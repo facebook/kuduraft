@@ -154,7 +154,7 @@ class ScopedDisableRedaction {
 
 #define KLOG_EVERY_N_SECS_THROTTLER(severity, n_secs, throttler, tag)       \
   int VARNAME_LINENUM(num_suppressed) = 0;                                  \
-  if ((throttler).ShouldLog(n_secs, tag, &VARNAME_LINENUM(num_suppressed))) \
+  if ((throttler).shouldLog(n_secs, tag, &VARNAME_LINENUM(num_suppressed))) \
   google::LogMessage(                                                       \
       __FILE__,                                                             \
       __LINE__,                                                             \
@@ -227,35 +227,35 @@ class Env;
 //
 // It also takes care of installing the google failure signal handler and
 // setting the signal handler for SIGPIPE to SIG_IGN.
-void InitGoogleLoggingSafe(const char* arg);
+void initGoogleLoggingSafe(const char* arg);
 
-// Like InitGoogleLoggingSafe() but stripped down: no signal handlers are
+// Like initGoogleLoggingSafe() but stripped down: no signal handlers are
 // installed, regular logging is disabled, and log events of any severity
 // will be written to stderr.
 //
 // These properties make it attractive for us in libraries.
-void InitGoogleLoggingSafeBasic(const char* arg);
+void initGoogleLoggingSafeBasic(const char* arg);
 
 // Demotes stderr logging to ERROR or higher and registers 'cb' as the
 // recipient for all log events.
 //
-// Subsequent calls to RegisterLoggingCallback no-op (until the callback
-// is unregistered with UnregisterLoggingCallback()).
-void RegisterLoggingCallback(const LoggingCallback& cb);
+// Subsequent calls to registerLoggingCallback no-op (until the callback
+// is unregistered with unregisterLoggingCallback()).
+void registerLoggingCallback(const LoggingCallback& cb);
 
 // Unregisters a callback previously registered with
-// RegisterLoggingCallback() and promotes stderr logging back to all
+// registerLoggingCallback() and promotes stderr logging back to all
 // severities.
 //
 // If no callback is registered, this is a no-op.
-void UnregisterLoggingCallback();
+void unregisterLoggingCallback();
 
 // Returns the full pathname of the symlink to the most recent log
 // file corresponding to this severity
-void GetFullLogFilename(google::LogSeverity severity, std::string* filename);
+void getFullLogFilename(google::LogSeverity severity, std::string* filename);
 
 // Format a timestamp in the same format as used by GLog.
-std::string FormatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch);
+std::string formatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch);
 
 // Enable asynchronous logging for glog.
 // Wraps the glog Logger for INFO, WARNING, and ERROR with an AsyncLogger
@@ -263,17 +263,17 @@ std::string FormatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch);
 // FATAL messages are always logged synchronously.
 // Uses FLAGS_log_async_buffer_bytes_per_level to set the buffer size.
 // Safe to call multiple times — subsequent calls are no-ops.
-void EnableAsyncLogging();
+void enableAsyncLogging();
 
 // Shuts down the google logging library. Call before exit to ensure that log
 // files are flushed.
-void ShutdownLoggingSafe();
+void shutdownLoggingSafe();
 
 // Deletes excess rotated log files.
 //
 // Keeps at most 'FLAG_max_log_files' of the most recent log files at every
 // severity level, using the file's modified time to determine recency.
-Status DeleteExcessLogFiles(Env* env);
+Status deleteExcessLogFiles(Env* env);
 
 namespace logging {
 
@@ -290,7 +290,7 @@ class LogThrottler {
         this, sizeof(*this), "OK to be sloppy with log throttling");
   }
 
-  bool ShouldLog(int n_secs, const char* tag, int* num_suppressed) {
+  bool shouldLog(int n_secs, const char* tag, int* num_suppressed) {
     kudu::MicrosecondsInt64 ts = getMonoTimeMicros();
 
     // When we switch tags, we should not show the "suppressed" messages,
