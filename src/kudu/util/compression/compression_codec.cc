@@ -37,7 +37,6 @@
 #include <folly/compression/CompressionContextPoolSingletons.h>
 
 #include <fmt/core.h>
-#include "kudu/util/faststring.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
 
@@ -95,71 +94,6 @@ std::string CompressionCodec::stats() const {
   }
 }
 
-class SlicesSource : public snappy::Source {
- public:
-  explicit SlicesSource(const std::vector<Slice>& slices)
-      : sliceIndex_(0), sliceOffset_(0), slices_(slices) {
-    available_ = totalSize();
-  }
-
-  size_t Available() const override {
-    return available_;
-  }
-
-  const char* Peek(size_t* len) override {
-    if (available_ == 0) {
-      *len = 0;
-      return nullptr;
-    }
-
-    const Slice& data = slices_[sliceIndex_];
-    *len = data.size() - sliceOffset_;
-    return reinterpret_cast<const char*>(data.data()) + sliceOffset_;
-  }
-
-  void Skip(size_t n) override {
-    DCHECK_LE(n, Available());
-    if (n == 0) {
-      return;
-    }
-
-    available_ -= n;
-    if ((n + sliceOffset_) < slices_[sliceIndex_].size()) {
-      sliceOffset_ += n;
-    } else {
-      n -= slices_[sliceIndex_].size() - sliceOffset_;
-      sliceIndex_++;
-      while (n > 0 && n >= slices_[sliceIndex_].size()) {
-        n -= slices_[sliceIndex_].size();
-        sliceIndex_++;
-      }
-      sliceOffset_ = n;
-    }
-  }
-
-  void dump(faststring* buffer) {
-    buffer->reserve(buffer->size() + totalSize());
-    for (const Slice& block : slices_) {
-      buffer->append(block.data(), block.size());
-    }
-  }
-
- private:
-  size_t totalSize(void) const {
-    size_t size = 0;
-    for (const Slice& data : slices_) {
-      size += data.size();
-    }
-    return size;
-  }
-
- private:
-  size_t available_;
-  size_t sliceIndex_;
-  size_t sliceOffset_;
-  const vector<Slice>& slices_;
-};
-
 class SnappyCodec : public CompressionCodec {
  public:
   Status compress(
@@ -171,18 +105,6 @@ class SnappyCodec : public CompressionCodec {
         input.size(),
         reinterpret_cast<char*>(compressed),
         compressedLength);
-    return Status::OK();
-  }
-
-  Status compress(
-      const vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) override {
-    SlicesSource source(inputSlices);
-    snappy::UncheckedByteArraySink sink(reinterpret_cast<char*>(compressed));
-    if ((*compressedLength = snappy::Compress(&source, &sink)) <= 0) {
-      return Status::Corruption("unable to compress the buffer");
-    }
     return Status::OK();
   }
 
@@ -219,21 +141,6 @@ class Lz4Codec : public CompressionCodec {
         input.size());
     *compressedLength = n;
     return Status::OK();
-  }
-
-  Status compress(
-      const vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) override {
-    if (inputSlices.size() == 1) {
-      return compress(inputSlices[0], compressed, compressedLength);
-    }
-
-    SlicesSource source(inputSlices);
-    faststring buffer;
-    source.dump(&buffer);
-    return compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status uncompress(
@@ -319,21 +226,6 @@ class Lz4DictCodec : public CompressionCodec {
 
     *compressedLength = ret;
     return Status::OK();
-  }
-
-  Status compress(
-      const vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) override {
-    if (inputSlices.size() == 1) {
-      return compress(inputSlices[0], compressed, compressedLength);
-    }
-
-    SlicesSource source(inputSlices);
-    faststring buffer;
-    source.dump(&buffer);
-    return compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status uncompress(
@@ -445,22 +337,6 @@ class ZlibCodec : public CompressionCodec {
                        : Status::IOError("unable to compress the buffer");
   }
 
-  Status compress(
-      const vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) override {
-    if (inputSlices.size() == 1) {
-      return compress(inputSlices[0], compressed, compressedLength);
-    }
-
-    // TODO: use z_stream
-    SlicesSource source(inputSlices);
-    faststring buffer;
-    source.dump(&buffer);
-    return compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
-  }
-
   Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
@@ -514,21 +390,6 @@ class ZstdCodec : public CompressionCodec {
     }
     *compressedLength = ret;
     return Status::OK();
-  }
-
-  Status compress(
-      const vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) override {
-    if (inputSlices.size() == 1) {
-      return compress(inputSlices[0], compressed, compressedLength);
-    }
-
-    SlicesSource source(inputSlices);
-    faststring buffer;
-    source.dump(&buffer);
-    return compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status uncompress(
@@ -611,21 +472,6 @@ class ZstdDictCodec : public CompressionCodec {
 
     *compressedLength = ret;
     return Status::OK();
-  }
-
-  Status compress(
-      const vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) override {
-    if (inputSlices.size() == 1) {
-      return compress(inputSlices[0], compressed, compressedLength);
-    }
-
-    SlicesSource source(inputSlices);
-    faststring buffer;
-    source.dump(&buffer);
-    return compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status uncompress(

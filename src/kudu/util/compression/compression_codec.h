@@ -66,11 +66,6 @@ class CompressionCodec {
       uint8_t* compressed,
       size_t* compressedLength) = 0;
 
-  virtual Status compress(
-      const std::vector<Slice>& inputSlices,
-      uint8_t* compressed,
-      size_t* compressedLength) = 0;
-
   Status uncompressWithStats(
       const Slice& compressed,
       uint8_t* uncompressed,
