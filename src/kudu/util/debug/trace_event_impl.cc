@@ -1379,15 +1379,15 @@ void TraceLog::setEnabled(
     const CategoryFilter& category_filter,
     Mode mode,
     Options options) {
-  std::vector<EnabledStateObserver*> observer_list;
+  std::vector<EnabledStateObserver*> observerList;
   {
     SpinLockHolder lock(lock_);
 
     // Can't enable tracing when flush() is in progress.
-    Options old_options = traceOptions();
+    Options oldOptions = traceOptions();
 
     if (isEnabled()) {
-      if (options != old_options) {
+      if (options != oldOptions) {
         DLOG(ERROR) << "Attempting to re-enable tracing with a different "
                     << "set of options.";
       }
@@ -1409,7 +1409,7 @@ void TraceLog::setEnabled(
 
     mode_ = mode;
 
-    if (options != old_options) {
+    if (options != oldOptions) {
       base::subtle::NoBarrier_Store(&traceOptions_, options);
       useNextTraceBuffer();
     }
@@ -1448,10 +1448,10 @@ void TraceLog::setEnabled(
     }
 
     dispatchingToObserverList_ = true;
-    observer_list = enabledStateObserverList_;
+    observerList = enabledStateObserverList_;
   }
   // Notify observers outside the lock in case they trigger trace events.
-  for (const auto& observer : observer_list) {
+  for (const auto& observer : observerList) {
     observer->onTraceLogEnabled();
   }
 
@@ -1503,13 +1503,13 @@ void TraceLog::setDisabledWhileLocked() {
   addMetadataEventsWhileLocked();
 
   dispatchingToObserverList_ = true;
-  std::vector<EnabledStateObserver*> observer_list = enabledStateObserverList_;
+  std::vector<EnabledStateObserver*> observerList = enabledStateObserverList_;
 
   {
     // Dispatch to observers outside the lock in case the observer triggers a
     // trace event.
     lock_.unlock();
-    for (const auto& observer : observer_list) {
+    for (const auto& observer : observerList) {
       observer->onTraceLogDisabled();
     }
     lock_.lock();
@@ -1652,10 +1652,10 @@ void TraceLog::flush(const TraceLog::OutputCallback& cb) {
     // - generate more trace events;
     // - deschedule the calling thread on some platforms causing inaccurate
     //   timing of the trace events.
-    std::shared_ptr<RefCountedString> empty_result =
+    std::shared_ptr<RefCountedString> emptyResult =
         std::make_shared<RefCountedString>();
     if (!cb.is_null()) {
-      cb.Run(empty_result, false);
+      cb.Run(emptyResult, false);
     }
     LOG(WARNING) << "Ignored TraceLog::flush called when tracing is enabled";
     return;
@@ -1668,12 +1668,12 @@ void TraceLog::flush(const TraceLog::OutputCallback& cb) {
     MutexLock l(activeThreadsLock_);
     for (const ActiveThreadMap::value_type& entry : activeThreads_) {
       int64_t tid = entry.first;
-      PerThreadInfo* thr_info = entry.second;
+      PerThreadInfo* thrInfo = entry.second;
 
       // Swap out their buffer from their thread-local data.
       // After this, any _future_ trace calls on that thread will create a new
       // buffer and not use the one we obtain here.
-      ThreadLocalEventBuffer* buf = thr_info->atomicTakeBuffer();
+      ThreadLocalEventBuffer* buf = thrInfo->atomicTakeBuffer();
 
       // If this thread hasn't traced anything since our last
       // flush, we can skip it.
@@ -1688,7 +1688,7 @@ void TraceLog::flush(const TraceLog::OutputCallback& cb) {
       // can get a deadlock: a thread may be in the middle of a trace event
       // (isInTraceEvent_ == true) and waiting to take lock_, while we are
       // holding the lock and waiting for it to not be in the trace event.
-      while (base::subtle::Acquire_Load(&thr_info->isInTraceEvent_)) {
+      while (base::subtle::Acquire_Load(&thrInfo->isInTraceEvent_)) {
         sched_yield();
       }
 
@@ -1771,9 +1771,9 @@ void TraceLog::flushButLeaveBufferIntact(
   {
     SpinLockHolder lock(lock_);
     if (mode_ == DISABLED || (traceOptions_ & RECORD_CONTINUOUSLY) == 0) {
-      std::shared_ptr<RefCountedString> empty_result =
+      std::shared_ptr<RefCountedString> emptyResult =
           std::make_shared<RefCountedString>();
-      flush_output_callback.Run(empty_result, false);
+      flush_output_callback.Run(emptyResult, false);
       LOG(WARNING)
           << "Ignored TraceLog::flushButLeaveBufferIntact when monitoring is not enabled";
       return;
@@ -1828,21 +1828,21 @@ TraceEventHandle TraceLog::addTraceEvent(
 }
 
 TraceLog::PerThreadInfo* TraceLog::setupThreadLocalBuffer() {
-  int64_t cur_tid = Thread::uniqueThreadId();
+  int64_t curTid = Thread::uniqueThreadId();
 
-  auto thr_info = new PerThreadInfo();
-  thr_info->eventBuffer_ = nullptr;
-  thr_info->isInTraceEvent_ = 0;
-  thread_local_info_ = thr_info;
+  auto thrInfo = new PerThreadInfo();
+  thrInfo->eventBuffer_ = nullptr;
+  thrInfo->isInTraceEvent_ = 0;
+  thread_local_info_ = thrInfo;
 
   threadlocal::internal::addDestructor(&TraceLog::threadExitingCb, this);
 
   {
     MutexLock lock(activeThreadsLock_);
-    auto [it, inserted] = activeThreads_.insert({cur_tid, thr_info});
+    auto [it, inserted] = activeThreads_.insert({curTid, thrInfo});
     CHECK(inserted);
   }
-  return thr_info;
+  return thrInfo;
 }
 
 void TraceLog::threadExitingCb(void* arg) {
@@ -1850,18 +1850,18 @@ void TraceLog::threadExitingCb(void* arg) {
 }
 
 void TraceLog::threadExiting() {
-  PerThreadInfo* thr_info = thread_local_info_;
-  if (!thr_info) {
+  PerThreadInfo* thrInfo = thread_local_info_;
+  if (!thrInfo) {
     return;
   }
 
-  int64_t cur_tid = Thread::uniqueThreadId();
+  int64_t curTid = Thread::uniqueThreadId();
 
   // Flush our own buffer back to the central event buffer.
   // We do the atomic exchange because a flusher thread may
   // also be trying to flush us at the same time, and we need to avoid
   // conflict.
-  ThreadLocalEventBuffer* buf = thr_info->atomicTakeBuffer();
+  ThreadLocalEventBuffer* buf = thrInfo->atomicTakeBuffer();
   if (buf) {
     SpinLockHolder lock(lock_);
     buf->flush(Thread::uniqueThreadId());
@@ -1870,9 +1870,9 @@ void TraceLog::threadExiting() {
 
   {
     MutexLock lock(activeThreadsLock_);
-    activeThreads_.erase(cur_tid);
+    activeThreads_.erase(curTid);
   }
-  delete thr_info;
+  delete thrInfo;
 }
 
 TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
@@ -1902,23 +1902,23 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   kudu::MicrosecondsInt64 now = offsetTimestamp(timestamp);
   kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
 
-  PerThreadInfo* thr_info = thread_local_info_;
-  if (PREDICT_FALSE(!thr_info)) {
-    thr_info = setupThreadLocalBuffer();
+  PerThreadInfo* thrInfo = thread_local_info_;
+  if (PREDICT_FALSE(!thrInfo)) {
+    thrInfo = setupThreadLocalBuffer();
   }
 
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
   // ECHO_TO_CONSOLE is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
-  if (base::subtle::NoBarrier_Load(&thr_info->isInTraceEvent_)) {
+  if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
     return handle;
   }
 
-  MarkFlagInScope thread_is_in_trace_event(&thr_info->isInTraceEvent_);
+  MarkFlagInScope thread_is_in_trace_event(&thrInfo->isInTraceEvent_);
 
   ThreadLocalEventBuffer* thread_local_event_buffer =
       reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
-          reinterpret_cast<AtomicWord*>(&thr_info->eventBuffer_)));
+          reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_)));
 
   // If we have an event buffer, but it's a left-over from a previous trace,
   // delete it.
@@ -1927,7 +1927,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
           !checkGeneration(thread_local_event_buffer->generation()))) {
     // We might also race against a flusher thread, so we have to atomically
     // take the buffer.
-    thread_local_event_buffer = thr_info->atomicTakeBuffer();
+    thread_local_event_buffer = thrInfo->atomicTakeBuffer();
     delete thread_local_event_buffer;
     thread_local_event_buffer = nullptr;
   }
@@ -1937,7 +1937,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
     thread_local_event_buffer = new ThreadLocalEventBuffer(this);
 
     base::subtle::NoBarrier_Store(
-        reinterpret_cast<AtomicWord*>(&thr_info->eventBuffer_),
+        reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_),
         reinterpret_cast<AtomicWord>(thread_local_event_buffer));
   }
 
@@ -1946,42 +1946,40 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   if (thread_id == static_cast<int>(Thread::uniqueThreadId())) {
     Thread* kudu_thr = Thread::currentThread();
     if (kudu_thr) {
-      const char* new_name = kudu_thr->name().c_str();
+      const char* newName = kudu_thr->name().c_str();
       // Check if the thread name has been set or changed since the previous
       // call (if any), but don't bother if the new name is empty. Note this
       // will not detect a thread name change within the same char* buffer
       // address: we favor common case performance over corner case correctness.
-      if (PREDICT_FALSE(
-              new_name != gCurrentThreadName && new_name && *new_name)) {
-        gCurrentThreadName = new_name;
+      if (PREDICT_FALSE(newName != gCurrentThreadName && newName && *newName)) {
+        gCurrentThreadName = newName;
 
-        SpinLockHolder thread_info_lock(threadInfoLock_);
+        SpinLockHolder threadInfoLock(threadInfoLock_);
 
-        auto existing_name = threadNames_.find(thread_id);
-        if (existing_name == threadNames_.end()) {
+        auto existingName = threadNames_.find(thread_id);
+        if (existingName == threadNames_.end()) {
           // This is a new thread id, and a new name.
-          threadNames_[thread_id] = new_name;
+          threadNames_[thread_id] = newName;
         } else {
           // This is a thread id that we've seen before, but potentially with a
           // new name.
-          std::vector<StringPiece> existing_names =
-              strings::split(existing_name->second, ",");
+          std::vector<StringPiece> existingNames =
+              strings::split(existingName->second, ",");
           bool found =
-              std::find(
-                  existing_names.begin(), existing_names.end(), new_name) !=
-              existing_names.end();
+              std::find(existingNames.begin(), existingNames.end(), newName) !=
+              existingNames.end();
           if (!found) {
-            if (existing_names.size()) {
-              existing_name->second.push_back(',');
+            if (existingNames.size()) {
+              existingName->second.push_back(',');
             }
-            existing_name->second.append(new_name);
+            existingName->second.append(newName);
           }
         }
       }
     }
   }
 
-  std::string console_message;
+  std::string consoleMessage;
   if (*category_group_enabled &
       (ENABLED_FOR_RECORDING | ENABLED_FOR_MONITORING)) {
     TraceEvent* trace_event = thread_local_event_buffer->addTraceEvent(&handle);
@@ -2008,39 +2006,39 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
     }
 
     if (traceOptions() & ECHO_TO_CONSOLE) {
-      console_message = eventToConsoleMessage(
+      consoleMessage = eventToConsoleMessage(
           phase == TRACE_EVENT_PHASE_COMPLETE ? TRACE_EVENT_PHASE_BEGIN : phase,
           timestamp,
           trace_event);
     }
   }
 
-  if (PREDICT_FALSE(console_message.size())) {
-    LOG(ERROR) << console_message;
+  if (PREDICT_FALSE(consoleMessage.size())) {
+    LOG(ERROR) << consoleMessage;
   }
 
   if (PREDICT_FALSE(
           reinterpret_cast<const unsigned char*>(base::subtle::NoBarrier_Load(
               &watchCategory_)) == category_group_enabled)) {
-    bool event_name_matches;
-    WatchEventCallback watch_event_callback_copy;
+    bool eventNameMatches;
+    WatchEventCallback watchEventCallbackCopy;
     {
       SpinLockHolder lock(lock_);
-      event_name_matches = watchEventName_ == name;
-      watch_event_callback_copy = watchEventCallback_;
+      eventNameMatches = watchEventName_ == name;
+      watchEventCallbackCopy = watchEventCallback_;
     }
-    if (event_name_matches) {
-      if (!watch_event_callback_copy.is_null()) {
-        watch_event_callback_copy.Run();
+    if (eventNameMatches) {
+      if (!watchEventCallbackCopy.is_null()) {
+        watchEventCallbackCopy.Run();
       }
     }
   }
 
   if (PREDICT_FALSE(*category_group_enabled & ENABLED_FOR_EVENT_CALLBACK)) {
-    EventCallback event_callback = reinterpret_cast<EventCallback>(
+    EventCallback eventCallback = reinterpret_cast<EventCallback>(
         base::subtle::NoBarrier_Load(&eventCallback_));
-    if (event_callback) {
-      event_callback(
+    if (eventCallback) {
+      eventCallback(
           now,
           phase == TRACE_EVENT_PHASE_COMPLETE ? TRACE_EVENT_PHASE_BEGIN : phase,
           category_group_enabled,
@@ -2063,7 +2061,7 @@ std::string TraceLog::eventToConsoleMessage(
     unsigned char phase,
     const kudu::MicrosecondsInt64& timestamp,
     TraceEvent* trace_event) {
-  SpinLockHolder thread_info_lock(threadInfoLock_);
+  SpinLockHolder threadInfoLock(threadInfoLock_);
 
   // The caller should translate TRACE_EVENT_PHASE_COMPLETE to
   // TRACE_EVENT_PHASE_BEGIN or TRACE_EVENT_END.
@@ -2077,14 +2075,13 @@ std::string TraceLog::eventToConsoleMessage(
     threadEventStartTimes_[thread_id].pop();
   }
 
-  std::string thread_name = threadNames_[thread_id];
-  if (!threadColors_.contains(thread_name)) {
-    threadColors_[thread_name] = (threadColors_.size() % 6) + 1;
+  std::string threadName = threadNames_[thread_id];
+  if (!threadColors_.contains(threadName)) {
+    threadColors_[threadName] = (threadColors_.size() % 6) + 1;
   }
 
   std::ostringstream log;
-  log << fmt::format(
-      "{}: \x1b[0;3{}m", thread_name, threadColors_[thread_name]);
+  log << fmt::format("{}: \x1b[0;3{}m", threadName, threadColors_[threadName]);
 
   size_t depth = 0;
   if (threadEventStartTimes_.find(thread_id) != threadEventStartTimes_.end()) {
@@ -2153,23 +2150,23 @@ void TraceLog::updateTraceEventDuration(
     const unsigned char* category_group_enabled,
     const char* name,
     TraceEventHandle handle) {
-  PerThreadInfo* thr_info = thread_local_info_;
-  if (!thr_info) {
-    thr_info = setupThreadLocalBuffer();
+  PerThreadInfo* thrInfo = thread_local_info_;
+  if (!thrInfo) {
+    thrInfo = setupThreadLocalBuffer();
   }
 
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
   // ECHO_TO_CONSOLE is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
-  if (base::subtle::NoBarrier_Load(&thr_info->isInTraceEvent_)) {
+  if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
     return;
   }
-  MarkFlagInScope thread_is_in_trace_event(&thr_info->isInTraceEvent_);
+  MarkFlagInScope thread_is_in_trace_event(&thrInfo->isInTraceEvent_);
 
   kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
   kudu::MicrosecondsInt64 now = offsetNow();
 
-  std::string console_message;
+  std::string consoleMessage;
   if (*category_group_enabled & ENABLED_FOR_RECORDING) {
     OptionalAutoLock lock(lock_);
 
@@ -2183,20 +2180,20 @@ void TraceLog::updateTraceEventDuration(
     }
 
     if (traceOptions() & ECHO_TO_CONSOLE) {
-      console_message =
+      consoleMessage =
           eventToConsoleMessage(TRACE_EVENT_PHASE_END, now, trace_event);
     }
   }
 
-  if (console_message.size()) {
-    LOG(ERROR) << console_message;
+  if (consoleMessage.size()) {
+    LOG(ERROR) << consoleMessage;
   }
 
   if (*category_group_enabled & ENABLED_FOR_EVENT_CALLBACK) {
-    EventCallback event_callback = reinterpret_cast<EventCallback>(
+    EventCallback eventCallback = reinterpret_cast<EventCallback>(
         base::subtle::NoBarrier_Load(&eventCallback_));
-    if (event_callback) {
-      event_callback(
+    if (eventCallback) {
+      eventCallback(
           now,
           TRACE_EVENT_PHASE_END,
           category_group_enabled,
@@ -2243,11 +2240,11 @@ void TraceLog::addMetadataEventsWhileLocked() {
       base::numCpus());
 #endif
 
-  int current_thread_id = static_cast<int>(kudu::Thread::uniqueThreadId());
+  int currentThreadId = static_cast<int>(kudu::Thread::uniqueThreadId());
   if (processSortIndex_ != 0) {
     initializeMetadataEvent(
         addEventToThreadSharedChunkWhileLocked(nullptr, false),
-        current_thread_id,
+        currentThreadId,
         "process_sort_index",
         "sort_index",
         processSortIndex_);
@@ -2256,7 +2253,7 @@ void TraceLog::addMetadataEventsWhileLocked() {
   if (processName_.size()) {
     initializeMetadataEvent(
         addEventToThreadSharedChunkWhileLocked(nullptr, false),
-        current_thread_id,
+        currentThreadId,
         "process_name",
         "name",
         processName_);
@@ -2269,7 +2266,7 @@ void TraceLog::addMetadataEventsWhileLocked() {
     }
     initializeMetadataEvent(
         addEventToThreadSharedChunkWhileLocked(nullptr, false),
-        current_thread_id,
+        currentThreadId,
         "process_labels",
         "labels",
         JoinStrings(labels, ","));
@@ -2289,7 +2286,7 @@ void TraceLog::addMetadataEventsWhileLocked() {
   }
 
   // Thread names.
-  SpinLockHolder thread_info_lock(threadInfoLock_);
+  SpinLockHolder threadInfoLock(threadInfoLock_);
   for (auto& name : threadNames_) {
     if (name.second.empty()) {
       continue;
@@ -2310,19 +2307,19 @@ TraceEvent* TraceLog::getEventByHandle(TraceEventHandle handle) {
 TraceEvent* TraceLog::getEventByHandleInternal(
     TraceEventHandle handle,
     OptionalAutoLock* lock) {
-  TraceLog::PerThreadInfo* thr_info = TraceLog::thread_local_info_;
+  TraceLog::PerThreadInfo* thrInfo = TraceLog::thread_local_info_;
 
   if (!handle.chunkSeq) {
     return nullptr;
   }
 
-  if (thr_info) {
+  if (thrInfo) {
     ThreadLocalEventBuffer* buf =
         reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
-            reinterpret_cast<AtomicWord*>(&thr_info->eventBuffer_)));
+            reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_)));
 
     if (buf) {
-      DCHECK_EQ(1, KUDU_ANNONTATE_UNPROTECTED_READ(thr_info->isInTraceEvent_));
+      DCHECK_EQ(1, KUDU_ANNONTATE_UNPROTECTED_READ(thrInfo->isInTraceEvent_));
 
       TraceEvent* trace_event = buf->getEventByHandle(handle);
       if (trace_event) {
