@@ -125,7 +125,7 @@ Status TabletServer::Init() {
     return Status::IllegalState("Catalog manager is already initialized");
   }
   RETURN_NOT_OK_PREPEND(
-      tabletManager_->Init(is_first_run_),
+      tabletManager_->init(is_first_run_),
       "Unable to initialize catalog manager");
 
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
@@ -141,7 +141,7 @@ Status TabletServer::Start() {
   }
 
   RETURN_NOT_OK_PREPEND(
-      tabletManager_->Start(is_first_run_),
+      tabletManager_->start(is_first_run_),
       "Unable to start raft in tablet manager");
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   return Status::OK();
@@ -155,7 +155,7 @@ void TabletServer::Shutdown() {
     // 1. Stop accepting new RPCs.
     UnregisterAllServices();
 
-    tabletManager_->Shutdown();
+    tabletManager_->shutdown();
 
     // 3. Shut down generic subsystems.
     KuduServer::Shutdown();

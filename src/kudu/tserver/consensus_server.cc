@@ -149,7 +149,7 @@ Status RaftConsensusServer::Init() {
   }
 
   RETURN_NOT_OK_PREPEND(
-      consensusManager_->Init(is_first_run_),
+      consensusManager_->init(is_first_run_),
       "Unable to initialize consensus manager");
 
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
@@ -172,7 +172,7 @@ Status RaftConsensusServer::Start() {
   }
 
   RETURN_NOT_OK_PREPEND(
-      consensusManager_->Start(is_first_run_),
+      consensusManager_->start(is_first_run_),
       "Unable to start consensus manager");
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   started_ = true;
@@ -192,7 +192,7 @@ void RaftConsensusServer::Shutdown() {
   UnregisterAllServices();
 
   // 2. Stop consensus
-  consensusManager_->Shutdown();
+  consensusManager_->shutdown();
 
   // 3. Shut down generic subsystems.
   KuduServer::Shutdown();
@@ -710,7 +710,7 @@ std::shared_ptr<consensus::RaftConsensus> RaftConsensusManager::sharedConsensus(
   return itr->second->sharedConsensus();
 }
 
-Status RaftConsensusManager::Init(bool isFirstRun) {
+Status RaftConsensusManager::init(bool isFirstRun) {
   LOG(INFO) << "Initializing RaftConsensusManager";
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
@@ -719,7 +719,7 @@ Status RaftConsensusManager::Init(bool isFirstRun) {
   return Status::OK();
 }
 
-Status RaftConsensusManager::Start(bool isFirstRun) {
+Status RaftConsensusManager::start(bool isFirstRun) {
   LOG(INFO) << "Starting RaftConsensusManager";
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {
@@ -738,7 +738,7 @@ bool RaftConsensusManager::isInitialized() const {
   return true;
 }
 
-void RaftConsensusManager::Shutdown() {
+void RaftConsensusManager::shutdown() {
   LOG(INFO) << "Shutting down RaftConsensusManager";
   const std::shared_lock lock(mapLock_);
   for (const auto& entry : map_) {

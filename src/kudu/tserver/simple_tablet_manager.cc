@@ -363,17 +363,17 @@ bool TsTabletManager::isRunning() const {
   return state() == MANAGER_RUNNING;
 }
 
-Status TsTabletManager::Init(bool isFirstRun) {
+Status TsTabletManager::init(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
   if (isFirstRun) {
     LOG(INFO)
-        << "TsTabletManager::Init: is_first_run detected. Calling createNew";
+        << "TsTabletManager::init: is_first_run detected. Calling createNew";
     RETURN_NOT_OK_PREPEND(
         createNew(server_->fsManager()),
         "Failed to createNew in TabletManager");
   } else {
-    LOG(INFO) << "TsTabletManager::Init: existing cmeta dir. Calling load";
+    LOG(INFO) << "TsTabletManager::init: existing cmeta dir. Calling load";
     RETURN_NOT_OK_PREPEND(
         load(server_->fsManager()), "Failed to load in TabletManager");
   }
@@ -382,7 +382,7 @@ Status TsTabletManager::Init(bool isFirstRun) {
   return Status::OK();
 }
 
-Status TsTabletManager::Start(bool isFirstRun) {
+Status TsTabletManager::start(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
   // setState(INITIALIZED);
@@ -537,7 +537,7 @@ Status TsTabletManager::setupRaft() {
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
   // is populated during that step. Capture it so as to pass it
-  // to RaftConsensus::Start, in TsTabletManager::Start
+  // to RaftConsensus::Start, in TsTabletManager::start
   //
   // Skip recovery on "is_first_run" because you are creating a
   // fresh raft instance (the raft metadata directories are new).
@@ -569,7 +569,7 @@ Status TsTabletManager::setupRaft() {
   return s1;
 }
 
-void TsTabletManager::Shutdown() {
+void TsTabletManager::shutdown() {
   {
     std::lock_guard lock(lock_);
     switch (state_) {

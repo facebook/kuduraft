@@ -219,13 +219,13 @@ class RaftConsensusManager : public TabletManagerIf {
 
   ~RaftConsensusManager() override = default;
 
-  Status Init(bool isFirstRun) override;
+  Status init(bool isFirstRun) override;
 
-  Status Start(bool isFirstRun) override;
+  Status start(bool isFirstRun) override;
 
   bool isInitialized() const override;
 
-  void Shutdown() override;
+  void shutdown() override;
 
   const NodeInstancePB& nodeInstance() const override;
 

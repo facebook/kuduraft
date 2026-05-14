@@ -75,10 +75,10 @@ class TabletManagerIf {
   virtual const NodeInstancePB& nodeInstance() const = 0;
   virtual std::shared_ptr<consensus::RaftConsensus> sharedConsensus(
       const std::string& id = "") const = 0;
-  virtual Status Init(bool isFirstRun) = 0;
-  virtual Status Start(bool isFirstRun) = 0;
+  virtual Status init(bool isFirstRun) = 0;
+  virtual Status start(bool isFirstRun) = 0;
   virtual bool isInitialized() const = 0;
-  virtual void Shutdown() = 0;
+  virtual void shutdown() = 0;
   static Status createConfigFromTserverAddresses(
       const TabletServerOptions& options,
       KC::RaftConfigPB* newConfig);
@@ -107,20 +107,20 @@ class TsTabletManager : public TabletManagerIf,
   // Load all tablet metadata blocks from disk, and open their respective
   // tablets. Upon return of this method all existing tablets are registered,
   // but the bootstrap is performed asynchronously.
-  Status Init(bool isFirstRun) override;
+  Status init(bool isFirstRun) override;
 
   // Start the raft ring.
   // At the end of this consensus has been completed and ring should be up
   // and running.
   // In case of isFirstRun, some parts of bootstrapping are bypassed
-  Status Start(bool isFirstRun) override;
+  Status start(bool isFirstRun) override;
 
   bool isInitialized() const override;
 
   bool isRunning() const;
 
   // Shut down all of the tablets, gracefully flushing before shutdown.
-  void Shutdown() override;
+  void shutdown() override;
 
   const NodeInstancePB& nodeInstance() const override;
 
