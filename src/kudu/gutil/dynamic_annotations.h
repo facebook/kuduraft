@@ -618,23 +618,23 @@ void AnnotateFlushState(const char* file, int line);
   If for some reason you can't use "valgrind.h" or want to fake valgrind,
   there are two ways to make this function return non-zero:
     - Use environment variable: export RUNNING_ON_VALGRIND=1
-    - Make your tool intercept the function RunningOnValgrind() and
+    - Make your tool intercept the function runningOnValgrind() and
       change its return value.
  */
-int RunningOnValgrind(void);
+int runningOnValgrind(void);
 
-/* ValgrindSlowdown returns:
-    * 1.0, if (RunningOnValgrind() == 0)
-    * 50.0, if (RunningOnValgrind() != 0 && getenv("VALGRIND_SLOWDOWN") == NULL)
+/* valgrindSlowdown returns:
+    * 1.0, if (runningOnValgrind() == 0)
+    * 50.0, if (runningOnValgrind() != 0 && getenv("VALGRIND_SLOWDOWN") == NULL)
     * atof(getenv("VALGRIND_SLOWDOWN")) otherwise
    This function can be used to scale timeout values:
    EXAMPLE:
    for (;;) {
      DoExpensiveBackgroundTask();
-     SleepForSeconds(5 * ValgrindSlowdown());
+     SleepForSeconds(5 * valgrindSlowdown());
    }
  */
-double ValgrindSlowdown(void);
+double valgrindSlowdown(void);
 
 /* AddressSanitizer annotations from LLVM asan_interface.h */
 

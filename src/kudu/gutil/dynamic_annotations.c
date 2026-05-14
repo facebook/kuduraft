@@ -166,7 +166,7 @@ void AnnotateFlushState(const char* file, int line) {}
 #endif /* DYNAMIC_ANNOTATIONS_ENABLED == 1 \
    && DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL == 0 */
 
-// Note: RunningOnValgrind and ValgrindSlowdown are NOT provided by the TSAN
+// Note: runningOnValgrind and valgrindSlowdown are NOT provided by the TSAN
 // runtime, so we always need to define them ourselves even when
 // DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL=1. The TSAN runtime only provides the
 // Annotate* functions.
@@ -185,25 +185,25 @@ static int getRunningOnValgrind(void) {
 }
 
 /* See the comments in dynamic_annotations.h */
-int RunningOnValgrind(void) {
-  static volatile int runningOnValgrind = -1;
-  int localRunningOnValgrind = runningOnValgrind;
+int runningOnValgrind(void) {
+  static volatile int cachedRunningOnValgrind = -1;
+  int localRunningOnValgrind = cachedRunningOnValgrind;
   /* C doesn't have thread-safe initialization of statics, and we
      don't want to depend on pthread_once here, so hack it. */
-  KUDU_ANNONTATE_BENIGN_RACE(&runningOnValgrind, "safe hack");
+  KUDU_ANNONTATE_BENIGN_RACE(&cachedRunningOnValgrind, "safe hack");
   if (localRunningOnValgrind == -1) {
-    runningOnValgrind = localRunningOnValgrind = getRunningOnValgrind();
+    cachedRunningOnValgrind = localRunningOnValgrind = getRunningOnValgrind();
   }
   return localRunningOnValgrind;
 }
 
 /* See the comments in dynamic_annotations.h */
-double ValgrindSlowdown(void) {
-  /* Same initialization hack as in RunningOnValgrind(). */
+double valgrindSlowdown(void) {
+  /* Same initialization hack as in runningOnValgrind(). */
   static volatile double slowdown = 0.0;
   double localSlowdown = slowdown;
   KUDU_ANNONTATE_BENIGN_RACE(&slowdown, "safe hack");
-  if (RunningOnValgrind() == 0) {
+  if (runningOnValgrind() == 0) {
     return 1.0;
   }
   if (localSlowdown == 0.0) {

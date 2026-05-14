@@ -43,7 +43,7 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/dynamic_annotations.h" // for RunningOnValgrind
+#include "kudu/gutil/dynamic_annotations.h" // for runningOnValgrind
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h"
@@ -249,7 +249,7 @@ static void initializeSystemInfo() {
 
   bool sawMhz = false;
 
-  if (RunningOnValgrind()) {
+  if (runningOnValgrind()) {
     // Valgrind may slow the progress of time artificially (--scale-time=N
     // option). We thus can't rely on CPU Mhz info stored in /sys or /proc
     // files. Thus, actually measure the cps.
