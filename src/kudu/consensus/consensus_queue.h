@@ -56,6 +56,7 @@ DECLARE_int32(bounded_dataloss_window_interval_ms);
 DECLARE_int32(consensus_rpc_timeout_ms);
 DECLARE_bool(enable_bounded_dataloss_window);
 DECLARE_bool(enable_flexi_raft);
+DECLARE_int32(follower_unavailable_considered_failed_sec);
 DECLARE_bool(enable_raft_leader_lease);
 DECLARE_int32(raft_leader_lease_interval_ms);
 DECLARE_bool(raft_prepare_replacement_before_eviction);

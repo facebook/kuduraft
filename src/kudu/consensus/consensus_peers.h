@@ -45,6 +45,7 @@
 
 DECLARE_bool(raft_enforce_rpc_token);
 DECLARE_int32(peer_rtt_update_interval_us);
+DECLARE_string(raft_validation_peer_rpc_fault_file);
 
 namespace kudu {
 class ThreadPoolToken;
@@ -295,6 +296,7 @@ class RpcPeerProxy : public PeerProxy {
  public:
   RpcPeerProxy(
       std::unique_ptr<HostPort> hostport,
+      std::string peerUuid,
       std::shared_ptr<ConsensusServiceProxy> consensusProxy,
       std::shared_ptr<Counter> numRpcTokenMismatches);
 
@@ -319,6 +321,7 @@ class RpcPeerProxy : public PeerProxy {
 
  private:
   std::unique_ptr<HostPort> hostport_;
+  std::string peerUuid_;
   std::shared_ptr<ConsensusServiceProxy> consensusProxy_;
 
   std::shared_ptr<Counter> numRpcTokenMismatches_;

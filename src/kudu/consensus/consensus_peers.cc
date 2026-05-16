@@ -25,9 +25,11 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -108,6 +110,16 @@ DEFINE_int32(
     1000,
     "Interval (in us) to update peer rtt for region group proxy. "
     "Negative value means no update.");
+
+DEFINE_string(
+    raft_validation_peer_rpc_fault_file,
+    "",
+    "Validation-only file listing remote peer UUIDs whose outbound Raft peer "
+    "RPCs should fail closed. The file is reread per RPC so source-local "
+    "validation harnesses can create and heal live partitions without host "
+    "iptables. Empty disables the fault hook.");
+TAG_FLAG(raft_validation_peer_rpc_fault_file, hidden);
+TAG_FLAG(raft_validation_peer_rpc_fault_file, unsafe);
 
 METRIC_DEFINE_counter(
     server,
@@ -624,21 +636,81 @@ void checkAndEnforceResponseToken(
 
 RpcPeerProxy::RpcPeerProxy(
     unique_ptr<HostPort> hostport,
+    string peerUuid,
     shared_ptr<ConsensusServiceProxy> consensusProxy,
     std::shared_ptr<Counter> numRpcTokenMismatches)
     : hostport_(std::move(hostport)),
+      peerUuid_(std::move(peerUuid)),
       consensusProxy_(std::move(consensusProxy)),
       numRpcTokenMismatches_(std::move(numRpcTokenMismatches)) {
   DCHECK(hostport_ != nullptr);
+  DCHECK(!peerUuid_.empty());
   DCHECK(consensusProxy_ != nullptr);
   DCHECK(numRpcTokenMismatches_ != nullptr);
 }
+
+namespace {
+
+bool validationPeerRpcFaultsRemote(const string& remotePeerUuid) {
+  if (FLAGS_raft_validation_peer_rpc_fault_file.empty()) {
+    return false;
+  }
+
+  std::ifstream input(FLAGS_raft_validation_peer_rpc_fault_file);
+  if (!input.is_open()) {
+    KLOG_EVERY_N_SECS(WARNING, 30)
+        << "Raft validation peer RPC fault file is not readable: "
+        << FLAGS_raft_validation_peer_rpc_fault_file;
+    return true;
+  }
+
+  string line;
+  while (std::getline(input, line)) {
+    const auto comment_pos = line.find('#');
+    if (comment_pos != string::npos) {
+      line.resize(comment_pos);
+    }
+    std::replace(line.begin(), line.end(), ',', ' ');
+    std::replace(line.begin(), line.end(), ';', ' ');
+    std::istringstream tokens(line);
+    string token;
+    while (tokens >> token) {
+      if (token == "*" || token == remotePeerUuid) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+Status validationPeerRpcFaultStatus(const string& remotePeerUuid) {
+  return Status::ServiceUnavailable(
+      "validation Raft peer RPC fault injected for remote peer",
+      remotePeerUuid);
+}
+
+void fillValidationPeerRpcFaultError(
+    ServerErrorPB* error,
+    const string& remotePeerUuid) {
+  error->set_code(ServerErrorPB::SERVICE_UNAVAILABLE);
+  statusToPb(
+      validationPeerRpcFaultStatus(remotePeerUuid), error->mutable_status());
+}
+
+} // namespace
 
 void RpcPeerProxy::updateAsync(
     const ConsensusRequestPB* request,
     ConsensusResponsePB* response,
     rpc::RpcController* controller,
     const rpc::ResponseCallback& callback) {
+  if (validationPeerRpcFaultsRemote(peerUuid_)) {
+    response->Clear();
+    fillValidationPeerRpcFaultError(response->mutable_error(), peerUuid_);
+    callback();
+    return;
+  }
+
   controller->set_timeout(
       MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
 
@@ -668,6 +740,12 @@ Status RpcPeerProxy::startElection(
     const RunLeaderElectionRequestPB* request,
     RunLeaderElectionResponsePB* response,
     rpc::RpcController* controller) {
+  if (validationPeerRpcFaultsRemote(peerUuid_)) {
+    response->Clear();
+    fillValidationPeerRpcFaultError(response->mutable_error(), peerUuid_);
+    return validationPeerRpcFaultStatus(peerUuid_);
+  }
+
   controller->set_timeout(
       MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
   return consensusProxy_->RunLeaderElection(*request, response, controller);
@@ -678,6 +756,13 @@ void RpcPeerProxy::requestConsensusVoteAsync(
     VoteResponsePB* response,
     rpc::RpcController* controller,
     const rpc::ResponseCallback& callback) {
+  if (validationPeerRpcFaultsRemote(peerUuid_)) {
+    response->Clear();
+    fillValidationPeerRpcFaultError(response->mutable_error(), peerUuid_);
+    callback();
+    return;
+  }
+
   std::optional<std::string> rpcToken = request->has_raft_rpc_token()
       ? request->raft_rpc_token()
       : std::optional<std::string>();
@@ -741,7 +826,10 @@ Status RpcPeerProxyFactory::newProxy(
   RETURN_NOT_OK(
       createConsensusServiceProxyForHost(messenger_, *hostport, &newProxy));
   proxy->reset(new RpcPeerProxy(
-      std::move(hostport), std::move(newProxy), numRpcTokenMismatches_));
+      std::move(hostport),
+      peerPb.permanent_uuid(),
+      std::move(newProxy),
+      numRpcTokenMismatches_));
   return Status::OK();
 }
 

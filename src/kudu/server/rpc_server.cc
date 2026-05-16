@@ -95,7 +95,8 @@ RpcServerOptions::RpcServerOptions()
       numAcceptorsPerAddress(FLAGS_rpc_num_acceptors_per_address),
       numServiceThreads(FLAGS_rpc_num_service_threads),
       defaultPort(0),
-      serviceQueueLength(FLAGS_rpc_service_queue_length) {}
+      serviceQueueLength(FLAGS_rpc_service_queue_length),
+      numReactorThreads(0) {}
 
 RpcServer::RpcServer(RpcServerOptions opts)
     : serverState_(kUninitialized), options_(std::move(opts)) {}

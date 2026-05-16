@@ -66,6 +66,9 @@
 #include "kudu/util/status_callback.h"
 
 DECLARE_int32(lag_threshold_for_request_vote);
+DECLARE_bool(check_quorum);
+DECLARE_bool(check_quorum_failure_callback);
+DECLARE_int32(check_quorum_interval_heartbeats);
 
 namespace facebook::datashuttle {
 class KuduRingManager;
@@ -171,7 +174,7 @@ struct ElectionContext {
   // The time the current election started at
   const Timepoint startTime = std::chrono::system_clock::now();
 
-  // If this election is preceeded by other elections considered as a single
+  // If this election is preceded by other elections considered as a single
   // event. E.g. Multiple chained promotions
   bool isChainedElection = false;
 
