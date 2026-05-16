@@ -404,12 +404,24 @@ Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
     // Make sure the set of masters passed in at start time matches the set in
     // the on-disk cmeta.
     set<string> peerAddrsFromOpts;
-    for (const auto& hp : server_->opts(id_).tserverAddresses) {
-      peerAddrsFromOpts.insert(hp.toString());
+    const auto& opts = server_->opts(id_);
+    if (!opts.tserverAddresses.empty()) {
+      for (const auto& hp : opts.tserverAddresses) {
+        peerAddrsFromOpts.insert(hp.toString());
+      }
+    } else {
+      for (const auto& peer : opts.bootstrapTservers) {
+        HostPort hp;
+        RETURN_NOT_OK(hostPortFromPb(peer.last_known_addr(), &hp));
+        peerAddrsFromOpts.insert(hp.toString());
+      }
     }
-    if (peerAddrsFromOpts.size() < server_->opts(id_).tserverAddresses.size()) {
+    const size_t configuredPeerCount = !opts.tserverAddresses.empty()
+        ? opts.tserverAddresses.size()
+        : opts.bootstrapTservers.size();
+    if (peerAddrsFromOpts.size() < configuredPeerCount) {
       LOG_WITH_PREFIX(WARNING) << fmt::format(
-          "Found duplicates in --tserver_addresses: "
+          "Found duplicate addresses in configured raft peers: "
           "the unique set of addresses is {}",
           JoinStrings(peerAddrsFromOpts, ", "));
     }

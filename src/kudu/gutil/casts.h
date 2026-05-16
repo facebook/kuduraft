@@ -51,7 +51,7 @@ inline To down_cast(From* f) { // so we only accept pointers
 
   // TODO(user): This should use KUDU_COMPILE_ASSERT.
   if (false) {
-    static_cast<From*>(static_cast<To>(nullptr));
+    static_cast<void>(static_cast<From*>(static_cast<To>(nullptr)));
   }
 
   // uses RTTI in dbg and fastbuild. asserts are disabled in opt builds.
@@ -74,7 +74,7 @@ inline To down_cast(From& f) {
   using ToAsPointer = typename base::remove_reference<To>::type*;
   if (false) {
     // Compile-time check that To inherits from From. See above for details.
-    static_cast<From*>(static_cast<ToAsPointer>(NULL));
+    static_cast<void>(static_cast<From*>(static_cast<ToAsPointer>(NULL)));
   }
 
   assert(dynamic_cast<ToAsPointer>(&f) != NULL); // RTTI: debug mode only
