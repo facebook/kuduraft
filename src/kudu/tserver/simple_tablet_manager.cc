@@ -100,11 +100,11 @@ namespace tserver {
 
 /*static*/ Status TabletManagerIf::createConfigFromTserverAddresses(
     const TabletServerOptions& options,
-    KC::RaftConfigPB* newConfig) {
+    kc::RaftConfigPB* newConfig) {
   size_t tsIndex = 0;
   // Build the set of followers from our server options.
   for (const HostPort& hostPort : options.tserverAddresses) {
-    KC::RaftPeerPB peer;
+    kc::RaftPeerPB peer;
     HostPortPB peerHostPortPb;
     RETURN_NOT_OK(hostPortToPb(hostPort, &peerHostPortPb));
     peer.mutable_last_known_addr()->CopyFrom(peerHostPortPb);
@@ -129,7 +129,7 @@ namespace tserver {
 
 /*static*/ void TabletManagerIf::createConfigFromBootstrapPeers(
     const TabletServerOptions& options,
-    KC::RaftConfigPB* newConfig) {
+    kc::RaftConfigPB* newConfig) {
   for (const RaftPeerPB& peer : options.bootstrapTservers) {
     newConfig->add_peers()->CopyFrom(peer);
   }

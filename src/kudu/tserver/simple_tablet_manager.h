@@ -63,7 +63,7 @@ class PersistentVarsManager;
 struct ElectionResult;
 } // namespace consensus
 
-namespace KC = kudu::consensus;
+namespace kc = kudu::consensus;
 
 namespace tserver {
 class TabletServer;
@@ -81,10 +81,10 @@ class TabletManagerIf {
   virtual void shutdown() = 0;
   static Status createConfigFromTserverAddresses(
       const TabletServerOptions& options,
-      KC::RaftConfigPB* newConfig);
+      kc::RaftConfigPB* newConfig);
   static void createConfigFromBootstrapPeers(
       const TabletServerOptions& options,
-      KC::RaftConfigPB* newConfig);
+      kc::RaftConfigPB* newConfig);
 };
 
 // Keeps track of the tablets hosted on the tablet server side.
