@@ -487,14 +487,14 @@ class PeerMessageQueue {
   // Called by the consensus implementation to update the queue's watermarks
   // based on information provided by the leader. This is used for metrics and
   // log retention.
-  void UpdateFollowerWatermarks(
+  void updateFollowerWatermarks(
       int64_t committed_index,
       int64_t all_replicated_index,
       int64_t region_durable_index);
 
   // Updates the last op appended to the leader and the corresponding lag
   // metric. This should not be called by a leader.
-  void UpdateLastIndexAppendedToLeader(int64_t last_idx_appended_to_leader);
+  void updateLastIndexAppendedToLeader(int64_t last_idx_appended_to_leader);
 
   // If leader, checks whether it can successfully commit to majority of peers.
   bool CheckQuorum();
@@ -504,7 +504,7 @@ class PeerMessageQueue {
   // be tracked and no additional messages may be enqueued.
   void Close();
 
-  int64_t GetQueuedOperationsSizeBytesForTests() const;
+  int64_t getQueuedOperationsSizeBytesForTests() const;
 
   // Returns the last message replicated by all peers.
   int64_t GetAllReplicatedIndex() const;
@@ -521,23 +521,23 @@ class PeerMessageQueue {
   bool IsCommittedIndexInCurrentTerm() const;
 
   // Whether the queue run in the leader mode.
-  bool IsInLeaderMode() const;
+  bool isInLeaderMode() const;
 
   // Returns the current majority replicated index, for tests.
-  int64_t GetMajorityReplicatedIndexForTests() const;
+  int64_t getMajorityReplicatedIndexForTests() const;
 
   // Updates peer. Only used for tests.
-  void UpdatePeerForTests(
+  void updatePeerForTests(
       const std::string& peer_uuid,
       const std::function<void(TrackedPeer*)>& fn);
 
   // Returns a copy of the TrackedPeer with 'uuid' or crashes if the peer is
   // not being tracked.
-  TrackedPeer GetTrackedPeerForTests(const std::string& uuid);
+  TrackedPeer getTrackedPeerForTests(const std::string& uuid);
 
   // Returns TrackedPeer reference with 'uuid' or crashes if the peer is not
   // being tracked.
-  TrackedPeer* GetTrackedPeerRefForTests(const std::string& uuid);
+  TrackedPeer* getTrackedPeerRefForTests(const std::string& uuid);
 
   std::optional<bool> IsPeerInLocalRegion(const std::string& uuid);
 
@@ -635,7 +635,7 @@ class PeerMessageQueue {
       const TrackedPeer* proxyPeer,
       const TrackedPeer* destPeer);
 
-  void SetAdjustVoterDistribution(bool val) {
+  void setAdjustVoterDistribution(bool val) {
     std::lock_guard<simple_mutexlock> lock(queue_lock_);
     adjustVoterDistribution_ = val;
   }

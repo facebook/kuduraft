@@ -951,9 +951,9 @@ Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   DCHECK(
-      (queue_->IsInLeaderMode() &&
+      (queue_->isInLeaderMode() &&
        cmeta_->activeRole() == RaftPeerPB::LEADER) ||
-      (!queue_->IsInLeaderMode() &&
+      (!queue_->isInLeaderMode() &&
        cmeta_->activeRole() != RaftPeerPB::LEADER));
   RETURN_NOT_OK(CheckRunningUnlocked());
   if (cmeta_->activeRole() != RaftPeerPB::LEADER) {
@@ -983,9 +983,9 @@ Status RaftConsensus::ValidateTransferLeadership(
     const std::optional<std::string>& new_leader_uuid,
     LeaderStepDownResponsePB* resp) {
   DCHECK(
-      (queue_->IsInLeaderMode() &&
+      (queue_->isInLeaderMode() &&
        cmeta_->activeRole() == RaftPeerPB::LEADER) ||
-      (!queue_->IsInLeaderMode() &&
+      (!queue_->isInLeaderMode() &&
        cmeta_->activeRole() != RaftPeerPB::LEADER));
   RETURN_NOT_OK(CheckRunningUnlocked());
   if (cmeta_->activeRole() != RaftPeerPB::LEADER) {
@@ -2250,7 +2250,7 @@ Status RaftConsensus::updateReplica(
 
     // We update the lag metrics here in addition to after appending to the
     // queue so the metrics get updated even when the operation is rejected.
-    queue_->UpdateLastIndexAppendedToLeader(
+    queue_->updateLastIndexAppendedToLeader(
         request->last_idx_appended_to_leader());
 
     // Also prohibit voting for anyone for the minimum election timeout.
@@ -2484,7 +2484,7 @@ Status RaftConsensus::updateReplica(
     VLOG_WITH_PREFIX_UNLOCKED(1) << "Marking committed up to " << applyUpTo;
     TRACE("Marking committed up to $0", applyUpTo);
     CHECK_OK(pending_->advanceCommittedIndex(applyUpTo));
-    queue_->UpdateFollowerWatermarks(
+    queue_->updateFollowerWatermarks(
         applyUpTo,
         request->all_replicated_index(),
         request->region_durable_index());
@@ -4583,7 +4583,7 @@ void RaftConsensus::setRejectAppendEntriesForTests(bool reject_append_entries) {
 
 void RaftConsensus::setAdjustVoterDistribution(bool val) {
   LockGuard l(lock_);
-  queue_->SetAdjustVoterDistribution(val);
+  queue_->setAdjustVoterDistribution(val);
   adjustVoterDistribution_ = val;
 }
 
@@ -4778,7 +4778,7 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
     case RaftPeerPB::LEADER:
       // Check for the consistency of the information in the consensus
       // metadata and the state of the consensus queue.
-      DCHECK(queue_->IsInLeaderMode());
+      DCHECK(queue_->isInLeaderMode());
       if (leaderTransferInProgress_.load()) {
         return Status::ServiceUnavailable("leader transfer in progress");
       }
@@ -4787,7 +4787,7 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
     default:
       // Check for the consistency of the information in the consensus
       // metadata and the state of the consensus queue.
-      DCHECK(!queue_->IsInLeaderMode());
+      DCHECK(!queue_->isInLeaderMode());
       return Status::IllegalState(
           fmt::format(
               "Replica {} is not leader of this config. Role: {}. "

@@ -1845,7 +1845,7 @@ Status PeerMessageQueue::GetNextRoutingHopFromLeader(
       localPeerPb_.permanent_uuid(), dest_uuid, next_hop);
 }
 
-void PeerMessageQueue::UpdateFollowerWatermarks(
+void PeerMessageQueue::updateFollowerWatermarks(
     int64_t committed_index,
     int64_t all_replicated_index,
     int64_t region_durable_index) {
@@ -1861,7 +1861,7 @@ void PeerMessageQueue::UpdateFollowerWatermarks(
   UpdateMetricsUnlocked();
 }
 
-void PeerMessageQueue::UpdateLastIndexAppendedToLeader(
+void PeerMessageQueue::updateLastIndexAppendedToLeader(
     int64_t last_idx_appended_to_leader) {
   std::lock_guard<simple_mutexlock> l(queue_lock_);
   DCHECK_EQ(queueState_.mode, NON_LEADER);
@@ -2680,7 +2680,7 @@ MonoTime PeerMessageQueue::GetMaximumOfPeerRpcStarts(QuorumResults& qresults) {
   return result;
 }
 
-PeerMessageQueue::TrackedPeer PeerMessageQueue::GetTrackedPeerForTests(
+PeerMessageQueue::TrackedPeer PeerMessageQueue::getTrackedPeerForTests(
     const string& uuid) {
   std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
   auto it = peers_map_.find(uuid);
@@ -2689,7 +2689,7 @@ PeerMessageQueue::TrackedPeer PeerMessageQueue::GetTrackedPeerForTests(
   return *tracked;
 }
 
-PeerMessageQueue::TrackedPeer* PeerMessageQueue::GetTrackedPeerRefForTests(
+PeerMessageQueue::TrackedPeer* PeerMessageQueue::getTrackedPeerRefForTests(
     const std::string& uuid) {
   std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
   auto it = peers_map_.find(uuid);
@@ -2784,12 +2784,12 @@ bool PeerMessageQueue::IsCommittedIndexInCurrentTerm() const {
       queueState_.committed_index >= *queueState_.first_index_in_current_term;
 }
 
-bool PeerMessageQueue::IsInLeaderMode() const {
+bool PeerMessageQueue::isInLeaderMode() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   return queueState_.mode == Mode::LEADER;
 }
 
-int64_t PeerMessageQueue::GetMajorityReplicatedIndexForTests() const {
+int64_t PeerMessageQueue::getMajorityReplicatedIndexForTests() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   return queueState_.majority_replicated_index;
 }
@@ -2861,7 +2861,7 @@ void PeerMessageQueue::Close() {
   time_provider_.reset();
 }
 
-int64_t PeerMessageQueue::GetQueuedOperationsSizeBytesForTests() const {
+int64_t PeerMessageQueue::getQueuedOperationsSizeBytesForTests() const {
   return log_cache_->bytesUsed();
 }
 
@@ -3124,7 +3124,7 @@ bool PeerMessageQueue::CheckQuorum() {
   return results.quorum_satisfied;
 }
 
-void PeerMessageQueue::UpdatePeerForTests(
+void PeerMessageQueue::updatePeerForTests(
     const std::string& peer_uuid,
     const std::function<void(TrackedPeer*)>& fn) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
