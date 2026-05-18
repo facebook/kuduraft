@@ -148,7 +148,7 @@ class ConsensusQueueTest : public KuduTest {
   }
 
   Status appendReplicateMsg(int term, int index, int payloadSize) {
-    return queue_->AppendOperation(makeScopedRefptrReplicate(
+    return queue_->appendOperation(makeScopedRefptrReplicate(
         createDummyReplicate(term, index, clock_->now(), payloadSize),
         Source::Memory));
   }
@@ -173,7 +173,7 @@ class ConsensusQueueTest : public KuduTest {
       const OpId& lastReceivedCurrentLeader,
       int lastCommittedIdx,
       bool* sendMoreImmediately) {
-    queue_->TrackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
+    queue_->trackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
     response->set_responder_uuid(kPeerUuid);
 
     // Ask for a request. The queue assumes the peer is up-to-date so
@@ -292,7 +292,7 @@ class ConsensusQueueTest : public KuduTest {
 // with several messages and then starts to track a peer whose watermark
 // falls in the middle of the current messages in the queue.
 TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
 
@@ -356,7 +356,7 @@ TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
 // the request PB to be a certain type instead of doing reflection, which means
 // the NoopRequestPB shows up as zero length.
 TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
 
   // helper to estimate request size so that we can set the max batch size
@@ -443,7 +443,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
 }
 
 TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
 
@@ -531,13 +531,13 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
 }
 
 TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(5));
   // Track 4 additional peers (in addition to the local peer)
-  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 10 messages to the queue.
   // This should add messages 0.1 -> 0.7, 1.8 -> 1.10 to the queue.
@@ -618,15 +618,15 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   const auto kNonVoterPeer = "non-voter-peer-0";
 
   // 1. Add a non-voter to the config where there are 2 voters.
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumOpIdIndex,
       kMinimumTerm,
       buildRaftConfigPbForTests(
           /*numVoters=*/2,
           /*numNonVoters=*/1));
   // Track 2 additional peers (in addition to the local peer)
-  queue_->TrackPeer(makePeer(kOtherVoterPeer, RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer(kNonVoterPeer, RaftPeerPB::NON_VOTER));
+  queue_->trackPeer(makePeer(kOtherVoterPeer, RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer(kNonVoterPeer, RaftPeerPB::NON_VOTER));
 
   // 2. Add some writes. Only the local leader immediately acks them, which is
   // not enough to commit in a 2-voter + 1 non-voter config.
@@ -707,7 +707,7 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
   // the last operation in the log.
   closeAndReopenQueue(lastLoggedOpid, lastLoggedOpid);
 
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       lastLoggedOpid.index(),
       lastLoggedOpid.term(),
       buildRaftConfigPbForTests(3));
@@ -785,7 +785,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   // Now reset the queue so that we can pass a new committed index (15).
   closeAndReopenQueue(lastInLog, MakeOpId(2, committedIndex));
 
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       committedIndex, lastInLog.term(), buildRaftConfigPbForTests(3));
 
   // Now get a request for a simulated old leader, which contains more
@@ -798,7 +798,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   response.set_responder_uuid(kPeerUuid);
   bool sendMoreImmediately = false;
 
-  queue_->TrackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
 
   // Ask for a request. The queue assumes the peer is up-to-date so
   // this should contain no operations.
@@ -844,7 +844,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
 
   // Test even when a correct peer responds (meaning we actually get to execute
   // watermark advancement) we sill have the same all-replicated watermark.
-  ASSERT_OK(queue_->AppendOperation(
+  ASSERT_OK(queue_->appendOperation(
       std::make_shared<RefCountedReplicate>(
           createDummyReplicate(2, 21, clock_->now(), 0), Source::Memory)));
   waitForLocalPeerToAckIndex(21);
@@ -883,7 +883,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
 // operations, which would cause a check failure on the write immediately
 // following the overwriting write.
 TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
-  queue_->SetNonLeaderMode(buildRaftConfigPbForTests(3));
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
   // Append a bunch of messages and update as if they were also appeneded to the
   // leader.
   queue_->UpdateLastIndexAppendedToLeader(10);
@@ -891,7 +891,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
 
   // Now rewrite some of the operations and wait for the log to append.
   Synchronizer synch;
-  CHECK_OK(queue_->AppendOperations(
+  CHECK_OK(queue_->appendOperations(
       {std::make_shared<RefCountedReplicate>(
           createDummyReplicate(2, 5, clock_->now(), 0), Source::Memory)},
       synch.asStatusCallback()));
@@ -905,7 +905,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   // Without the fix the following append would trigger a check failure
   // in log cache.
   synch.reset();
-  CHECK_OK(queue_->AppendOperations(
+  CHECK_OK(queue_->appendOperations(
       {std::make_shared<RefCountedReplicate>(
           createDummyReplicate(2, 6, clock_->now(), 0), Source::Memory)},
       synch.asStatusCallback()));
@@ -931,14 +931,14 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
 // be advanced after considering peers in the old and new config.
 TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
   // 'peer-0' is the leader (see `kLeaderUuid`)
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
       buildTransitionalRaftConfigPbForTests(3, 5));
-  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
@@ -1005,7 +1005,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
 //   C_new      = {peer-0, peer-1, peer-2, peer-3, peer-4}
 // The '*' sign above indicates non-voter role.
 TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
       buildTransitionalRaftConfigPbForTests(
@@ -1016,10 +1016,10 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 
   // Note that the voter type in the TrackedPeers below is not used
   // for watermark calculation, which directly uses the peers in config.
-  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::NON_VOTER));
-  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::NON_VOTER));
+  queue_->trackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-3", RaftPeerPB::NON_VOTER));
+  queue_->trackPeer(makePeer("peer-4", RaftPeerPB::NON_VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
@@ -1084,7 +1084,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 //   C_new      = {peer-0, peer-1, peer-2, *peer-3, *peer-4}
 // The '*' sign above indicates non-voter role.
 TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
       buildTransitionalRaftConfigPbForTests(
@@ -1092,10 +1092,10 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
           /*numNewVoters=*/5,
           /*numOldNonVoters=*/2,
           /*numNewNonVoters=*/0));
-  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
@@ -1156,7 +1156,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
 // However, here the queue first get a majority of C_old, which is not a
 // majority of C_new. The leader is unlucky.
 TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
       buildTransitionalRaftConfigPbForTests(
@@ -1164,10 +1164,10 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
           /*numNewVoters=*/5,
           /*numOldNonVoters=*/2,
           /*numNewNonVoters=*/0));
-  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
@@ -1230,17 +1230,17 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
 //   C_new      = {peer-0, peer-1, peer-2, peer-3, peer-4, peer-5}
 // This checks that majority is calculated correctly for even number of voters.
 TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
       buildTransitionalRaftConfigPbForTests(
           /*numOldVoters=*/4,
           /*numNewVoters=*/6));
-  queue_->TrackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
-  queue_->TrackPeer(makePeer("peer-5", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->trackPeer(makePeer("peer-5", RaftPeerPB::VOTER));
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
@@ -1345,7 +1345,7 @@ TEST_F(
 
   const int kInitialCommittedIndex = 30;
   closeAndReopenQueue(MakeOpId(72, 30), MakeOpId(82, 30));
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       kInitialCommittedIndex, 76, buildRaftConfigPbForTests(3));
 
   ConsensusRequestPB request;
@@ -1475,7 +1475,7 @@ TEST_F(
 }
 
 TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
-  queue_->SetNonLeaderMode(buildRaftConfigPbForTests(3));
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
 
   // Emulate a follower sending a request to replicate 10 messages.
   queue_->UpdateLastIndexAppendedToLeader(10);
@@ -1516,7 +1516,7 @@ TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
       {2, {kLeaderQuorumId, RaftPeerPB::VOTER}},
   });
   config.mutable_voter_distribution()->insert({kLeaderQuorumId, -2});
-  queue_->SetLeaderMode(kMinimumOpIdIndex, kMinimumTerm, std::move(config));
+  queue_->setLeaderMode(kMinimumOpIdIndex, kMinimumTerm, std::move(config));
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
 
   // Wait for the local peer to append all messages

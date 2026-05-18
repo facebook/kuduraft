@@ -210,7 +210,7 @@ class ConsensusPeersTest : public KuduTest {
 TEST_F(ConsensusPeersTest, TestRemotePeer) {
   // We use a majority size of 2 since we make one fake remote peer
   // in addition to our real local log.
-  messageQueue_->SetLeaderMode(
+  messageQueue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   shared_ptr<Peer> remotePeer;
@@ -238,7 +238,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   raftConfig.add_peers()->mutable_permanent_uuid()->assign("peer-2");
   ASSERT_OK(routingTable_->updateRaftConfig(raftConfig));
 
-  messageQueue_->SetLeaderMode(
+  messageQueue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   // Create a set of remote peers
@@ -295,7 +295,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
 // Regression test for KUDU-699: even if a peer isn't making progress,
 // and thus always has data pending, we should be able to close the peer.
 TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
-  messageQueue_->SetLeaderMode(
+  messageQueue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   auto mockProxy = make_shared<MockedPeerProxy>(raftPool_.get());
@@ -335,7 +335,7 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
 }
 
 TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
-  messageQueue_->SetLeaderMode(
+  messageQueue_->setLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   auto mockProxy = make_shared<MockedPeerProxy>(raftPool_.get());

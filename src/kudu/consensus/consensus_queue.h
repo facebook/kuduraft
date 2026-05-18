@@ -129,7 +129,7 @@ enum class PeerStatus {
   LmpMismatch,
 };
 
-const char* PeerStatusToString(PeerStatus p);
+const char* peerStatusToString(PeerStatus p);
 
 // Tracks the state of the peers and which transactions they have replicated.
 // Owns the LogCache which actually holds the replicate messages which are
@@ -367,7 +367,7 @@ class PeerMessageQueue {
   // operation in the current term.
   // 'active_config' is the currently-active Raft config. This must always be
   // a superset of the tracked peers, and that is enforced with runtime CHECKs.
-  void SetLeaderMode(
+  void setLeaderMode(
       int64_t committed_index,
       int64_t current_term,
       const RaftConfigPB& active_config);
@@ -376,17 +376,17 @@ class PeerMessageQueue {
   // be tracked so that the cache is only evicted when the peers no longer need
   // the operations but the queue will no longer advance the majority replicated
   // index or notify observers of its advancement.
-  void SetNonLeaderMode(const RaftConfigPB& active_config);
+  void setNonLeaderMode(const RaftConfigPB& active_config);
 
   // Makes the queue track this peer.
-  void TrackPeer(const RaftPeerPB& peer_pb);
+  void trackPeer(const RaftPeerPB& peer_pb);
 
   // Makes the queue untrack this peer.
-  void UntrackPeer(const std::string& uuid);
+  void untrackPeer(const std::string& uuid);
 
   // Returns a health report for all active peers.
   // Returns IllegalState if the local peer is not the leader of the config.
-  std::unordered_map<std::string, HealthReportPB> ReportHealthOfPeers() const;
+  std::unordered_map<std::string, HealthReportPB> reportHealthOfPeers() const;
 
   // Appends a single message to be replicated to the peers.
   // Returns OK unless the message could not be added to the queue for some
@@ -395,10 +395,10 @@ class PeerMessageQueue {
   //
   // This is thread-safe against all of the read methods, but not thread-safe
   // with concurrent Append calls.
-  Status AppendOperation(const ReplicateRefPtr& msg);
+  Status appendOperation(const ReplicateRefPtr& msg);
 
-  // Just like AppendOperation() above but with msg wrapper as input
-  Status AppendOperation(const ReplicateMsgWrapper& msg_wrappers);
+  // Just like appendOperation() above but with msg wrapper as input
+  Status appendOperation(const ReplicateMsgWrapper& msg_wrappers);
 
   // Appends a vector of messages to be replicated to the peers.
   // Returns OK unless the message could not be added to the queue for some
@@ -408,22 +408,22 @@ class PeerMessageQueue {
   //
   // This is thread-safe against all of the read methods, but not thread-safe
   // with concurrent Append calls.
-  Status AppendOperations(
+  Status appendOperations(
       const std::vector<ReplicateRefPtr>& msgs,
       const StatusCallback& log_append_callback);
 
-  // Just like AppendOperations() above but with msg wrappers as input
-  Status AppendOperations(
+  // Just like appendOperations() above but with msg wrappers as input
+  Status appendOperations(
       const std::vector<ReplicateMsgWrapper>& msgs,
       const StatusCallback& log_append_callback);
 
   // Truncate all operations coming after 'index'. Following this, the
   // 'last_appended' operation is reset to the OpId with this index, and the log
   // cache will be truncated accordingly.
-  void TruncateOpsAfter(int64_t index);
+  void truncateOpsAfter(int64_t index);
 
   // Return the last OpId in the log.
-  // Note that this can move backwards after a truncation (TruncateOpsAfter).
+  // Note that this can move backwards after a truncation (truncateOpsAfter).
   OpId GetLastOpIdInLog() const;
 
   // Return the next OpId to be appended to the queue in the current term.
@@ -500,7 +500,7 @@ class PeerMessageQueue {
   bool CheckQuorum();
 
   // Closes the queue. Once the queue is closed, peers are still allowed to
-  // call UntrackPeer() and ResponseFromPeer(), however no additional peers may
+  // call untrackPeer() and ResponseFromPeer(), however no additional peers may
   // be tracked and no additional messages may be enqueued.
   void Close();
 
@@ -904,13 +904,13 @@ class PeerMessageQueue {
   // If a peer is the local peer, set is_local_peer to true so that it has
   // the correct defaults. ie. consecutiveFailures for local peer is always
   // 0.
-  void TrackPeerUnlocked(const RaftPeerPB& peer_pb, bool is_local_peer = false);
+  void trackPeerUnlocked(const RaftPeerPB& peer_pb, bool is_local_peer = false);
 
-  void UntrackPeerUnlocked(const std::string& uuid);
+  void untrackPeerUnlocked(const std::string& uuid);
 
   // We need the local peer in the config because it contains the current
   // 'member_type' of the local node while 'local_peer_pb_' does not.
-  void TrackLocalPeerUnlocked();
+  void trackLocalPeerUnlocked();
 
   // Checks that if the queue is in LEADER mode then all registered peers
   // are in the active config. Crashes with a FATAL log message if this

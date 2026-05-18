@@ -296,7 +296,7 @@ METRIC_DEFINE_gauge_int64(
     MetricUnit::kUnits,
     "Number of remote peers who are Bounded DataLoss window ACKers.");
 
-const char* PeerStatusToString(PeerStatus p) {
+const char* peerStatusToString(PeerStatus p) {
   switch (p) {
     case PeerStatus::Ok:
       return "OK";
@@ -427,7 +427,7 @@ std::string PeerMessageQueue::TrackedPeer::ToString() const {
       "Peer: {}, Status: {}, Last received: {}, Next index: {}, "
       "Last known committed idx: {}, Time since last communication: {}",
       SecureShortDebugString(peerPb),
-      PeerStatusToString(lastExchangeStatus),
+      peerStatusToString(lastExchangeStatus),
       OpIdToString(lastReceived),
       nextIndex,
       lastKnownCommittedIndex,
@@ -564,7 +564,7 @@ Status PeerMessageQueue::SetCompressionDictionary(const std::string& dict) {
   return Status::OK();
 }
 
-void PeerMessageQueue::SetLeaderMode(
+void PeerMessageQueue::setLeaderMode(
     int64_t committed_index,
     int64_t current_term,
     const RaftConfigPB& active_config) {
@@ -583,7 +583,7 @@ void PeerMessageQueue::SetLeaderMode(
       majoritySize(countVoters(*queueState_.active_config));
   queueState_.mode = LEADER;
 
-  TrackLocalPeerUnlocked();
+  trackLocalPeerUnlocked();
   CheckPeersInActiveConfigIfLeaderUnlocked();
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -592,7 +592,7 @@ void PeerMessageQueue::SetLeaderMode(
   time_manager_->setLeaderMode();
 }
 
-void PeerMessageQueue::SetNonLeaderMode(const RaftConfigPB& active_config) {
+void PeerMessageQueue::setNonLeaderMode(const RaftConfigPB& active_config) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   queueState_.active_config.reset(new RaftConfigPB(active_config));
   queueState_.mode = NON_LEADER;
@@ -601,7 +601,7 @@ void PeerMessageQueue::SetNonLeaderMode(const RaftConfigPB& active_config) {
   // Update this when stepping down, since it doesn't get tracked as LEADER.
   queueState_.last_idx_appended_to_leader = queueState_.last_appended.index();
 
-  TrackLocalPeerUnlocked();
+  trackLocalPeerUnlocked();
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Queue going to NON_LEADER mode. State: " << queueState_.ToString();
@@ -609,12 +609,12 @@ void PeerMessageQueue::SetNonLeaderMode(const RaftConfigPB& active_config) {
   time_manager_->setNonLeaderMode();
 }
 
-void PeerMessageQueue::TrackPeer(const RaftPeerPB& peer_pb) {
+void PeerMessageQueue::trackPeer(const RaftPeerPB& peer_pb) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  TrackPeerUnlocked(peer_pb);
+  trackPeerUnlocked(peer_pb);
 }
 
-void PeerMessageQueue::TrackPeerUnlocked(
+void PeerMessageQueue::trackPeerUnlocked(
     const RaftPeerPB& peer_pb,
     bool is_local_peer) {
   CHECK(!peer_pb.permanent_uuid().empty()) << SecureShortDebugString(peer_pb);
@@ -652,12 +652,12 @@ void PeerMessageQueue::TrackPeerUnlocked(
   queueState_.all_replicated_index = 0;
 }
 
-void PeerMessageQueue::UntrackPeer(const string& uuid) {
+void PeerMessageQueue::untrackPeer(const string& uuid) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  UntrackPeerUnlocked(uuid);
+  untrackPeerUnlocked(uuid);
 }
 
-void PeerMessageQueue::UntrackPeerUnlocked(const string& uuid) {
+void PeerMessageQueue::untrackPeerUnlocked(const string& uuid) {
   DCHECK(queue_lock_.is_locked());
   auto it = peers_map_.find(uuid);
   TrackedPeer* peer = nullptr;
@@ -668,7 +668,7 @@ void PeerMessageQueue::UntrackPeerUnlocked(const string& uuid) {
   delete peer; // Deleting a nullptr is safe.
 }
 
-void PeerMessageQueue::TrackLocalPeerUnlocked() {
+void PeerMessageQueue::trackLocalPeerUnlocked() {
   DCHECK(queue_lock_.is_locked());
   RaftPeerPB* localPeerInConfig;
   Status s = getRaftConfigMember(
@@ -697,12 +697,12 @@ void PeerMessageQueue::TrackLocalPeerUnlocked() {
       localPeerPb_.permanent_uuid(),
       queueState_.ToString());
   if (peers_map_.contains(localPeerPb_.permanent_uuid())) {
-    UntrackPeerUnlocked(localPeerPb_.permanent_uuid());
+    untrackPeerUnlocked(localPeerPb_.permanent_uuid());
   }
-  TrackPeerUnlocked(*localPeerInConfig, /*is_local_peer=*/true);
+  trackPeerUnlocked(*localPeerInConfig, /*is_local_peer=*/true);
 }
 
-unordered_map<string, HealthReportPB> PeerMessageQueue::ReportHealthOfPeers()
+unordered_map<string, HealthReportPB> PeerMessageQueue::reportHealthOfPeers()
     const {
   unordered_map<string, HealthReportPB> reports;
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
@@ -805,15 +805,15 @@ void PeerMessageQueue::LocalPeerAppendFinished(
   callback.Run(status);
 }
 
-Status PeerMessageQueue::AppendOperation(const ReplicateRefPtr& msg) {
-  return AppendOperations(
+Status PeerMessageQueue::appendOperation(const ReplicateRefPtr& msg) {
+  return appendOperations(
       {msg},
       Bind(
           crashIfNotOkStatusCb,
           "Enqueued replicate operation failed to write to WAL"));
 }
 
-Status PeerMessageQueue::AppendOperations(
+Status PeerMessageQueue::appendOperations(
     const vector<ReplicateRefPtr>& msgs,
     const StatusCallback& log_append_callback) {
   DFAKE_SCOPED_LOCK(append_fake_lock_);
@@ -868,16 +868,16 @@ Status PeerMessageQueue::AppendOperations(
   return Status::OK();
 }
 
-Status PeerMessageQueue::AppendOperation(
+Status PeerMessageQueue::appendOperation(
     const ReplicateMsgWrapper& msg_wrapper) {
-  return AppendOperations(
+  return appendOperations(
       {msg_wrapper},
       Bind(
           crashIfNotOkStatusCb,
           "Enqueued replicate operation failed to write to WAL"));
 }
 
-Status PeerMessageQueue::AppendOperations(
+Status PeerMessageQueue::appendOperations(
     const vector<ReplicateMsgWrapper>& msg_wrappers,
     const StatusCallback& log_append_callback) {
   DFAKE_SCOPED_LOCK(append_fake_lock_);
@@ -914,7 +914,7 @@ Status PeerMessageQueue::AppendOperations(
   }
 
   // Unlock ourselves during Append to prevent a deadlock: it's possible that
-  // the log buffer is full, in which case AppendOperations would block.
+  // the log buffer is full, in which case appendOperations would block.
   // However, for the log buffer to empty, it may need to call
   // LocalPeerAppendFinished() which also needs queue_lock_.
   lock.unlock();
@@ -933,7 +933,7 @@ Status PeerMessageQueue::AppendOperations(
   return Status::OK();
 }
 
-void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
+void PeerMessageQueue::truncateOpsAfter(int64_t index) {
   DFAKE_SCOPED_LOCK(append_fake_lock_); // should not race with append.
   OpId op;
   CHECK_OK_PREPEND(

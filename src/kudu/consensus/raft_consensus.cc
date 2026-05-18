@@ -1290,7 +1290,7 @@ Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   // Deregister ourselves from the queue. We no longer need to track what gets
   // replicated since we're stepping down.
   queue_->UnRegisterObserver(this);
-  queue_->SetNonLeaderMode(cmeta_->activeConfig());
+  queue_->setNonLeaderMode(cmeta_->activeConfig());
   peerManager_->close();
 
   return Status::OK();
@@ -1368,7 +1368,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
   // The only reasons for a bad status would be if the log itself were shut
   // down, or if we had an actual IO error, which we currently don't handle.
   CHECK_OK_PREPEND(
-      queue_->AppendOperation(msg_wrapper),
+      queue_->appendOperation(msg_wrapper),
       fmt::format("{}: could not append to queue", logPrefixUnlocked()));
   if (round->replicate_msg()->op_type() == NO_OP) {
     handleNewTermAppendedUnlocked(round->replicate_msg()->id().term());
@@ -1995,7 +1995,7 @@ void RaftConsensus::truncateAndAbortOpsAfterUnlocked(
     int64_t truncateAfterIndex) {
   DCHECK(lock_.is_locked());
   pending_->abortOpsAfter(truncateAfterIndex);
-  queue_->TruncateOpsAfter(truncateAfterIndex);
+  queue_->truncateOpsAfter(truncateAfterIndex);
 }
 
 Status RaftConsensus::checkLeaderRequestUnlocked(
@@ -2452,7 +2452,7 @@ Status RaftConsensus::updateReplica(
       //
       // Since we've prepared, we need to be able to append (or we risk trying
       // to apply later something that wasn't logged). We crash if we can't.
-      CHECK_OK(queue_->AppendOperations(msgWrappers, syncStatusCb));
+      CHECK_OK(queue_->appendOperations(msgWrappers, syncStatusCb));
       if (cmeta_->lastKnownLeader().uuid().empty() ||
           lastFromLeader.term() != precedingTerm) {
         handleNewTermAppendedUnlocked(lastFromLeader.term());
@@ -2544,7 +2544,7 @@ void RaftConsensus::fillConsensusResponseOkUnlocked(
   // if RESPONSE STATUS does not have error - i.e. common case
   // and there are messages in the request, then lastReceivedCurLeader_
   // = last_from_leader
-  // and AppendOperations also uses the same OpId (last_id) to
+  // and appendOperations also uses the same OpId (last_id) to
   // update queue_state_.last_appended.
   // So in COMMON case both the first and second OpId's should be the same.
   response->mutable_status()->mutable_last_received()->CopyFrom(
@@ -4047,7 +4047,7 @@ Status RaftConsensus::refreshConsensusQueueAndPeersUnlocked() {
   peerManager_->close();
   // TODO(todd): should use queue committed index here? in that case do
   // we need to pass it in at all?
-  queue_->SetLeaderMode(
+  queue_->setLeaderMode(
       pending_->getCommittedIndex(), currentTermUnlocked(), active_config);
   RETURN_NOT_OK(peerManager_->updateRaftConfig(active_config));
   return Status::OK();
@@ -4122,7 +4122,7 @@ Status RaftConsensus::consensusState(
   // config iff we believe we are the current leader of the config.
   if (report_health == INCLUDE_HEALTH_REPORT &&
       cmeta_->activeRole() == RaftPeerPB::LEADER) {
-    auto reports = queue_->ReportHealthOfPeers();
+    auto reports = queue_->reportHealthOfPeers();
 
     // We don't need to access the queue anymore, so drop the consensus lock.
     if (opt_lock) {

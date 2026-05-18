@@ -192,7 +192,7 @@ Peer::Peer(
 Status Peer::init() {
   {
     std::lock_guard<simple_spinlock> l(peerLock_);
-    queue_->TrackPeer(peerPb_);
+    queue_->trackPeer(peerPb_);
     isPeerInLocalRegion_ =
         queue_->IsPeerInLocalRegion(peerPb_.permanent_uuid());
   }
@@ -563,7 +563,7 @@ void Peer::close() {
   LOG(INFO) << logPrefixUnlocked()
             << "Closing peer: " << peerPb_.permanent_uuid();
 
-  queue_->UntrackPeer(peerPb_.permanent_uuid());
+  queue_->untrackPeer(peerPb_.permanent_uuid());
 }
 
 Peer::~Peer() {

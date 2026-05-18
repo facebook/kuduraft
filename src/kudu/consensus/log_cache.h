@@ -345,7 +345,7 @@ class LogCache {
 
   // Temporary buffer to use for compression. This is used during append
   // operation to compress and/or uncompress payloads. Note that the same buffer
-  // gets reused multiple times - this assumens that AppendOperation is
+  // gets reused multiple times - this assumens that appendOperation is
   // serialized externally and that there can be only one in-flight append
   // operation
   faststring logCacheCompressionBuf_;

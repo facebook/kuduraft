@@ -594,10 +594,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   QuorumType getQuorumType() const;
 
   // Only relevant for abstracted logs.
-  // Callback the log abstraction's TruncateOpsAfter function
+  // Callback the log abstraction's truncateOpsAfter function
   // while holding Raft Consensus lock. This is to serialize
   // the operation with Raft Consensus lock, which is the same locking
-  // pattern that is used by UpdateReplica while invoking TruncateOpsAfter
+  // pattern that is used by UpdateReplica while invoking truncateOpsAfter
   // @param index_if_truncated - the log specialization will return the
   // truncated index if truncation happened.
   Status truncateCallbackWithRaftLock(int64_t* index_if_truncated);

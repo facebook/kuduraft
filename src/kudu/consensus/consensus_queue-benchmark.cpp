@@ -105,12 +105,12 @@ class ConsensusQueueBenchmark {
     closeAndReopenQueue(MinimumOpId(), MinimumOpId());
 
     // Set leader mode and track peers once during initialization
-    queue_->SetLeaderMode(1, 1, raftConfig);
+    queue_->setLeaderMode(1, 1, raftConfig);
     for (auto& peer : raftConfig.peers()) {
       if (peer.permanent_uuid() == kLeaderUuid) {
         continue;
       }
-      queue_->TrackPeer(peer);
+      queue_->trackPeer(peer);
     }
   }
 
