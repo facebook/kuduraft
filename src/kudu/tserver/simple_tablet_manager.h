@@ -154,14 +154,14 @@ class TsTabletManager : public TabletManagerIf,
 
  private:
   // Standard log prefix, given a tablet id.
-  static std::string LogPrefix(
+  static std::string logPrefix(
       const std::string& tabletId,
       FsManager* fsManager);
-  std::string LogPrefix(const std::string& tabletId) const {
-    return LogPrefix(tabletId, fsManager_);
+  std::string logPrefix(const std::string& tabletId) const {
+    return logPrefix(tabletId, fsManager_);
   }
 
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   TSTabletManagerStatePB state() const {
     shared_lock l(lock_);

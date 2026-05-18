@@ -160,7 +160,7 @@ class RaftConsensusInstance {
     return log_;
   }
 
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
  private:
   Status createNew(FsManager* fsManager);

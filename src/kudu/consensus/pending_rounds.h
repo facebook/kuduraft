@@ -97,7 +97,7 @@ class PendingRounds {
   static Status checkOpInSequence(const OpId& previous, const OpId& current);
 
  private:
-  const std::string& LogPrefix() const {
+  const std::string& logPrefix() const {
     return logPrefix_;
   }
 

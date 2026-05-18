@@ -267,7 +267,7 @@ class DurableRoutingTable : public IRoutingTable {
   Status flush() const;
 
   // Thread-safe log prefix helper.
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   FsManager* fsManager_;
   const std::string tabletId_;

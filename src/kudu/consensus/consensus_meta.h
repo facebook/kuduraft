@@ -266,7 +266,7 @@ class ConsensusMetadata {
   // Helper function to extend previousVoteHistory_
   void populatePreviousVoteHistory(const PreviousVotePB& prevVote);
 
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   // Updates the cached active role.
   void updateActiveRole();

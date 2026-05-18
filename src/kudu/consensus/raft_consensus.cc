@@ -5125,7 +5125,7 @@ const ConsensusOptions& RaftConsensus::GetOptions() const {
   return options_;
 }
 
-string RaftConsensus::LogPrefix() const {
+string RaftConsensus::logPrefix() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   return logPrefixUnlocked();

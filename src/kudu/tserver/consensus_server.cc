@@ -364,7 +364,7 @@ RaftConsensusInstance::sharedConsensus() const {
   return consensus_;
 }
 
-std::string RaftConsensusInstance::LogPrefix() const {
+std::string RaftConsensusInstance::logPrefix() const {
   DCHECK(fsManager_ != nullptr);
   return fmt::format("[{}] ", id_);
 }

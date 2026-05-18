@@ -1286,7 +1286,7 @@ ElectionDecisionState FlexibleVoteCounter::getDecision() const {
   return GetDynamicQuorumDecision();
 }
 
-std::string FlexibleVoteCounter::LogPrefix() const {
+std::string FlexibleVoteCounter::logPrefix() const {
   return fmt::format(
       "[Flexible Vote Counter] Election term: {} ", election_term_);
 }
@@ -1984,7 +1984,7 @@ void LeaderElection::HandleVoteDeniedUnlocked(const VoterState& state) {
   RecordVoteUnlocked(state, VOTE_DENIED);
 }
 
-std::string LeaderElection::LogPrefix() const {
+std::string LeaderElection::logPrefix() const {
   return fmt::format(
       "T {} P {} [CANDIDATE]: Term {} {}: ",
       request_.tablet_id(),

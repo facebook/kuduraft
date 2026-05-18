@@ -1342,10 +1342,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // See getLastOpId().
   std::optional<OpId> getLastOpIdUnlocked(OpIdType type);
 
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
   std::string logPrefixUnlocked() const;
 
-  // A variant of LogPrefix which does not take the lock. This is a slightly
+  // A variant of logPrefix which does not take the lock. This is a slightly
   // less thorough prefix which only includes immutable (and thus thread-safe)
   // information, but does not require the lock.
   std::string LogPrefixThreadSafe() const;

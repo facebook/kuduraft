@@ -113,7 +113,7 @@ FsManager* Log::GetFsManager() {
   return fs_manager_;
 }
 
-std::string Log::LogPrefix() const {
+std::string Log::logPrefix() const {
   return fmt::format("T {} P {}: ", tablet_id_, fs_manager_->uuid());
 }
 

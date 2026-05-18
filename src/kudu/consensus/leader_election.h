@@ -464,7 +464,7 @@ class FlexibleVoteCounter : public VoteCounter {
   ElectionDecisionState GetDynamicQuorumDecision() const;
 
   // Generic log prefix.
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   const std::string candidate_uuid_;
 
@@ -738,7 +738,7 @@ class LeaderElection : public std::enable_shared_from_this<LeaderElection> {
 
   // Returns a string to be prefixed to all log entries.
   // This method accesses const members and is thread safe.
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   // Helper to reference the term we are running the election for.
   ConsensusTerm election_term() const {

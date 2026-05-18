@@ -204,7 +204,7 @@ class Log {
       std::string tablet_id,
       std::shared_ptr<MetricEntity> metric_entity);
 
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   LogOptions options_;
   FsManager* fs_manager_;

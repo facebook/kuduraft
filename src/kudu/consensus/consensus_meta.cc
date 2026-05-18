@@ -178,7 +178,7 @@ const RaftConfigPB& ConsensusMetadata::getConfig(RaftConfigState type) const {
       DCHECK(pb_.has_committed_config());
       return pb_.committed_config();
     case kPendingConfig:
-      CHECK(hasPendingConfig_) << LogPrefix() << "There is no pending config";
+      CHECK(hasPendingConfig_) << logPrefix() << "There is no pending config";
       return pendingConfig_;
     default:
       LOG(FATAL) << "Unknown RaftConfigState type: " << type;
@@ -363,7 +363,7 @@ Status ConsensusMetadata::flush(FlushMode flushMode) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   MAYBE_FAULT(FLAGS_fault_crash_before_cmeta_flush);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
-      WARNING, 500, LogPrefix(), "flushing consensus metadata");
+      WARNING, 500, logPrefix(), "flushing consensus metadata");
 
   flushCountForTests_++;
   // Sanity test to ensure we never write out a bad configuration.
@@ -480,7 +480,7 @@ Status ConsensusMetadata::deleteOnDiskData(
   return Status::OK();
 }
 
-std::string ConsensusMetadata::LogPrefix() const {
+std::string ConsensusMetadata::logPrefix() const {
   // No need to lock to read const members.
   return fmt::format("T {} P {}: ", tabletId_, peerUuid_);
 }

@@ -478,7 +478,7 @@ Status TsTabletManager::setupRaft() {
 
   shared_ptr<RaftConsensus> consensus;
   TRACE("Creating consensus");
-  LOG(INFO) << LogPrefix(kSysCatalogTabletId)
+  LOG(INFO) << logPrefix(kSysCatalogTabletId)
             << "Creating Raft for the system tablet";
   RETURN_NOT_OK(
       RaftConsensus::Create(
@@ -622,15 +622,15 @@ void TsTabletManager::initLocalRaftPeerPb() {
   }
 }
 
-string TsTabletManager::LogPrefix(
+string TsTabletManager::logPrefix(
     const string& tabletId,
     FsManager* fsManager) {
   DCHECK(fsManager != nullptr);
   return fmt::format("T {} P {}: ", tabletId, fsManager->uuid());
 }
 
-string TsTabletManager::LogPrefix() const {
-  return LogPrefix(kSysCatalogTabletId);
+string TsTabletManager::logPrefix() const {
+  return logPrefix(kSysCatalogTabletId);
 }
 
 Status TsTabletManager::startConsensusOnlyRound(

@@ -547,7 +547,7 @@ Status DurableRoutingTable::flush() const {
   return Status::OK();
 }
 
-string DurableRoutingTable::LogPrefix() const {
+string DurableRoutingTable::logPrefix() const {
   return fmt::format("T {} P {}: ", tabletId_, fsManager_->uuid());
 }
 
