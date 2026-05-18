@@ -582,7 +582,7 @@ string diffConsensusStates(
 //
 // TODO(aserbin): add a test scenario for the leader replica's logic to cover
 //                the latter case.
-bool ShouldAddReplica(
+bool shouldAddReplica(
     const RaftConfigPB& config,
     int replication_factor,
     MajorityHealthPolicy policy) {
@@ -648,7 +648,7 @@ bool ShouldAddReplica(
 }
 
 // Whether there is an excess replica to evict.
-bool ShouldEvictReplica(
+bool shouldEvictReplica(
     const RaftConfigPB& config,
     const string& leader_uuid,
     int replication_factor,
