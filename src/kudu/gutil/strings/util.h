@@ -63,7 +63,7 @@ StringPiece findEol(StringPiece sp);
 
 // Duplicates a non-null, non-empty char* string. Returns a pointer to the new
 // string, or NULL if the input is null or empty.
-inline char* strdup_nonempty(const char* src) {
+inline char* strdupNonempty(const char* src) {
   if (src && src[0]) {
     return strdup(src);
   }
@@ -150,15 +150,15 @@ const char* strncaseprefix(
 // char* literals). Templated so searching a const char* returns a const char*,
 // and searching a non-const char* returns a non-const char*.
 template <class CharStar>
-inline CharStar var_strprefix(CharStar str, const char* prefix) {
+inline CharStar varStrprefix(CharStar str, const char* prefix) {
   const int len = strlen(prefix);
   return strncmp(str, prefix, len) == 0 ? str + len : nullptr;
 }
 
-// Same as var_strprefix() (immediately above), but matches a case-insensitive
+// Same as varStrprefix() (immediately above), but matches a case-insensitive
 // prefix.
 template <class CharStar>
-inline CharStar var_strcaseprefix(CharStar str, const char* prefix) {
+inline CharStar varStrcaseprefix(CharStar str, const char* prefix) {
   const int len = strlen(prefix);
   return strncasecmp(str, prefix, len) == 0 ? str + len : nullptr;
 }
@@ -235,15 +235,15 @@ inline ptrdiff_t strcount(const char* buf, char c) {
 // Returns the number of times a character occurs in a string for a string
 // defined by a pointer to the first character and a pointer just past the last
 // character.
-inline ptrdiff_t strcount(const char* buf_begin, const char* buf_end, char c) {
-  if (buf_begin == nullptr) {
+inline ptrdiff_t strcount(const char* bufBegin, const char* bufEnd, char c) {
+  if (bufBegin == nullptr) {
     return 0;
   }
-  if (buf_end <= buf_begin) {
+  if (bufEnd <= bufBegin) {
     return 0;
   }
   ptrdiff_t num = 0;
-  for (const char* bp = buf_begin; bp != buf_end; bp++) {
+  for (const char* bp = bufBegin; bp != bufEnd; bp++) {
     if (*bp == c) {
       num++;
     }
@@ -344,12 +344,12 @@ void findShortestSeparator(
 namespace strings {
 
 // BSD-style safe and consistent string copy functions.
-// Copies |src| to |dst|, where |dst_size| is the total allocated size of |dst|.
-// Copies at most |dst_size|-1 characters, and always NULL terminates |dst|, as
-// long as |dst_size| is not 0.  Returns the length of |src| in characters.
-// If the return value is >= dst_size, then the output was truncated.
+// Copies |src| to |dst|, where |dstSize| is the total allocated size of |dst|.
+// Copies at most |dstSize|-1 characters, and always NULL terminates |dst|, as
+// long as |dstSize| is not 0.  Returns the length of |src| in characters.
+// If the return value is >= dstSize, then the output was truncated.
 // NOTE: All sizes are in number of characters, NOT in bytes.
-size_t strlcpy(char* dst, const char* src, size_t dst_size);
+size_t strlcpy(char* dst, const char* src, size_t dstSize);
 
 } // namespace strings
 
@@ -396,23 +396,23 @@ const char* gstrncasestr(const char* haystack, const char* needle, size_t len);
 char* gstrncasestr(char* haystack, const char* needle, size_t len);
 
 // Finds (case insensitively), in str (which is a list of tokens separated by
-// non_alpha), a token prefix and a token suffix. Returns a pointer into str of
+// nonAlpha), a token prefix and a token suffix. Returns a pointer into str of
 // the position of prefix, or NULL if not found.
 // WARNING: Removes const-ness of string argument!
-char* gstrncasestr_split(
+char* gstrncasestrSplit(
     const char* str,
     const char* prefix,
-    char non_alpha,
+    char nonAlpha,
     const char* suffix,
     size_t n);
 
 // Finds (case insensitively) needle in haystack, paying attention only to
 // alphanumerics in either string. Returns a pointer into haystack, or NULL if
 // not found.
-// Example: strcasestr_alnum("This is a longer test string", "IS-A-LONGER")
+// Example: strcasestrAlnum("This is a longer test string", "IS-A-LONGER")
 // returns a pointer to "is a longer".
 // WARNING: Removes const-ness of string argument!
-char* strcasestr_alnum(const char* haystack, const char* needle);
+char* strcasestrAlnum(const char* haystack, const char* needle);
 
 // Returns the number times substring appears in text.
 // Note: Runs in O(text.length() * substring.length()). Do *not* use on long
@@ -423,7 +423,7 @@ int countSubstring(StringPiece text, StringPiece substring);
 // equal to needle. Returns a pointer into haystack, or NULL if not found (or
 // either needle or haystack is empty).
 const char*
-strstr_delimited(const char* haystack, const char* needle, char delim);
+strstrDelimited(const char* haystack, const char* needle, char delim);
 
 // Gets the next token from string *stringp, where tokens are strings separated
 // by characters from delim.
@@ -432,24 +432,24 @@ char* gstrsep(char** stringp, const char* delim);
 // Appends StringPiece(data, len) to *s.
 void fastStringAppend(std::string* s, const char* data, int len);
 
-// Returns a duplicate of the_string, with memory allocated by new[].
-char* strdup_with_new(const char* the_string);
+// Returns a duplicate of theString, with memory allocated by new[].
+char* strdupWithNew(const char* theString);
 
-// Returns a duplicate of up to the first max_length bytes of the_string, with
+// Returns a duplicate of up to the first maxLength bytes of theString, with
 // memory allocated by new[].
-char* strndup_with_new(const char* the_string, int max_length);
+char* strndupWithNew(const char* theString, int maxLength);
 
-// Finds, in the_string, the first "word" (consecutive !asciiIsSpace()
-// characters). Returns pointer to the beginning of the word, and sets *end_ptr
+// Finds, in theString, the first "word" (consecutive !asciiIsSpace()
+// characters). Returns pointer to the beginning of the word, and sets *endPtr
 // to the character after the word (which may be space or '\0'); returns NULL
-// (and *end_ptr is undefined) if no next word found.
-// end_ptr must not be NULL.
-const char* scanForFirstWord(const char* the_string, const char** end_ptr);
-inline char* scanForFirstWord(char* the_string, char** end_ptr) {
+// (and *endPtr is undefined) if no next word found.
+// endPtr must not be NULL.
+const char* scanForFirstWord(const char* theString, const char** endPtr);
+inline char* scanForFirstWord(char* theString, char** endPtr) {
   // implicit_cast<> would be more appropriate for casting to const,
   // but we save the inclusion of "base/casts.h" here by using const_cast<>.
   return const_cast<char*>(scanForFirstWord(
-      const_cast<const char*>(the_string), const_cast<const char**>(end_ptr)));
+      const_cast<const char*>(theString), const_cast<const char**>(endPtr)));
 }
 
 // For the following functions, an "identifier" is a letter or underscore,
@@ -469,22 +469,22 @@ bool isIdentifier(const char* str);
 
 // Finds the first tag and value in a string of tag/value pairs.
 //
-// The first pair begins after the first occurrence of attribute_separator (or
-// string_terminal, if not '\0'); tag_value_separator separates the tag and
+// The first pair begins after the first occurrence of attributeSeparator (or
+// stringTerminal, if not '\0'); tagValueSeparator separates the tag and
 // value; and the value ends before the following occurrence of
-// attribute_separator (or string_terminal, if not '\0').
+// attributeSeparator (or stringTerminal, if not '\0').
 //
-// Returns true (and populates tag, tag_len, value, and value_len) if a
+// Returns true (and populates tag, tagLen, value, and valueLen) if a
 // tag/value pair is founds; returns false otherwise.
 bool findTagValuePair(
-    const char* in_str,
-    char tag_value_separator,
-    char attribute_separator,
-    char string_terminal,
+    const char* inStr,
+    char tagValueSeparator,
+    char attributeSeparator,
+    char stringTerminal,
     char** tag,
-    int* tag_len,
+    int* tagLen,
     char** value,
-    int* value_len);
+    int* valueLen);
 
 // Inserts separator after every interval characters in *s (but never appends to
 // the end of the original *s).

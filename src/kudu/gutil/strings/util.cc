@@ -368,13 +368,13 @@ char* gstrncasestr(char* haystack, const char* needle, size_t len) {
       gstrncasestr(static_cast<const char*>(haystack), needle, len));
 }
 // ----------------------------------------------------------------------
-// gstrncasestr_split performs a case insensitive search
-// on (prefix, non_alpha, suffix).
+// gstrncasestrSplit performs a case insensitive search
+// on (prefix, nonAlpha, suffix).
 // ----------------------------------------------------------------------
-char* gstrncasestr_split(
+char* gstrncasestrSplit(
     const char* str,
     const char* prefix,
-    char non_alpha,
+    char nonAlpha,
     const char* suffix,
     size_t n) {
   int prelen = prefix == nullptr ? 0 : strlen(prefix);
@@ -391,8 +391,8 @@ char* gstrncasestr_split(
 
   const char* where = nullptr;
 
-  // for every occurance of non_alpha in the string ...
-  while ((where = static_cast<const char*>(memchr(str, non_alpha, n))) !=
+  // for every occurance of nonAlpha in the string ...
+  while ((where = static_cast<const char*>(memchr(str, nonAlpha, n))) !=
          nullptr) {
     // ... test whether it is followed by suffix and preceded by prefix
     if ((!suflen || strncasecmp(where + 1, suffix, suflen) == 0) &&
@@ -408,54 +408,54 @@ char* gstrncasestr_split(
 }
 
 // ----------------------------------------------------------------------
-// strcasestr_alnum is like a case-insensitive strstr, except that it
+// strcasestrAlnum is like a case-insensitive strstr, except that it
 // ignores non-alphanumeric characters in both strings for the sake of
 // comparison.
 //
 // This function uses asciiIsAlnum() instead of isalnum() and
 // asciiToLower() instead of tolower(), for speed.
 //
-// E.g. strcasestr_alnum("i use google all the time", " !!Google!! ")
+// E.g. strcasestrAlnum("i use google all the time", " !!Google!! ")
 // returns pointer to "google all the time"
 // ----------------------------------------------------------------------
-char* strcasestr_alnum(const char* haystack, const char* needle) {
-  const char* haystack_ptr;
-  const char* needle_ptr;
+char* strcasestrAlnum(const char* haystack, const char* needle) {
+  const char* haystackPtr;
+  const char* needlePtr;
 
   // Skip non-alnums at beginning
   while (!asciiIsAlnum(*needle))
     if (*needle++ == '\0')
       return const_cast<char*>(haystack);
-  needle_ptr = needle;
+  needlePtr = needle;
 
   // Skip non-alnums at beginning
   while (!asciiIsAlnum(*haystack))
     if (*haystack++ == '\0')
       return nullptr;
-  haystack_ptr = haystack;
+  haystackPtr = haystack;
 
-  while (*needle_ptr != '\0') {
+  while (*needlePtr != '\0') {
     // Non-alnums - advance
-    while (!asciiIsAlnum(*needle_ptr))
-      if (*needle_ptr++ == '\0')
+    while (!asciiIsAlnum(*needlePtr))
+      if (*needlePtr++ == '\0')
         return const_cast<char*>(haystack);
 
-    while (!asciiIsAlnum(*haystack_ptr))
-      if (*haystack_ptr++ == '\0')
+    while (!asciiIsAlnum(*haystackPtr))
+      if (*haystackPtr++ == '\0')
         return nullptr;
 
-    if (asciiToLower(*needle_ptr) == asciiToLower(*haystack_ptr)) {
+    if (asciiToLower(*needlePtr) == asciiToLower(*haystackPtr)) {
       // Case-insensitive match - advance
-      needle_ptr++;
-      haystack_ptr++;
+      needlePtr++;
+      haystackPtr++;
     } else {
       // No match - rollback to next start point in haystack
       haystack++;
       while (!asciiIsAlnum(*haystack))
         if (*haystack++ == '\0')
           return nullptr;
-      haystack_ptr = haystack;
-      needle_ptr = needle;
+      haystackPtr = haystack;
+      needlePtr = needle;
     }
   }
   return const_cast<char*>(haystack);
@@ -482,7 +482,7 @@ int countSubstring(StringPiece text, StringPiece substring) {
 }
 
 // ----------------------------------------------------------------------
-// strstr_delimited()
+// strstrDelimited()
 //    Just like strstr(), except it ensures that the needle appears as
 //    a complete item (or consecutive series of items) in a delimited
 //    list.
@@ -491,7 +491,7 @@ int countSubstring(StringPiece text, StringPiece substring) {
 //    either needle/haystack is NULL.
 // ----------------------------------------------------------------------
 const char*
-strstr_delimited(const char* haystack, const char* needle, char delim) {
+strstrDelimited(const char* haystack, const char* needle, char delim) {
   if (!needle || !haystack)
     return nullptr;
   if (*needle == '\0')
@@ -719,54 +719,54 @@ char* fastTimeToBuffer(time_t s, char* buffer) {
 }
 
 // ----------------------------------------------------------------------
-// strdup_with_new()
-// strndup_with_new()
+// strdupWithNew()
+// strndupWithNew()
 //
-//    strdup_with_new() is the same as strdup() except that the memory
+//    strdupWithNew() is the same as strdup() except that the memory
 //    is allocated by new[] and hence an exception will be generated
 //    if out of memory.
 //
-//    strndup_with_new() is the same as strdup_with_new() except that it will
+//    strndupWithNew() is the same as strdupWithNew() except that it will
 //    copy up to the specified number of characters.  This function
 //    is useful when we want to copy a substring out of a string
 //    and didn't want to (or cannot) modify the string
 // ----------------------------------------------------------------------
-char* strdup_with_new(const char* the_string) {
-  if (the_string == nullptr)
+char* strdupWithNew(const char* theString) {
+  if (theString == nullptr)
     return nullptr;
   else
-    return strndup_with_new(the_string, strlen(the_string));
+    return strndupWithNew(theString, strlen(theString));
 }
 
-char* strndup_with_new(const char* the_string, int max_length) {
-  if (the_string == nullptr)
+char* strndupWithNew(const char* theString, int maxLength) {
+  if (theString == nullptr)
     return nullptr;
 
-  auto result = new char[max_length + 1];
-  result[max_length] = '\0'; // terminate the string because strncpy might not
-  return strncpy(result, the_string, max_length);
+  auto result = new char[maxLength + 1];
+  result[maxLength] = '\0'; // terminate the string because strncpy might not
+  return strncpy(result, theString, maxLength);
 }
 
 // ----------------------------------------------------------------------
 // scanForFirstWord()
-//    This function finds the first word in the string "the_string" given.
+//    This function finds the first word in the string "theString" given.
 //    A word is defined by consecutive !asciiIsSpace() characters.
 //    If no valid words are found,
-//        return NULL and *end_ptr will contain junk
+//        return NULL and *endPtr will contain junk
 //    else
 //        return the beginning of the first word and
-//        *end_ptr will store the address of the first invalid character
+//        *endPtr will store the address of the first invalid character
 //        (asciiIsSpace() or '\0').
 //
-//    Precondition: (end_ptr != NULL)
+//    Precondition: (endPtr != NULL)
 // ----------------------------------------------------------------------
-const char* scanForFirstWord(const char* the_string, const char** end_ptr) {
-  CHECK(end_ptr != nullptr) << ": precondition violated";
+const char* scanForFirstWord(const char* theString, const char** endPtr) {
+  CHECK(endPtr != nullptr) << ": precondition violated";
 
-  if (the_string == nullptr) // empty string
+  if (theString == nullptr) // empty string
     return nullptr;
 
-  const char* curr = the_string;
+  const char* curr = theString;
   while ((*curr != '\0') && asciiIsSpace(*curr)) // skip initial spaces
     ++curr;
 
@@ -774,14 +774,14 @@ const char* scanForFirstWord(const char* the_string, const char** end_ptr) {
     return nullptr;
 
   // else has a valid word
-  const char* first_word = curr;
+  const char* firstWord = curr;
 
   // now locate the end of the word
   while ((*curr != '\0') && !asciiIsSpace(*curr))
     ++curr;
 
-  *end_ptr = curr;
-  return first_word;
+  *endPtr = curr;
+  return firstWord;
 }
 
 // ----------------------------------------------------------------------
@@ -966,77 +966,77 @@ bool matchPattern(const StringPiece& eval, const StringPiece& pattern) {
 // ----------------------------------------------------------------------
 // findTagValuePair
 //    Given a string of the form
-//    <something><attr_sep><tag><tag_value_sep><value><attr_sep>...<string_term>
-//    where the part before the first attr_sep is optional,
+//    <something><attrSep><tag><tagValueSep><value><attrSep>...<stringTerm>
+//    where the part before the first attrSep is optional,
 //    this function extracts the first tag and value, if any.
 //    The function returns true if successful, in which case "tag" and "value"
 //    are set to point to the beginning of the tag and the value, respectively,
-//    and "tag_len" and "value_len" are set to the respective lengths.
+//    and "tagLen" and "valueLen" are set to the respective lengths.
 // ----------------------------------------------------------------------
 
 bool findTagValuePair(
-    const char* arg_str,
-    char tag_value_separator,
-    char attribute_separator,
-    char string_terminal,
+    const char* argStr,
+    char tagValueSeparator,
+    char attributeSeparator,
+    char stringTerminal,
     char** tag,
-    int* tag_len,
+    int* tagLen,
     char** value,
-    int* value_len) {
-  char* in_str = const_cast<char*>(arg_str); // For msvc8.
-  if (in_str == nullptr)
+    int* valueLen) {
+  char* inStr = const_cast<char*>(argStr); // For msvc8.
+  if (inStr == nullptr)
     return false;
-  char tv_sep_or_term[3] = {tag_value_separator, string_terminal, '\0'};
-  char attr_sep_or_term[3] = {attribute_separator, string_terminal, '\0'};
+  char tvSepOrTerm[3] = {tagValueSeparator, stringTerminal, '\0'};
+  char attrSepOrTerm[3] = {attributeSeparator, stringTerminal, '\0'};
 
   // Look for beginning of tag
-  *tag = strpbrk(in_str, attr_sep_or_term);
-  // If string_terminal is '\0', strpbrk won't find it but return null.
-  if (*tag == nullptr || **tag == string_terminal)
-    *tag = in_str;
+  *tag = strpbrk(inStr, attrSepOrTerm);
+  // If stringTerminal is '\0', strpbrk won't find it but return null.
+  if (*tag == nullptr || **tag == stringTerminal)
+    *tag = inStr;
   else
     (*tag)++; // Move past separator
   // Now look for value...
-  char* tv_sep_pos = strpbrk(*tag, tv_sep_or_term);
-  if (tv_sep_pos == nullptr || *tv_sep_pos == string_terminal)
+  char* tvSepPos = strpbrk(*tag, tvSepOrTerm);
+  if (tvSepPos == nullptr || *tvSepPos == stringTerminal)
     return false;
   // ...and end of value
-  char* attr_sep_pos = strpbrk(tv_sep_pos, attr_sep_or_term);
+  char* attrSepPos = strpbrk(tvSepPos, attrSepOrTerm);
 
-  *tag_len = tv_sep_pos - *tag;
-  *value = tv_sep_pos + 1;
-  if (attr_sep_pos != nullptr)
-    *value_len = attr_sep_pos - *value;
+  *tagLen = tvSepPos - *tag;
+  *value = tvSepPos + 1;
+  if (attrSepPos != nullptr)
+    *valueLen = attrSepPos - *value;
   else
-    *value_len = strlen(*value);
+    *valueLen = strlen(*value);
   return true;
 }
 
 void uniformInsertString(string* s, int interval, const char* separator) {
-  const size_t separator_len = strlen(separator);
+  const size_t separatorLen = strlen(separator);
 
   if (interval < 1 || // invalid interval
       s->empty() || // nothing to do
-      separator_len == 0) // invalid separator
+      separatorLen == 0) // invalid separator
     return;
 
-  int num_inserts = (s->size() - 1) / interval; // -1 to avoid appending at end
-  if (num_inserts == 0) // nothing to do
+  int numInserts = (s->size() - 1) / interval; // -1 to avoid appending at end
+  if (numInserts == 0) // nothing to do
     return;
 
   string tmp;
-  tmp.reserve(s->size() + num_inserts * separator_len + 1);
+  tmp.reserve(s->size() + numInserts * separatorLen + 1);
 
-  for (int i = 0; i < num_inserts; ++i) {
+  for (int i = 0; i < numInserts; ++i) {
     // append this interval
     tmp.append(*s, i * interval, interval);
     // append a separator
-    tmp.append(separator, separator_len);
+    tmp.append(separator, separatorLen);
   }
 
   // append the tail
-  const size_t tail_pos = num_inserts * interval;
-  tmp.append(*s, tail_pos, s->size() - tail_pos);
+  const size_t tailPos = numInserts * interval;
+  tmp.append(*s, tailPos, s->size() - tailPos);
 
   s->swap(tmp);
 }
@@ -1045,36 +1045,36 @@ void insertString(
     string* s,
     const vector<uint32_t>& indices,
     char const* separator) {
-  const unsigned num_indices(indices.size());
-  if (num_indices == 0) {
+  const unsigned numIndices(indices.size());
+  if (numIndices == 0) {
     return; // nothing to do...
   }
 
-  const unsigned separator_len(strlen(separator));
-  if (separator_len == 0) {
+  const unsigned separatorLen(strlen(separator));
+  if (separatorLen == 0) {
     return; // still nothing to do...
   }
 
   string tmp;
-  const unsigned s_len(s->size());
-  tmp.reserve(s_len + separator_len * num_indices);
+  const unsigned sLen(s->size());
+  tmp.reserve(sLen + separatorLen * numIndices);
 
-  vector<uint32_t>::const_iterator const ind_end(indices.end());
-  auto ind_pos(indices.begin());
+  vector<uint32_t>::const_iterator const indEnd(indices.end());
+  auto indPos(indices.begin());
 
-  uint32_t last_pos(0);
-  while (ind_pos != ind_end) {
-    const uint32_t pos(*ind_pos);
-    DCHECK_GE(pos, last_pos);
-    DCHECK_LE(pos, s_len);
+  uint32_t lastPos(0);
+  while (indPos != indEnd) {
+    const uint32_t pos(*indPos);
+    DCHECK_GE(pos, lastPos);
+    DCHECK_LE(pos, sLen);
 
-    tmp.append(s->substr(last_pos, pos - last_pos));
+    tmp.append(s->substr(lastPos, pos - lastPos));
     tmp.append(separator);
 
-    last_pos = pos;
-    ++ind_pos;
+    lastPos = pos;
+    ++indPos;
   }
-  tmp.append(s->substr(last_pos));
+  tmp.append(s->substr(lastPos));
 
   s->swap(tmp);
 }
@@ -1199,21 +1199,20 @@ void findShortestSeparator(
     const StringPiece& limit,
     string* separator) {
   // Find length of common prefix
-  size_t min_length = min(start.size(), limit.size());
-  size_t diff_index = 0;
-  while ((diff_index < min_length) &&
-         (start[diff_index] == limit[diff_index])) {
-    diff_index++;
+  size_t minLength = min(start.size(), limit.size());
+  size_t diffIndex = 0;
+  while ((diffIndex < minLength) && (start[diffIndex] == limit[diffIndex])) {
+    diffIndex++;
   }
 
-  if (diff_index >= min_length) {
+  if (diffIndex >= minLength) {
     // Handle the case where either string is a prefix of the other
     // string, or both strings are identical.
     start.copyToString(separator);
     return;
   }
 
-  if (diff_index + 1 == start.size()) {
+  if (diffIndex + 1 == start.size()) {
     // If the first difference is in the last character, do not bother
     // incrementing that character since the separator will be no
     // shorter than "start".
@@ -1221,14 +1220,14 @@ void findShortestSeparator(
     return;
   }
 
-  if (static_cast<unsigned char>(start[diff_index]) == 0xff) {
-    // Avoid overflow when incrementing start[diff_index]
+  if (static_cast<unsigned char>(start[diffIndex]) == 0xff) {
+    // Avoid overflow when incrementing start[diffIndex]
     start.copyToString(separator);
     return;
   }
 
-  separator->assign(start.data(), diff_index);
-  separator->push_back(start[diff_index] + 1);
+  separator->assign(start.data(), diffIndex);
+  separator->push_back(start[diffIndex] + 1);
   if (*separator >= limit) {
     // Never pick a separator that causes confusion with "limit"
     start.copyToString(separator);
@@ -1261,24 +1260,24 @@ bool getlineFromStdioFile(FILE* file, string* str, char delim) {
 namespace {
 
 template <typename CHAR>
-size_t lcpyT(CHAR* dst, const CHAR* src, size_t dst_size) {
-  for (size_t i = 0; i < dst_size; ++i) {
+size_t lcpyT(CHAR* dst, const CHAR* src, size_t dstSize) {
+  for (size_t i = 0; i < dstSize; ++i) {
     if ((dst[i] = src[i]) == 0) // We hit and copied the terminating NULL.
       return i;
   }
 
-  // We were left off at dst_size.  We over copied 1 byte.  Null terminate.
-  if (dst_size != 0)
-    dst[dst_size - 1] = 0;
+  // We were left off at dstSize.  We over copied 1 byte.  Null terminate.
+  if (dstSize != 0)
+    dst[dstSize - 1] = 0;
 
   // Count the rest of the |src|, and return it's length in characters.
-  while (src[dst_size])
-    ++dst_size;
-  return dst_size;
+  while (src[dstSize])
+    ++dstSize;
+  return dstSize;
 }
 
 } // namespace
 
-size_t strings::strlcpy(char* dst, const char* src, size_t dst_size) {
-  return lcpyT<char>(dst, src, dst_size);
+size_t strings::strlcpy(char* dst, const char* src, size_t dstSize) {
+  return lcpyT<char>(dst, src, dstSize);
 }
