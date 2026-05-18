@@ -100,9 +100,9 @@ static int64_t estimateCyclesPerSecond(const int estimateTimeMs) {
 // on small files in places like /proc where we are guaranteed not to get a
 // partial read. Any remaining bytes in the buffer are zeroed.
 //
-// 'buflen' must be more than large enough to hold the whole file, or else this
+// 'bufLen' must be more than large enough to hold the whole file, or else this
 // will issue a FATAL error.
-static bool slurpSmallTextFile(const char* file, char* buf, int buflen) {
+static bool slurpSmallTextFile(const char* file, char* buf, int bufLen) {
   bool ret = false;
   int fd;
   RETRY_ON_EINTR(fd, open(file, O_RDONLY));
@@ -110,10 +110,10 @@ static bool slurpSmallTextFile(const char* file, char* buf, int buflen) {
     return ret;
   }
 
-  memset(buf, '\0', buflen);
+  memset(buf, '\0', bufLen);
   int n;
-  RETRY_ON_EINTR(n, read(fd, buf, buflen - 1));
-  CHECK_NE(n, buflen - 1) << "buffer of len " << buflen
+  RETRY_ON_EINTR(n, read(fd, buf, bufLen - 1));
+  CHECK_NE(n, bufLen - 1) << "buffer of len " << bufLen
                           << " not large enough to store " << "contents of "
                           << file;
   if (n > 0) {
@@ -325,15 +325,15 @@ static void initializeSystemInfo() {
 #if defined(__powerpc__) || defined(__ppc__)
     // PowerPC cpus report the frequency in "clock" line
     if (strncasecmp(line, "clock", sizeof("clock") - 1) == 0) {
-      const char* freqstr = strchr(line, ':');
-      if (freqstr) {
+      const char* freqStr = strchr(line, ':');
+      if (freqStr) {
         // PowerPC frequencies are only reported as MHz (check 'show_cpuinfo'
         // function at arch/powerpc/kernel/setup-common.c)
         char* endp = strstr(line, "MHz");
         if (endp) {
           *endp = 0;
-          cpuinfoCyclesPerSecond = strtod(freqstr + 1, &err) * 1000000.0;
-          if (freqstr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0)
+          cpuinfoCyclesPerSecond = strtod(freqStr + 1, &err) * 1000000.0;
+          if (freqStr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0)
             sawMhz = true;
         }
       }
@@ -342,18 +342,18 @@ static void initializeSystemInfo() {
     // accept postive values. Some environments (virtual machines) report zero,
     // which would cause infinite looping in WallTime_Init.
     if (!sawMhz && strncasecmp(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
-      const char* freqstr = strchr(line, ':');
-      if (freqstr) {
-        cpuinfoCyclesPerSecond = strtod(freqstr + 1, &err) * 1000000.0;
-        if (freqstr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0) {
+      const char* freqStr = strchr(line, ':');
+      if (freqStr) {
+        cpuinfoCyclesPerSecond = strtod(freqStr + 1, &err) * 1000000.0;
+        if (freqStr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0) {
           sawMhz = true;
         }
       }
     } else if (strncasecmp(line, "bogomips", sizeof("bogomips") - 1) == 0) {
-      const char* freqstr = strchr(line, ':');
-      if (freqstr) {
-        bogoClock = strtod(freqstr + 1, &err) * 1000000.0;
-        if (freqstr[1] != '\0' && *err == '\0' && bogoClock > 0) {
+      const char* freqStr = strchr(line, ':');
+      if (freqStr) {
+        bogoClock = strtod(freqStr + 1, &err) * 1000000.0;
+        if (freqStr[1] != '\0' && *err == '\0' && bogoClock > 0) {
           sawBogo = true;
         }
       }
