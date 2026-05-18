@@ -89,7 +89,7 @@
 #include "kudu/gutil/int128.h"
 
 // ----------------------------------------------------------------------
-// Fingerprint()
+// fingerprint()
 //   Not recommended for new code.  Instead, use Fingerprint2011(),
 //   a higher-quality and faster hash function.  See fingerprint2011.h.
 //
@@ -97,11 +97,11 @@
 //   in case you want a couple of special values.  However,
 //   fingerprinting a numeric type may produce 0 or 1.
 //
-//   The hash mapping of Fingerprint() will never change.
+//   The hash mapping of fingerprint() will never change.
 //
 //   Note: AVOID USING FINGERPRINT if at all possible.  Use
 //   Fingerprint2011 (in fingerprint2011.h) instead.
-//   Fingerprint() is susceptible to collisions for even short
+//   fingerprint() is susceptible to collisions for even short
 //   strings with low edit distance; see
 //   Example collisions:
 //     "01056/02" vs. "11057/02"
@@ -109,24 +109,24 @@
 //   The same study found only one collision each for CityHash64() and
 //   MurmurHash64(), from more than 2^32 inputs, and on medium-length
 //   strings with large edit distances.These issues, among others,
-//   led to the recommendation that new code should avoid Fingerprint().
+//   led to the recommendation that new code should avoid fingerprint().
 // ----------------------------------------------------------------------
-extern uint64_t FingerprintReferenceImplementation(const char* s, uint32_t len);
-extern uint64_t FingerprintInterleavedImplementation(
+extern uint64_t fingerprintReferenceImplementation(const char* s, uint32_t len);
+extern uint64_t fingerprintInterleavedImplementation(
     const char* s,
     uint32_t len);
-inline uint64_t Fingerprint(const char* s, uint32_t len) {
+inline uint64_t fingerprint(const char* s, uint32_t len) {
   if (sizeof(s) == 8) { // 64-bit systems have 8-byte pointers.
     // The better choice when we have a decent number of registers.
-    return FingerprintInterleavedImplementation(s, len);
+    return fingerprintInterleavedImplementation(s, len);
   } else {
-    return FingerprintReferenceImplementation(s, len);
+    return fingerprintReferenceImplementation(s, len);
   }
 }
 
 // Routine that combines together the hi/lo part of a fingerprint
 // and changes the result appropriately to avoid returning 0/1.
-inline uint64_t CombineFingerprintHalves(uint32_t hi, uint32_t lo) {
+inline uint64_t combineFingerprintHalves(uint32_t hi, uint32_t lo) {
   uint64_t result =
       (static_cast<uint64_t>(hi) << 32) | static_cast<uint64_t>(lo);
   if ((hi == 0) && (lo < 2)) {
@@ -135,34 +135,34 @@ inline uint64_t CombineFingerprintHalves(uint32_t hi, uint32_t lo) {
   return result;
 }
 
-inline uint64_t Fingerprint(const std::string& s) {
-  return Fingerprint(s.data(), static_cast<uint32_t>(s.size()));
+inline uint64_t fingerprint(const std::string& s) {
+  return fingerprint(s.data(), static_cast<uint32_t>(s.size()));
 }
 inline uint64_t hash64StringWithSeed(const std::string& s, uint64_t c) {
   return hash64StringWithSeed(s.data(), static_cast<uint32_t>(s.size()), c);
 }
-inline uint64_t Fingerprint(int8_t c) {
+inline uint64_t fingerprint(int8_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(char c) {
+inline uint64_t fingerprint(char c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(uint16_t c) {
+inline uint64_t fingerprint(uint16_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(int16_t c) {
+inline uint64_t fingerprint(int16_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(uint32_t c) {
+inline uint64_t fingerprint(uint32_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(int32_t c) {
+inline uint64_t fingerprint(int32_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(uint64_t c) {
+inline uint64_t fingerprint(uint64_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
-inline uint64_t Fingerprint(int64_t c) {
+inline uint64_t fingerprint(int64_t c) {
   return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 
@@ -172,11 +172,11 @@ inline uint64_t Fingerprint(int64_t c) {
 // Note that this is legacy code and new code should use its replacement
 // FingerprintCat2011().
 //
-// Note that in general it's impossible to construct Fingerprint(str)
+// Note that in general it's impossible to construct fingerprint(str)
 // from the fingerprints of substrings of str.  One shouldn't expect
-// FingerprintCat(Fingerprint(x), Fingerprint(y)) to indicate
-// anything about Fingerprint(strCat(x, y)).
-inline uint64_t FingerprintCat(uint64_t fp1, uint64_t fp2) {
+// fingerprintCat(fingerprint(x), fingerprint(y)) to indicate
+// anything about fingerprint(strCat(x, y)).
+inline uint64_t fingerprintCat(uint64_t fp1, uint64_t fp2) {
   return hash64NumWithSeed(fp1, fp2);
 }
 

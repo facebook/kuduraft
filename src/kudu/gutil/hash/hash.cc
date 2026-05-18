@@ -37,17 +37,17 @@ static inline uint32_t char2Unsigned(char c) {
   return static_cast<uint32_t>(static_cast<unsigned char>(c));
 }
 
-uint64_t FingerprintReferenceImplementation(const char* s, uint32_t len) {
+uint64_t fingerprintReferenceImplementation(const char* s, uint32_t len) {
   uint32_t hi = hash32StringWithSeed(s, len, kFingerprintSeed0);
   uint32_t lo = hash32StringWithSeed(s, len, kFingerprintSeed1);
-  return CombineFingerprintHalves(hi, lo);
+  return combineFingerprintHalves(hi, lo);
 }
 
-// This is a faster version of FingerprintReferenceImplementation(),
+// This is a faster version of fingerprintReferenceImplementation(),
 // making use of the fact that we're hashing the same string twice.
 // The code is tedious to read, but it's just two interleaved copies of
 // hash32StringWithSeed().
-uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
+uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
   uint32_t a, b, c = kFingerprintSeed0, d, e, f = kFingerprintSeed1;
   uint32_t keylen;
 
@@ -204,5 +204,5 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
   }
   mix(a, b, c);
   mix(d, e, f);
-  return CombineFingerprintHalves(c, f);
+  return combineFingerprintHalves(c, f);
 }
