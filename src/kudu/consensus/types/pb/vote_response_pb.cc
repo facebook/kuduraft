@@ -155,8 +155,8 @@ bool VoteResponsePbView::hasVoterContext() const {
 
 void VoteResponsePbView::addPreviousVote(const PreviousVote& vote) {
   auto* pbVote = pb_.add_previous_vote_history();
-  pbVote->set_candidate_uuid(vote.candidate_uuid());
-  pbVote->set_election_term(vote.election_term());
+  pbVote->set_candidate_uuid(vote.candidateUuid());
+  pbVote->set_election_term(vote.electionTerm());
 }
 
 void VoteResponsePbView::clearPreviousVoteHistory() {
@@ -329,8 +329,8 @@ bool VoteResponsePb::hasVoterContext() const {
 
 void VoteResponsePb::addPreviousVote(const PreviousVote& vote) {
   auto* pbVote = pb_.add_previous_vote_history();
-  pbVote->set_candidate_uuid(vote.candidate_uuid());
-  pbVote->set_election_term(vote.election_term());
+  pbVote->set_candidate_uuid(vote.candidateUuid());
+  pbVote->set_election_term(vote.electionTerm());
 }
 
 void VoteResponsePb::clearPreviousVoteHistory() {
