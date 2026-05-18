@@ -276,7 +276,7 @@ TEST_F(DebugUtilTest, DISABLED_TestUnwindWhileUnsafe) {
   StackTrace s;
   dl_iterate_phdr(&takeStackTrace, &s);
   ASSERT_STR_CONTAINS(
-      s.symbolize(), "CouldNotCollectStackTraceBecauseInsideLibDl");
+      s.symbolize(), "couldNotCollectStackTraceBecauseInsideLibDl");
 }
 #endif
 
@@ -305,7 +305,7 @@ int doNothingDlCallback(
 //  #8  0x000000000056be21 in _ULx86_64_step
 //  #9  0x0000000000566b1d in google::GetStackTrace
 //  #10 0x00000000004dc4d1 in kudu::StackTrace::collect
-//  #11 kudu::(anonymous namespace)::HandleStackTraceSignal
+//  #11 kudu::(anonymous namespace)::handleStackTraceSignal
 //  #12 <signal handler called>
 //  #13 0x00007ffff6f16e31 in __GI___pthread_mutex_lock
 //  #14 0x00007ffff6c8601f in __GI___dl_iterate_phdr

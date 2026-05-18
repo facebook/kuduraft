@@ -236,7 +236,7 @@ namespace {
 // Signal handler for our stack trace signal.
 // We expect that the signal is only sent from dumpThreadStack() -- not by a
 // user.
-void HandleStackTraceSignal(
+void handleStackTraceSignal(
     int /*signum*/,
     siginfo_t* info,
     void* /*ucontext*/) {
@@ -269,16 +269,16 @@ void HandleStackTraceSignal(
   sigData->resultReady.signal();
 }
 
-bool InitSignalHandlerUnlocked(int signum) {
-  enum InitState { UNINITIALIZED, INIT_ERROR, INITIALIZED };
-  static InitState state = UNINITIALIZED;
+bool initSignalHandlerUnlocked(int signum) {
+  enum InitState { kUninitialized, kInitError, kInitialized };
+  static InitState state = kUninitialized;
 
   // If we've already registered a handler, but we're being asked to
   // change our signal, unregister the old one.
-  if (signum != gStackTraceSignum && state == INITIALIZED) {
+  if (signum != gStackTraceSignum && state == kInitialized) {
     struct sigaction oldAct;
     PCHECK(sigaction(gStackTraceSignum, nullptr, &oldAct) == 0);
-    if (oldAct.sa_sigaction == &HandleStackTraceSignal) {
+    if (oldAct.sa_sigaction == &handleStackTraceSignal) {
       signal(gStackTraceSignum, SIG_DFL);
     }
   }
@@ -287,14 +287,14 @@ bool InitSignalHandlerUnlocked(int signum) {
   // is changing, we should mark ourselves uninitialized.
   if (signum != gStackTraceSignum) {
     gStackTraceSignum = signum;
-    state = UNINITIALIZED;
+    state = kUninitialized;
   }
 
-  if (state == UNINITIALIZED) {
+  if (state == kUninitialized) {
     struct sigaction oldAct;
     PCHECK(sigaction(gStackTraceSignum, nullptr, &oldAct) == 0);
     if (oldAct.sa_handler != SIG_DFL && oldAct.sa_handler != SIG_IGN) {
-      state = INIT_ERROR;
+      state = kInitError;
       LOG(WARNING) << "signal handler for stack trace signal "
                    << gStackTraceSignum << " is already in use: "
                    << "Kudu will not produce thread stack traces.";
@@ -303,7 +303,7 @@ bool InitSignalHandlerUnlocked(int signum) {
       // atomic swap capability.
       struct sigaction act;
       memset(&act, 0, sizeof(act));
-      act.sa_sigaction = &HandleStackTraceSignal;
+      act.sa_sigaction = &handleStackTraceSignal;
       act.sa_flags = SA_SIGINFO | SA_RESTART;
       struct sigaction oldAct2;
       CHECK_ERR(sigaction(gStackTraceSignum, &act, &oldAct2));
@@ -312,15 +312,15 @@ bool InitSignalHandlerUnlocked(int signum) {
         LOG(FATAL)
             << "raced against another thread installing a signal handler";
       }
-      state = INITIALIZED;
+      state = kInitialized;
     }
   }
-  return state == INITIALIZED;
+  return state == kInitialized;
 }
 
 static std::once_flag gPrimeLibunwindOnce;
 
-void PrimeLibunwind() {
+void primeLibunwind() {
   // The first call into libunwind does some unsafe double-checked locking
   // for initialization. So, we make sure that the first call is not concurrent
   // with any other call.
@@ -334,7 +334,7 @@ void PrimeLibunwind() {
 
 Status setStackTraceSignal(int signum) {
   base::SpinLockHolder h(gSignalHandlerLock);
-  if (!InitSignalHandlerUnlocked(signum)) {
+  if (!initSignalHandlerUnlocked(signum)) {
     return Status::InvalidArgument("unable to install signal handler");
   }
   return Status::OK();
@@ -398,7 +398,7 @@ Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
   // Ensure that our signal handler is installed.
   {
     base::SpinLockHolder h(gSignalHandlerLock);
-    if (!InitSignalHandlerUnlocked(gStackTraceSignum)) {
+    if (!initSignalHandlerUnlocked(gStackTraceSignum)) {
       return Status::NotSupported(
           "unable to take thread stack: signal handler unavailable");
     }
@@ -408,10 +408,10 @@ Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
   //   std::call_once()   [waits on the 'once' to finish, but will never finish]
   //   StackTrace::Collect()
   //   <signal handler>
-  //   PrimeLibUnwind
+  //   primeLibunwind
   //   std::call_once()   [not yet initted, so starts initializing]
   //   StackTrace::Collect()
-  std::call_once(gPrimeLibunwindOnce, PrimeLibunwind);
+  std::call_once(gPrimeLibunwindOnce, primeLibunwind);
 
   std::unique_ptr<SignalData> data(new SignalData());
   // Set the target TID in our communication structure, so if we end up with any
@@ -537,23 +537,23 @@ string getLogFormatStackTraceHex() {
 
 // Bogus empty function which we use below to fill in the stack trace with
 // something readable to indicate that stack trace collection was unavailable.
-void CouldNotCollectStackTraceBecauseInsideLibDl() {}
+void couldNotCollectStackTraceBecauseInsideLibDl() {}
 
 void StackTrace::collect(int skipFrames) {
   if (!debug::safeToUnwindStack()) {
     // Build a fake stack so that the user sees an appropriate message upon
     // symbolizing rather than seeing an empty stack.
-    uintptr_t f_ptr = reinterpret_cast<uintptr_t>(
-        &CouldNotCollectStackTraceBecauseInsideLibDl);
+    uintptr_t fPtr = reinterpret_cast<uintptr_t>(
+        &couldNotCollectStackTraceBecauseInsideLibDl);
     // Increase the pointer by one byte since the return address from a function
     // call would not be the beginning of the function itself.
-    frames_[0] = reinterpret_cast<void*>(f_ptr + 1);
+    frames_[0] = reinterpret_cast<void*>(fPtr + 1);
     numFrames_ = 1;
     return;
   }
   const int kMaxDepth = arraysize(frames_);
 
-  std::call_once(gPrimeLibunwindOnce, PrimeLibunwind);
+  std::call_once(gPrimeLibunwindOnce, primeLibunwind);
 
   unw_cursor_t cursor;
   unw_context_t uc;
