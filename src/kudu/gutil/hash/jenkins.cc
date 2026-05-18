@@ -39,12 +39,12 @@ uint32_t hash32StringWithSeedReferenceImplementation(
     uint32_t len,
     uint32_t c) {
   uint32_t a, b;
-  uint32_t keylen;
+  uint32_t keyLen;
 
   a = b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
 
-  for (keylen = len; keylen >= 3 * sizeof(a);
-       keylen -= static_cast<uint32_t>(3 * sizeof(a)), s += 3 * sizeof(a)) {
+  for (keyLen = len; keyLen >= 3 * sizeof(a);
+       keyLen -= static_cast<uint32_t>(3 * sizeof(a)), s += 3 * sizeof(a)) {
     a += google1At(s);
     b += google1At(s + sizeof(a));
     c += google1At(s + sizeof(a) * 2);
@@ -53,7 +53,7 @@ uint32_t hash32StringWithSeedReferenceImplementation(
 
   c += len;
   // clang-format off
-  switch (keylen) { // deal with rest.
+  switch (keyLen) { // deal with rest.
     case 11: c += char2Unsigned(s[10]) << 24; [[fallthrough]];
     case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
     case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
@@ -80,12 +80,12 @@ uint32_t hash32StringWithSeedReferenceImplementation(
 ATTRIBUTE_NO_SANITIZE_INTEGER
 uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
   uint32_t a, b;
-  uint32_t keylen;
+  uint32_t keyLen;
 
   a = b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
 
-  keylen = len;
-  if (keylen >= 4 * sizeof(a)) {
+  keyLen = len;
+  if (keyLen >= 4 * sizeof(a)) {
     uint32_t word32AtOffset0 = google1At(s);
     do {
       a += word32AtOffset0;
@@ -94,29 +94,29 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
       s += 3 * sizeof(a);
       word32AtOffset0 = google1At(s);
       mix(a, b, c);
-      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
-    } while (keylen >= 4 * sizeof(a));
-    if (keylen >= 3 * sizeof(a)) {
+      keyLen -= 3 * static_cast<uint32_t>(sizeof(a));
+    } while (keyLen >= 4 * sizeof(a));
+    if (keyLen >= 3 * sizeof(a)) {
       a += word32AtOffset0;
       b += google1At(s + sizeof(a));
       c += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
-      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
-      DCHECK_LT(keylen, sizeof(a));
+      keyLen -= 3 * static_cast<uint32_t>(sizeof(a));
+      DCHECK_LT(keyLen, sizeof(a));
       c += len;
       // clang-format off
-      switch (keylen) { // deal with rest.
+      switch (keyLen) { // deal with rest.
         case 3: a += char2Unsigned(s[2]) << 16; [[fallthrough]];
         case 2: a += char2Unsigned(s[1]) <<  8; [[fallthrough]];
         case 1: a += char2Unsigned(s[0]);
       }
       // clang-format on
     } else {
-      DCHECK(sizeof(a) <= keylen && keylen < 3 * sizeof(a));
+      DCHECK(sizeof(a) <= keyLen && keyLen < 3 * sizeof(a));
       c += len;
       // clang-format off
-      switch (keylen) { // deal with rest.
+      switch (keyLen) { // deal with rest.
         case 11: c += char2Unsigned(s[10]) << 24; [[fallthrough]];
         case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
         case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
@@ -134,17 +134,17 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
       // clang-format on
     }
   } else {
-    if (keylen >= 3 * sizeof(a)) {
+    if (keyLen >= 3 * sizeof(a)) {
       a += google1At(s);
       b += google1At(s + sizeof(a));
       c += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
-      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
+      keyLen -= 3 * static_cast<uint32_t>(sizeof(a));
     }
     c += len;
     // clang-format off
-    switch (keylen) { // deal with rest.
+    switch (keyLen) { // deal with rest.
       case 11: c += char2Unsigned(s[10]) << 24; [[fallthrough]];
       case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
       case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
@@ -171,12 +171,12 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
 ATTRIBUTE_NO_SANITIZE_INTEGER
 uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
   uint64_t a, b;
-  uint32_t keylen;
+  uint32_t keyLen;
 
   a = b = 0xe08c1d668b756f82ULL; // the golden ratio; an arbitrary value
 
-  for (keylen = len; keylen >= 3 * sizeof(a);
-       keylen -= 3 * static_cast<uint32_t>(sizeof(a)), s += 3 * sizeof(a)) {
+  for (keyLen = len; keyLen >= 3 * sizeof(a);
+       keyLen -= 3 * static_cast<uint32_t>(sizeof(a)), s += 3 * sizeof(a)) {
     a += word64At(s);
     b += word64At(s + sizeof(a));
     c += word64At(s + sizeof(a) * 2);
@@ -185,7 +185,7 @@ uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
 
   c += len;
   // clang-format off
-  switch (keylen) { // deal with rest.
+  switch (keyLen) { // deal with rest.
     case 23: c += char2Unsigned64(s[22]) << 56; [[fallthrough]];
     case 22: c += char2Unsigned64(s[21]) << 48; [[fallthrough]];
     case 21: c += char2Unsigned64(s[20]) << 40; [[fallthrough]];
