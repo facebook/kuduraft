@@ -197,7 +197,7 @@ Status ClientNegotiation::parseError(
 Status ClientNegotiation::sendConnectionHeader() {
   const uint8_t buflen = kMagicNumberLength + kHeaderFlagsLength;
   uint8_t buf[buflen];
-  serialization::SerializeConnHeader(buf);
+  serialization::serializeConnHeader(buf);
   size_t nsent;
   return socket()->blockingWrite(buf, buflen, &nsent, deadline_);
 }

@@ -130,7 +130,7 @@ size_t OutboundCall::serializeTo(TransferPayload* slices) {
   }
 
   DCHECK_LE(0, sidecar_byte_size_);
-  serialization::SerializeHeader(
+  serialization::serializeHeader(
       header_, sidecar_byte_size_ + request_buf_.size(), &header_buf_);
 
   size_t nSlices = 2 + sidecars_.size();
@@ -166,7 +166,7 @@ void OutboundCall::setRequestPayload(
     sidecar_byte_size_ += sidecarBytes;
   }
 
-  serialization::SerializeMessage(req, &request_buf_, sidecar_byte_size_, true);
+  serialization::serializeMessage(req, &request_buf_, sidecar_byte_size_, true);
 }
 
 Status OutboundCall::status() const {
@@ -546,7 +546,7 @@ Status CallResponse::GetSidecar(int idx, Slice* sidecar) const {
 Status CallResponse::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   CHECK(!parsed_);
   RETURN_NOT_OK(
-      serialization::ParseMessage(
+      serialization::parseMessage(
           transfer->data(), &header_, &serialized_response_));
 
   // Use information from header to extract the payload slices.

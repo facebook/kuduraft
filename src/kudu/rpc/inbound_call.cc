@@ -69,7 +69,7 @@ Status InboundCall::parseFrom(unique_ptr<InboundTransfer> transfer) {
   TRACE_EVENT_FLOW_BEGIN0("rpc", "InboundCall", this);
   TRACE_EVENT0("rpc", "InboundCall::parseFrom");
   RETURN_NOT_OK(
-      serialization::ParseMessage(
+      serialization::parseMessage(
           transfer->data(), &header_, &serializedRequest_));
 
   // Adopt the service/method info from the header as soon as it's available.
@@ -209,10 +209,10 @@ void InboundCall::serializeResponseBuffer(
     sidecarByteSize += sidecarBytes;
   }
 
-  serialization::SerializeMessage(
+  serialization::serializeMessage(
       response, &responseMsgBuf_, sidecarByteSize, true);
   int64_t mainMsgSize = sidecarByteSize + responseMsgBuf_.size();
-  serialization::SerializeHeader(respHdr, mainMsgSize, &responseHdrBuf_);
+  serialization::serializeHeader(respHdr, mainMsgSize, &responseHdrBuf_);
 }
 
 size_t InboundCall::serializeResponseTo(TransferPayload* slices) const {

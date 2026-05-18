@@ -69,11 +69,11 @@ Status sendFramedMessageBlocking(
 
   // Serialize message
   faststring paramBuf;
-  serialization::SerializeMessage(msg, &paramBuf);
+  serialization::serializeMessage(msg, &paramBuf);
 
   // Serialize header and initial length
   faststring headerBuf;
-  serialization::SerializeHeader(header, paramBuf.size(), &headerBuf);
+  serialization::serializeHeader(header, paramBuf.size(), &headerBuf);
 
   // Write header & param to stream
   size_t nsent;
@@ -130,7 +130,7 @@ Status receiveFramedMessageBlocking(
   recvBuf->resize(payloadLen + kMsgLengthPrefixLength);
   RETURN_NOT_OK(sock->blockingRecv(
       recvBuf->data() + kMsgLengthPrefixLength, payloadLen, &recvd, deadline));
-  RETURN_NOT_OK(serialization::ParseMessage(Slice(*recvBuf), header, paramBuf));
+  RETURN_NOT_OK(serialization::parseMessage(Slice(*recvBuf), header, paramBuf));
   return Status::OK();
 }
 

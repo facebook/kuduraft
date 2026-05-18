@@ -626,7 +626,7 @@ void Connection::handleLongIncomingCall() {
 
   uint32_t totalSize;
   RequestHeader header;
-  if (serialization::TryParseRPCHeader(inbound_->data(), &totalSize, &header)
+  if (serialization::tryParseRpcHeader(inbound_->data(), &totalSize, &header)
           .ok()) {
     inbound_->setLongTransferCallback(
         reactorThread_->reactor()->messenger()->SignalLongInboundCall(

@@ -155,8 +155,8 @@ TEST_F(TestRpc, TestConnHeaderValidation) {
   MessengerBuilder mb("TestRpc.TestConnHeaderValidation");
   const int connHdrLen = kMagicNumberLength + kHeaderFlagsLength;
   uint8_t buf[connHdrLen];
-  serialization::SerializeConnHeader(buf);
-  ASSERT_OK(serialization::ValidateConnHeader(Slice(buf, connHdrLen)));
+  serialization::serializeConnHeader(buf);
+  ASSERT_OK(serialization::validateConnHeader(Slice(buf, connHdrLen)));
 }
 
 // Regression test for KUDU-2041

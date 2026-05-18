@@ -393,7 +393,7 @@ Status ServerNegotiation::validateConnectionHeader(faststring* recvBuf) {
       recvBuf->data(), connHeaderLen, &numRead, deadline_));
   DCHECK_EQ(connHeaderLen, numRead);
 
-  RETURN_NOT_OK(serialization::ValidateConnHeader(*recvBuf));
+  RETURN_NOT_OK(serialization::validateConnHeader(*recvBuf));
   TRACE("Connection header received");
   return Status::OK();
 }

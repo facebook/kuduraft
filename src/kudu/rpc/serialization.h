@@ -39,23 +39,23 @@ namespace serialization {
 // Serialize the request param into a buffer which is allocated by this
 // function. Uses the message's cached size by calling
 // MessageLite::GetCachedSize(). In : 'message' Protobuf Message to serialize
-//      'additional_size' Optional argument which increases the recorded size
-//        within param_buf. This argument is necessary if there will be
+//      'additionalSize' Optional argument which increases the recorded size
+//        within paramBuf. This argument is necessary if there will be
 //        additional sidecars appended onto the message (that aren't part of
 //        the protobuf itself).
-//      'use_cached_size' Additional optional argument whether to use the cached
+//      'useCachedSize' Additional optional argument whether to use the cached
 //        or explicit byte size by calling MessageLite::GetCachedSize() or
 //        MessageLite::ByteSize(), respectively.
-// Out: The faststring 'param_buf' to be populated with the serialized bytes.
+// Out: The faststring 'paramBuf' to be populated with the serialized bytes.
 //        The faststring's length is only determined by the amount that
 //        needs to be serialized for the protobuf (i.e., no additional space
-//        is reserved for 'additional_size', which only affects the
-//        size indicator prefix in 'param_buf').
-void SerializeMessage(
+//        is reserved for 'additionalSize', which only affects the
+//        size indicator prefix in 'paramBuf').
+void serializeMessage(
     const google::protobuf::MessageLite& message,
-    faststring* param_buf,
-    int additional_size = 0,
-    bool use_cached_size = false);
+    faststring* paramBuf,
+    int additionalSize = 0,
+    bool useCachedSize = false);
 
 // Serialize the request or response header into a buffer which is allocated
 // by this function.
@@ -63,43 +63,43 @@ void SerializeMessage(
 // In: Protobuf Header to serialize,
 //     Length of the message param following this header in the frame.
 // Out: faststring to be populated with the serialized bytes.
-void SerializeHeader(
+void serializeHeader(
     const google::protobuf::MessageLite& header,
-    size_t param_len,
-    faststring* header_buf);
+    size_t paramLen,
+    faststring* headerBuf);
 
 // Deserialize the request.
 // In: data buffer Slice.
-// Out: parsed_header PB initialized,
-//      parsed_main_message pointing to offset in original buffer containing
+// Out: parsedHeader PB initialized,
+//      parsedMainMessage pointing to offset in original buffer containing
 //      the main payload.
-Status ParseMessage(
+Status parseMessage(
     const Slice& buf,
-    google::protobuf::MessageLite* parsed_header,
-    Slice* parsed_main_message);
+    google::protobuf::MessageLite* parsedHeader,
+    Slice* parsedMainMessage);
 
 /**
  * Attempts to parse the RPC header out from the buffer.
  *
  * This method tries to read a header out from the message buffer and returns a
- * parsed_header if it could find the whole buffer.
+ * parsedHeader if it could find the whole buffer.
  *
  * @param buf The buffer as received
- * @param total_len The total size of the RPC call
- * @param parsed_header The header if parsed
+ * @param totalLen The total size of the RPC call
+ * @param parsedHeader The header if parsed
  * @return OK if we can parse out the header
  */
-Status TryParseRPCHeader(
+Status tryParseRpcHeader(
     const Slice& buf,
-    uint32_t* total_len,
-    google::protobuf::MessageLite* parsed_header);
+    uint32_t* totalLen,
+    google::protobuf::MessageLite* parsedHeader);
 
 // Serialize the RPC connection header (magic number + flags).
 // buf must have 7 bytes available (kMagicNumberLength + kHeaderFlagsLength).
-void SerializeConnHeader(uint8_t* buf);
+void serializeConnHeader(uint8_t* buf);
 
 // Validate the entire rpc header (magic number + flags).
-Status ValidateConnHeader(const Slice& slice);
+Status validateConnHeader(const Slice& slice);
 
 } // namespace serialization
 } // namespace rpc
