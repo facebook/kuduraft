@@ -65,11 +65,11 @@ SignedTokenPB makeIncompatibleToken() {
 // Generate public key as a string in DER format for tests.
 Status generatePublicKeyStrDer(string* ret) {
   PrivateKey privateKey;
-  RETURN_NOT_OK(GeneratePrivateKey(512, &privateKey));
+  RETURN_NOT_OK(generatePrivateKey(512, &privateKey));
   PublicKey publicKey;
-  RETURN_NOT_OK(privateKey.GetPublicKey(&publicKey));
+  RETURN_NOT_OK(privateKey.getPublicKey(&publicKey));
   string publicKeyStrDer;
-  RETURN_NOT_OK(publicKey.ToString(&publicKeyStrDer, DataFormat::Der));
+  RETURN_NOT_OK(publicKey.toString(&publicKeyStrDer, DataFormat::Der));
   *ret = publicKeyStrDer;
   return Status::OK();
 }
@@ -81,7 +81,7 @@ Status generateTokenSigningKey(
     unique_ptr<TokenSigningPrivateKey>* tsk) {
   {
     unique_ptr<PrivateKey> privateKey(new PrivateKey);
-    RETURN_NOT_OK(GeneratePrivateKey(512, privateKey.get()));
+    RETURN_NOT_OK(generatePrivateKey(512, privateKey.get()));
     tsk->reset(new TokenSigningPrivateKey(
         seqNum, expireTimeSeconds, std::move(privateKey)));
   }
@@ -126,9 +126,9 @@ TEST_F(TokenTest, TestInit) {
 
   static const int64_t kKeySeqNum = 100;
   PrivateKey privateKey;
-  ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+  ASSERT_OK(generatePrivateKey(512, &privateKey));
   string privateKeyStrDer;
-  ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
+  ASSERT_OK(privateKey.toString(&privateKeyStrDer, DataFormat::Der));
   TokenSigningPrivateKeyPB pb;
   pb.set_rsa_key_der(privateKeyStrDer);
   pb.set_key_seq_num(kKeySeqNum);
@@ -199,9 +199,9 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     // First, try to import already expired key to check that internal key
     // sequence number advances correspondingly.
     PrivateKey privateKey;
-    ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+    ASSERT_OK(generatePrivateKey(512, &privateKey));
     string privateKeyStrDer;
-    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
+    ASSERT_OK(privateKey.toString(&privateKeyStrDer, DataFormat::Der));
     TokenSigningPrivateKeyPB pb;
     pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kExpiredKeySeqNum);
@@ -221,9 +221,9 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     // Now import valid (not yet expired) key, but with sequence number less
     // than of the expired key.
     PrivateKey privateKey;
-    ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+    ASSERT_OK(generatePrivateKey(512, &privateKey));
     string privateKeyStrDer;
-    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
+    ASSERT_OK(privateKey.toString(&privateKeyStrDer, DataFormat::Der));
     TokenSigningPrivateKeyPB pb;
     pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kKeySeqNum);
@@ -304,9 +304,9 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     TokenSigner signer(1, 1);
     static const int64_t kKeySeqNum = 100;
     PrivateKey privateKey;
-    ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+    ASSERT_OK(generatePrivateKey(512, &privateKey));
     string privateKeyStrDer;
-    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::Der));
+    ASSERT_OK(privateKey.toString(&privateKeyStrDer, DataFormat::Der));
     TokenSigningPrivateKeyPB pb;
     pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kKeySeqNum);

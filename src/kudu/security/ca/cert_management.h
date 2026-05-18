@@ -65,7 +65,7 @@ class CertRequestGeneratorBase {
   virtual bool initialized() const = 0;
 
   // Generate X509 CSR using the specified key. To obtain the key,
-  // call the GeneratePrivateKey() function.
+  // call the generatePrivateKey() function.
   Status generateRequest(const PrivateKey& key, CertSignRequest* ret) const
       WARN_UNUSED_RESULT;
 

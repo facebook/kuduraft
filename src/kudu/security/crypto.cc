@@ -101,9 +101,9 @@ namespace {
 
 const EVP_MD* getMessageDigest(DigestType digestType) {
   switch (digestType) {
-    case DigestType::SHA256:
+    case DigestType::Sha256:
       return EVP_sha256();
-    case DigestType::SHA512:
+    case DigestType::Sha512:
       return EVP_sha512();
   }
   LOG(FATAL) << "unknown digest type";
@@ -111,28 +111,28 @@ const EVP_MD* getMessageDigest(DigestType digestType) {
 
 } // anonymous namespace
 
-Status PublicKey::FromString(const std::string& data, DataFormat format) {
+Status PublicKey::fromString(const std::string& data, DataFormat format) {
   return ::kudu::security::fromString<RawDataType, RsaPublicKeyTraits>(
       data, format, &data_);
 }
 
-Status PublicKey::ToString(std::string* data, DataFormat format) const {
+Status PublicKey::toString(std::string* data, DataFormat format) const {
   return ::kudu::security::toString<RawDataType, RsaPublicKeyTraits>(
       data, format, data_.get());
 }
 
-Status PublicKey::FromFile(const std::string& fpath, DataFormat format) {
+Status PublicKey::fromFile(const std::string& fpath, DataFormat format) {
   return ::kudu::security::fromFile<RawDataType, RsaPublicKeyTraits>(
       fpath, format, &data_);
 }
 
-Status PublicKey::FromBIO(BIO* bio, DataFormat format) {
+Status PublicKey::fromBio(BIO* bio, DataFormat format) {
   return ::kudu::security::fromBio<RawDataType, RsaPublicKeyTraits>(
       bio, format, &data_);
 }
 
 // Modeled after code in $OPENSSL_ROOT/apps/dgst.c
-Status PublicKey::VerifySignature(
+Status PublicKey::verifySignature(
     DigestType digest,
     const std::string& data,
     const std::string& signature) const {
@@ -169,7 +169,7 @@ Status PublicKey::VerifySignature(
   return Status::OK();
 }
 
-Status PublicKey::Equals(const PublicKey& other, bool* equals) const {
+Status PublicKey::equals(const PublicKey& other, bool* equals) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   int cmp = EVP_PKEY_cmp(data_.get(), other.data_.get());
   switch (cmp) {
@@ -188,17 +188,17 @@ Status PublicKey::Equals(const PublicKey& other, bool* equals) const {
   }
 }
 
-Status PrivateKey::FromString(const std::string& data, DataFormat format) {
+Status PrivateKey::fromString(const std::string& data, DataFormat format) {
   return ::kudu::security::fromString<RawDataType, RsaPrivateKeyTraits>(
       data, format, &data_);
 }
 
-Status PrivateKey::ToString(std::string* data, DataFormat format) const {
+Status PrivateKey::toString(std::string* data, DataFormat format) const {
   return ::kudu::security::toString<RawDataType, RsaPrivateKeyTraits>(
       data, format, data_.get());
 }
 
-Status PrivateKey::FromFile(
+Status PrivateKey::fromFile(
     const std::string& fpath,
     DataFormat format,
     const PasswordCallback& passwordCb) {
@@ -209,7 +209,7 @@ Status PrivateKey::FromFile(
 // The code is modeled after $OPENSSL_ROOT/apps/rsa.c code: there is
 // corresponding functionality to read public part from RSA private/public
 // keypair.
-Status PrivateKey::GetPublicKey(PublicKey* publicKey) const {
+Status PrivateKey::getPublicKey(PublicKey* publicKey) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(publicKey);
   auto rsa = sslMakeUnique(EVP_PKEY_get1_RSA(CHECK_NOTNULL(data_.get())));
@@ -223,13 +223,13 @@ Status PrivateKey::GetPublicKey(PublicKey* publicKey) const {
       i2d_RSA_PUBKEY_bio(tmp.get(), rsa.get()),
       "error extracting public RSA key");
   // Read the public key into the result placeholder.
-  RETURN_NOT_OK(publicKey->FromBIO(tmp.get(), DataFormat::Der));
+  RETURN_NOT_OK(publicKey->fromBio(tmp.get(), DataFormat::Der));
 
   return Status::OK();
 }
 
 // Modeled after code in $OPENSSL_ROOT/apps/dgst.c
-Status PrivateKey::MakeSignature(
+Status PrivateKey::makeSignature(
     DigestType digest,
     const std::string& data,
     std::string* signature) const {
@@ -256,7 +256,7 @@ Status PrivateKey::MakeSignature(
   return Status::OK();
 }
 
-Status GeneratePrivateKey(int numBits, PrivateKey* ret) {
+Status generatePrivateKey(int numBits, PrivateKey* ret) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
   initializeOpenSsl();
@@ -276,7 +276,7 @@ Status GeneratePrivateKey(int numBits, PrivateKey* ret) {
   return Status::OK();
 }
 
-Status GenerateNonce(string* s) {
+Status generateNonce(string* s) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK_NOTNULL(s);
   unsigned char buf[kNonceSize];

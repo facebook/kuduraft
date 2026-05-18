@@ -45,28 +45,28 @@ Status TokenSigningPublicKey::init() {
   if (!pb_.has_rsa_key_der()) {
     return Status::RuntimeError("no key for token signing helper");
   }
-  RETURN_NOT_OK(key_.FromString(pb_.rsa_key_der(), DataFormat::Der));
+  RETURN_NOT_OK(key_.fromString(pb_.rsa_key_der(), DataFormat::Der));
   return Status::OK();
 }
 
 bool TokenSigningPublicKey::verifySignature(const SignedTokenPB& token) const {
   return key_
-      .VerifySignature(
-          DigestType::SHA256, token.token_data(), token.signature())
+      .verifySignature(
+          DigestType::Sha256, token.token_data(), token.signature())
       .ok();
 }
 
 TokenSigningPrivateKey::TokenSigningPrivateKey(
     const TokenSigningPrivateKeyPB& pb)
     : key_(new PrivateKey) {
-  CHECK_OK(key_->FromString(pb.rsa_key_der(), DataFormat::Der));
+  CHECK_OK(key_->fromString(pb.rsa_key_der(), DataFormat::Der));
   privateKeyDer_ = pb.rsa_key_der();
   keySeqNum_ = pb.key_seq_num();
   expireTime_ = pb.expire_unix_epoch_seconds();
 
   PublicKey publicKey;
-  CHECK_OK(key_->GetPublicKey(&publicKey));
-  CHECK_OK(publicKey.ToString(&publicKeyDer_, DataFormat::Der));
+  CHECK_OK(key_->getPublicKey(&publicKey));
+  CHECK_OK(publicKey.toString(&publicKeyDer_, DataFormat::Der));
 }
 
 TokenSigningPrivateKey::TokenSigningPrivateKey(
@@ -74,10 +74,10 @@ TokenSigningPrivateKey::TokenSigningPrivateKey(
     int64_t expireTime,
     unique_ptr<PrivateKey> key)
     : key_(std::move(key)), keySeqNum_(keySeqNum), expireTime_(expireTime) {
-  CHECK_OK(key_->ToString(&privateKeyDer_, DataFormat::Der));
+  CHECK_OK(key_->toString(&privateKeyDer_, DataFormat::Der));
   PublicKey publicKey;
-  CHECK_OK(key_->GetPublicKey(&publicKey));
-  CHECK_OK(publicKey.ToString(&publicKeyDer_, DataFormat::Der));
+  CHECK_OK(key_->getPublicKey(&publicKey));
+  CHECK_OK(publicKey.toString(&publicKeyDer_, DataFormat::Der));
 }
 
 TokenSigningPrivateKey::~TokenSigningPrivateKey() {}
@@ -85,7 +85,7 @@ TokenSigningPrivateKey::~TokenSigningPrivateKey() {}
 Status TokenSigningPrivateKey::sign(SignedTokenPB* token) const {
   string signature;
   RETURN_NOT_OK(
-      key_->MakeSignature(DigestType::SHA256, token->token_data(), &signature));
+      key_->makeSignature(DigestType::Sha256, token->token_data(), &signature));
   token->mutable_signature()->assign(std::move(signature));
   token->set_signing_key_seq_num(keySeqNum_);
   return Status::OK();

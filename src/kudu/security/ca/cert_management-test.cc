@@ -46,11 +46,11 @@ class CertManagementTest : public KuduTest {
  public:
   void SetUp() override {
     ASSERT_OK(caCert_.FromString(kCaCert, DataFormat::Pem));
-    ASSERT_OK(caPrivateKey_.FromString(kCaPrivateKey, DataFormat::Pem));
-    ASSERT_OK(caPublicKey_.FromString(kCaPublicKey, DataFormat::Pem));
+    ASSERT_OK(caPrivateKey_.fromString(kCaPrivateKey, DataFormat::Pem));
+    ASSERT_OK(caPublicKey_.fromString(kCaPublicKey, DataFormat::Pem));
     ASSERT_OK(caExpCert_.FromString(kCaExpiredCert, DataFormat::Pem));
     ASSERT_OK(
-        caExpPrivateKey_.FromString(kCaExpiredPrivateKey, DataFormat::Pem));
+        caExpPrivateKey_.fromString(kCaExpiredPrivateKey, DataFormat::Pem));
     // Sanity checks.
     ASSERT_OK(caCert_.checkKeyMatch(caPrivateKey_));
     ASSERT_OK(caExpCert_.checkKeyMatch(caExpPrivateKey_));
@@ -72,7 +72,7 @@ class CertManagementTest : public KuduTest {
   CertSignRequest prepareTestCsr(
       typename CsrGen::Config config,
       PrivateKey* key) {
-    CHECK_OK(GeneratePrivateKey(512, key));
+    CHECK_OK(generatePrivateKey(512, key));
     CsrGen gen(std::move(config));
     CHECK_OK(gen.init());
     CertSignRequest req;
@@ -105,13 +105,13 @@ TEST_F(CertManagementTest, RequestGeneratorBasics) {
   const CertRequestGenerator::Config genConfig = prepareConfig();
 
   PrivateKey key;
-  ASSERT_OK(GeneratePrivateKey(1024, &key));
+  ASSERT_OK(generatePrivateKey(1024, &key));
   CertRequestGenerator gen(genConfig);
   ASSERT_OK(gen.init());
   string keyStr;
-  ASSERT_OK(key.ToString(&keyStr, DataFormat::Pem));
+  ASSERT_OK(key.toString(&keyStr, DataFormat::Pem));
   // Check for non-supported number of bits for the key.
-  Status s = GeneratePrivateKey(7, &key);
+  Status s = generatePrivateKey(7, &key);
   ASSERT_TRUE(s.IsRuntimeError());
 }
 
@@ -242,7 +242,7 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
   static const DataFormat kFormats[] = {DataFormat::Pem, DataFormat::Der};
 
   PrivateKey key;
-  ASSERT_OK(GeneratePrivateKey(1024, &key));
+  ASSERT_OK(generatePrivateKey(1024, &key));
   CertRequestGenerator gen(prepareConfig());
   ASSERT_OK(gen.init());
   CertSignRequest reqRef;
@@ -268,7 +268,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   static const DataFormat kFormats[] = {DataFormat::Pem, DataFormat::Der};
 
   PrivateKey key;
-  ASSERT_OK(GeneratePrivateKey(1024, &key));
+  ASSERT_OK(generatePrivateKey(1024, &key));
   CertRequestGenerator gen(prepareConfig());
   ASSERT_OK(gen.init());
   CertSignRequest req;

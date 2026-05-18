@@ -40,8 +40,8 @@ extern const size_t kNonceSize;
 
 // Supported message digests for data signing and signature verification.
 enum class DigestType {
-  SHA256,
-  SHA512,
+  Sha256,
+  Sha512,
 };
 
 // A class with generic public key interface, but actually it represents
@@ -50,25 +50,25 @@ class PublicKey : public RawDataWrapper<EVP_PKEY> {
  public:
   ~PublicKey() {}
 
-  Status FromString(const std::string& data, DataFormat format)
+  Status fromString(const std::string& data, DataFormat format)
       WARN_UNUSED_RESULT;
-  Status ToString(std::string* data, DataFormat format) const
+  Status toString(std::string* data, DataFormat format) const
       WARN_UNUSED_RESULT;
-  Status FromFile(const std::string& fpath, DataFormat format)
+  Status fromFile(const std::string& fpath, DataFormat format)
       WARN_UNUSED_RESULT;
 
-  Status FromBIO(BIO* bio, DataFormat format) WARN_UNUSED_RESULT;
+  Status fromBio(BIO* bio, DataFormat format) WARN_UNUSED_RESULT;
 
   // Using the key, verify data signature using the specified message
   // digest algorithm for signature verification.
   // The input signature should be in in raw format (i.e. no base64 encoding).
-  Status VerifySignature(
+  Status verifySignature(
       DigestType digest,
       const std::string& data,
       const std::string& signature) const WARN_UNUSED_RESULT;
 
   // Sets 'equals' to true if the other public key equals this.
-  Status Equals(const PublicKey& other, bool* equals) const WARN_UNUSED_RESULT;
+  Status equals(const PublicKey& other, bool* equals) const WARN_UNUSED_RESULT;
 };
 
 // A class with generic private key interface, but actually it represents
@@ -78,36 +78,36 @@ class PrivateKey : public RawDataWrapper<EVP_PKEY> {
  public:
   ~PrivateKey() {}
 
-  Status FromString(const std::string& data, DataFormat format)
+  Status fromString(const std::string& data, DataFormat format)
       WARN_UNUSED_RESULT;
-  Status ToString(std::string* data, DataFormat format) const
+  Status toString(std::string* data, DataFormat format) const
       WARN_UNUSED_RESULT;
 
   // If 'cb' is set, it will be called to obtain the password necessary to
   // decrypt the private key file in 'fpath'.
-  Status FromFile(
+  Status fromFile(
       const std::string& fpath,
       DataFormat format,
       const PasswordCallback& passwordCb = PasswordCallback())
       WARN_UNUSED_RESULT;
 
   // Output the public part of the keypair into the specified placeholder.
-  Status GetPublicKey(PublicKey* publicKey) const WARN_UNUSED_RESULT;
+  Status getPublicKey(PublicKey* publicKey) const WARN_UNUSED_RESULT;
 
   // Using the key, generate data signature using the specified
   // message digest algorithm. The result signature is in raw format
   // (i.e. no base64 encoding).
-  Status MakeSignature(
+  Status makeSignature(
       DigestType digest,
       const std::string& data,
       std::string* signature) const WARN_UNUSED_RESULT;
 };
 
 // Utility method to generate private keys.
-Status GeneratePrivateKey(int numBits, PrivateKey* ret) WARN_UNUSED_RESULT;
+Status generatePrivateKey(int numBits, PrivateKey* ret) WARN_UNUSED_RESULT;
 
 // Generates a nonce of size kNonceSize, and writes it to the provided string.
-Status GenerateNonce(std::string* s) WARN_UNUSED_RESULT;
+Status generateNonce(std::string* s) WARN_UNUSED_RESULT;
 
 } // namespace security
 } // namespace kudu

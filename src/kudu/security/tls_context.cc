@@ -455,7 +455,7 @@ Status TlsContext::generateSelfSignedCertAndKey() {
   // Step 1: generate the private key to be self signed.
   PrivateKey key;
   RETURN_NOT_OK_PREPEND(
-      GeneratePrivateKey(FLAGS_ipki_server_key_size, &key),
+      generatePrivateKey(FLAGS_ipki_server_key_size, &key),
       "failed to generate private key");
 
   // Step 2: generate a CSR so that the self-signed cert can eventually be
@@ -529,7 +529,7 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
   PublicKey certKey;
   RETURN_NOT_OK(cert.GetPublicKey(&certKey));
   bool equals;
-  RETURN_NOT_OK(csrKey.Equals(certKey, &equals));
+  RETURN_NOT_OK(csrKey.equals(certKey, &equals));
   if (!equals) {
     return Status::RuntimeError(
         "certificate public key does not match the CSR public key");
@@ -558,7 +558,7 @@ Status TlsContext::loadCertificateAndKey(
   Cert c;
   RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
   PrivateKey k;
-  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::Pem));
+  RETURN_NOT_OK(k.fromFile(keyPath, DataFormat::Pem));
 
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -580,7 +580,7 @@ Status TlsContext::loadCertificateAndPasswordProtectedKey(
       "failed to load certificate");
   PrivateKey k;
   RETURN_NOT_OK_PREPEND(
-      k.FromFile(keyPath, DataFormat::Pem, passwordCb),
+      k.fromFile(keyPath, DataFormat::Pem, passwordCb),
       "failed to load private key file");
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -617,7 +617,7 @@ Status TlsContext::loadCertFiles(
   RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
 
   PrivateKey k;
-  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::Pem));
+  RETURN_NOT_OK(k.fromFile(keyPath, DataFormat::Pem));
 
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));

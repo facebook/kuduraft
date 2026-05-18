@@ -48,7 +48,7 @@ Status generateSelfSignedCaForTests(PrivateKey* caKey, Cert* caCert) {
   // See
   // https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_get_security_level.html
   // for more details.
-  RETURN_NOT_OK(GeneratePrivateKey(1024, caKey));
+  RETURN_NOT_OK(generatePrivateKey(1024, caKey));
 
   CaCertRequestGenerator::Config config = {"test-ca-cn"};
   RETURN_NOT_OK(

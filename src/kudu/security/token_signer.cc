@@ -293,7 +293,7 @@ Status TokenSigner::generateSigningKey(
     unique_ptr<TokenSigningPrivateKey>* tsk) {
   unique_ptr<PrivateKey> key(new PrivateKey());
   RETURN_NOT_OK_PREPEND(
-      GeneratePrivateKey(FLAGS_tsk_num_rsa_bits, key.get()),
+      generatePrivateKey(FLAGS_tsk_num_rsa_bits, key.get()),
       "could not generate new RSA token-signing key");
   tsk->reset(
       new TokenSigningPrivateKey(keySeqNum, keyExpiration, std::move(key)));
