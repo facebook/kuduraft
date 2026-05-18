@@ -194,13 +194,13 @@ bool emplaceOrUpdate(
     Collection* const collection,
     const typename Collection::key_type& key,
     typename Collection::mapped_type&& value) {
-  using mapped_type = typename Collection::mapped_type;
+  using MappedType = typename Collection::mapped_type;
   auto it = collection->find(key);
   if (it == collection->end()) {
-    collection->emplace(key, std::forward<mapped_type>(value));
+    collection->emplace(key, std::forward<MappedType>(value));
     return true;
   }
-  it->second = std::forward<mapped_type>(value);
+  it->second = std::forward<MappedType>(value);
   return false;
 }
 
