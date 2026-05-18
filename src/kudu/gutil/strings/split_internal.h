@@ -177,11 +177,11 @@ struct StringPieceTo<const std::string> {
 };
 
 #ifdef LANG_CXX11
-// IsNotInitializerList<T>::type exists iff T is not an initializer_list. More
+// IsNotInitializerList<T>::Type exists iff T is not an initializer_list. More
 // details below in Splitter<> where this is used.
 template <typename T>
 struct IsNotInitializerList {
-  using type = void;
+  using Type = void;
 };
 template <typename T>
 struct IsNotInitializerList<std::initializer_list<T>> {};
@@ -254,10 +254,10 @@ class Splitter {
   template <
       typename Container,
       typename IsNotInitializerListChecker =
-          typename IsNotInitializerList<Container>::type,
+          typename IsNotInitializerList<Container>::Type,
       typename ContainerChecker = typename Container::const_iterator>
   operator Container() {
-    return SelectContainer<Container, IsMap<Container>::value>()(this);
+    return SelectContainer<Container, IsMap<Container>::kValue>()(this);
   }
 
   template <typename ArrayType, size_t ArraySize>
@@ -273,7 +273,7 @@ class Splitter {
   // Not under LANG_CXX11
   template <typename Container>
   operator Container() {
-    return SelectContainer<Container, IsMap<Container>::value>()(this);
+    return SelectContainer<Container, IsMap<Container>::kValue>()(this);
   }
 #endif // LANG_CXX11
 
@@ -283,7 +283,7 @@ class Splitter {
   }
 
  private:
-  // IsMap<T>::value is true iff there exists a type T::mapped_type. This is
+  // IsMap<T>::kValue is true iff there exists a type T::mapped_type. This is
   // used to dispatch to one of the SelectContainer<> functors (below) from the
   // implicit conversion operator (above).
   template <typename T>
@@ -292,7 +292,7 @@ class Splitter {
     static base::big_ test(typename U::mapped_type*);
     template <typename>
     static base::small_ test(...);
-    static const bool value = (sizeof(test<T>(0)) == sizeof(base::big_));
+    static const bool kValue = (sizeof(test<T>(0)) == sizeof(base::big_));
   };
 
   // Base template handles splitting to non-map containers
