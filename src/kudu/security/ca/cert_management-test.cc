@@ -45,10 +45,10 @@ namespace ca {
 class CertManagementTest : public KuduTest {
  public:
   void SetUp() override {
-    ASSERT_OK(caCert_.FromString(kCaCert, DataFormat::Pem));
+    ASSERT_OK(caCert_.fromString(kCaCert, DataFormat::Pem));
     ASSERT_OK(caPrivateKey_.fromString(kCaPrivateKey, DataFormat::Pem));
     ASSERT_OK(caPublicKey_.fromString(kCaPublicKey, DataFormat::Pem));
-    ASSERT_OK(caExpCert_.FromString(kCaExpiredCert, DataFormat::Pem));
+    ASSERT_OK(caExpCert_.fromString(kCaExpiredCert, DataFormat::Pem));
     ASSERT_OK(
         caExpPrivateKey_.fromString(kCaExpiredPrivateKey, DataFormat::Pem));
     // Sanity checks.
@@ -252,11 +252,11 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
     SCOPED_TRACE(
         fmt::format("X509 CSR format: {}", dataFormatToString(format)));
     string strReqRef;
-    ASSERT_OK(reqRef.ToString(&strReqRef, format));
+    ASSERT_OK(reqRef.toString(&strReqRef, format));
     CertSignRequest req;
-    ASSERT_OK(req.FromString(strReqRef, format));
+    ASSERT_OK(req.fromString(strReqRef, format));
     string strReq;
-    ASSERT_OK(req.ToString(&strReq, format));
+    ASSERT_OK(req.toString(&strReq, format));
     ASSERT_EQ(strReqRef, strReq);
   }
 }
@@ -280,11 +280,11 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   for (auto format : kFormats) {
     SCOPED_TRACE(fmt::format("X509 format: {}", dataFormatToString(format)));
     string strCertRef;
-    ASSERT_OK(certRef.ToString(&strCertRef, format));
+    ASSERT_OK(certRef.toString(&strCertRef, format));
     Cert cert;
-    ASSERT_OK(cert.FromString(strCertRef, format));
+    ASSERT_OK(cert.fromString(strCertRef, format));
     string strCert;
-    ASSERT_OK(cert.ToString(&strCert, format));
+    ASSERT_OK(cert.toString(&strCert, format));
     ASSERT_EQ(strCertRef, strCert);
   }
 }

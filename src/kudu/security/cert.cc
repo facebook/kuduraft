@@ -48,7 +48,7 @@ struct SslTypeTraits<GENERAL_NAMES> {
 static const char* kKuduKerberosPrincipalOidStr =
     "2.25.243346677289068076843480765133256509912";
 
-string X509NameToString(X509_NAME* name) {
+string x509NameToString(X509_NAME* name) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(name);
   auto bio = sslMakeUnique(BIO_new(BIO_s_mem()));
@@ -77,7 +77,7 @@ X509* Cert::getTopOfChainX509() const {
   return sk_X509_value(data_.get(), 0);
 }
 
-Status Cert::FromString(const std::string& data, DataFormat format) {
+Status Cert::fromString(const std::string& data, DataFormat format) {
   RETURN_NOT_OK(::kudu::security::fromString(data, format, &data_));
   if (sk_X509_num(data_.get()) < 1) {
     return Status::RuntimeError(
@@ -86,11 +86,11 @@ Status Cert::FromString(const std::string& data, DataFormat format) {
   return Status::OK();
 }
 
-Status Cert::ToString(std::string* data, DataFormat format) const {
+Status Cert::toString(std::string* data, DataFormat format) const {
   return ::kudu::security::toString(data, format, data_.get());
 }
 
-Status Cert::FromFile(const std::string& fpath, DataFormat format) {
+Status Cert::fromFile(const std::string& fpath, DataFormat format) {
   RETURN_NOT_OK(::kudu::security::fromFile(fpath, format, &data_));
   if (sk_X509_num(data_.get()) < 1) {
     return Status::RuntimeError(
@@ -100,11 +100,11 @@ Status Cert::FromFile(const std::string& fpath, DataFormat format) {
 }
 
 string Cert::subjectName() const {
-  return X509NameToString(X509_get_subject_name(getTopOfChainX509()));
+  return x509NameToString(X509_get_subject_name(getTopOfChainX509()));
 }
 
 string Cert::issuerName() const {
-  return X509NameToString(X509_get_issuer_name(getTopOfChainX509()));
+  return x509NameToString(X509_get_issuer_name(getTopOfChainX509()));
 }
 
 std::optional<string> Cert::userId() const {
@@ -283,7 +283,7 @@ void Cert::adoptAndAddRefX509(X509* cert) {
   adoptX509(cert);
 }
 
-Status Cert::GetPublicKey(PublicKey* key) const {
+Status Cert::getPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   EVP_PKEY* rawKey = X509_get_pubkey(getTopOfChainX509());
   OPENSSL_RET_IF_NULL(rawKey, "unable to get certificate public key");
@@ -291,15 +291,15 @@ Status Cert::GetPublicKey(PublicKey* key) const {
   return Status::OK();
 }
 
-Status CertSignRequest::FromString(const std::string& data, DataFormat format) {
+Status CertSignRequest::fromString(const std::string& data, DataFormat format) {
   return ::kudu::security::fromString(data, format, &data_);
 }
 
-Status CertSignRequest::ToString(std::string* data, DataFormat format) const {
+Status CertSignRequest::toString(std::string* data, DataFormat format) const {
   return ::kudu::security::toString(data, format, data_.get());
 }
 
-Status CertSignRequest::FromFile(const std::string& fpath, DataFormat format) {
+Status CertSignRequest::fromFile(const std::string& fpath, DataFormat format) {
   return ::kudu::security::fromFile(fpath, format, &data_);
 }
 
@@ -320,7 +320,7 @@ CertSignRequest CertSignRequest::clone() const {
   return clone;
 }
 
-Status CertSignRequest::GetPublicKey(PublicKey* key) const {
+Status CertSignRequest::getPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   EVP_PKEY* rawKey = X509_REQ_get_pubkey(data_.get());
   OPENSSL_RET_IF_NULL(rawKey, "unable to get CSR public key");

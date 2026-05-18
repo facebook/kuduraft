@@ -246,8 +246,8 @@ Status TlsContext::verifyCertChainUnlocked(const Cert& cert) {
     if (curCert) {
       certDetails = fmt::format(
           " (error with cert: subject={}, issuer={})",
-          X509NameToString(X509_get_subject_name(curCert)),
-          X509NameToString(X509_get_issuer_name(curCert)));
+          x509NameToString(X509_get_subject_name(curCert)),
+          x509NameToString(X509_get_issuer_name(curCert)));
     }
 
     ERR_clear_error(); // in case it left anything on the queue.
@@ -308,7 +308,7 @@ Status TlsContext::addTrustedCertificateUnlocked(
     //
     // See OpenSSL commit 33a688e80674aaecfac6d9484ec199daa0ee5b61.
     PublicKey k;
-    CHECK_OK(cert.GetPublicKey(&k));
+    CHECK_OK(cert.getPublicKey(&k));
   }
 
   X509_STORE* certStore = nullptr;
@@ -370,8 +370,8 @@ void TlsContext::dumpCertFieldsUnlocked(X509* x509, std::string* certDetails) {
   *certDetails = fmt::format(
       "CERT subject={}, issuer={}, notAfterDays={}, notAfterSeconds={},"
       " notBeforeDays={}, notBeforeSeconds={}",
-      X509NameToString(X509_get_subject_name(x509)),
-      X509NameToString(X509_get_issuer_name(x509)),
+      x509NameToString(X509_get_subject_name(x509)),
+      x509NameToString(X509_get_issuer_name(x509)),
       remainingDaysA,
       remainingSecondsA,
       remainingDaysB,
@@ -410,7 +410,7 @@ Status TlsContext::dumpTrustedCertsUnlocked(
       Cert c;
       c.adoptAndAddRefX509(x509);
       string der;
-      RETURN_NOT_OK(c.ToString(&der, DataFormat::Der));
+      RETURN_NOT_OK(c.toString(&der, DataFormat::Der));
       ret.emplace_back(std::move(der));
     } else {
       string fields;
@@ -525,9 +525,9 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
   RETURN_NOT_OK(verifyCertChainUnlocked(cert));
 
   PublicKey csrKey;
-  RETURN_NOT_OK(csr_->GetPublicKey(&csrKey));
+  RETURN_NOT_OK(csr_->getPublicKey(&csrKey));
   PublicKey certKey;
-  RETURN_NOT_OK(cert.GetPublicKey(&certKey));
+  RETURN_NOT_OK(cert.getPublicKey(&certKey));
   bool equals;
   RETURN_NOT_OK(csrKey.equals(certKey, &equals));
   if (!equals) {
@@ -556,7 +556,7 @@ Status TlsContext::loadCertificateAndKey(
     const string& keyPath) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
+  RETURN_NOT_OK(c.fromFile(certificatePath, DataFormat::Pem));
   PrivateKey k;
   RETURN_NOT_OK(k.fromFile(keyPath, DataFormat::Pem));
 
@@ -576,7 +576,7 @@ Status TlsContext::loadCertificateAndPasswordProtectedKey(
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
   RETURN_NOT_OK_PREPEND(
-      c.FromFile(certificatePath, DataFormat::Pem),
+      c.fromFile(certificatePath, DataFormat::Pem),
       "failed to load certificate");
   PrivateKey k;
   RETURN_NOT_OK_PREPEND(
@@ -595,7 +595,7 @@ Status TlsContext::loadCertificateAndPasswordProtectedKey(
 Status TlsContext::loadCertificateAuthority(const string& certificatePath) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
+  RETURN_NOT_OK(c.fromFile(certificatePath, DataFormat::Pem));
 
   std::unique_lock lock(lock_);
   if (hasCert_) {
@@ -611,10 +611,10 @@ Status TlsContext::loadCertFiles(
     bool useNewStore) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert caCert;
-  RETURN_NOT_OK(caCert.FromFile(caPath, DataFormat::Pem));
+  RETURN_NOT_OK(caCert.fromFile(caPath, DataFormat::Pem));
 
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::Pem));
+  RETURN_NOT_OK(c.fromFile(certificatePath, DataFormat::Pem));
 
   PrivateKey k;
   RETURN_NOT_OK(k.fromFile(keyPath, DataFormat::Pem));

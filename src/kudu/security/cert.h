@@ -44,7 +44,7 @@ class PrivateKey;
 class PublicKey;
 
 // Convert an X509_NAME object to a human-readable string.
-std::string X509NameToString(X509_NAME* name);
+std::string x509NameToString(X509_NAME* name);
 
 // Return the OpenSSL NID for the custom X509 extension where we store
 // our Kerberos principal in IPKI certs.
@@ -56,11 +56,11 @@ int getKuduKerberosPrincipalOidNid();
 // Implement it when needed.
 class Cert : public RawDataWrapper<STACK_OF(X509)> {
  public:
-  Status FromString(const std::string& data, DataFormat format)
+  Status fromString(const std::string& data, DataFormat format)
       WARN_UNUSED_RESULT;
-  Status ToString(std::string* data, DataFormat format) const
+  Status toString(std::string* data, DataFormat format) const
       WARN_UNUSED_RESULT;
-  Status FromFile(const std::string& fpath, DataFormat format)
+  Status fromFile(const std::string& fpath, DataFormat format)
       WARN_UNUSED_RESULT;
 
   int chainLen() const {
@@ -105,7 +105,7 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
   void adoptAndAddRefX509(X509* cert);
 
   // Returns the end-user certificate's public key.
-  Status GetPublicKey(PublicKey* key) const WARN_UNUSED_RESULT;
+  Status getPublicKey(PublicKey* key) const WARN_UNUSED_RESULT;
 
   // Get the first certificate in the chain, otherwise known as the 'end-user'
   // certificate.
@@ -114,11 +114,11 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
 
 class CertSignRequest : public RawDataWrapper<X509_REQ> {
  public:
-  Status FromString(const std::string& data, DataFormat format)
+  Status fromString(const std::string& data, DataFormat format)
       WARN_UNUSED_RESULT;
-  Status ToString(std::string* data, DataFormat format) const
+  Status toString(std::string* data, DataFormat format) const
       WARN_UNUSED_RESULT;
-  Status FromFile(const std::string& fpath, DataFormat format)
+  Status fromFile(const std::string& fpath, DataFormat format)
       WARN_UNUSED_RESULT;
 
   // Returns a clone of the CSR.
@@ -129,7 +129,7 @@ class CertSignRequest : public RawDataWrapper<X509_REQ> {
   CertSignRequest clone() const;
 
   // Returns the CSR's public key.
-  Status GetPublicKey(PublicKey* key) const WARN_UNUSED_RESULT;
+  Status getPublicKey(PublicKey* key) const WARN_UNUSED_RESULT;
 };
 
 } // namespace security
