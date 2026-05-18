@@ -654,7 +654,7 @@ class BASE_EXPORT TraceLog {
   std::string eventToConsoleMessage(
       unsigned char phase,
       const kudu::MicrosecondsInt64& timestamp,
-      TraceEvent* trace_event);
+      TraceEvent* traceEvent);
 
   TraceEvent* addEventToThreadSharedChunkWhileLocked(
       TraceEventHandle* handle,

@@ -399,12 +399,12 @@ class TraceBufferVector : public TraceBuffer {
 
 template <typename T>
 void initializeMetadataEvent(
-    TraceEvent* trace_event,
+    TraceEvent* traceEvent,
     int thread_id,
     const char* metadata_name,
     const char* arg_name,
     const T& value) {
-  if (!trace_event) {
+  if (!traceEvent) {
     return;
   }
 
@@ -412,7 +412,7 @@ void initializeMetadataEvent(
   unsigned char arg_type;
   uint64_t arg_value;
   ::trace_event_internal::setTraceValue(value, &arg_type, &arg_value);
-  trace_event->initialize(
+  traceEvent->initialize(
       thread_id,
       kudu::MicrosecondsInt64(0),
       kudu::MicrosecondsInt64(0),
@@ -986,7 +986,7 @@ class TraceSamplingThread {
 
   void threadMain();
 
-  static void defaultSamplingCallback(TraceBucketData* bucekt_data);
+  static void defaultSamplingCallback(TraceBucketData* bucketData);
 
   void stop();
 
@@ -1025,15 +1025,14 @@ void TraceSamplingThread::threadMain() {
 }
 
 // static
-void TraceSamplingThread::defaultSamplingCallback(
-    TraceBucketData* bucket_data) {
-  TRACE_EVENT_API_ATOMIC_WORD category_and_name =
-      TRACE_EVENT_API_ATOMIC_LOAD(*bucket_data->bucket);
-  if (!category_and_name) {
+void TraceSamplingThread::defaultSamplingCallback(TraceBucketData* bucketData) {
+  TRACE_EVENT_API_ATOMIC_WORD categoryAndName =
+      TRACE_EVENT_API_ATOMIC_LOAD(*bucketData->bucket);
+  if (!categoryAndName) {
     return;
   }
   const char* const combined =
-      reinterpret_cast<const char* const>(category_and_name);
+      reinterpret_cast<const char* const>(categoryAndName);
   const char* category_group;
   const char* name;
   extractCategoryAndName(combined, &category_group, &name);
@@ -1051,9 +1050,9 @@ void TraceSamplingThread::defaultSamplingCallback(
 }
 
 void TraceSamplingThread::getSamples() {
-  for (auto& sample_bucket : sampleBuckets_) {
-    TraceBucketData* bucket_data = &sample_bucket;
-    bucket_data->callback.Run(bucket_data);
+  for (auto& sampleBucket : sampleBuckets_) {
+    TraceBucketData* bucketData = &sampleBucket;
+    bucketData->callback.Run(bucketData);
   }
 }
 
@@ -1165,12 +1164,12 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::addTraceEvent(
   }
 
   size_t eventIndex;
-  TraceEvent* trace_event = chunk_->addTraceEvent(&eventIndex);
-  if (trace_event && handle) {
+  TraceEvent* traceEvent = chunk_->addTraceEvent(&eventIndex);
+  if (traceEvent && handle) {
     makeHandle(chunk_->seq(), chunkIndex_, eventIndex, handle);
   }
 
-  return trace_event;
+  return traceEvent;
 }
 
 void TraceLog::ThreadLocalEventBuffer::flush(int64_t tid) {
@@ -1299,10 +1298,10 @@ void TraceLog::updateSyntheticDelaysFromCategoryFilter() {
     while (!tokens.empty()) {
       std::string token = tokens.front();
       tokens.pop_front();
-      char* duration_end;
-      double target_duration = strtod(token.c_str(), &duration_end);
-      if (duration_end != token.c_str()) {
-        delay->setTargetDuration(MonoDelta::FromSeconds(target_duration));
+      char* durationEnd;
+      double targetDuration = strtod(token.c_str(), &durationEnd);
+      if (durationEnd != token.c_str()) {
+        delay->setTargetDuration(MonoDelta::FromSeconds(targetDuration));
       } else if (token == "static") {
         delay->setMode(TraceEventSyntheticDelay::kStatic);
       } else if (token == "oneshot") {
@@ -1591,12 +1590,12 @@ TraceEvent* TraceLog::addEventToThreadSharedChunkWhileLocked(
   }
 
   size_t eventIndex;
-  TraceEvent* trace_event = threadSharedChunk_->addTraceEvent(&eventIndex);
-  if (trace_event && handle) {
+  TraceEvent* traceEvent = threadSharedChunk_->addTraceEvent(&eventIndex);
+  if (traceEvent && handle) {
     makeHandle(
         threadSharedChunk_->seq(), threadSharedChunkIndex_, eventIndex, handle);
   }
-  return trace_event;
+  return traceEvent;
 }
 
 void TraceLog::checkIfBufferIsFullWhileLocked() {
@@ -1723,7 +1722,7 @@ void TraceLog::convertTraceEventsToTraceFormat(
   // to let the caller know the completion of flush.
   bool hasMoreEvents = true;
   do {
-    std::shared_ptr<RefCountedString> json_events_str_ptr =
+    std::shared_ptr<RefCountedString> jsonEventsStrPtr =
         std::make_shared<RefCountedString>();
 
     for (size_t i = 0; i < kTraceEventBatchChunks; ++i) {
@@ -1734,13 +1733,13 @@ void TraceLog::convertTraceEventsToTraceFormat(
       }
       for (size_t j = 0; j < chunk->size(); ++j) {
         if (i > 0 || j > 0) {
-          json_events_str_ptr->data().append(",");
+          jsonEventsStrPtr->data().append(",");
         }
-        chunk->getEventAt(j)->appendAsJson(&(json_events_str_ptr->data()));
+        chunk->getEventAt(j)->appendAsJson(&(jsonEventsStrPtr->data()));
       }
     }
 
-    flush_output_callback.Run(json_events_str_ptr, hasMoreEvents);
+    flush_output_callback.Run(jsonEventsStrPtr, hasMoreEvents);
   } while (hasMoreEvents);
   logged_events.reset();
 }
@@ -1748,7 +1747,7 @@ void TraceLog::convertTraceEventsToTraceFormat(
 void TraceLog::finishFlush(
     int generation,
     const TraceLog::OutputCallback& flush_output_callback) {
-  unique_ptr<TraceBuffer> previous_logged_events;
+  unique_ptr<TraceBuffer> previousLoggedEvents;
 
   if (!checkGeneration(generation)) {
     return;
@@ -1757,17 +1756,17 @@ void TraceLog::finishFlush(
   {
     SpinLockHolder lock(lock_);
 
-    previous_logged_events.swap(loggedEvents_);
+    previousLoggedEvents.swap(loggedEvents_);
     useNextTraceBuffer();
   }
 
   convertTraceEventsToTraceFormat(
-      std::move(previous_logged_events), flush_output_callback);
+      std::move(previousLoggedEvents), flush_output_callback);
 }
 
 void TraceLog::flushButLeaveBufferIntact(
     const TraceLog::OutputCallback& flush_output_callback) {
-  unique_ptr<TraceBuffer> previous_logged_events;
+  unique_ptr<TraceBuffer> previousLoggedEvents;
   {
     SpinLockHolder lock(lock_);
     if (mode_ == DISABLED || (traceOptions_ & RECORD_CONTINUOUSLY) == 0) {
@@ -1785,11 +1784,11 @@ void TraceLog::flushButLeaveBufferIntact(
       loggedEvents_->returnChunk(
           threadSharedChunkIndex_, std::move(threadSharedChunk_));
     }
-    previous_logged_events = loggedEvents_->cloneForIteration();
+    previousLoggedEvents = loggedEvents_->cloneForIteration();
   }
 
   convertTraceEventsToTraceFormat(
-      std::move(previous_logged_events), flush_output_callback);
+      std::move(previousLoggedEvents), flush_output_callback);
 }
 
 void TraceLog::useNextTraceBuffer() {
@@ -1914,31 +1913,31 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
     return handle;
   }
 
-  MarkFlagInScope thread_is_in_trace_event(&thrInfo->isInTraceEvent_);
+  MarkFlagInScope threadIsInTraceEvent(&thrInfo->isInTraceEvent_);
 
-  ThreadLocalEventBuffer* thread_local_event_buffer =
+  ThreadLocalEventBuffer* threadLocalEventBuffer =
       reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
           reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_)));
 
   // If we have an event buffer, but it's a left-over from a previous trace,
   // delete it.
   if (PREDICT_FALSE(
-          thread_local_event_buffer &&
-          !checkGeneration(thread_local_event_buffer->generation()))) {
+          threadLocalEventBuffer &&
+          !checkGeneration(threadLocalEventBuffer->generation()))) {
     // We might also race against a flusher thread, so we have to atomically
     // take the buffer.
-    thread_local_event_buffer = thrInfo->atomicTakeBuffer();
-    delete thread_local_event_buffer;
-    thread_local_event_buffer = nullptr;
+    threadLocalEventBuffer = thrInfo->atomicTakeBuffer();
+    delete threadLocalEventBuffer;
+    threadLocalEventBuffer = nullptr;
   }
 
   // If there is no current buffer, create one for this event.
-  if (PREDICT_FALSE(!thread_local_event_buffer)) {
-    thread_local_event_buffer = new ThreadLocalEventBuffer(this);
+  if (PREDICT_FALSE(!threadLocalEventBuffer)) {
+    threadLocalEventBuffer = new ThreadLocalEventBuffer(this);
 
     base::subtle::NoBarrier_Store(
         reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_),
-        reinterpret_cast<AtomicWord>(thread_local_event_buffer));
+        reinterpret_cast<AtomicWord>(threadLocalEventBuffer));
   }
 
   // Check and update the current thread name only if the event is for the
@@ -1982,10 +1981,10 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   std::string consoleMessage;
   if (*category_group_enabled &
       (ENABLED_FOR_RECORDING | ENABLED_FOR_MONITORING)) {
-    TraceEvent* trace_event = thread_local_event_buffer->addTraceEvent(&handle);
+    TraceEvent* traceEvent = threadLocalEventBuffer->addTraceEvent(&handle);
 
-    if (trace_event) {
-      trace_event->initialize(
+    if (traceEvent) {
+      traceEvent->initialize(
           thread_id,
           now,
           thread_now,
@@ -2001,7 +2000,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
           flags);
 
 #if defined(OS_ANDROID)
-      trace_event->SendToATrace();
+      traceEvent->SendToATrace();
 #endif
     }
 
@@ -2009,7 +2008,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
       consoleMessage = eventToConsoleMessage(
           phase == TRACE_EVENT_PHASE_COMPLETE ? TRACE_EVENT_PHASE_BEGIN : phase,
           timestamp,
-          trace_event);
+          traceEvent);
     }
   }
 
@@ -2056,11 +2055,11 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
 }
 
 // May be called when a COMPELETE event ends and the unfinished event has been
-// recycled (phase == TRACE_EVENT_PHASE_END and trace_event == NULL).
+// recycled (phase == TRACE_EVENT_PHASE_END and traceEvent == NULL).
 std::string TraceLog::eventToConsoleMessage(
     unsigned char phase,
     const kudu::MicrosecondsInt64& timestamp,
-    TraceEvent* trace_event) {
+    TraceEvent* traceEvent) {
   SpinLockHolder threadInfoLock(threadInfoLock_);
 
   // The caller should translate TRACE_EVENT_PHASE_COMPLETE to
@@ -2069,7 +2068,7 @@ std::string TraceLog::eventToConsoleMessage(
 
   kudu::MicrosecondsInt64 duration;
   int thread_id =
-      trace_event ? trace_event->threadId() : Thread::uniqueThreadId();
+      traceEvent ? traceEvent->threadId() : Thread::uniqueThreadId();
   if (phase == TRACE_EVENT_PHASE_END) {
     duration = timestamp - threadEventStartTimes_[thread_id].top();
     threadEventStartTimes_[thread_id].pop();
@@ -2092,8 +2091,8 @@ std::string TraceLog::eventToConsoleMessage(
     log << "| ";
   }
 
-  if (trace_event) {
-    trace_event->appendPrettyPrinted(&log);
+  if (traceEvent) {
+    traceEvent->appendPrettyPrinted(&log);
   }
   if (phase == TRACE_EVENT_PHASE_END) {
     log << fmt::format(" ({:.3f} ms)", duration / 1000.0f);
@@ -2161,7 +2160,7 @@ void TraceLog::updateTraceEventDuration(
   if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
     return;
   }
-  MarkFlagInScope thread_is_in_trace_event(&thrInfo->isInTraceEvent_);
+  MarkFlagInScope threadIsInTraceEvent(&thrInfo->isInTraceEvent_);
 
   kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
   kudu::MicrosecondsInt64 now = offsetNow();
@@ -2170,18 +2169,18 @@ void TraceLog::updateTraceEventDuration(
   if (*category_group_enabled & ENABLED_FOR_RECORDING) {
     OptionalAutoLock lock(lock_);
 
-    TraceEvent* trace_event = getEventByHandleInternal(handle, &lock);
-    if (trace_event) {
-      DCHECK(trace_event->phase() == TRACE_EVENT_PHASE_COMPLETE);
-      trace_event->updateDuration(now, thread_now);
+    TraceEvent* traceEvent = getEventByHandleInternal(handle, &lock);
+    if (traceEvent) {
+      DCHECK(traceEvent->phase() == TRACE_EVENT_PHASE_COMPLETE);
+      traceEvent->updateDuration(now, thread_now);
 #if defined(OS_ANDROID)
-      trace_event->SendToATrace();
+      traceEvent->SendToATrace();
 #endif
     }
 
     if (traceOptions() & ECHO_TO_CONSOLE) {
       consoleMessage =
-          eventToConsoleMessage(TRACE_EVENT_PHASE_END, now, trace_event);
+          eventToConsoleMessage(TRACE_EVENT_PHASE_END, now, traceEvent);
     }
   }
 
@@ -2321,9 +2320,9 @@ TraceEvent* TraceLog::getEventByHandleInternal(
     if (buf) {
       DCHECK_EQ(1, KUDU_ANNONTATE_UNPROTECTED_READ(thrInfo->isInTraceEvent_));
 
-      TraceEvent* trace_event = buf->getEventByHandle(handle);
-      if (trace_event) {
-        return trace_event;
+      TraceEvent* traceEvent = buf->getEventByHandle(handle);
+      if (traceEvent) {
+        return traceEvent;
       }
     }
   }
@@ -2348,10 +2347,10 @@ void TraceLog::setProcessId(int process_id) {
   processId_ = process_id;
   // Create a FNV hash from the process ID for XORing.
   // See http://isthe.com/chongo/tech/comp/fnv/ for algorithm details.
-  uint64_t offset_basis = 14695981039346656037ull;
-  uint64_t fnv_prime = 1099511628211ull;
+  uint64_t offsetBasis = 14695981039346656037ull;
+  uint64_t fnvPrime = 1099511628211ull;
   uint64_t pid = static_cast<uint64_t>(processId_);
-  processIdHash_ = (offset_basis ^ pid) * fnv_prime;
+  processIdHash_ = (offsetBasis ^ pid) * fnvPrime;
 }
 
 void TraceLog::setProcessSortIndex(int sort_index) {
@@ -2408,13 +2407,13 @@ bool CategoryFilter::doesCategoryGroupContainCategory(
     const char* category) const {
   DCHECK(category);
   vector<string> pieces = strings::split(category_group, ",");
-  for (const string& category_group_token : pieces) {
+  for (const string& categoryGroupToken : pieces) {
     // Don't allow empty tokens, nor tokens with leading or trailing space.
     DCHECK(!CategoryFilter::isEmptyOrContainsLeadingOrTrailingWhitespace(
-        category_group_token))
+        categoryGroupToken))
         << "Disallowed category string";
 
-    if (matchPattern(category_group_token.c_str(), category)) {
+    if (matchPattern(categoryGroupToken.c_str(), category)) {
       return true;
     }
   }
@@ -2462,9 +2461,9 @@ void CategoryFilter::initializeFilter(const std::string& filter_string) {
       category = category.substr(
           strlen(kSyntheticDelayCategoryFilterPrefix),
           category.size() - strlen(kSyntheticDelayCategoryFilterPrefix) - 1);
-      size_t name_length = category.find(';');
-      if (name_length != std::string::npos && name_length > 0 &&
-          name_length != category.size() - 1) {
+      size_t nameLength = category.find(';');
+      if (nameLength != std::string::npos && nameLength > 0 &&
+          nameLength != category.size() - 1) {
         delays_.push_back(category);
       }
     } else if (category.at(0) == '-') {
@@ -2488,27 +2487,27 @@ void CategoryFilter::writeString(
     const StringList& values,
     std::string* out,
     bool included) const {
-  bool prepend_comma = !out->empty();
-  int token_cnt = 0;
+  bool prependComma = !out->empty();
+  int tokenCnt = 0;
   for (const auto& value : values) {
-    if (token_cnt > 0 || prepend_comma) {
+    if (tokenCnt > 0 || prependComma) {
       *out += ",";
     }
     *out += fmt::format("{}{}", (included ? "" : "-"), value);
-    ++token_cnt;
+    ++tokenCnt;
   }
 }
 
 void CategoryFilter::writeString(const StringList& delays, std::string* out)
     const {
-  bool prepend_comma = !out->empty();
-  int token_cnt = 0;
+  bool prependComma = !out->empty();
+  int tokenCnt = 0;
   for (const auto& delay : delays) {
-    if (token_cnt > 0 || prepend_comma) {
+    if (tokenCnt > 0 || prependComma) {
       *out += ",";
     }
     *out += fmt::format("{}{})", kSyntheticDelayCategoryFilterPrefix, delay);
-    ++token_cnt;
+    ++tokenCnt;
   }
 }
 
