@@ -142,7 +142,9 @@ Status RaftConsensusServer::Init() {
   std::unique_ptr<ServiceIf> consensusService(
       new ConsensusServiceImpl(this, *consensusManager_));
   RETURN_NOT_OK(RegisterService(std::move(consensusService)));
-  RETURN_NOT_OK(KuduServer::Start());
+  if (!opts_.deferRpcStartUntilConsensusRunning) {
+    RETURN_NOT_OK(KuduServer::Start());
+  }
 
   if (consensusManager_->isInitialized()) {
     return Status::IllegalState("Consensus manager is already initialized");
@@ -174,6 +176,14 @@ Status RaftConsensusServer::Start() {
   RETURN_NOT_OK_PREPEND(
       consensusManager_->start(is_first_run_),
       "Unable to start consensus manager");
+  if (opts_.afterConsensusStartBeforeRpcStart) {
+    RETURN_NOT_OK_PREPEND(
+        opts_.afterConsensusStartBeforeRpcStart(),
+        "Unable to run post-consensus-start callback");
+  }
+  if (opts_.deferRpcStartUntilConsensusRunning) {
+    RETURN_NOT_OK(KuduServer::Start());
+  }
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   started_ = true;
   return Status::OK();

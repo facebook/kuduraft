@@ -18,6 +18,7 @@
 #define KUDU_CONSENSUS_SERVER_H
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -46,6 +47,9 @@ class RaftConsensusServer;
  * value is an obj of TabletServerOptions
  */
 struct ConsensusServerOptions : public kudu::server::ServerBaseOptions {
+  bool deferRpcStartUntilConsensusRunning{false};
+  std::function<Status()> afterConsensusStartBeforeRpcStart;
+
   void addOptions(
       const std::string& id,
       const std::shared_ptr<TabletServerOptions>& opts) {
