@@ -126,8 +126,8 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   // Builds an initial configuration of 'num' elements.
   // All of the peers start as followers.
-  void buildInitialRaftConfigPB(int num) {
-    config_ = buildRaftConfigPB(num);
+  void buildInitialRaftConfigPb(int num) {
+    config_ = buildRaftConfigPb(num);
     config_.set_opid_index(kInvalidOpIdIndex);
     peers_.reset(new TestPeerMapManager(config_));
   }
@@ -165,7 +165,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   // Builds a configuration of 'num' voters.
-  RaftConfigPB buildRaftConfigPB(int num) {
+  RaftConfigPB buildRaftConfigPb(int num) {
     RaftConfigPB raftConfig;
     for (int i = 0; i < num; i++) {
       RaftPeerPB* peerPb = raftConfig.add_peers();
@@ -237,7 +237,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   Status buildConfig(int num) {
     RETURN_NOT_OK(buildFsManagersAndLogs(num));
-    buildInitialRaftConfigPB(num);
+    buildInitialRaftConfigPb(num);
     RETURN_NOT_OK(buildPeers());
     return Status::OK();
   }
