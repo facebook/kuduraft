@@ -141,9 +141,9 @@ void doInitializeOpenSsl() {
     // Initialize the OpenSSL mutexes. We intentionally leak these, so ignore
     // LSAN warnings.
     debug::ScopedLeakCheckDisabler d;
-    int num_locks = CRYPTO_num_locks();
+    int numLocks = CRYPTO_num_locks();
     CHECK(!kCryptoLocks);
-    kCryptoLocks = new Mutex[num_locks];
+    kCryptoLocks = new Mutex[numLocks];
 
     // Callbacks used by OpenSSL required in a multi-threaded setting.
     CRYPTO_set_locking_callback(LockingCB);
