@@ -28,11 +28,11 @@ inline uint64_t hash64NumWithSeed(uint64_t num, uint64_t c) {
 // convenienty hiding the fact that pointers may be 32b or 64b,
 // depending on the architecture.
 inline uint32_t hash32PointerWithSeed(const void* p, uint32_t seed) {
-  uintptr_t pvalue = reinterpret_cast<uintptr_t>(p);
+  uintptr_t pValue = reinterpret_cast<uintptr_t>(p);
   uint32_t h = seed;
   // Hash the pointer 32b at a time.
-  for (size_t i = 0; i < sizeof(pvalue); i += 4) {
-    h = hash32NumWithSeed(static_cast<uint32_t>(pvalue >> (i * 8)), h);
+  for (size_t i = 0; i < sizeof(pValue); i += 4) {
+    h = hash32NumWithSeed(static_cast<uint32_t>(pValue >> (i * 8)), h);
   }
   return h;
 }
