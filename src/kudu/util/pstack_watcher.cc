@@ -157,7 +157,7 @@ Status PstackWatcher::hasGoodGdb() {
   // - https://sourceware.org/bugzilla/show_bug.cgi?id=12127
   // - https://sourceware.org/bugzilla/show_bug.cgi?id=16196
   // - https://sourceware.org/bugzilla/show_bug.cgi?id=16286
-  AutodigitLess lt;
+  AutoDigitLess lt;
   if (lt(version, "7.7")) {
     return Status::NotSupported("gdb version too old", version);
   }

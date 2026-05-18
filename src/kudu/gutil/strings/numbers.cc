@@ -147,7 +147,7 @@ bool parseDoubleRange(
     const char** end,
     double* from,
     double* to,
-    bool* is_currency,
+    bool* isCurrency,
     const DoubleRangeOptions& opts) {
   const double from_default = opts.dontModifyUnbounded ? *from : -HUGE_VAL;
 
@@ -155,8 +155,8 @@ bool parseDoubleRange(
     *from = -HUGE_VAL;
     *to = HUGE_VAL;
   }
-  if (opts.allowCurrency && (is_currency != nullptr))
-    *is_currency = false;
+  if (opts.allowCurrency && (isCurrency != nullptr))
+    *isCurrency = false;
 
   assert(len >= -1);
   assert(opts.separators && (*opts.separators != '\0'));
@@ -171,8 +171,8 @@ bool parseDoubleRange(
       double* dest = (comparator == '>') ? from : to;
       EatAChar(&text, &len, "=", true, false);
       if (opts.allowCurrency && EatAChar(&text, &len, "$", true, false))
-        if (is_currency != nullptr)
-          *is_currency = true;
+        if (isCurrency != nullptr)
+          *isCurrency = true;
       if (!EatADouble(
               &text, &len, opts.allowUnboundedMarkers, dest, nullptr, nullptr))
         return false;
@@ -274,8 +274,8 @@ bool parseDoubleRange(
     seen_dollar = seen_dollar || second_dollar_seen;
   }
 
-  if (seen_dollar && (is_currency != nullptr))
-    *is_currency = true;
+  if (seen_dollar && (isCurrency != nullptr))
+    *isCurrency = true;
   // We're done. But we have to check that the next char is a proper
   // terminator.
   *end = text;
@@ -686,29 +686,27 @@ bool safe_int_internal(
 } // anonymous namespace
 
 bool safe_strto32_base(
-    const char* startptr,
-    const int buffer_size,
+    const char* startPtr,
+    const int bufferSize,
     int32_t* v,
     int base) {
-  return safe_int_internal<int32_t>(startptr, startptr + buffer_size, base, v);
+  return safe_int_internal<int32_t>(startPtr, startPtr + bufferSize, base, v);
 }
 
 bool safe_strto64_base(
-    const char* startptr,
-    const int buffer_size,
+    const char* startPtr,
+    const int bufferSize,
     int64_t* v,
     int base) {
-  return safe_int_internal<int64_t>(startptr, startptr + buffer_size, base, v);
+  return safe_int_internal<int64_t>(startPtr, startPtr + bufferSize, base, v);
 }
 
-bool safe_strto32(const char* startptr, const int buffer_size, int32_t* value) {
-  return safe_int_internal<int32_t>(
-      startptr, startptr + buffer_size, 10, value);
+bool safe_strto32(const char* startPtr, const int bufferSize, int32_t* value) {
+  return safe_int_internal<int32_t>(startPtr, startPtr + bufferSize, 10, value);
 }
 
-bool safe_strto64(const char* startptr, const int buffer_size, int64_t* value) {
-  return safe_int_internal<int64_t>(
-      startptr, startptr + buffer_size, 10, value);
+bool safe_strto64(const char* startPtr, const int bufferSize, int64_t* value) {
+  return safe_int_internal<int64_t>(startPtr, startPtr + bufferSize, 10, value);
 }
 
 bool safe_strto32_base(const char* str, int32_t* value, int base) {
@@ -770,30 +768,30 @@ bool safe_strtou64_base(const char* str, uint64_t* value, int base) {
 }
 
 // ----------------------------------------------------------------------
-// u64tostr_base36()
+// u64ToStrBase36()
 //    Converts unsigned number to string representation in base-36.
 // --------------------------------------------------------------------
-size_t u64tostr_base36(uint64_t number, size_t buf_size, char* buffer) {
-  CHECK_GT(buf_size, 0);
+size_t u64ToStrBase36(uint64_t number, size_t bufSize, char* buffer) {
+  CHECK_GT(bufSize, 0);
   CHECK(buffer);
   static const char kAlphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-  buffer[buf_size - 1] = '\0';
-  size_t result_size = 1;
+  buffer[bufSize - 1] = '\0';
+  size_t resultSize = 1;
 
   do {
-    if (buf_size == result_size) { // Ran out of space.
+    if (bufSize == resultSize) { // Ran out of space.
       return 0;
     }
     int remainder = number % 36;
     number /= 36;
-    buffer[buf_size - result_size - 1] = kAlphabet[remainder];
-    result_size++;
+    buffer[bufSize - resultSize - 1] = kAlphabet[remainder];
+    resultSize++;
   } while (number);
 
-  memmove(buffer, buffer + buf_size - result_size, result_size);
+  memmove(buffer, buffer + bufSize - resultSize, resultSize);
 
-  return result_size - 1;
+  return resultSize - 1;
 }
 
 // Generate functions that wrap safe_strtoXXX_base.
@@ -851,7 +849,7 @@ bool safe_strtod(const string& str, double* value) {
   return safe_strtod(str.c_str(), value);
 }
 
-uint64_t atoi_kmgt(const char* s) {
+uint64_t atoiKmgt(const char* s) {
   char* endptr;
   uint64_t n = strtou64(s, &endptr, 10);
   uint64_t scale = 1;
@@ -927,10 +925,10 @@ char* fastHexToBuffer(int i, char* buffer) {
   return p + 1;
 }
 
-char* internalFastHexToBuffer(uint64_t value, char* buffer, int num_byte) {
+char* internalFastHexToBuffer(uint64_t value, char* buffer, int numByte) {
   static const char* hexdigits = "0123456789abcdef";
-  buffer[num_byte] = '\0';
-  for (int i = num_byte - 1; i >= 0; i--) {
+  buffer[numByte] = '\0';
+  for (int i = numByte - 1; i >= 0; i--) {
     buffer[i] = hexdigits[value & 0xf];
     value >>= 4;
   }
@@ -1145,8 +1143,8 @@ char* fastInt128ToBufferLeft(__int128 i, char* buffer) {
   return fastUInt128ToBufferLeft(u, buffer);
 }
 
-int hexDigitsPrefix(const char* buf, int num_digits) {
-  for (int i = 0; i < num_digits; i++)
+int hexDigitsPrefix(const char* buf, int numDigits) {
+  for (int i = 0; i < numDigits; i++)
     if (!asciiIsXdigit(buf[i]))
       return 0; // This also detects end of string as '\0' is not xdigit.
   return 1;
@@ -1156,15 +1154,15 @@ int hexDigitsPrefix(const char* buf, int num_digits) {
 // autoDigitStrCmp
 // autoDigitLessThan
 // strictAutoDigitLessThan
-// AutodigitLess
-// AutodigitGreater
-// StrictAutodigitLess
-// StrictAutodigitGreater
+// AutoDigitLess
+// AutoDigitGreater
+// StrictAutoDigitLess
+// StrictAutoDigitGreater
 //    These are like less<string> and greater<string>, except when a
 //    run of digits is encountered at corresponding points in the two
 //    arguments.  Such digit strings are compared numerically instead
 //    of lexicographically.  Therefore if you sort by
-//    "AutodigitLess", some machine names might get sorted as:
+//    "AutoDigitLess", some machine names might get sorted as:
 //        exaf1
 //        exaf2
 //        exaf10
@@ -1498,7 +1496,7 @@ string simpleItoaWithCommas(uint64_t i) {
 // itoaKmgt()
 //    Description: converts an integer to a string
 //    Truncates values to a readable unit: K, G, M or T
-//    Opposite of atoi_kmgt()
+//    Opposite of atoiKmgt()
 //    e.g. 100 -> "100" 1500 -> "1500"  4000 -> "3K"   57185920 -> "45M"
 //
 //    Return value: string

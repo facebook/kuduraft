@@ -51,9 +51,9 @@ bool safe_strtou64(const std::string& str, uint64_t* value);
 bool safe_strtof(const std::string& str, float* value);
 bool safe_strtod(const std::string& str, double* value);
 
-// Parses buffer_size many characters from startptr into value.
-bool safe_strto32(const char* startptr, int buffer_size, int32_t* value);
-bool safe_strto64(const char* startptr, int buffer_size, int64_t* value);
+// Parses bufferSize many characters from startPtr into value.
+bool safe_strto32(const char* startPtr, int bufferSize, int32_t* value);
+bool safe_strto64(const char* startPtr, int bufferSize, int64_t* value);
 
 // Parses with a fixed base between 2 and 36. For base 16, leading "0x" is ok.
 // If base is set to 0, its value is inferred from the beginning of str:
@@ -69,29 +69,29 @@ bool safe_strtou32_base(const std::string& str, uint32_t* value, int base);
 bool safe_strtou64_base(const std::string& str, uint64_t* value, int base);
 
 bool safe_strto32_base(
-    const char* startptr,
-    int buffer_size,
+    const char* startPtr,
+    int bufferSize,
     int32_t* value,
     int base);
 bool safe_strto64_base(
-    const char* startptr,
-    int buffer_size,
+    const char* startPtr,
+    int bufferSize,
     int64_t* value,
     int base);
 
-// u64tostr_base36()
+// u64ToStrBase36()
 //    The inverse of safe_strtou64_base, converts the number agument to
 //    a string representation in base-36.
 //    Conversion fails if buffer is too small to to hold the string and
 //    terminating NUL.
 //    Returns number of bytes written, not including terminating NUL.
 //    Return value 0 indicates error.
-size_t u64tostr_base36(uint64_t number, size_t buf_size, char* buffer);
+size_t u64ToStrBase36(uint64_t number, size_t bufSize, char* buffer);
 
 // Similar to atoi(s), except s could be like "16k", "32M", "2G", "4t".
-uint64_t atoi_kmgt(const char* s);
-inline uint64_t atoi_kmgt(const std::string& s) {
-  return atoi_kmgt(s.c_str());
+uint64_t atoiKmgt(const char* s);
+inline uint64_t atoiKmgt(const std::string& s) {
+  return atoiKmgt(s.c_str());
 }
 
 // ----------------------------------------------------------------------
@@ -191,11 +191,11 @@ inline char* fastUInt64ToBuffer(uint64_t i, char* buffer) {
 
 // ----------------------------------------------------------------------
 // hexDigitsPrefix()
-//  returns 1 if buf is prefixed by "num_digits" of hex digits
+//  returns 1 if buf is prefixed by "numDigits" of hex digits
 //  returns 0 otherwise.
 //  The function checks for '\0' for string termination.
 // ----------------------------------------------------------------------
-int hexDigitsPrefix(const char* buf, int num_digits);
+int hexDigitsPrefix(const char* buf, int numDigits);
 
 // ----------------------------------------------------------------------
 // consumeStrayLeadingZeroes
@@ -321,15 +321,15 @@ inline bool parseLeadingBoolValue(const std::string& str, bool deflt) {
 // autoDigitStrCmp
 // autoDigitLessThan
 // strictAutoDigitLessThan
-// AutodigitLess
-// AutodigitGreater
-// StrictAutodigitLess
-// StrictAutodigitGreater
+// AutoDigitLess
+// AutoDigitGreater
+// StrictAutoDigitLess
+// StrictAutoDigitGreater
 //    These are like less<string> and greater<string>, except when a
 //    run of digits is encountered at corresponding points in the two
 //    arguments.  Such digit strings are compared numerically instead
 //    of lexicographically.  Therefore if you sort by
-//    "AutodigitLess", some machine names might get sorted as:
+//    "AutoDigitLess", some machine names might get sorted as:
 //        exaf1
 //        exaf2
 //        exaf10
@@ -351,7 +351,7 @@ bool autoDigitLessThan(const char* a, int alen, const char* b, int blen);
 
 bool strictAutoDigitLessThan(const char* a, int alen, const char* b, int blen);
 
-struct AutodigitLess
+struct AutoDigitLess
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
@@ -359,7 +359,7 @@ struct AutodigitLess
   }
 };
 
-struct AutodigitGreater
+struct AutoDigitGreater
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
@@ -367,7 +367,7 @@ struct AutodigitGreater
   }
 };
 
-struct StrictAutodigitLess
+struct StrictAutoDigitLess
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
@@ -375,7 +375,7 @@ struct StrictAutodigitLess
   }
 };
 
-struct StrictAutodigitGreater
+struct StrictAutoDigitGreater
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
@@ -502,7 +502,7 @@ std::string simpleItoaWithCommas(uint64_t i);
 // itoaKmgt()
 //    Description: converts an integer to a string
 //    Truncates values to K, G, M or T as appropriate
-//    Opposite of atoi_kmgt()
+//    Opposite of atoiKmgt()
 //    e.g. 3000 -> 2K   57185920 -> 45M
 //
 //    Return value: string
@@ -565,7 +565,7 @@ bool parseDoubleRange(
     const char** end,
     double* from,
     double* to,
-    bool* is_currency,
+    bool* isCurrency,
     const DoubleRangeOptions& opts);
 
 // END DOXYGEN SplitFunctions grouping
