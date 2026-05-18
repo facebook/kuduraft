@@ -106,7 +106,7 @@ Status RpcController::status() const {
 
 const ErrorStatusPB* RpcController::errorResponse() const {
   if (call_) {
-    return call_->error_pb();
+    return call_->errorPb();
   }
   return nullptr;
 }

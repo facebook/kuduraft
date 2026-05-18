@@ -312,7 +312,7 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
 }
 
 void Connection::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
-  auto it = awaitingResponse_.find(call->call_id());
+  auto it = awaitingResponse_.find(call->callId());
   CallAwaitingResponse* car =
       (it != awaitingResponse_.end()) ? it->second : nullptr;
   if (car != nullptr) {
@@ -326,7 +326,7 @@ void Connection::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 // 'FLAGS_rpc_inject_cancellation_state'.
 void inline Connection::maybeInjectCancellation(
     const shared_ptr<OutboundCall>& call) {
-  if (PREDICT_FALSE(call->ShouldInjectCancellation())) {
+  if (PREDICT_FALSE(call->shouldInjectCancellation())) {
     reactorThread_->reactor()->messenger()->queueCancellation(call);
   }
 }
@@ -356,7 +356,7 @@ struct CallTransferCallbacks : public TransferCallbacks {
   }
 
   virtual void notifyTransferAborted(const Status& status) override {
-    VLOG(1) << "Transfer of RPC call " << call_->ToString()
+    VLOG(1) << "Transfer of RPC call " << call_->toString()
             << " aborted: " << status.ToString();
     delete this;
   }
@@ -382,14 +382,14 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
 
   // At this point the call has a serialized request, but no call header, since
   // we haven't yet assigned a call ID.
-  DCHECK(!call->call_id_assigned());
+  DCHECK(!call->callIdAssigned());
 
   // We shouldn't reach this point if 'call' was requested to be cancelled.
-  DCHECK(!call->cancellation_requested());
+  DCHECK(!call->cancellationRequested());
 
   // Assign the call ID.
   int32_t callId = getNextCallId();
-  call->set_call_id(callId);
+  call->setCallId(callId);
 
   // Serialize the actual bytes to be put on the wire.
   TransferPayload tmpSlices;
@@ -664,9 +664,9 @@ void Connection::handleIncomingCall(unique_ptr<InboundTransfer> transfer) {
 void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
   DCHECK(reactorThread_->isCurrentThread());
   unique_ptr<CallResponse> resp(new CallResponse);
-  CHECK_OK(resp->ParseFrom(std::move(transfer)));
+  CHECK_OK(resp->parseFrom(std::move(transfer)));
 
-  auto it = awaitingResponse_.find(resp->call_id());
+  auto it = awaitingResponse_.find(resp->callId());
   CallAwaitingResponse* carPtr =
       (it != awaitingResponse_.end()) ? it->second : nullptr;
   if (it != awaitingResponse_.end()) {
@@ -674,7 +674,7 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
   }
   if (PREDICT_FALSE(carPtr == nullptr)) {
     LOG(WARNING) << toString() << ": Got a response for call id "
-                 << resp->call_id() << " which "
+                 << resp->callId() << " which "
                  << "was not pending! Ignoring.";
     return;
   }
@@ -685,7 +685,7 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
 
   if (PREDICT_FALSE(!car->call)) {
     // The call already failed due to a timeout.
-    VLOG(1) << "Got response to call id " << resp->call_id() << " after client "
+    VLOG(1) << "Got response to call id " << resp->callId() << " after client "
             << "already timed out or cancelled";
     return;
   }
@@ -750,7 +750,7 @@ Connection::processOutboundTransfers() {
         // transfer in order to ensure that the negotiation has taken place, so
         // that the flags are available.
         const set<RpcFeatureFlag>& requiredFeatures =
-            car->call->required_rpc_features();
+            car->call->requiredRpcFeatures();
         if (!includes(
                 remoteFeatures_.begin(),
                 remoteFeatures_.end(),
@@ -873,7 +873,7 @@ Status Connection::dumpPb(
     for (const CarMap::value_type& entry : awaitingResponse_) {
       CallAwaitingResponse* c = entry.second;
       if (c->call) {
-        c->call->DumpPB(req, resp->add_calls_in_flight());
+        c->call->dumpPb(req, resp->add_calls_in_flight());
       }
     }
 

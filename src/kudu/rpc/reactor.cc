@@ -387,7 +387,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
 
   std::shared_ptr<Connection> conn;
   Status s = findOrStartConnection(
-      call->conn_id(),
+      call->connId(),
       call->controller()->credentials_policy(),
       &conn,
       metricEntity_);
@@ -410,7 +410,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 
   std::shared_ptr<Connection> conn;
   if (findConnection(
-          call->conn_id(), call->controller()->credentials_policy(), &conn)) {
+          call->connId(), call->controller()->credentials_policy(), &conn)) {
     conn->cancelOutboundCall(call);
   }
   call->cancel();
@@ -962,10 +962,10 @@ class AssignOutboundCallTask : public ReactorTask {
 };
 
 void Reactor::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
-  DVLOG(3) << name_ << ": queueing outbound call " << call->ToString()
-           << " to remote " << call->conn_id().remote().ToString();
+  DVLOG(3) << name_ << ": queueing outbound call " << call->toString()
+           << " to remote " << call->connId().remote().ToString();
   // Test cancellation when 'call_' is in 'READY' state.
-  if (PREDICT_FALSE(call->ShouldInjectCancellation())) {
+  if (PREDICT_FALSE(call->shouldInjectCancellation())) {
     queueCancellation(call);
   }
   scheduleReactorTask(new AssignOutboundCallTask(call));

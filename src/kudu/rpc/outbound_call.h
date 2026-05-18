@@ -102,9 +102,9 @@ class OutboundCall {
 
   // Assign the call ID for this call. This is called from the reactor
   // thread once a connection has been assigned. Must only be called once.
-  void set_call_id(int32_t call_id) {
+  void setCallId(int32_t callId) {
     DCHECK_EQ(header_.call_id(), kInvalidCallId) << "Already has a call ID";
-    header_.set_call_id(call_id);
+    header_.set_call_id(callId);
   }
 
   // Serialize the call for the wire. Requires that setRequestPayload()
@@ -152,22 +152,22 @@ class OutboundCall {
   // Fill in the call response.
   void setResponse(std::unique_ptr<CallResponse> resp);
 
-  const std::set<RpcFeatureFlag>& required_rpc_features() const {
+  const std::set<RpcFeatureFlag>& requiredRpcFeatures() const {
     return required_rpc_features_;
   }
 
-  std::string ToString() const;
+  std::string toString() const;
 
-  void DumpPB(const DumpRunningRpcsRequestPB& req, RpcCallInProgressPB* resp);
+  void dumpPb(const DumpRunningRpcsRequestPB& req, RpcCallInProgressPB* resp);
 
   ////////////////////////////////////////////////////////////
   // Getters
   ////////////////////////////////////////////////////////////
 
-  const ConnectionId& conn_id() const {
+  const ConnectionId& connId() const {
     return conn_id_;
   }
-  const RemoteMethod& remote_method() const {
+  const RemoteMethod& remoteMethod() const {
     return remote_method_;
   }
   const ResponseCallback& callback() const {
@@ -181,24 +181,24 @@ class OutboundCall {
   }
 
   // Return true if a call ID has been assigned to this call.
-  bool call_id_assigned() const {
+  bool callIdAssigned() const {
     return header_.call_id() != kInvalidCallId;
   }
 
-  int32_t call_id() const {
-    DCHECK(call_id_assigned());
+  int32_t callId() const {
+    DCHECK(callIdAssigned());
     return header_.call_id();
   }
 
   // Returns true if cancellation has been requested. Must be called from
   // reactor thread.
-  bool cancellation_requested() const {
+  bool cancellationRequested() const {
     return cancellation_requested_;
   }
 
   // Test function which returns true if a cancellation request should be
   // injected at the current state.
-  bool ShouldInjectCancellation() const {
+  bool shouldInjectCancellation() const {
     return FLAGS_rpc_inject_cancellation_state != -1 &&
         FLAGS_rpc_inject_cancellation_state == state();
   }
@@ -209,7 +209,7 @@ class OutboundCall {
 
   // Various states the call propagates through.
   // NB: if adding another state, be sure to update OutboundCall::isFinished()
-  // and OutboundCall::StateName(State state) as well.
+  // and OutboundCall::stateName(State state) as well.
   enum State {
     kReady = 0,
     kOnOutboundQueue,
@@ -223,18 +223,18 @@ class OutboundCall {
     kFinishedSuccess
   };
 
-  static std::string StateName(State state);
+  static std::string stateName(State state);
 
   // Mark the call as cancelled. This also invokes the callback to notify the
   // caller.
   void setCancelled();
 
-  void set_state(State new_state);
+  void setState(State new_state);
   State state() const;
 
-  // Same as set_state, but requires that the caller already holds
+  // Same as setState, but requires that the caller already holds
   // lock_
-  void set_state_unlocked(State new_state);
+  void setStateUnlocked(State new_state);
 
   // return current status
   Status status() const;
@@ -244,7 +244,7 @@ class OutboundCall {
 
   // Return the error protobuf, if a remote error occurred.
   // This will only be non-NULL if status().IsRemoteError().
-  const ErrorStatusPB* error_pb() const;
+  const ErrorStatusPB* errorPb() const;
 
   // Lock for status_ and error_pb_ fields, since they
   // may be mutated by the reactor thread while the client thread
@@ -316,16 +316,16 @@ class CallResponse {
 
   // Parse the response received from a call. This must be called before any
   // other methods on this object.
-  Status ParseFrom(std::unique_ptr<InboundTransfer> transfer);
+  Status parseFrom(std::unique_ptr<InboundTransfer> transfer);
 
   // Return true if the call succeeded.
-  bool is_success() const {
+  bool isSuccess() const {
     DCHECK(parsed_);
     return !header_.is_error();
   }
 
   // Return the call ID that this response is related to.
-  int32_t call_id() const {
+  int32_t callId() const {
     DCHECK(parsed_);
     return header_.call_id();
   }
@@ -342,7 +342,7 @@ class CallResponse {
   Status GetSidecar(int idx, Slice* sidecar) const;
 
  private:
-  // True once ParseFrom() is called.
+  // True once parseFrom() is called.
   bool parsed_;
 
   // The parsed header.

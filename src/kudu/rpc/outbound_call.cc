@@ -92,7 +92,7 @@ OutboundCall::OutboundCall(
       response_(DCHECK_NOTNULL(responseStorage)),
       cancellation_requested_(false) {
   DVLOG(4) << "OutboundCall " << this << " constructed with state_: "
-           << StateName(state_.load(std::memory_order_relaxed))
+           << stateName(state_.load(std::memory_order_relaxed))
            << " and RPC timeout: "
            << (controller->timeout().Initialized()
                    ? controller->timeout().ToString()
@@ -113,7 +113,7 @@ OutboundCall::OutboundCall(
 OutboundCall::~OutboundCall() {
   DCHECK(isFinished());
   DVLOG(4) << "OutboundCall " << this << " destroyed with state_: "
-           << StateName(state_.load(std::memory_order_relaxed));
+           << stateName(state_.load(std::memory_order_relaxed));
 }
 
 size_t OutboundCall::serializeTo(TransferPayload* slices) {
@@ -174,12 +174,12 @@ Status OutboundCall::status() const {
   return status_;
 }
 
-const ErrorStatusPB* OutboundCall::error_pb() const {
+const ErrorStatusPB* OutboundCall::errorPb() const {
   std::lock_guard<simple_spinlock> l(lock_);
   return error_pb_.get();
 }
 
-string OutboundCall::StateName(State state) {
+string OutboundCall::stateName(State state) {
   switch (state) {
     case kReady:
       return "READY";
@@ -207,24 +207,24 @@ string OutboundCall::StateName(State state) {
   }
 }
 
-void OutboundCall::set_state(State newState) {
-  set_state_unlocked(newState);
+void OutboundCall::setState(State newState) {
+  setStateUnlocked(newState);
 }
 
 OutboundCall::State OutboundCall::state() const {
   return state_.load(std::memory_order_acquire);
 }
 
-void OutboundCall::set_state_unlocked(State newState) {
+void OutboundCall::setStateUnlocked(State newState) {
   State oldState = state_.load(std::memory_order_relaxed);
 
   // Use compare-and-exchange loop to ensure atomicity of state transition
   // validation and update.
   do {
     // Sanity check state transitions.
-    DVLOG(3) << "OutboundCall " << this << " (" << ToString()
-             << ") switching from " << StateName(oldState) << " to "
-             << StateName(newState);
+    DVLOG(3) << "OutboundCall " << this << " (" << toString()
+             << ") switching from " << stateName(oldState) << " to "
+             << stateName(newState);
     switch (newState) {
       case kOnOutboundQueue:
         DCHECK_EQ(oldState, kReady);
@@ -308,7 +308,7 @@ void OutboundCall::callCallback() {
     double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *
         kMicrosPerSecond;
 
-    LOG(WARNING) << "RPC callback for " << ToString()
+    LOG(WARNING) << "RPC callback for " << toString()
                  << " blocked reactor thread for " << micros << "us";
   }
 }
@@ -317,7 +317,7 @@ void OutboundCall::setResponse(unique_ptr<CallResponse> resp) {
   call_response_ = std::move(resp);
   Slice r(call_response_->serialized_response());
 
-  if (call_response_->is_success()) {
+  if (call_response_->isSuccess()) {
     // TODO: here we're deserializing the call response within the reactor
     // thread, which isn't great, since it would block processing of other RPCs
     // in parallel. Should look into a way to avoid this.
@@ -328,7 +328,7 @@ void OutboundCall::setResponse(unique_ptr<CallResponse> resp) {
               response_->InitializationErrorString()));
       return;
     }
-    set_state(kFinishedSuccess);
+    setState(kFinishedSuccess);
     callCallback();
   } else {
     // Error
@@ -346,15 +346,15 @@ void OutboundCall::setResponse(unique_ptr<CallResponse> resp) {
 }
 
 void OutboundCall::setQueued() {
-  set_state(kOnOutboundQueue);
+  setState(kOnOutboundQueue);
 }
 
 void OutboundCall::setSending() {
-  set_state(kSending);
+  setState(kSending);
 }
 
 void OutboundCall::setSent() {
-  set_state(kSent);
+  setState(kSent);
 
   // This method is called in the reactor thread, so free the header buf,
   // which was also allocated from this thread. tcmalloc's thread caching
@@ -369,7 +369,7 @@ void OutboundCall::setSent() {
 
   // If cancellation was requested, it's now a good time to do the actual
   // cancellation.
-  if (cancellation_requested()) {
+  if (cancellationRequested()) {
     setCancelled();
   }
 }
@@ -384,7 +384,7 @@ void OutboundCall::setFailed(
     std::lock_guard<simple_spinlock> l(lock_);
     status_ = std::move(status);
     error_pb_ = std::move(errPb);
-    set_state_unlocked(
+    setStateUnlocked(
         phase == Phase::ConnectionNegotiation ? kFinishedNegotiationError
                                               : kFinishedError);
   }
@@ -406,7 +406,7 @@ void OutboundCall::setTimedOut(Phase phase) {
               remote_method_.methodName(),
               conn_id_.remote().ToString(),
               timeout.ToString(),
-              StateName(state_)));
+              stateName(state_)));
     } else {
       status_ = Status::TimedOut(
           fmt::format(
@@ -414,9 +414,9 @@ void OutboundCall::setTimedOut(Phase phase) {
               conn_id_.remote().ToString(),
               remote_method_.methodName(),
               timeout.ToString(),
-              StateName(state_.load(std::memory_order_relaxed))));
+              stateName(state_.load(std::memory_order_relaxed))));
     }
-    set_state_unlocked(
+    setStateUnlocked(
         (phase == Phase::RemoteCall) ? kTimedOut : kNegotiationTimedOut);
   }
   callCallback();
@@ -431,8 +431,8 @@ void OutboundCall::setCancelled() {
             "{} RPC to {} is cancelled in state {}",
             remote_method_.methodName(),
             conn_id_.remote().ToString(),
-            StateName(state_.load(std::memory_order_relaxed))));
-    set_state_unlocked(kCancelled);
+            stateName(state_.load(std::memory_order_relaxed))));
+    setStateUnlocked(kCancelled);
   }
   callCallback();
 }
@@ -481,12 +481,12 @@ bool OutboundCall::isFinished() const {
   }
 }
 
-string OutboundCall::ToString() const {
+string OutboundCall::toString() const {
   return fmt::format(
       "RPC call {} -> {}", remote_method_.toString(), conn_id_.ToString());
 }
 
-void OutboundCall::DumpPB(
+void OutboundCall::dumpPb(
     const DumpRunningRpcsRequestPB& /* req */,
     RpcCallInProgressPB* resp) {
   resp->mutable_header()->CopyFrom(header_);
@@ -543,7 +543,7 @@ Status CallResponse::GetSidecar(int idx, Slice* sidecar) const {
   return Status::OK();
 }
 
-Status CallResponse::ParseFrom(unique_ptr<InboundTransfer> transfer) {
+Status CallResponse::parseFrom(unique_ptr<InboundTransfer> transfer) {
   CHECK(!parsed_);
   RETURN_NOT_OK(
       serialization::parseMessage(

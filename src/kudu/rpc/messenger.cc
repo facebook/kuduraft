@@ -297,7 +297,7 @@ void Messenger::UnregisterAllServices() {
 }
 
 void Messenger::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
-  Reactor* reactor = RemoteToReactor(call->conn_id().remote());
+  Reactor* reactor = RemoteToReactor(call->connId().remote());
   reactor->queueOutboundCall(call);
 }
 
@@ -323,7 +323,7 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
 }
 
 void Messenger::queueCancellation(const shared_ptr<OutboundCall>& call) {
-  Reactor* reactor = RemoteToReactor(call->conn_id().remote());
+  Reactor* reactor = RemoteToReactor(call->connId().remote());
   reactor->queueCancellation(call);
 }
 
