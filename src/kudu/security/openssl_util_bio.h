@@ -36,8 +36,8 @@ struct SslTypeTraits<BIO> {
   static constexpr auto kFreeFunc = &BIO_free;
 };
 
-template <typename TYPE, typename Traits = SslTypeTraits<TYPE>>
-Status toBio(BIO* bio, DataFormat format, TYPE* obj) {
+template <typename Type, typename Traits = SslTypeTraits<Type>>
+Status toBio(BIO* bio, DataFormat format, Type* obj) {
   CHECK(bio);
   CHECK(obj);
   switch (format) {
@@ -71,11 +71,11 @@ tlsPasswordCb(char* buf, int size, int /* rwflag */, void* userdata) {
   return pw.size();
 }
 
-template <typename TYPE, typename Traits = SslTypeTraits<TYPE>>
+template <typename Type, typename Traits = SslTypeTraits<Type>>
 Status fromBio(
     BIO* bio,
     DataFormat format,
-    CUniquePtr<TYPE>* ret,
+    CUniquePtr<Type>* ret,
     const PasswordCallback& cb = PasswordCallback()) {
   CHECK(bio);
   switch (format) {
