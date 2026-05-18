@@ -121,7 +121,7 @@ METRIC_DEFINE_counter(
 static const char kParentMemTrackerId[] = "log_cache";
 
 LogCache::LogCache(
-    const std::shared_ptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metricEntity,
     std::shared_ptr<log::Log> log,
     string localUuid,
     string tabletId)
@@ -131,7 +131,7 @@ LogCache::LogCache(
       nextIndexCond_(&lock_),
       nextSequentialOpIndex_(0),
       minPinnedOpIndex_(0),
-      metrics_(metric_entity),
+      metrics_(metricEntity),
       enableCompressionOnCacheMiss_(false) {
   // Validate headroom flag
   CHECK_GE(FLAGS_log_cache_eviction_headroom_pct, 0)
@@ -139,19 +139,18 @@ LogCache::LogCache(
   CHECK_LT(FLAGS_log_cache_eviction_headroom_pct, 100)
       << "log_cache_eviction_headroom_pct must be < 100";
 
-  const int64_t max_ops_size_bytes =
-      FLAGS_log_cache_size_limit_mb * 1024L * 1024L;
-  const int64_t global_max_ops_size_bytes =
+  const int64_t maxOpsSizeBytes = FLAGS_log_cache_size_limit_mb * 1024L * 1024L;
+  const int64_t globalMaxOpsSizeBytes =
       FLAGS_global_log_cache_size_limit_mb * 1024L * 1024L;
 
   // Set up (or reuse) a tracker with the global limit. It is parented directly
   // to the root tracker so that it's always global.
   parentTracker_ = MemTracker::findOrCreateGlobalTracker(
-      global_max_ops_size_bytes, kParentMemTrackerId);
+      globalMaxOpsSizeBytes, kParentMemTrackerId);
 
   // And create a child tracker with the per-tablet limit.
   tracker_ = MemTracker::createTracker(
-      max_ops_size_bytes,
+      maxOpsSizeBytes,
       fmt::format("{}:{}:{}", kParentMemTrackerId, localUuid_, tabletId_),
       parentTracker_);
 
@@ -198,15 +197,15 @@ void LogCache::truncateOpsAfter(int64_t index) {
   // We don't append in async mode, so we cannot race with
   // AsyncAppendReplicates, where an append has not finished,
   // but the Truncate comes in.
-  Status log_status = log_->truncateOpsAfter(index);
+  Status logStatus = log_->truncateOpsAfter(index);
 
   // We crash the server if Truncate fails, symmetric to
   // what happenes when AsyncAppendReplicates fails.
   CHECK_OK_PREPEND(
-      log_status,
+      logStatus,
       fmt::format(
           "{}: cannot truncate ops after index {}",
-          log_status.ToString(),
+          logStatus.ToString(),
           index));
 }
 
@@ -335,9 +334,9 @@ Status LogCache::appendOperations(
 }
 
 Status LogCache::appendOperations(
-    const vector<ReplicateMsgWrapper>& msg_wrappers,
+    const vector<ReplicateMsgWrapper>& msgWrappers,
     const StatusCallback& callback) {
-  CHECK_GT(msg_wrappers.size(), 0);
+  CHECK_GT(msgWrappers.size(), 0);
 
   // SpaceUsed is relatively expensive, so do calculations outside the lock
   // and cache the result with each message.
@@ -346,11 +345,11 @@ Status LogCache::appendOperations(
   int64_t compressedSize = 0;
   int64_t uncompressedSize = 0;
   vector<CacheEntry> entriesToInsert;
-  entriesToInsert.reserve(msg_wrappers.size());
+  entriesToInsert.reserve(msgWrappers.size());
 
-  for (const auto& msg_wrapper : msg_wrappers) {
-    auto msg = msg_wrapper.getUncompressedMsg();
-    auto compressedMsg = msg_wrapper.getCompressedMsg();
+  for (const auto& msgWrapper : msgWrappers) {
+    auto msg = msgWrapper.getUncompressedMsg();
+    auto compressedMsg = msgWrapper.getCompressedMsg();
 
     CacheEntry e;
     e.msgSize = approxMsgSize(msg);
@@ -383,9 +382,8 @@ Status LogCache::appendOperations(
   }
 
   int64_t firstIdxInBatch =
-      msg_wrappers.front().getOrigMsg()->get()->id().index();
-  int64_t lastIdxInBatch =
-      msg_wrappers.back().getOrigMsg()->get()->id().index();
+      msgWrappers.front().getOrigMsg()->get()->id().index();
+  int64_t lastIdxInBatch = msgWrappers.back().getOrigMsg()->get()->id().index();
 
   std::unique_lock<Mutex> l(lock_);
   // If we're not appending a consecutive op we're likely overwriting and
@@ -433,10 +431,10 @@ Status LogCache::appendOperations(
 
   metrics_.logCacheSize->incrementBy(memRequired); // needed for tests
   metrics_.logCacheMsgSize->incrementBy(totalMsgSize); // needed for tests
-  metrics_.logCacheNumOps->incrementBy(msg_wrappers.size()); // needed for tests
+  metrics_.logCacheNumOps->incrementBy(msgWrappers.size()); // needed for tests
   STATS_logCacheSize.addValue(memRequired, KUDU_STATS_TAG);
   STATS_logCacheMsgSize.addValue(totalMsgSize, KUDU_STATS_TAG);
-  STATS_logCacheNumOps.addValue(msg_wrappers.size(), KUDU_STATS_TAG);
+  STATS_logCacheNumOps.addValue(msgWrappers.size(), KUDU_STATS_TAG);
   STATS_logCachePayloadSize.add(uncompressedSize, KUDU_STATS_TAG);
   STATS_logCacheCompressedPayloadSize.add(compressedSize, KUDU_STATS_TAG);
 
@@ -446,7 +444,7 @@ Status LogCache::appendOperations(
           << ", Msg Size: " << memRequired;
 
   Status logStatus = log_->asyncAppendReplicates(
-      msg_wrappers,
+      msgWrappers,
       Bind(
           &LogCache::logCallback,
           Unretained(this),
@@ -468,29 +466,29 @@ Status LogCache::appendOperations(
 }
 
 void LogCache::logCallback(
-    int64_t last_idx_in_batch,
-    bool borrowed_memory,
-    const StatusCallback& user_callback,
-    const Status& log_status) {
-  if (log_status.ok()) {
+    int64_t lastIdxInBatch,
+    bool borrowedMemory,
+    const StatusCallback& userCallback,
+    const Status& logStatus) {
+  if (logStatus.ok()) {
     std::lock_guard<Mutex> l(lock_);
-    if (minPinnedOpIndex_ <= last_idx_in_batch) {
+    if (minPinnedOpIndex_ <= lastIdxInBatch) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
-          << "Updating pinned index to " << (last_idx_in_batch + 1);
-      minPinnedOpIndex_ = last_idx_in_batch + 1;
+          << "Updating pinned index to " << (lastIdxInBatch + 1);
+      minPinnedOpIndex_ = lastIdxInBatch + 1;
     }
 
     // If we went over the global limit in order to log this batch, evict some
     // to get back down under the limit.
-    if (borrowed_memory) {
-      int64_t spare_capacity = parentTracker_->spareCapacity();
-      if (spare_capacity < 0) {
+    if (borrowedMemory) {
+      int64_t spareCapacity = parentTracker_->spareCapacity();
+      if (spareCapacity < 0) {
         evictSomeUnlocked(
-            minPinnedOpIndex_, calculateBytesToEvict(-spare_capacity));
+            minPinnedOpIndex_, calculateBytesToEvict(-spareCapacity));
       }
     }
   }
-  user_callback.Run(log_status);
+  userCallback.Run(logStatus);
 }
 
 bool LogCache::hasOpBeenWritten(int64_t index) const {
@@ -527,20 +525,20 @@ Status LogCache::lookupOpId(int64_t opIndex, OpId* opId) const {
 }
 
 Status LogCache::blockingReadOps(
-    int64_t after_op_index,
-    int max_size_bytes,
+    int64_t afterOpIndex,
+    int maxSizeBytes,
     const ReadContext& context,
-    int64_t max_duration_ms,
-    size_t max_ops,
+    int64_t maxDurationMs,
+    size_t maxOps,
     std::vector<ReplicateRefPtr>* messages,
-    OpId* preceding_op) {
+    OpId* precedingOp) {
   MonoTime deadline =
-      MonoTime::Now() + MonoDelta::FromMilliseconds(max_duration_ms);
+      MonoTime::Now() + MonoDelta::FromMilliseconds(maxDurationMs);
 
   {
     std::lock_guard<Mutex> l(lock_);
 
-    while ((after_op_index + 1) >= nextSequentialOpIndex_) {
+    while ((afterOpIndex + 1) >= nextSequentialOpIndex_) {
       (void)nextIndexCond_.waitUntil(deadline);
 
       if (MonoTime::Now() > deadline) {
@@ -548,49 +546,49 @@ Status LogCache::blockingReadOps(
       }
     }
 
-    if ((after_op_index + 1) >= nextSequentialOpIndex_) {
-      // Waited for max_duration_ms, but 'after_op_index' is still not available
+    if ((afterOpIndex + 1) >= nextSequentialOpIndex_) {
+      // Waited for maxDurationMs, but 'afterOpIndex' is still not available
       // in the local log
       return Status::Incomplete(
           fmt::format(
               "Op with index {} is ahead of the local log "
               "(next sequential op: {})",
-              after_op_index,
+              afterOpIndex,
               nextSequentialOpIndex_));
     }
   }
 
-  ReadOpsStatus s = readOps(after_op_index, max_size_bytes, context, messages);
+  ReadOpsStatus s = readOps(afterOpIndex, maxSizeBytes, context, messages);
   if (s.status.ok()) {
-    *preceding_op = std::move(s.precedingOp);
+    *precedingOp = std::move(s.precedingOp);
   }
 
-  while (s.status.ok() && s.stoppedEarly && messages->size() < max_ops &&
+  while (s.status.ok() && s.stoppedEarly && messages->size() < maxOps &&
          MonoTime::Now() < deadline) {
     if (!messages->empty()) {
-      after_op_index = messages->back()->get()->id().index();
+      afterOpIndex = messages->back()->get()->id().index();
     }
-    s = readOps(after_op_index, max_size_bytes, context, messages);
+    s = readOps(afterOpIndex, maxSizeBytes, context, messages);
   }
 
   return std::move(s.status);
 }
 
 LogCache::ReadOpsStatus LogCache::readOps(
-    int64_t after_op_index,
-    int max_size_bytes,
+    int64_t afterOpIndex,
+    int maxSizeBytes,
     const ReadContext& context,
     std::vector<ReplicateRefPtr>* messages,
     uint32_t limit) {
-  DCHECK_GE(after_op_index, 0);
+  DCHECK_GE(afterOpIndex, 0);
   // Try to lookup the first OpId in index
-  OpId preceding_id;
-  auto lookUpStatus = lookupOpId(after_op_index, &preceding_id);
+  OpId precedingId;
+  auto lookUpStatus = lookupOpId(afterOpIndex, &precedingId);
   if (!lookUpStatus.ok()) {
     // If warm storage catch up is not enabled and we don't find it in the log,
     // then we have to return not found error.
     // If warm storage catch up is enabled, we will continue on without setting
-    // the preceding_id here. We will fill that when we do the warm storage
+    // the precedingId here. We will fill that when we do the warm storage
     // read.
     if (!lookUpStatus.IsNotFound()) {
       return lookUpStatus;
@@ -602,37 +600,37 @@ LogCache::ReadOpsStatus LogCache::readOps(
         // ReadReplicatesInRange() to read a single op. This is so that it
         // gets a chance to update the error manager and report the error to
         // upper layer
-        vector<ReplicateRefPtr> replicate_ptrs;
+        vector<ReplicateRefPtr> replicatePtrs;
         log_->readReplicatesInRange(
-            after_op_index,
-            after_op_index + 1,
-            max_size_bytes,
+            afterOpIndex,
+            afterOpIndex + 1,
+            maxSizeBytes,
             context,
-            &replicate_ptrs);
+            &replicatePtrs);
       }
       return lookUpStatus;
     }
   }
 
   std::unique_lock<Mutex> l(lock_);
-  int64_t next_index = after_op_index + 1;
-  if (!preceding_id.has_index() && context.enableWarmStorageReads) {
-    // If warm storage catchup was enabled, we won't have a preceding_id yet.
-    // In that case, we will read set next_index to the  preceding index to
+  int64_t nextIndex = afterOpIndex + 1;
+  if (!precedingId.has_index() && context.enableWarmStorageReads) {
+    // If warm storage catchup was enabled, we won't have a precedingId yet.
+    // In that case, we will read set nextIndex to the  preceding index to
     // retrieve the preceding op id.
-    VLOG(1) << "Need to get preceding op id, start_index = " << after_op_index;
-    next_index = after_op_index;
+    VLOG(1) << "Need to get preceding op id, start_index = " << afterOpIndex;
+    nextIndex = afterOpIndex;
   }
 
   // Return as many operations as we can, up to the limit
-  int64_t remaining_space = max_size_bytes;
-  while (remaining_space > 0 && next_index < nextSequentialOpIndex_ &&
+  int64_t remainingSpace = maxSizeBytes;
+  while (remainingSpace > 0 && nextIndex < nextSequentialOpIndex_ &&
          (messages->size() < limit || limit <= 0)) {
     // If the messages the peer needs haven't been loaded into the queue yet,
     // load them.
     MessageCache::const_iterator iter =
-        context.skipLogCache ? cache_.end() : cache_.lower_bound(next_index);
-    if (iter == cache_.end() || iter->first != next_index) {
+        context.skipLogCache ? cache_.end() : cache_.lower_bound(nextIndex);
+    if (iter == cache_.end() || iter->first != nextIndex) {
       int64_t up_to;
       if (iter == cache_.end()) {
         // Read all the way to the current op
@@ -644,16 +642,16 @@ LogCache::ReadOpsStatus LogCache::readOps(
 
       // If limit is set, then we need to read only up to the limit
       if (limit > 0) {
-        up_to = std::min(up_to, after_op_index + limit);
+        up_to = std::min(up_to, afterOpIndex + limit);
       }
 
       l.unlock();
 
-      vector<ReplicateRefPtr> replicate_ptrs;
-      auto read_status = log_->readReplicatesInRange(
-          next_index, up_to, remaining_space, context, &replicate_ptrs);
+      vector<ReplicateRefPtr> replicatePtrs;
+      auto readStatus = log_->readReplicatesInRange(
+          nextIndex, up_to, remainingSpace, context, &replicatePtrs);
 
-      if (read_status.isUninitialized() && !replicate_ptrs.empty()) {
+      if (readStatus.isUninitialized() && !replicatePtrs.empty()) {
         // When a Warm Storage stream ends, opening a new stream may result in
         // an Uninitialized status because the stream has to initialize. If we
         // discard any transactions returned from previous stream, ingestion can
@@ -662,81 +660,81 @@ LogCache::ReadOpsStatus LogCache::readOps(
         // transactions. To ensure forward progress, always consume available
         // transactions. This why we return OK() here.
         VLOG(1) << "Return OK on Uninitialized status because we've already "
-                << "retrieved" << replicate_ptrs.size() << " transactions";
+                << "retrieved" << replicatePtrs.size() << " transactions";
         return Status::OK();
       }
 
       RETURN_NOT_OK_PREPEND(
-          read_status,
-          fmt::format("Failed to read ops {}..{}", next_index, up_to));
+          readStatus,
+          fmt::format("Failed to read ops {}..{}", nextIndex, up_to));
 
       // Compress messages read from the log if:
       // (1) the feature is enabled through
       // enableCompressionOnCacheMiss_ flag
       // (2) the request is not for a proxy host (the payload is discarded for
       // a proxy request and it is wasteful to compress it here)
-      const bool should_compress =
+      const bool shouldCompress =
           enableCompressionOnCacheMiss_ && !context.routeViaProxy;
 
-      vector<ReplicateMsgWrapper> msg_wrappers;
+      vector<ReplicateMsgWrapper> msgWrappers;
       faststring buffer;
 
-      for (const auto& replicate : replicate_ptrs) {
-        if (!preceding_id.has_index() && context.enableWarmStorageReads) {
-          // When preceding_id was not previously set, it is because warm
+      for (const auto& replicate : replicatePtrs) {
+        if (!precedingId.has_index() && context.enableWarmStorageReads) {
+          // When precedingId was not previously set, it is because warm
           // storage catchup was enabled and we explicitly set the request
           // to retrieve it. In this case, the first entry will be the preceding
           // op and can be skipped from being added to the results.
           // NOLINTNEXTLINE(facebook-hte-LocalUncheckedArrayBounds)
-          preceding_id = replicate_ptrs.front()->get()->id();
+          precedingId = replicatePtrs.front()->get()->id();
           VLOG(1) << "Setting preceding opid to "
-                  << preceding_id.ShortDebugString();
-          next_index++;
+                  << precedingId.ShortDebugString();
+          nextIndex++;
           continue;
         }
 
-        ReplicateMsgWrapper msg_wrapper(replicate, should_compress);
-        RETURN_NOT_OK(msg_wrapper.init(&buffer));
-        msg_wrappers.push_back(msg_wrapper);
+        ReplicateMsgWrapper msgWrapper(replicate, shouldCompress);
+        RETURN_NOT_OK(msgWrapper.init(&buffer));
+        msgWrappers.push_back(msgWrapper);
       }
 
       VLOG_WITH_PREFIX_UNLOCKED(2)
-          << "Successfully read " << msg_wrappers.size() << " ops "
-          << "from disk (" << next_index << ".."
-          << (next_index + msg_wrappers.size() - 1) << ")";
+          << "Successfully read " << msgWrappers.size() << " ops "
+          << "from disk (" << nextIndex << ".."
+          << (nextIndex + msgWrappers.size() - 1) << ")";
 
       if (!context.routeViaProxy) {
         // Compute crc checksums for the payload that was read from the log
         // Note that this is done _only_ for non-proxy requests because payload
         // is discarded for proxy requests
-        for (const auto& msg_wrapper : msg_wrappers) {
+        for (const auto& msgWrapper : msgWrappers) {
           // We use the compressed msg if available. The compressed msg might
           // not be avaiblable if compression is disabled or the msg doesn't
           // support compression e.g. non write op
-          ReplicateMsg* msg = msg_wrapper.getCompressedMsg()
-              ? msg_wrapper.getCompressedMsg()->get()
-              : msg_wrapper.getUncompressedMsg()->get();
+          ReplicateMsg* msg = msgWrapper.getCompressedMsg()
+              ? msgWrapper.getCompressedMsg()->get()
+              : msgWrapper.getUncompressedMsg()->get();
           const std::string& payload = msg->write_payload().payload();
-          uint32_t payload_crc32 = crc::crc32c(payload.c_str(), payload.size());
-          msg->mutable_write_payload()->set_crc32(payload_crc32);
+          uint32_t payloadCrc32 = crc::crc32c(payload.c_str(), payload.size());
+          msg->mutable_write_payload()->set_crc32(payloadCrc32);
         }
       }
 
       l.lock();
 
-      for (const auto& msg_wrapper : msg_wrappers) {
-        const auto& msg = msg_wrapper.getCompressedMsg()
-            ? msg_wrapper.getCompressedMsg()
-            : msg_wrapper.getUncompressedMsg();
-        CHECK_EQ(next_index, msg->get()->id().index());
+      for (const auto& msgWrapper : msgWrappers) {
+        const auto& msg = msgWrapper.getCompressedMsg()
+            ? msgWrapper.getCompressedMsg()
+            : msgWrapper.getUncompressedMsg();
+        CHECK_EQ(nextIndex, msg->get()->id().index());
 
-        remaining_space -= approxMsgSize(msg);
-        if (remaining_space <= 0 && !messages->empty()) {
+        remainingSpace -= approxMsgSize(msg);
+        if (remainingSpace <= 0 && !messages->empty()) {
           break;
         }
 
         messages->push_back(msg);
-        next_index++;
+        nextIndex++;
       }
     } else {
       DCHECK(!context.skipLogCache);
@@ -749,29 +747,29 @@ LogCache::ReadOpsStatus LogCache::readOps(
 
         const ReplicateRefPtr& msg = iter->second.msg;
         int64_t index = msg->get()->id().index();
-        if (index != next_index) {
+        if (index != nextIndex) {
           continue;
         }
 
         // The full size of the msg is actually returned by SpaceUsedLong() but
         // that's very expensive, the payload size should be very close to the
         // full msg size
-        remaining_space -=
+        remainingSpace -=
             static_cast<int64_t>(msg->get()->write_payload().payload().size());
-        if (remaining_space < 0 && !messages->empty()) {
+        if (remainingSpace < 0 && !messages->empty()) {
           break;
         }
 
         messages->push_back(msg);
-        next_index++;
+        nextIndex++;
       }
     }
   }
   return {
       Status::OK(),
-      std::move(preceding_id),
-      next_index < nextSequentialOpIndex_,
-      max_size_bytes - remaining_space};
+      std::move(precedingId),
+      nextIndex < nextSequentialOpIndex_,
+      maxSizeBytes - remainingSpace};
 }
 
 Status LogCache::clear() {
@@ -831,20 +829,20 @@ void LogCache::evictSomeUnlocked(
       << HumanReadableNumBytes::toString(bytesToEvict)
       << ": before state: " << toStringUnlocked();
 
-  int64_t bytes_evicted = 0;
+  int64_t bytesEvicted = 0;
   for (auto iter = cache_.begin(); iter != cache_.end();) {
     const CacheEntry& entry = (*iter).second;
     const ReplicateRefPtr& msg = entry.msg;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "considering for eviction: " << msg->get()->id();
-    int64_t msg_index = msg->get()->id().index();
-    if (msg_index == 0) {
+    int64_t msgIndex = msg->get()->id().index();
+    if (msgIndex == 0) {
       // Always keep our special '0' op.
       ++iter;
       continue;
     }
 
-    if (msg_index > stopAfterIndex || msg_index >= minPinnedOpIndex_) {
+    if (msgIndex > stopAfterIndex || msgIndex >= minPinnedOpIndex_) {
       break;
     }
 
@@ -862,10 +860,10 @@ void LogCache::evictSomeUnlocked(
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Evicting cache. Removing: " << msg->get()->id();
     accountForMessageRemovalUnlocked(entry);
-    bytes_evicted += entry.memUsage;
+    bytesEvicted += entry.memUsage;
     cache_.erase(iter++);
 
-    if (bytes_evicted >= bytesToEvict) {
+    if (bytesEvicted >= bytesToEvict) {
       break;
     }
   }
@@ -937,14 +935,14 @@ void LogCache::dumpToStrings(vector<string>* lines) const {
   }
 }
 
-#define INSTANTIATE_METRIC(x) x.instantiate(metric_entity, 0)
-LogCache::Metrics::Metrics(const std::shared_ptr<MetricEntity>& metric_entity)
+#define INSTANTIATE_METRIC(x) x.instantiate(metricEntity, 0)
+LogCache::Metrics::Metrics(const std::shared_ptr<MetricEntity>& metricEntity)
     : logCacheNumOps(INSTANTIATE_METRIC(METRIC_log_cache_num_ops)),
       logCacheSize(INSTANTIATE_METRIC(METRIC_log_cache_size)),
       logCacheMsgSize(INSTANTIATE_METRIC(METRIC_log_cache_msg_size)) {
   logCachePayloadSize =
-      metric_entity->findOrCreateCounter(&METRIC_log_cache_payload_size);
-  logCacheCompressedPayloadSize = metric_entity->findOrCreateCounter(
+      metricEntity->findOrCreateCounter(&METRIC_log_cache_payload_size);
+  logCacheCompressedPayloadSize = metricEntity->findOrCreateCounter(
       &METRIC_log_cache_compressed_payload_size);
 }
 #undef INSTANTIATE_METRIC

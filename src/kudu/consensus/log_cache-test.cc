@@ -226,7 +226,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
 
   messages.clear();
 
-  // Test when 'after_op_index' is the last index in the cache.
+  // Test when 'afterOpIndex' is the last index in the cache.
   status = cache_->readOps(1, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(0, messages.size());
@@ -234,7 +234,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
 
   messages.clear();
 
-  // Now test the case when 'after_op_index' is after the last index
+  // Now test the case when 'afterOpIndex' is after the last index
   // in the cache.
   status = cache_->readOps(2, 100, ReadContext(), &messages);
   auto s = status.status;

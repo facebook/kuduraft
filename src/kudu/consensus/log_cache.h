@@ -63,7 +63,7 @@ class ReplicateMsgWrapper;
 class LogCache {
  public:
   LogCache(
-      const std::shared_ptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metricEntity,
       std::shared_ptr<log::Log> log,
       std::string localUuid,
       std::string tabletId);
@@ -101,7 +101,7 @@ class LogCache {
      */
     OpId precedingOp;
     /**
-     * If we stopped reading early due to the max_size_bytes limit.
+     * If we stopped reading early due to the maxSizeBytes limit.
      */
     bool stoppedEarly;
     /**
@@ -109,47 +109,47 @@ class LogCache {
      */
     int64_t bytesRead;
   };
-  // Read operations from the log, following 'after_op_index'.
+  // Read operations from the log, following 'afterOpIndex'.
   // If such an op exists in the log, an OK result will always include at least
   // one operation.
   //
   // The result will be limited such that the total ByteSize() of the returned
-  // ops is less than max_size_bytes, unless that would result in an empty
+  // ops is less than maxSizeBytes, unless that would result in an empty
   // result, in which case exactly one op is returned.
   //
-  // The OpId which precedes the returned ops is returned in *preceding_op.
-  // The index of this OpId will match 'after_op_index'.
+  // The OpId which precedes the returned ops is returned in *precedingOp.
+  // The index of this OpId will match 'afterOpIndex'.
   //
   // If the ops being requested are not available in the log, this will
   // synchronously read these ops from disk. Therefore, this function may take a
   // substantial amount of time and should not be called with important locks
   // held, etc.
   ReadOpsStatus readOps(
-      int64_t after_op_index,
-      int max_size_bytes,
+      int64_t afterOpIndex,
+      int maxSizeBytes,
       const ReadContext& context,
       std::vector<ReplicateRefPtr>* messages,
       uint32_t limit = 0);
 
-  // Similar to ReadOps(...), but blocks for 'max_duration_ms' if
-  // 'after_op_index' is not available in the local log.
+  // Similar to ReadOps(...), but blocks for 'maxDurationMs' if
+  // 'afterOpIndex' is not available in the local log.
   //
-  // max_duration_ms is the maximum duration to wait for 'after_op_index' (in
+  // maxDurationMs is the maximum duration to wait for 'afterOpIndex' (in
   // milliseconds)
   //
   // Returns "Incomplete" if the op has not yet been written to the log even
-  // after waiting for 'max_duration_ms'
+  // after waiting for 'maxDurationMs'
   // Returns "NotFound" if the op has been GCed.
   // Returns another bad Status if the log index fails to load (eg. due to an IO
   // error).
   Status blockingReadOps(
-      int64_t after_op_index,
-      int max_size_bytes,
+      int64_t afterOpIndex,
+      int maxSizeBytes,
       const ReadContext& context,
-      int64_t max_duration_ms,
-      size_t max_ops,
+      int64_t maxDurationMs,
+      size_t maxOps,
       std::vector<ReplicateRefPtr>* messages,
-      OpId* preceding_op);
+      OpId* precedingOp);
 
   // Append the operations into the log and the cache.
   // When the messages have completed writing into the on-disk log, fires
@@ -163,9 +163,9 @@ class LogCache {
       const std::vector<ReplicateRefPtr>& msgs,
       const StatusCallback& callback);
 
-  // Just like appendOperations() above but with msg_wrappers as input
+  // Just like appendOperations() above but with msgWrappers as input
   Status appendOperations(
-      const std::vector<ReplicateMsgWrapper>& msg_wrappers,
+      const std::vector<ReplicateMsgWrapper>& msgWrappers,
       const StatusCallback& callback);
 
   // Truncate any operations with index > 'index'.
@@ -229,12 +229,12 @@ class LogCache {
 
   // Uncompresses the payload of 'msg' based on its compression_codec and
   // populates a new ReplicateMsg with uncompressed payload in
-  // 'uncompressed_msg'. Uses 'buffer' as a temporary buffer to hold compressed
+  // 'uncompressedMsg'. Uses 'buffer' as a temporary buffer to hold compressed
   // message
   Status uncompressMsg(
       const ReplicateRefPtr& msg,
       faststring& buffer,
-      std::unique_ptr<ReplicateMsg>* uncompressed_msg);
+      std::unique_ptr<ReplicateMsg>* uncompressedMsg);
 
   // An entry in the cache.
   struct CacheEntry {
@@ -277,10 +277,10 @@ class LogCache {
   std::string logPrefixUnlocked() const;
 
   void logCallback(
-      int64_t last_idx_in_batch,
-      bool borrowed_memory,
-      const StatusCallback& user_callback,
-      const Status& log_status);
+      int64_t lastIdxInBatch,
+      bool borrowedMemory,
+      const StatusCallback& userCallback,
+      const Status& logStatus);
 
   std::shared_ptr<log::Log> const log_;
 
@@ -322,7 +322,7 @@ class LogCache {
   std::shared_ptr<MemTracker> tracker_;
 
   struct Metrics {
-    explicit Metrics(const std::shared_ptr<MetricEntity>& metric_entity);
+    explicit Metrics(const std::shared_ptr<MetricEntity>& metricEntity);
 
     // Keeps track of the total number of operations in the cache.
     std::shared_ptr<AtomicGauge<int64_t>> logCacheNumOps;
