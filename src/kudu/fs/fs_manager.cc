@@ -117,9 +117,9 @@ FsManagerOpts::FsManagerOpts(const string& root)
       read_only(false),
       consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
 
-FsManager::FsManager(Env* env, const string& root_path)
+FsManager::FsManager(Env* env, const string& rootPath)
     : env_(DCHECK_NOTNULL(env)),
-      opts_(FsManagerOpts(root_path)),
+      opts_(FsManagerOpts(rootPath)),
       initted_(false) {}
 
 FsManager::FsManager(Env* env, FsManagerOpts opts)
@@ -143,28 +143,28 @@ Status FsManager::init() {
   }
 
   // Deduplicate all of the roots.
-  unordered_set<string> all_roots = {opts_.wal_root};
+  unordered_set<string> allRoots = {opts_.wal_root};
 
   // If the metadata root not set, Kudu will either use the wal root or the
   // first data root, in which case we needn't canonicalize additional roots.
   if (!opts_.metadata_root.empty()) {
-    all_roots.insert(opts_.metadata_root);
+    allRoots.insert(opts_.metadata_root);
   }
 
   // Build a map of original root --> canonicalized root, sanitizing each
   // root as we go and storing the canonicalization status.
   using RootMap = unordered_map<string, CanonicalizedRootAndStatus>;
-  RootMap canonicalized_roots;
-  for (const string& root : all_roots) {
+  RootMap canonicalizedRoots;
+  for (const string& root : allRoots) {
     if (root.empty()) {
       return Status::IOError("Empty string provided for path");
     }
     if (root[0] != '/') {
       return Status::IOError(fmt::format("Relative path {} provided", root));
     }
-    string root_copy = root;
-    StripWhiteSpace(&root_copy);
-    if (root != root_copy) {
+    string rootCopy = root;
+    StripWhiteSpace(&rootCopy);
+    if (root != rootCopy) {
       return Status::IOError(
           fmt::format("Path {} contains illegal whitespace", root));
     }
@@ -184,34 +184,34 @@ Status FsManager::init() {
       }
     }
     canonicalized = JoinPathSegments(canonicalized, baseName(root));
-    auto [it, inserted] = canonicalized_roots.emplace(
+    auto [it, inserted] = canonicalizedRoots.emplace(
         root, CanonicalizedRootAndStatus{canonicalized, s});
     CHECK(inserted) << "Duplicate root: " << root;
   }
 
   // All done, use the map to set the canonicalized state.
 
-  auto it_wal = canonicalized_roots.find(opts_.wal_root);
-  CHECK(it_wal != canonicalized_roots.end())
+  auto itWal = canonicalizedRoots.find(opts_.wal_root);
+  CHECK(itWal != canonicalizedRoots.end())
       << "Map key not found: " << opts_.wal_root;
-  canonicalizedWalFsRoot_ = it_wal->second;
-  unordered_set<string> unique_roots;
+  canonicalizedWalFsRoot_ = itWal->second;
+  unordered_set<string> uniqueRoots;
   LOG(INFO) << "Data directories (fs_data_dirs) not provided";
   LOG(INFO) << "Using write-ahead log directory (fs_wal_dir) as data directory";
   canonicalizedDataFsRoots_.emplace_back(canonicalizedWalFsRoot_);
-  if (unique_roots.insert(canonicalizedWalFsRoot_.path).second) {
+  if (uniqueRoots.insert(canonicalizedWalFsRoot_.path).second) {
     canonicalizedAllFsRoots_.emplace_back(canonicalizedWalFsRoot_);
   }
 
   // Decide on a metadata root to use.
   if (opts_.metadata_root.empty()) {
     // Check the first data root for metadata.
-    const string meta_dir_in_data_root = JoinPathSegments(
+    const string metaDirInDataRoot = JoinPathSegments(
         canonicalizedDataFsRoots_[0].path, kTabletMetadataDirName);
     // If there is already metadata in the first data root, use it. Otherwise,
     // use the WAL root.
     LOG(INFO) << "Metadata directory not provided";
-    if (env_->FileExists(meta_dir_in_data_root)) {
+    if (env_->FileExists(metaDirInDataRoot)) {
       canonicalizedMetadataFsRoot_ = canonicalizedDataFsRoots_[0];
       LOG(INFO) << "Using existing metadata directory in first data directory";
     } else {
@@ -221,26 +221,26 @@ Status FsManager::init() {
     }
   } else {
     // Keep track of the explicitly-defined metadata root.
-    auto it_meta = canonicalized_roots.find(opts_.metadata_root);
-    CHECK(it_meta != canonicalized_roots.end())
+    auto itMeta = canonicalizedRoots.find(opts_.metadata_root);
+    CHECK(itMeta != canonicalizedRoots.end())
         << "Map key not found: " << opts_.metadata_root;
-    canonicalizedMetadataFsRoot_ = it_meta->second;
-    if (insertIfNotPresent(&unique_roots, canonicalizedMetadataFsRoot_.path)) {
+    canonicalizedMetadataFsRoot_ = itMeta->second;
+    if (insertIfNotPresent(&uniqueRoots, canonicalizedMetadataFsRoot_.path)) {
       canonicalizedAllFsRoots_.emplace_back(canonicalizedMetadataFsRoot_);
     }
   }
 
   // The server cannot start if the WAL root or metadata root failed to
   // canonicalize.
-  const string& wal_root = canonicalizedWalFsRoot_.path;
+  const string& walRoot = canonicalizedWalFsRoot_.path;
   RETURN_NOT_OK_PREPEND(
       canonicalizedWalFsRoot_.status,
       fmt::format(
-          "Write-ahead log directory {} failed to canonicalize", wal_root));
-  const string& meta_root = canonicalizedMetadataFsRoot_.path;
+          "Write-ahead log directory {} failed to canonicalize", walRoot));
+  const string& metaRoot = canonicalizedMetadataFsRoot_.path;
   RETURN_NOT_OK_PREPEND(
       canonicalizedMetadataFsRoot_.status,
-      fmt::format("Metadata directory {} failed to canonicalize", meta_root));
+      fmt::format("Metadata directory {} failed to canonicalize", metaRoot));
 
   if (VLOG_IS_ON(1)) {
     VLOG(1) << "WAL root: " << canonicalizedWalFsRoot_.path;
@@ -262,7 +262,7 @@ Status FsManager::Open(FsReport* report) {
   //
   // Done first to minimize side effects in the case that the configured roots
   // are not yet initialized on disk.
-  CanonicalizedRootsList missing_roots;
+  CanonicalizedRootsList missingRoots;
   for (auto& root : canonicalizedAllFsRoots_) {
     if (!root.status.ok()) {
       continue;
@@ -272,7 +272,7 @@ Status FsManager::Open(FsReport* report) {
         env_, GetInstanceMetadataPath(root.path), pb.get());
     if (PREDICT_FALSE(!s.ok())) {
       if (s.IsNotFound()) {
-        missing_roots.emplace_back(root);
+        missingRoots.emplace_back(root);
         continue;
       }
       if (s.isDiskFailure()) {
@@ -299,14 +299,14 @@ Status FsManager::Open(FsReport* report) {
   }
 
   // Ensure all of the ancillary directories exist.
-  vector<string> ancillary_dirs = {
+  vector<string> ancillaryDirs = {
       GetWalsRootDir(), GetTabletMetadataDir(), GetConsensusMetadataDir()};
-  for (const auto& d : ancillary_dirs) {
-    bool is_dir;
+  for (const auto& d : ancillaryDirs) {
+    bool isDir;
     RETURN_NOT_OK_PREPEND(
-        env_->IsDirectory(d, &is_dir),
+        env_->IsDirectory(d, &isDir),
         fmt::format("could not verify required directory {}", d));
-    if (!is_dir) {
+    if (!isDir) {
       return Status::Corruption(
           fmt::format(
               "Required directory {} exists but is not a directory", d));
@@ -314,16 +314,16 @@ Status FsManager::Open(FsReport* report) {
   }
 
   // In the event of failure, delete everything we created.
-  vector<string> created_dirs;
-  vector<string> created_files;
+  vector<string> createdDirs;
+  vector<string> createdFiles;
   auto deleter = folly::makeGuard([&]() {
     // Delete files first so that the directories will be empty when deleted.
-    for (const auto& f : created_files) {
+    for (const auto& f : createdFiles) {
       WARN_NOT_OK(env_->DeleteFile(f), "Could not delete file " + f);
     }
     // Delete directories in reverse order since parent directories will have
     // been added before child directories.
-    for (auto it = created_dirs.rbegin(); it != created_dirs.rend(); it++) {
+    for (auto it = createdDirs.rbegin(); it != createdDirs.rend(); it++) {
       WARN_NOT_OK(env_->DeleteDir(*it), "Could not delete dir " + *it);
     }
   });
@@ -332,7 +332,7 @@ Status FsManager::Open(FsReport* report) {
   if (opts_.consistency_check == ConsistencyCheckBehavior::UPDATE_ON_DISK) {
     RETURN_NOT_OK_PREPEND(
         createFileSystemRoots(
-            missing_roots, *metadata_, &created_dirs, &created_files),
+            missingRoots, *metadata_, &createdDirs, &createdFiles),
         "unable to create missing filesystem roots");
   }
 
@@ -355,7 +355,7 @@ Status FsManager::Open(FsReport* report) {
     // Files/directories created by the directory manager in the fs roots have
     // been synchronized, so now is a good time to sync the roots themselves.
     WARN_NOT_OK(
-        env_util::syncAllParentDirs(env_, created_dirs, created_dirs),
+        env_util::syncAllParentDirs(env_, createdDirs, createdDirs),
         "could not sync newly created fs roots");
   }
 
@@ -364,13 +364,13 @@ Status FsManager::Open(FsReport* report) {
             << std::endl
             << SecureDebugString(*metadata_);
 
-  if (!created_dirs.empty()) {
+  if (!createdDirs.empty()) {
     LOG(INFO) << "New directories created while opening local filesystem: "
-              << JoinStrings(created_dirs, ", ");
+              << JoinStrings(createdDirs, ", ");
   }
-  if (!created_files.empty()) {
+  if (!createdFiles.empty()) {
     LOG(INFO) << "New files created while opening local filesystem: "
-              << JoinStrings(created_files, ", ");
+              << JoinStrings(createdFiles, ", ");
   }
 
   // Success: do not delete any missing roots created.
@@ -384,16 +384,16 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   RETURN_NOT_OK(init());
 
   // In the event of failure, delete everything we created.
-  vector<string> created_dirs;
-  vector<string> created_files;
+  vector<string> createdDirs;
+  vector<string> createdFiles;
   auto deleter = folly::makeGuard([&]() {
     // Delete files first so that the directories will be empty when deleted.
-    for (const auto& f : created_files) {
+    for (const auto& f : createdFiles) {
       WARN_NOT_OK(env_->DeleteFile(f), "Could not delete file " + f);
     }
     // Delete directories in reverse order since parent directories will have
     // been added before child directories.
-    for (auto it = created_dirs.rbegin(); it != created_dirs.rend(); it++) {
+    for (auto it = createdDirs.rbegin(); it != createdDirs.rend(); it++) {
       WARN_NOT_OK(env_->DeleteDir(*it), "Could not delete dir " + *it);
     }
   });
@@ -407,19 +407,19 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
       "unable to create instance metadata");
   RETURN_NOT_OK_PREPEND(
       FsManager::createFileSystemRoots(
-          canonicalizedAllFsRoots_, metadata, &created_dirs, &created_files),
+          canonicalizedAllFsRoots_, metadata, &createdDirs, &createdFiles),
       "unable to create file system roots");
 
   // Create ancillary directories.
-  vector<string> ancillary_dirs = {
+  vector<string> ancillaryDirs = {
       GetWalsRootDir(), GetTabletMetadataDir(), GetConsensusMetadataDir()};
-  for (const string& dir : ancillary_dirs) {
+  for (const string& dir : ancillaryDirs) {
     bool created;
     RETURN_NOT_OK_PREPEND(
         env_util::createDirIfMissing(env_, dir, &created),
         fmt::format("Unable to create directory {}", dir));
     if (created) {
-      created_dirs.emplace_back(dir);
+      createdDirs.emplace_back(dir);
     }
   }
 
@@ -431,7 +431,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
     // Files/directories created by the directory manager in the fs roots have
     // been synchronized, so now is a good time to sync the roots themselves.
     WARN_NOT_OK(
-        env_util::syncAllParentDirs(env_, created_dirs, created_files),
+        env_util::syncAllParentDirs(env_, createdDirs, createdFiles),
         "could not sync newly created fs roots");
   }
 
@@ -441,15 +441,15 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
 }
 
 Status FsManager::createFileSystemRoots(
-    const CanonicalizedRootsList& canonicalized_roots,
+    const CanonicalizedRootsList& canonicalizedRoots,
     const InstanceMetadataPB& metadata,
-    vector<string>* created_dirs,
-    vector<string>* created_files) {
+    vector<string>* createdDirs,
+    vector<string>* createdFiles) {
   CHECK(!opts_.read_only);
 
   // It's OK if a root already exists as long as there's nothing in it.
-  vector<string> non_empty_roots;
-  for (const auto& root : canonicalized_roots) {
+  vector<string> nonEmptyRoots;
+  for (const auto& root : canonicalizedRoots) {
     if (!root.status.ok()) {
       return Status::IOError(
           "cannot create FS layout; at least one directory "
@@ -460,40 +460,40 @@ Status FsManager::createFileSystemRoots(
       // We'll create the directory below.
       continue;
     }
-    bool is_empty;
+    bool isEmpty;
     RETURN_NOT_OK_PREPEND(
-        env_util::isDirectoryEmpty(env_, root.path, &is_empty),
+        env_util::isDirectoryEmpty(env_, root.path, &isEmpty),
         "unable to check if FSManager root is empty");
-    if (!is_empty) {
-      non_empty_roots.emplace_back(root.path);
+    if (!isEmpty) {
+      nonEmptyRoots.emplace_back(root.path);
     }
   }
 
-  if (!non_empty_roots.empty()) {
+  if (!nonEmptyRoots.empty()) {
     return Status::AlreadyPresent(
         fmt::format(
             "FSManager roots already exist: {}",
-            JoinStrings(non_empty_roots, ",")));
+            JoinStrings(nonEmptyRoots, ",")));
   }
 
   // All roots are either empty or non-existent. Create missing roots and all
   // subdirectories.
-  for (const auto& root : canonicalized_roots) {
+  for (const auto& root : canonicalizedRoots) {
     if (!root.status.ok()) {
       continue;
     }
-    string root_name = root.path;
+    string rootName = root.path;
     bool created;
     RETURN_NOT_OK_PREPEND(
-        env_util::createDirIfMissing(env_, root_name, &created),
+        env_util::createDirIfMissing(env_, rootName, &created),
         "unable to create FSManager root");
     if (created) {
-      created_dirs->emplace_back(root_name);
+      createdDirs->emplace_back(rootName);
     }
     RETURN_NOT_OK_PREPEND(
-        writeInstanceMetadata(metadata, root_name),
+        writeInstanceMetadata(metadata, rootName),
         "unable to write instance metadata");
-    created_files->emplace_back(GetInstanceMetadataPath(root_name));
+    createdFiles->emplace_back(GetInstanceMetadataPath(rootName));
   }
   return Status::OK();
 }
@@ -502,21 +502,21 @@ Status FsManager::createInstanceMetadata(
     std::optional<string> uuid,
     InstanceMetadataPB* metadata) {
   if (uuid) {
-    string canonicalized_uuid;
-    RETURN_NOT_OK(oidGenerator_.canonicalize(*uuid, &canonicalized_uuid));
-    metadata->set_uuid(canonicalized_uuid);
+    string canonicalizedUuid;
+    RETURN_NOT_OK(oidGenerator_.canonicalize(*uuid, &canonicalizedUuid));
+    metadata->set_uuid(canonicalizedUuid);
   } else {
     metadata->set_uuid(oidGenerator_.next());
   }
 
-  string time_str;
-  stringAppendStrftime(&time_str, "%Y-%m-%d %H:%M:%S", time(nullptr), false);
+  string timeStr;
+  stringAppendStrftime(&timeStr, "%Y-%m-%d %H:%M:%S", time(nullptr), false);
   string hostname;
   if (!getHostname(&hostname).ok()) {
     hostname = "<unknown host>";
   }
   metadata->set_format_stamp(
-      fmt::format("Formatted at {} on {}", time_str, hostname));
+      fmt::format("Formatted at {} on {}", timeStr, hostname));
   return Status::OK();
 }
 
@@ -545,8 +545,8 @@ string FsManager::GetTabletMetadataDir() const {
       canonicalizedMetadataFsRoot_.path, kTabletMetadataDirName);
 }
 
-string FsManager::GetTabletMetadataPath(const string& tablet_id) const {
-  return JoinPathSegments(GetTabletMetadataDir(), tablet_id);
+string FsManager::GetTabletMetadataPath(const string& tabletId) const {
+  return JoinPathSegments(GetTabletMetadataDir(), tabletId);
 }
 
 bool FsManager::isValidTabletId(const string& fname) {
@@ -556,8 +556,8 @@ bool FsManager::isValidTabletId(const string& fname) {
     return false;
   }
 
-  string canonicalized_uuid;
-  Status s = oidGenerator_.canonicalize(fname, &canonicalized_uuid);
+  string canonicalizedUuid;
+  Status s = oidGenerator_.canonicalize(fname, &canonicalizedUuid);
 
   if (!s.ok()) {
     LOG(WARNING) << "Ignoring file in tablet metadata dir: " << fname << ": "
@@ -565,18 +565,18 @@ bool FsManager::isValidTabletId(const string& fname) {
     return false;
   }
 
-  if (fname != canonicalized_uuid) {
+  if (fname != canonicalizedUuid) {
     LOG(WARNING) << "Ignoring file in tablet metadata dir: " << fname << ": "
                  << fmt::format(
                         "canonicalized uuid {} does not match file name",
-                        canonicalized_uuid);
+                        canonicalizedUuid);
     return false;
   }
 
   return true;
 }
 
-Status FsManager::ListTabletIds(vector<string>* tablet_ids) {
+Status FsManager::ListTabletIds(vector<string>* tabletIds) {
   string dir = GetTabletMetadataDir();
   vector<string> children;
   RETURN_NOT_OK_PREPEND(
@@ -588,7 +588,7 @@ Status FsManager::ListTabletIds(vector<string>* tablet_ids) {
     if (!isValidTabletId(child)) {
       continue;
     }
-    tablet_ids->push_back(child);
+    tabletIds->push_back(child);
   }
   return Status::OK();
 }
@@ -597,19 +597,19 @@ string FsManager::GetInstanceMetadataPath(const string& root) const {
   return JoinPathSegments(root, kInstanceMetadataFileName);
 }
 
-string FsManager::GetTabletWalRecoveryDir(const string& tablet_id) const {
-  string path = JoinPathSegments(GetWalsRootDir(), tablet_id);
+string FsManager::GetTabletWalRecoveryDir(const string& tabletId) const {
+  string path = JoinPathSegments(GetWalsRootDir(), tabletId);
   strAppend(&path, kWalsRecoveryDirSuffix);
   return path;
 }
 
 string FsManager::GetWalSegmentFileName(
-    const string& tablet_id,
-    uint64_t sequence_number) const {
+    const string& tabletId,
+    uint64_t sequenceNumber) const {
   return JoinPathSegments(
-      GetTabletWalDir(tablet_id),
+      GetTabletWalDir(tabletId),
       fmt::format(
-          "{}-{}", kWalFileNamePrefix, fmt::format("{:09d}", sequence_number)));
+          "{}-{}", kWalFileNamePrefix, fmt::format("{:09d}", sequenceNumber)));
 }
 
 void FsManager::cleanTmpFiles() {
@@ -670,12 +670,12 @@ void FsManager::DumpFileSystemTree(
       continue;
     }
 
-    vector<string> sub_objects;
-    string sub_path = JoinPathSegments(path, name);
-    Status s = env_->GetChildren(sub_path, &sub_objects);
+    vector<string> subObjects;
+    string subPath = JoinPathSegments(path, name);
+    Status s = env_->GetChildren(subPath, &subObjects);
     if (s.ok()) {
       out << prefix << name << "/" << std::endl;
-      DumpFileSystemTree(out, prefix + "---", sub_path, sub_objects);
+      DumpFileSystemTree(out, prefix + "---", subPath, subObjects);
     } else {
       out << prefix << name << std::endl;
     }
@@ -695,21 +695,20 @@ void FsManager::createDataDirLayoutForBackwardCompat() {
     }
 
     // Create <root>/data/ directory.
-    const string data_dir = JoinPathSegments(root.path, kDataDirName);
+    const string dataDir = JoinPathSegments(root.path, kDataDirName);
     bool created;
-    Status s = env_util::createDirIfMissing(env_, data_dir, &created);
+    Status s = env_util::createDirIfMissing(env_, dataDir, &created);
     if (!s.ok()) {
       WARN_NOT_OK(
           s,
-          fmt::format(
-              "Could not create backward-compat data dir {}", data_dir));
+          fmt::format("Could not create backward-compat data dir {}", dataDir));
       continue;
     }
 
     // Write <root>/data/block_manager_instance if it doesn't already exist.
-    const string instance_path =
-        JoinPathSegments(data_dir, kBlockManagerInstanceFileName);
-    if (env_->FileExists(instance_path)) {
+    const string instancePath =
+        JoinPathSegments(dataDir, kBlockManagerInstanceFileName);
+    if (env_->FileExists(instancePath)) {
       continue;
     }
 
@@ -719,25 +718,25 @@ void FsManager::createDataDirLayoutForBackwardCompat() {
     pb.mutable_path_set()->add_all_uuids(uuid);
     pb.set_block_manager_type("log");
 
-    uint64_t block_size;
-    s = env_->GetBlockSize(data_dir, &block_size);
+    uint64_t blockSize;
+    s = env_->GetBlockSize(dataDir, &blockSize);
     if (!s.ok()) {
       WARN_NOT_OK(
           s,
           fmt::format(
               "Could not get block size for backward-compat data dir {}",
-              data_dir));
+              dataDir));
       continue;
     }
-    pb.set_filesystem_block_size_bytes(block_size);
+    pb.set_filesystem_block_size_bytes(blockSize);
 
     s = pb_util::WritePBContainerToPath(
-        env_, instance_path, pb, pb_util::NO_OVERWRITE, pb_util::SYNC);
+        env_, instancePath, pb, pb_util::NO_OVERWRITE, pb_util::SYNC);
     WARN_NOT_OK(
         s,
         fmt::format(
             "Could not write backward-compat block_manager_instance at {}",
-            instance_path));
+            instancePath));
   }
 }
 

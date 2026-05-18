@@ -136,7 +136,7 @@ class FsManager {
   static const char* kWalsRecoveryDirSuffix;
 
   // Only for unit tests.
-  FsManager(Env* env, const std::string& root_path);
+  FsManager(Env* env, const std::string& rootPath);
 
   FsManager(Env* env, FsManagerOpts opts);
   ~FsManager();
@@ -177,24 +177,24 @@ class FsManager {
     return JoinPathSegments(canonicalizedWalFsRoot_.path, kWalDirName);
   }
 
-  std::string GetTabletWalDir(const std::string& tablet_id) const {
-    return JoinPathSegments(GetWalsRootDir(), tablet_id);
+  std::string GetTabletWalDir(const std::string& tabletId) const {
+    return JoinPathSegments(GetWalsRootDir(), tabletId);
   }
 
-  std::string GetTabletWalRecoveryDir(const std::string& tablet_id) const;
+  std::string GetTabletWalRecoveryDir(const std::string& tabletId) const;
 
   std::string GetWalSegmentFileName(
-      const std::string& tablet_id,
-      uint64_t sequence_number) const;
+      const std::string& tabletId,
+      uint64_t sequenceNumber) const;
 
   // Return the directory where tablet superblocks should be stored.
   std::string GetTabletMetadataDir() const;
 
   // Return the path for a specific tablet's superblock.
-  std::string GetTabletMetadataPath(const std::string& tablet_id) const;
+  std::string GetTabletMetadataPath(const std::string& tabletId) const;
 
   // List the tablet IDs in the metadata directory.
-  Status ListTabletIds(std::vector<std::string>* tablet_ids);
+  Status ListTabletIds(std::vector<std::string>* tabletIds);
 
   // Return the path where InstanceMetadataPB is stored.
   std::string GetInstanceMetadataPath(const std::string& root) const;
@@ -207,19 +207,19 @@ class FsManager {
   }
 
   // Return the path where ConsensusMetadataPB is stored.
-  std::string GetConsensusMetadataPath(const std::string& tablet_id) const {
-    return JoinPathSegments(GetConsensusMetadataDir(), tablet_id);
+  std::string GetConsensusMetadataPath(const std::string& tabletId) const {
+    return JoinPathSegments(GetConsensusMetadataDir(), tabletId);
   }
 
   // Return the path where ProxyTopologyPB is stored.
-  std::string GetProxyMetadataPath(const std::string& tablet_id) const {
-    return JoinPathSegments(GetConsensusMetadataDir(), tablet_id + ".proxy");
+  std::string GetProxyMetadataPath(const std::string& tabletId) const {
+    return JoinPathSegments(GetConsensusMetadataDir(), tabletId + ".proxy");
   }
 
   // Return the path where PersistentVarsPB is stored.
-  std::string GetPersistentVarsPath(const std::string& tablet_id) const {
+  std::string GetPersistentVarsPath(const std::string& tabletId) const {
     return JoinPathSegments(
-        GetConsensusMetadataDir(), tablet_id + ".persistent_vars");
+        GetConsensusMetadataDir(), tabletId + ".persistent_vars");
   }
 
   Env* env() {
@@ -262,10 +262,10 @@ class FsManager {
   // 'created_files' respectively. It is the responsibility of the caller to
   // synchronize the directories containing these newly created file objects.
   Status createFileSystemRoots(
-      const CanonicalizedRootsList& canonicalized_roots,
+      const CanonicalizedRootsList& canonicalizedRoots,
       const InstanceMetadataPB& metadata,
-      std::vector<std::string>* created_dirs,
-      std::vector<std::string>* created_files);
+      std::vector<std::string>* createdDirs,
+      std::vector<std::string>* createdFiles);
 
   // Create a new InstanceMetadataPB.
   Status createInstanceMetadata(
