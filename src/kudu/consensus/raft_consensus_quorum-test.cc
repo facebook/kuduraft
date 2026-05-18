@@ -202,7 +202,7 @@ class RaftConsensusQuorumTest : public KuduTest {
               persistentVarsManagers_[i],
               raftPool_.get(),
               &peer));
-      peers_->AddPeer(config_.peers(i).permanent_uuid(), peer);
+      peers_->addPeer(config_.peers(i).permanent_uuid(), peer);
     }
     return Status::OK();
   }
@@ -210,17 +210,17 @@ class RaftConsensusQuorumTest : public KuduTest {
   Status startPeers() {
     auto bootInfo = std::make_shared<ConsensusBootstrapInfo>();
 
-    TestPeerMap allPeers = peers_->GetPeerMapCopy();
+    TestPeerMap allPeers = peers_->getPeerMapCopy();
     for (int i = 0; i < config_.peers_size(); i++) {
       shared_ptr<RaftConsensus> peer;
-      RETURN_NOT_OK(peers_->GetPeerByIdx(i, &peer));
+      RETURN_NOT_OK(peers_->getPeerByIdx(i, &peer));
 
       unique_ptr<PeerProxyFactory> proxyFactory(
           new LocalTestPeerProxyFactory(peers_.get()));
       std::shared_ptr<ITimeManager> timeManager =
           std::make_shared<TimeManager>(clock_, Timestamp::kMin);
       auto txnFactory = new TestTransactionFactory();
-      txnFactory->SetConsensus(peer.get());
+      txnFactory->setConsensus(peer.get());
       txnFactories_.push_back(txnFactory);
 
       RETURN_NOT_OK(peer->start(
@@ -249,21 +249,21 @@ class RaftConsensusQuorumTest : public KuduTest {
     // Automatically elect the last node in the list.
     const int kLeaderIdx = num - 1;
     shared_ptr<RaftConsensus> leader;
-    RETURN_NOT_OK(peers_->GetPeerByIdx(kLeaderIdx, &leader));
+    RETURN_NOT_OK(peers_->getPeerByIdx(kLeaderIdx, &leader));
     RETURN_NOT_OK(leader->emulateElection());
     return Status::OK();
   }
 
   LocalTestPeerProxy* getLeaderProxyToPeer(int peerIdx, int leaderIdx) {
     shared_ptr<RaftConsensus> follower;
-    CHECK_OK(peers_->GetPeerByIdx(peerIdx, &follower));
+    CHECK_OK(peers_->getPeerByIdx(peerIdx, &follower));
     shared_ptr<RaftConsensus> leader;
-    CHECK_OK(peers_->GetPeerByIdx(leaderIdx, &leader));
+    CHECK_OK(peers_->getPeerByIdx(leaderIdx, &leader));
     for (LocalTestPeerProxy* proxy :
          kudu::down_cast<LocalTestPeerProxyFactory*>(
              leader->peerProxyFactory_.get())
-             ->GetProxies()) {
-      if (proxy->GetTarget() == follower->peer_uuid()) {
+             ->getProxies()) {
+      if (proxy->getTarget() == follower->peer_uuid()) {
         return proxy;
       }
     }
@@ -280,7 +280,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     msg->set_timestamp(clock_->now().toUint64());
 
     shared_ptr<RaftConsensus> peer;
-    CHECK_OK(peers_->GetPeerByIdx(peerIdx, &peer));
+    CHECK_OK(peers_->getPeerByIdx(peerIdx, &peer));
 
     // Use a latch in place of a Transaction callback.
     unique_ptr<Synchronizer> sync(new Synchronizer());
@@ -330,7 +330,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   void waitForReplicateIfNotAlreadyPresent(const OpId& toWaitFor, int peerIdx) {
     shared_ptr<RaftConsensus> peer;
-    CHECK_OK(peers_->GetPeerByIdx(peerIdx, &peer));
+    CHECK_OK(peers_->getPeerByIdx(peerIdx, &peer));
     while (true) {
       if (OpIdCompare(peer->queue_->GetLastOpIdInLog(), toWaitFor) >= 0) {
         return;
@@ -350,7 +350,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     MonoTime start(MonoTime::Now());
 
     shared_ptr<RaftConsensus> peer;
-    CHECK_OK(peers_->GetPeerByIdx(peerIdx, &peer));
+    CHECK_OK(peers_->getPeerByIdx(peerIdx, &peer));
 
     int backoffExp = 0;
     const int kMaxBackoffExp = 8;
@@ -376,7 +376,7 @@ class RaftConsensusQuorumTest : public KuduTest {
                << committed.index() << ". Dumping state and quitting.";
     vector<string> lines;
     shared_ptr<RaftConsensus> leader;
-    CHECK_OK(peers_->GetPeerByIdx(leaderIdx, &leader));
+    CHECK_OK(peers_->getPeerByIdx(leaderIdx, &leader));
     for (const string& line : lines) {
       LOG(ERROR) << line;
     }
@@ -427,9 +427,9 @@ class RaftConsensusQuorumTest : public KuduTest {
 
     if (waitMode == kWaitForAllReplicas) {
       shared_ptr<RaftConsensus> leader;
-      CHECK_OK(peers_->GetPeerByIdx(leaderIdx, &leader));
+      CHECK_OK(peers_->getPeerByIdx(leaderIdx, &leader));
 
-      TestPeerMap allPeers = peers_->GetPeerMapCopy();
+      TestPeerMap allPeers = peers_->getPeerMapCopy();
       int i = 0;
       for (const TestPeerMap::value_type& entry : allPeers) {
         if (entry.second->peer_uuid() != leader->peer_uuid()) {
@@ -464,11 +464,11 @@ class RaftConsensusQuorumTest : public KuduTest {
     // Wait for in-flight transactions to be done. We're destroying the
     // peers next and leader transactions won't be able to commit anymore.
     for (TestTransactionFactory* factory : txnFactories_) {
-      factory->WaitDone();
+      factory->waitDone();
     }
 
     // Shut down all the peers.
-    TestPeerMap allPeers = peers_->GetPeerMapCopy();
+    TestPeerMap allPeers = peers_->getPeerMapCopy();
     for (const TestPeerMap::value_type& entry : allPeers) {
       entry.second->shutdown();
     }
@@ -476,7 +476,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     LogEntries leaderEntries;
     gatherLogEntries(*logs_[leaderIdx], &leaderEntries);
     shared_ptr<RaftConsensus> leader;
-    CHECK_OK(peers_->GetPeerByIdx(leaderIdx, &leader));
+    CHECK_OK(peers_->getPeerByIdx(leaderIdx, &leader));
 
     for (int replicaIdx = firstReplicaIdx; replicaIdx < lastReplicaIdx;
          replicaIdx++) {
@@ -484,7 +484,7 @@ class RaftConsensusQuorumTest : public KuduTest {
       gatherLogEntries(*logs_[replicaIdx], &replicaEntries);
 
       shared_ptr<RaftConsensus> replica;
-      CHECK_OK(peers_->GetPeerByIdx(replicaIdx, &replica));
+      CHECK_OK(peers_->getPeerByIdx(replicaIdx, &replica));
       verifyReplica(
           leaderEntries,
           replicaEntries,
@@ -600,7 +600,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   ~RaftConsensusQuorumTest() {
-    peers_->Clear();
+    peers_->clear();
     // TODO(modernization): Consider std::vector<std::unique_ptr<T>> for
     // automatic cleanup
     for (auto* ptr : txnFactories_) {
@@ -732,7 +732,7 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusContinuesIfAMinorityFallsBehind) {
     // lock one of the replicas down by obtaining the state lock
     // and never letting it go.
     shared_ptr<RaftConsensus> follower0;
-    CHECK_OK(peers_->GetPeerByIdx(kFollower0Idx, &follower0));
+    CHECK_OK(peers_->getPeerByIdx(kFollower0Idx, &follower0));
 
     RaftConsensus::LockGuard l(follower0->lock_);
 
@@ -777,11 +777,11 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
     // lock two of the replicas down by obtaining the state locks
     // and never letting them go.
     shared_ptr<RaftConsensus> follower0;
-    CHECK_OK(peers_->GetPeerByIdx(kFollower0Idx, &follower0));
+    CHECK_OK(peers_->getPeerByIdx(kFollower0Idx, &follower0));
     RaftConsensus::LockGuard l0(follower0->lock_);
 
     shared_ptr<RaftConsensus> follower1;
-    CHECK_OK(peers_->GetPeerByIdx(kFollower1Idx, &follower1));
+    CHECK_OK(peers_->getPeerByIdx(kFollower1Idx, &follower1));
     RaftConsensus::LockGuard l1(follower1->lock_);
 
     // Append a single message to the queue
@@ -822,15 +822,15 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
   // Append a dummy message, with faults injected on the first attempt
   // to send the message.
   std::shared_ptr<ConsensusRound> round;
-  getLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
-  getLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
+  getLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)->injectCommFaultLeaderSide();
+  getLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)->injectCommFaultLeaderSide();
   ASSERT_OK(appendDummyMessage(kLeaderIdx, &round));
 
   // We should successfully replicate it due to retries.
   ASSERT_OK(waitForReplicate(round.get()));
 
-  getLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
-  getLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
+  getLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)->injectCommFaultLeaderSide();
+  getLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)->injectCommFaultLeaderSide();
   ASSERT_OK(commitDummyMessage(round.get()));
 
   // The commit should eventually reach both followers as well.
@@ -852,10 +852,10 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
     // inject comm faults
     if (i % 2 == 0) {
       getLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)
-          ->InjectCommFaultLeaderSide();
+          ->injectCommFaultLeaderSide();
     } else {
       getLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)
-          ->InjectCommFaultLeaderSide();
+          ->injectCommFaultLeaderSide();
     }
 
     ASSERT_OK(waitForReplicate(roundPtr));
@@ -887,14 +887,14 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderHeartbeats) {
   ASSERT_OK(buildConfig(3));
 
   shared_ptr<RaftConsensus> follower0;
-  CHECK_OK(peers_->GetPeerByIdx(kFollower0Idx, &follower0));
+  CHECK_OK(peers_->getPeerByIdx(kFollower0Idx, &follower0));
   shared_ptr<RaftConsensus> follower1;
-  CHECK_OK(peers_->GetPeerByIdx(kFollower1Idx, &follower1));
+  CHECK_OK(peers_->getPeerByIdx(kFollower1Idx, &follower1));
 
   ASSERT_OK(startPeers());
 
   shared_ptr<RaftConsensus> leader;
-  CHECK_OK(peers_->GetPeerByIdx(kLeaderIdx, &leader));
+  CHECK_OK(peers_->getPeerByIdx(kLeaderIdx, &leader));
   ASSERT_OK(leader->emulateElection());
 
   // Wait for the config round to get committed and count the number
@@ -965,13 +965,13 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
     LOG(INFO) << "Shutting down current leader with index "
               << (currentConfigSize - 1);
     shared_ptr<RaftConsensus> currentLeader;
-    CHECK_OK(peers_->GetPeerByIdx(currentConfigSize - 1, &currentLeader));
+    CHECK_OK(peers_->getPeerByIdx(currentConfigSize - 1, &currentLeader));
     currentLeader->shutdown();
-    peers_->RemovePeer(currentLeader->peer_uuid());
+    peers_->removePeer(currentLeader->peer_uuid());
 
     // ... and make the peer before it become leader.
     shared_ptr<RaftConsensus> newLeader;
-    CHECK_OK(peers_->GetPeerByIdx(currentConfigSize - 2, &newLeader));
+    CHECK_OK(peers_->getPeerByIdx(currentConfigSize - 2, &newLeader));
 
     // This will force an election in which we expect to make the last
     // non-shutdown peer in the list become leader.
@@ -1039,10 +1039,10 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
   ConsensusResponsePB resp;
 
   shared_ptr<RaftConsensus> leader;
-  CHECK_OK(peers_->GetPeerByIdx(2, &leader));
+  CHECK_OK(peers_->getPeerByIdx(2, &leader));
 
   shared_ptr<RaftConsensus> follower;
-  CHECK_OK(peers_->GetPeerByIdx(0, &follower));
+  CHECK_OK(peers_->getPeerByIdx(0, &follower));
 
   req.set_caller_uuid(leader->peer_uuid());
   req.set_caller_term(lastOpId.term());
@@ -1110,7 +1110,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
 
   const int kPeerIndex = 1;
   shared_ptr<RaftConsensus> peer;
-  CHECK_OK(peers_->GetPeerByIdx(kPeerIndex, &peer));
+  CHECK_OK(peers_->getPeerByIdx(kPeerIndex, &peer));
   auto flushCount = [&]() {
     return peer->consensus_metadata_for_tests()->flushCountForTests();
   };

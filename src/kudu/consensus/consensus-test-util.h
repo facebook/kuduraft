@@ -577,7 +577,7 @@ class TestPeerMapManager {
   explicit TestPeerMapManager(RaftConfigPB config)
       : config_(std::move(config)) {}
 
-  void AddPeer(
+  void addPeer(
       const std::string& peer_uuid,
       const std::shared_ptr<RaftConsensus>& peer) {
     std::lock_guard<SimpleSpinlock> lock(lock_);
@@ -585,12 +585,12 @@ class TestPeerMapManager {
     CHECK(inserted);
   }
 
-  Status GetPeerByIdx(int idx, std::shared_ptr<RaftConsensus>* peer_out) const {
+  Status getPeerByIdx(int idx, std::shared_ptr<RaftConsensus>* peer_out) const {
     CHECK_LT(idx, config_.peers_size());
-    return GetPeerByUuid(config_.peers(idx).permanent_uuid(), peer_out);
+    return getPeerByUuid(config_.peers(idx).permanent_uuid(), peer_out);
   }
 
-  Status GetPeerByUuid(
+  Status getPeerByUuid(
       const std::string& peer_uuid,
       std::shared_ptr<RaftConsensus>* peer_out) const {
     std::lock_guard<SimpleSpinlock> lock(lock_);
@@ -600,17 +600,17 @@ class TestPeerMapManager {
     return Status::OK();
   }
 
-  void RemovePeer(const std::string& peer_uuid) {
+  void removePeer(const std::string& peer_uuid) {
     std::lock_guard<SimpleSpinlock> lock(lock_);
     peers_.erase(peer_uuid);
   }
 
-  TestPeerMap GetPeerMapCopy() const {
+  TestPeerMap getPeerMapCopy() const {
     std::lock_guard<SimpleSpinlock> lock(lock_);
     return peers_;
   }
 
-  void Clear() {
+  void clear() {
     // We create a copy of the peers before we clear 'peers_' so that there's
     // still a reference to each peer. If we reduce the reference count to 0
     // under the lock we might get a deadlock as on shutdown consensus
@@ -638,9 +638,9 @@ class LocalTestPeerProxy : public TestPeerProxy {
       ThreadPool* pool,
       TestPeerMapManager* peers)
       : TestPeerProxy(pool),
-        peer_uuid_(std::move(peer_uuid)),
+        peerUuid_(std::move(peer_uuid)),
         peers_(peers),
-        miss_comm_(false) {}
+        missComm_(false) {}
 
   virtual void updateAsync(
       const ConsensusRequestPB* request,
@@ -650,7 +650,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     registerCallback(kUpdate, callback);
     CHECK_OK(pool_->SubmitFunc(
         boost::bind(
-            &LocalTestPeerProxy::SendUpdateRequest, this, request, response)));
+            &LocalTestPeerProxy::sendUpdateRequest, this, request, response)));
   }
 
   Status startElection(
@@ -668,32 +668,32 @@ class LocalTestPeerProxy : public TestPeerProxy {
     registerCallback(kRequestVote, callback);
     CHECK_OK(pool_->SubmitFunc(
         boost::bind(
-            &LocalTestPeerProxy::SendVoteRequest, this, request, response)));
+            &LocalTestPeerProxy::sendVoteRequest, this, request, response)));
   }
 
   template <class Response>
-  void SetResponseError(const Status& status, Response* response) {
+  void setResponseError(const Status& status, Response* response) {
     ServerErrorPB* error = response->mutable_error();
     error->set_code(ServerErrorPB::UNKNOWN_ERROR);
     statusToPb(status, error->mutable_status());
   }
 
   template <class Request, class Response>
-  void RespondOrMissResponse(
+  void respondOrMissResponse(
       Request* request,
       const Response& response_temp,
       Response* final_response,
       Method method) {
-    bool miss_comm_copy;
+    bool missCommCopy;
     {
       std::lock_guard<SimpleSpinlock> lock(lock_);
-      miss_comm_copy = miss_comm_;
-      miss_comm_ = false;
+      missCommCopy = missComm_;
+      missComm_ = false;
     }
-    if (PREDICT_FALSE(miss_comm_copy)) {
+    if (PREDICT_FALSE(missCommCopy)) {
       VLOG(2) << this << ": injecting fault on "
               << pb_util::SecureShortDebugString(*request);
-      SetResponseError(
+      setResponseError(
           Status::IOError(
               "Artificial error caused by communication "
               "failure injection."),
@@ -704,7 +704,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     respond(method);
   }
 
-  void SendUpdateRequest(
+  void sendUpdateRequest(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response) {
     // Copy the request and the response for the other peer so that ownership
@@ -715,7 +715,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     // Give the other peer a clean response object to write to.
     ConsensusResponsePB other_peer_resp;
     std::shared_ptr<RaftConsensus> peer;
-    Status s = peers_->GetPeerByUuid(peer_uuid_, &peer);
+    Status s = peers_->getPeerByUuid(peerUuid_, &peer);
 
     if (s.ok()) {
       s = peer->update(&other_peer_req, &other_peer_resp);
@@ -728,14 +728,14 @@ class LocalTestPeerProxy : public TestPeerProxy {
       LOG(WARNING) << "Could not Update replica with request: "
                    << pb_util::SecureShortDebugString(other_peer_req)
                    << " Status: " << s.ToString();
-      SetResponseError(s, &other_peer_resp);
+      setResponseError(s, &other_peer_resp);
     }
 
     response->CopyFrom(other_peer_resp);
-    RespondOrMissResponse(request, other_peer_resp, response, kUpdate);
+    respondOrMissResponse(request, other_peer_resp, response, kUpdate);
   }
 
-  void SendVoteRequest(const VoteRequestPB* request, VoteResponsePB* response) {
+  void sendVoteRequest(const VoteRequestPB* request, VoteResponsePB* response) {
     // Copy the request and the response for the other peer so that ownership
     // remains as close to the dist. impl. as possible.
     VoteRequestPB other_peer_req;
@@ -744,7 +744,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     other_peer_resp.CopyFrom(*response);
 
     std::shared_ptr<RaftConsensus> peer;
-    Status s = peers_->GetPeerByUuid(peer_uuid_, &peer);
+    Status s = peers_->getPeerByUuid(peerUuid_, &peer);
 
     if (s.ok()) {
       s = peer->requestVote(
@@ -758,27 +758,27 @@ class LocalTestPeerProxy : public TestPeerProxy {
       LOG(WARNING) << "Could not RequestVote from replica with request: "
                    << pb_util::SecureShortDebugString(other_peer_req)
                    << " Status: " << s.ToString();
-      SetResponseError(s, &other_peer_resp);
+      setResponseError(s, &other_peer_resp);
     }
 
     response->CopyFrom(other_peer_resp);
-    RespondOrMissResponse(request, other_peer_resp, response, kRequestVote);
+    respondOrMissResponse(request, other_peer_resp, response, kRequestVote);
   }
 
-  void InjectCommFaultLeaderSide() {
+  void injectCommFaultLeaderSide() {
     VLOG(2) << this << ": injecting fault next time";
     std::lock_guard<SimpleSpinlock> lock(lock_);
-    miss_comm_ = true;
+    missComm_ = true;
   }
 
-  const std::string& GetTarget() const {
-    return peer_uuid_;
+  const std::string& getTarget() const {
+    return peerUuid_;
   }
 
  private:
-  const std::string peer_uuid_;
+  const std::string peerUuid_;
   TestPeerMapManager* const peers_;
-  bool miss_comm_;
+  bool missComm_;
 };
 
 class LocalTestPeerProxyFactory : public PeerProxyFactory {
@@ -800,7 +800,7 @@ class LocalTestPeerProxyFactory : public PeerProxyFactory {
     return Status::OK();
   }
 
-  const std::vector<LocalTestPeerProxy*>& GetProxies() {
+  const std::vector<LocalTestPeerProxy*>& getProxies() {
     return proxies_;
   }
 
@@ -826,23 +826,23 @@ class TestDriver {
   TestDriver(ThreadPool* pool, const std::shared_ptr<ConsensusRound>& round)
       : round_(round), pool_(pool) {}
 
-  void SetRound(const std::shared_ptr<ConsensusRound>& round) {
+  void setRound(const std::shared_ptr<ConsensusRound>& round) {
     round_ = round;
   }
 
   // Does nothing but enqueue the Apply
-  void ReplicationFinished(const Status& status) {
+  void replicationFinished(const Status& status) {
     if (status.IsAborted()) {
-      Cleanup();
+      cleanup();
       return;
     }
     CHECK_OK(status);
-    CHECK_OK(pool_->SubmitFunc(boost::bind(&TestDriver::Apply, this)));
+    CHECK_OK(pool_->SubmitFunc(boost::bind(&TestDriver::apply, this)));
   }
 
   // Called in all modes to delete the transaction and, transitively, the
   // consensus round.
-  void Cleanup() {
+  void cleanup() {
     delete this;
   }
 
@@ -851,11 +851,11 @@ class TestDriver {
  private:
   // The commit message has the exact same type of the replicate message, but
   // no content.
-  void Apply() {
+  void apply() {
     std::unique_ptr<CommitMsg> msg(new CommitMsg);
     msg->set_op_type(round_->replicate_msg()->op_type());
     msg->mutable_commited_op_id()->CopyFrom(round_->id());
-    Cleanup();
+    cleanup();
   }
 
   ThreadPool* pool_;
@@ -870,7 +870,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
         ThreadPoolBuilder("test-txn-factory").setMaxThreads(1).build(&pool_));
   }
 
-  void SetConsensus(RaftConsensus* consensus) {
+  void setConsensus(RaftConsensus* consensus) {
     consensus_ = consensus;
   }
 
@@ -879,7 +879,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
     auto txn = new TestDriver(pool_.get(), round);
     txn->round_->SetConsensusReplicatedCallback(
         std::bind(
-            &TestDriver::ReplicationFinished, txn, std::placeholders::_1));
+            &TestDriver::replicationFinished, txn, std::placeholders::_1));
     return Status::OK();
   }
 
@@ -894,21 +894,21 @@ class TestTransactionFactory : public ConsensusRoundHandler {
     return true;
   }
 
-  void ReplicateAsync(const std::shared_ptr<ConsensusRound>& round) {
+  void replicateAsync(const std::shared_ptr<ConsensusRound>& round) {
     CHECK_OK(consensus_->replicate(round));
   }
 
-  void WaitDone() {
+  void waitDone() {
     waitForPool(*pool_);
   }
 
-  void ShutDown() {
-    WaitDone();
+  void shutDown() {
+    waitDone();
     pool_->Shutdown();
   }
 
   ~TestTransactionFactory() {
-    ShutDown();
+    shutDown();
   }
 
  private:
