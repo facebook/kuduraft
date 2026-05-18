@@ -38,9 +38,9 @@ class RpcService {
   RpcService& operator=(RpcService&&) = delete;
 
   // Enqueue a call for processing.
-  // On failure, the RpcService::QueueInboundCall() implementation is
+  // On failure, the RpcService::queueInboundCall() implementation is
   // responsible for responding to the client with a failure message.
-  virtual Status QueueInboundCall(std::unique_ptr<InboundCall> call) = 0;
+  virtual Status queueInboundCall(std::unique_ptr<InboundCall> call) = 0;
 
   // Look up the method being requested by the remote call.
   // Returns a raw pointer to the RpcMethodInfo. The lifetime is guaranteed
@@ -50,9 +50,9 @@ class RpcService {
     return nullptr;
   }
 
-  virtual void NotifyLongCallLoading(const RemoteMethod& method) = 0;
+  virtual void notifyLongCallLoading(const RemoteMethod& method) = 0;
 
-  virtual void NotifyLongCallLoaded(const RemoteMethod& method) = 0;
+  virtual void notifyLongCallLoaded(const RemoteMethod& method) = 0;
 };
 
 } // namespace rpc

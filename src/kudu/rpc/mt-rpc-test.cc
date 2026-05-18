@@ -151,7 +151,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
 
   // Shut down server.
   serverMessenger_->UnregisterAllServices();
-  servicePool_->Shutdown();
+  servicePool_->shutdown();
   serverMessenger_->Shutdown();
 
   for (int i = 0; i < kNumThreads; i++) {
@@ -277,7 +277,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   // The rest would time out after 10 sec, but we help them along.
   serverMessenger_->UnregisterAllServices();
-  servicePool_->Shutdown();
+  servicePool_->shutdown();
   serverMessenger_->Shutdown();
 
   for (const auto& thread : threads) {
@@ -351,7 +351,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
 
   // Shutdown while there are still new connections appearing.
   serverMessenger_->UnregisterAllServices();
-  servicePool_->Shutdown();
+  servicePool_->shutdown();
   serverMessenger_->Shutdown();
 
   for (std::shared_ptr<kudu::Thread>& t : threads) {

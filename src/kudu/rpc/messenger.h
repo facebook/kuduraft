@@ -234,7 +234,7 @@ class Messenger {
   void queueOutboundCall(const std::shared_ptr<OutboundCall>& call);
 
   // Enqueue a call for processing on the server.
-  void QueueInboundCall(std::unique_ptr<InboundCall> call);
+  void queueInboundCall(std::unique_ptr<InboundCall> call);
 
   // Queue a cancellation for the given outbound call.
   void queueCancellation(const std::shared_ptr<OutboundCall>& call);

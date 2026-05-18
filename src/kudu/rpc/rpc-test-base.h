@@ -130,8 +130,8 @@ class GenericCalculatorService : public ServiceIf {
     }
   }
 
-  void NotifyLongCallLoading(const RemoteMethod& method) {}
-  void NotifyLongCallLoaded(const RemoteMethod& method) {}
+  void notifyLongCallLoading(const RemoteMethod& method) {}
+  void notifyLongCallLoaded(const RemoteMethod& method) {}
 
   std::string serviceName() const override {
     return kFullServiceName;
@@ -476,7 +476,7 @@ class RpcTestBase : public KuduTest {
     }
     if (servicePool_) {
       serverMessenger_->UnregisterAllServices();
-      servicePool_->Shutdown();
+      servicePool_->shutdown();
     }
     if (serverMessenger_) {
       serverMessenger_->Shutdown();

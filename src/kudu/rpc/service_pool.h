@@ -73,15 +73,15 @@ class ServicePool : public RpcService {
   virtual Status init(int numThreads);
 
   // Shut down the queue and the thread pool.
-  virtual void Shutdown();
+  virtual void shutdown();
 
   RpcMethodInfo* lookupMethod(const RemoteMethod& method) override;
 
-  virtual Status QueueInboundCall(std::unique_ptr<InboundCall> call) override;
+  virtual Status queueInboundCall(std::unique_ptr<InboundCall> call) override;
 
-  virtual void NotifyLongCallLoading(const RemoteMethod& method) override;
+  virtual void notifyLongCallLoading(const RemoteMethod& method) override;
 
-  virtual void NotifyLongCallLoaded(const RemoteMethod& method) override;
+  virtual void notifyLongCallLoaded(const RemoteMethod& method) override;
 
   const Counter* rpcsTimedOutInQueueMetricForTests() const {
     return rpcsTimedOutInQueue_.get();

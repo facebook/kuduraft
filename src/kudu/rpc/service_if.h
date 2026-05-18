@@ -81,8 +81,8 @@ class ServiceIf {
  public:
   virtual ~ServiceIf();
   virtual void Handle(InboundCall* incoming) = 0;
-  virtual void NotifyLongCallLoading(const RemoteMethod& method) = 0;
-  virtual void NotifyLongCallLoaded(const RemoteMethod& method) = 0;
+  virtual void notifyLongCallLoading(const RemoteMethod& method) = 0;
+  virtual void notifyLongCallLoaded(const RemoteMethod& method) = 0;
   virtual void Shutdown();
   virtual std::string serviceName() const = 0;
 
@@ -127,9 +127,9 @@ class GeneratedServiceIf : public ServiceIf {
   // If no such method is found, responds with an error.
   void Handle(InboundCall* incoming) override;
 
-  void NotifyLongCallLoading(const RemoteMethod& method) override;
+  void notifyLongCallLoading(const RemoteMethod& method) override;
 
-  void NotifyLongCallLoaded(const RemoteMethod& method) override;
+  void notifyLongCallLoaded(const RemoteMethod& method) override;
 
   RpcMethodInfo* lookupMethod(const RemoteMethod& method) override;
 

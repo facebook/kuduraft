@@ -658,7 +658,7 @@ void Connection::handleIncomingCall(unique_ptr<InboundTransfer> transfer) {
     return;
   }
 
-  reactorThread_->reactor()->messenger()->QueueInboundCall(std::move(call));
+  reactorThread_->reactor()->messenger()->queueInboundCall(std::move(call));
 }
 
 void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {

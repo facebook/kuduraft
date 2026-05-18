@@ -153,20 +153,20 @@ RpcMethodInfo* GeneratedServiceIf::lookupMethod(const RemoteMethod& method) {
   return it->second.get();
 }
 
-void GeneratedServiceIf::NotifyLongCallLoading(const RemoteMethod& method) {
+void GeneratedServiceIf::notifyLongCallLoading(const RemoteMethod& method) {
   RpcMethodInfo* methodInfo = lookupMethod(method);
   if (!methodInfo) {
-    VLOG(2) << "[NotifyLongCallLoading] No method found for "
+    VLOG(2) << "[notifyLongCallLoading] No method found for "
             << method.toString();
     return;
   }
   methodInfo->longCallLoadingHook();
 }
 
-void GeneratedServiceIf::NotifyLongCallLoaded(const RemoteMethod& method) {
+void GeneratedServiceIf::notifyLongCallLoaded(const RemoteMethod& method) {
   RpcMethodInfo* methodInfo = lookupMethod(method);
   if (!methodInfo) {
-    VLOG(2) << "[NotifyLongCallLoading] No method found for "
+    VLOG(2) << "[notifyLongCallLoading] No method found for "
             << method.toString();
     return;
   }

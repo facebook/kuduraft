@@ -88,7 +88,7 @@ ServicePool::ServicePool(
       loggedBusy_(false) {}
 
 ServicePool::~ServicePool() {
-  Shutdown();
+  shutdown();
 }
 
 Status ServicePool::init(int numThreads) {
@@ -106,7 +106,7 @@ Status ServicePool::init(int numThreads) {
   return Status::OK();
 }
 
-void ServicePool::Shutdown() {
+void ServicePool::shutdown() {
   serviceQueue_.shutdown();
 
   MutexLock lock(shutdownLock_);
@@ -164,7 +164,7 @@ RpcMethodInfo* ServicePool::lookupMethod(const RemoteMethod& method) {
   return service_->lookupMethod(method);
 }
 
-Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
+Status ServicePool::queueInboundCall(unique_ptr<InboundCall> call) {
   InboundCall* c = call.release();
 
   vector<uint32_t> unsupportedFeatures;
@@ -220,12 +220,12 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   return status;
 }
 
-void ServicePool::NotifyLongCallLoading(const RemoteMethod& method) {
-  service_->NotifyLongCallLoading(method);
+void ServicePool::notifyLongCallLoading(const RemoteMethod& method) {
+  service_->notifyLongCallLoading(method);
 }
 
-void ServicePool::NotifyLongCallLoaded(const RemoteMethod& method) {
-  service_->NotifyLongCallLoaded(method);
+void ServicePool::notifyLongCallLoaded(const RemoteMethod& method) {
+  service_->notifyLongCallLoaded(method);
 }
 
 void ServicePool::runThread() {

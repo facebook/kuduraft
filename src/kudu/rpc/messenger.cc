@@ -301,7 +301,7 @@ void Messenger::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
   reactor->queueOutboundCall(call);
 }
 
-void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
+void Messenger::queueInboundCall(unique_ptr<InboundCall> call) {
   auto rpcService = rpcService_.load();
   if (PREDICT_FALSE(rpcService == nullptr)) {
     Status s = Status::ServiceUnavailable(
@@ -318,7 +318,7 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
 
   // The RpcService will respond to the client on success or failure.
   WARN_NOT_OK(
-      rpcService->QueueInboundCall(std::move(call)),
+      rpcService->queueInboundCall(std::move(call)),
       "Unable to handle RPC call");
 }
 
@@ -344,10 +344,10 @@ std::function<void()> Messenger::SignalLongInboundCall(
   }
   RemoteMethod remoteMethod = {std::move(service), std::move(method)};
 
-  rpcService->NotifyLongCallLoading(remoteMethod);
+  rpcService->notifyLongCallLoading(remoteMethod);
   return [rpcService = std::move(rpcService),
           remoteMethod = std::move(remoteMethod)]() {
-    rpcService->NotifyLongCallLoaded(remoteMethod);
+    rpcService->notifyLongCallLoaded(remoteMethod);
   };
 }
 
