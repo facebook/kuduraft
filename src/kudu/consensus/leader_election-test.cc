@@ -259,7 +259,7 @@ unique_ptr<VoteCounter> LeaderElectionTest::initVoteCounter(
     bool duplicate;
     VoteInfo voteInfo;
     voteInfo.vote = VOTE_GRANTED;
-    CHECK_OK(counter->RegisterVote(candidateUuid_, voteInfo, &duplicate));
+    CHECK_OK(counter->registerVote(candidateUuid_, voteInfo, &duplicate));
     CHECK(!duplicate);
   }
   return counter;
@@ -608,7 +608,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
 
   // Self vote for the candidate.
   bool isCandidateDuplicate = false;
-  auto status = jointCounter->RegisterVote(
+  auto status = jointCounter->registerVote(
       candidateUuid_, {VOTE_GRANTED}, &isCandidateDuplicate);
   EXPECT_TRUE(status.ok()) << status.ToString();
   EXPECT_FALSE(isCandidateDuplicate);
@@ -680,7 +680,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
 
   // Self vote for the candidate.
   bool isCandidateDuplicate = false;
-  auto status = jointCounter->RegisterVote(
+  auto status = jointCounter->registerVote(
       candidateUuid_, {VOTE_GRANTED}, &isCandidateDuplicate);
   EXPECT_TRUE(status.ok()) << status.ToString();
   EXPECT_FALSE(isCandidateDuplicate);
@@ -717,7 +717,7 @@ class VoteCounterTest : public KuduTest {
 };
 
 void VoteCounterTest::assertUndecided(const VoteCounter& counter) {
-  ElectionDecisionState decisionState = counter.GetDecision();
+  ElectionDecisionState decisionState = counter.getDecision();
   ASSERT_FALSE(decisionState.decided());
 }
 
@@ -725,9 +725,9 @@ void VoteCounterTest::assertVoteCount(
     const VoteCounter& counter,
     int yesVotes,
     int noVotes) {
-  ASSERT_EQ(yesVotes, counter.yes_votes_);
-  ASSERT_EQ(noVotes, counter.no_votes_);
-  ASSERT_EQ(yesVotes + noVotes, counter.GetTotalVotesCounted());
+  ASSERT_EQ(yesVotes, counter.yesVotes_);
+  ASSERT_EQ(noVotes, counter.noVotes_);
+  ASSERT_EQ(yesVotes + noVotes, counter.getTotalVotesCounted());
 }
 
 // Test basic vote counting functionality with an early majority.
@@ -742,26 +742,26 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     VoteCounter counter(kNumVoters, kMajoritySize);
     ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 0, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // First yes vote.
     bool duplicate;
     VoteInfo voteInfo;
     voteInfo.vote = VOTE_GRANTED;
-    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // Second yes vote wins it in a configuration of 3.
-    ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[1], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
-    ElectionDecisionState decisionState = counter.GetDecision();
+    ElectionDecisionState decisionState = counter.getDecision();
     ASSERT_TRUE(decisionState.decided());
     ASSERT_EQ(decisionState.decision, ElectionDecision::WON);
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 2, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
   }
 
   // "No" decision.
@@ -770,26 +770,26 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     VoteCounter counter(kNumVoters, kMajoritySize);
     ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 0, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // First no vote.
     bool duplicate;
     VoteInfo voteInfo;
     voteInfo.vote = VOTE_DENIED;
-    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 0, 1));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // Second no vote loses it in a configuration of 3.
-    ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[1], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
-    ElectionDecisionState decisionState = counter.GetDecision();
+    ElectionDecisionState decisionState = counter.getDecision();
     ASSERT_TRUE(decisionState.decided());
     ASSERT_EQ(decisionState.decision, ElectionDecision::LOST);
     ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 0, 2));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
   }
 }
 
@@ -804,75 +804,75 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   VoteCounter counter(kNumVoters, kMajoritySize);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 0, 0));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   // Add single yes vote, still undecided.
   bool duplicate;
   VoteInfo voteInfo;
   voteInfo.vote = VOTE_GRANTED;
-  ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
+  ASSERT_OK(counter.registerVote(voterUuids[0], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   // Attempt duplicate vote.
-  ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
+  ASSERT_OK(counter.registerVote(voterUuids[0], voteInfo, &duplicate));
   ASSERT_TRUE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   // Attempt to change vote.
   voteInfo.vote = VOTE_DENIED;
-  Status s = counter.RegisterVote(voterUuids[0], voteInfo, &duplicate);
+  Status s = counter.registerVote(voterUuids[0], voteInfo, &duplicate);
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_STR_CONTAINS(s.ToString(), "voted a different way twice");
   LOG(INFO) << "Expected vote-changed error: " << s.ToString();
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 0));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   // Add more votes...
-  ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
+  ASSERT_OK(counter.registerVote(voterUuids[1], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 1, 1));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   voteInfo.vote = VOTE_GRANTED;
-  ASSERT_OK(counter.RegisterVote(voterUuids[2], voteInfo, &duplicate));
+  ASSERT_OK(counter.registerVote(voterUuids[2], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 2, 1));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   voteInfo.vote = VOTE_DENIED;
-  ASSERT_OK(counter.RegisterVote(voterUuids[3], voteInfo, &duplicate));
+  ASSERT_OK(counter.registerVote(voterUuids[3], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
   ASSERT_NO_FATAL_FAILURE(assertUndecided(counter));
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 2, 2));
-  ASSERT_FALSE(counter.AreAllVotesIn());
+  ASSERT_FALSE(counter.areAllVotesIn());
 
   // Win the election.
   voteInfo.vote = VOTE_GRANTED;
-  ASSERT_OK(counter.RegisterVote(voterUuids[4], voteInfo, &duplicate));
+  ASSERT_OK(counter.registerVote(voterUuids[4], voteInfo, &duplicate));
   ASSERT_FALSE(duplicate);
-  ElectionDecisionState decisionState = counter.GetDecision();
+  ElectionDecisionState decisionState = counter.getDecision();
   ASSERT_TRUE(decisionState.decided());
   ASSERT_EQ(decisionState.decision, ElectionDecision::WON);
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 3, 2));
-  ASSERT_TRUE(counter.AreAllVotesIn());
+  ASSERT_TRUE(counter.areAllVotesIn());
 
   // Attempt to vote with > the whole configuration.
-  s = counter.RegisterVote("some-random-node", voteInfo, &duplicate);
+  s = counter.registerVote("some-random-node", voteInfo, &duplicate);
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_STR_CONTAINS(
       s.ToString(), "cause the number of votes to exceed the expected number");
   LOG(INFO) << "Expected voters-exceeded error: " << s.ToString();
-  ASSERT_TRUE(counter.GetDecision().decided());
+  ASSERT_TRUE(counter.getDecision().decided());
   ASSERT_NO_FATAL_FAILURE(assertVoteCount(counter, 3, 2));
-  ASSERT_TRUE(counter.AreAllVotesIn());
+  ASSERT_TRUE(counter.areAllVotesIn());
 }
 
 // Test vote counting with an even number of voters.
@@ -886,26 +886,26 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     VoteCounter counter(kNumVoters, kMajoritySize);
     NO_FATALS(assertUndecided(counter));
     NO_FATALS(assertVoteCount(counter, 0, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // Initial yes vote.
     bool duplicate;
     VoteInfo voteInfo;
     voteInfo.vote = VOTE_GRANTED;
-    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
     NO_FATALS(assertUndecided(counter));
     NO_FATALS(assertVoteCount(counter, 1, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // Second yes vote wins it.
-    ASSERT_OK(counter.RegisterVote(voterUuids[1], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[1], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
-    ElectionDecisionState decisionState = counter.GetDecision();
+    ElectionDecisionState decisionState = counter.getDecision();
     ASSERT_TRUE(decisionState.decided());
     ASSERT_EQ(decisionState.decision, ElectionDecision::WON);
     NO_FATALS(assertVoteCount(counter, 2, 0));
-    ASSERT_TRUE(counter.AreAllVotesIn());
+    ASSERT_TRUE(counter.areAllVotesIn());
   }
 
   // "No" decision.
@@ -913,19 +913,19 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     VoteCounter counter(kNumVoters, kMajoritySize);
     NO_FATALS(assertUndecided(counter));
     NO_FATALS(assertVoteCount(counter, 0, 0));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
 
     // The first "no" vote guarantees a failed election when num voters == 2.
     bool duplicate;
     VoteInfo voteInfo;
     voteInfo.vote = VOTE_DENIED;
-    ASSERT_OK(counter.RegisterVote(voterUuids[0], voteInfo, &duplicate));
+    ASSERT_OK(counter.registerVote(voterUuids[0], voteInfo, &duplicate));
     ASSERT_FALSE(duplicate);
-    ElectionDecisionState decisionState = counter.GetDecision();
+    ElectionDecisionState decisionState = counter.getDecision();
     ASSERT_TRUE(decisionState.decided());
     ASSERT_EQ(decisionState.decision, ElectionDecision::LOST);
     NO_FATALS(assertVoteCount(counter, 0, 1));
-    ASSERT_FALSE(counter.AreAllVotesIn());
+    ASSERT_FALSE(counter.areAllVotesIn());
   }
 }
 

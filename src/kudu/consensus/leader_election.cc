@@ -201,17 +201,17 @@ bool ElectionDecisionState::decided() const {
 ///////////////////////////////////////////////////
 
 VoteCounter::VoteCounter(int num_voters, int majority_size)
-    : num_voters_(num_voters),
-      is_candidate_removed_(false),
-      majority_size_(majority_size),
-      yes_votes_(0),
-      no_votes_(0) {
+    : numVoters_(num_voters),
+      isCandidateRemoved_(false),
+      majoritySize_(majority_size),
+      yesVotes_(0),
+      noVotes_(0) {
   CHECK_LE(majority_size, num_voters);
-  CHECK_GT(num_voters_, 0);
-  CHECK_GT(majority_size_, 0);
+  CHECK_GT(numVoters_, 0);
+  CHECK_GT(majoritySize_, 0);
 }
 
-Status VoteCounter::RegisterVote(
+Status VoteCounter::registerVote(
     const std::string& voter_uuid,
     const VoteInfo& vote_info,
     bool* is_duplicate) {
@@ -236,14 +236,14 @@ Status VoteCounter::RegisterVote(
   }
 
   // Sanity check to ensure we did not exceed the allowed number of voters.
-  if (PREDICT_FALSE(yes_votes_ + no_votes_ == num_voters_)) {
+  if (PREDICT_FALSE(yesVotes_ + noVotes_ == numVoters_)) {
     // More unique voters than allowed!
     return Status::InvalidArgument(
         fmt::format(
             "Vote from peer {} would cause the number of votes to exceed the expected number of "
             "voters, which is {}. Votes already received from the following peers: {{{}}}",
             voter_uuid,
-            num_voters_,
+            numVoters_,
             joinKeysIterator(votes_.begin(), votes_.end(), ", ")));
   }
 
@@ -252,22 +252,21 @@ Status VoteCounter::RegisterVote(
   CHECK(inserted);
   switch (vote_info.vote) {
     case VOTE_GRANTED:
-      ++yes_votes_;
+      ++yesVotes_;
       break;
     case VOTE_DENIED:
-      is_candidate_removed_ =
-          is_candidate_removed_ || vote_info.isCandidateRemoved;
-      ++no_votes_;
+      isCandidateRemoved_ = isCandidateRemoved_ || vote_info.isCandidateRemoved;
+      ++noVotes_;
       break;
   }
   *is_duplicate = false;
   return Status::OK();
 }
 
-ElectionDecisionState VoteCounter::GetDecision() const {
-  if (yes_votes_ >= majority_size_) {
+ElectionDecisionState VoteCounter::getDecision() const {
+  if (yesVotes_ >= majoritySize_) {
     return {ElectionDecision::WON, ElectionDecisionMethod::SIMPLE_MAJORITY};
-  } else if (no_votes_ > num_voters_ - majority_size_) {
+  } else if (noVotes_ > numVoters_ - majoritySize_) {
     return {ElectionDecision::LOST, ElectionDecisionMethod::SIMPLE_MAJORITY};
   } else {
     return {
@@ -275,25 +274,25 @@ ElectionDecisionState VoteCounter::GetDecision() const {
   }
 }
 
-bool VoteCounter::IsCandidateRemoved() const {
-  return is_candidate_removed_;
+bool VoteCounter::isCandidateRemoved() const {
+  return isCandidateRemoved_;
 }
 
-int VoteCounter::GetTotalVotesCounted() const {
-  return yes_votes_ + no_votes_;
+int VoteCounter::getTotalVotesCounted() const {
+  return yesVotes_ + noVotes_;
 }
 
-bool VoteCounter::AreAllVotesIn() const {
-  return GetTotalVotesCounted() == num_voters_;
+bool VoteCounter::areAllVotesIn() const {
+  return getTotalVotesCounted() == numVoters_;
 }
 
 std::string VoteCounter::printableVoteTally(
     const ElectionDecisionState&) const {
-  int yes = yes_votes_;
-  int no = no_votes_;
-  int absent = num_voters_ - GetTotalVotesCounted();
-  int required = majority_size_;
-  int total = num_voters_;
+  int yes = yesVotes_;
+  int no = noVotes_;
+  int absent = numVoters_ - getTotalVotesCounted();
+  int required = majoritySize_;
+  int total = numVoters_;
 
   return fmt::format(
       "[R] {}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
@@ -379,7 +378,7 @@ FlexibleVoteCounter::FlexibleVoteCounter(
       last_known_leader_(std::move(last_known_leader)),
       config_(std::move(config)),
       creation_time_(std::chrono::system_clock::now()) {
-  num_voters_ = 0;
+  numVoters_ = 0;
 
   // Computes voter distribution and uuid to region map.
   FetchTopologyInfo();
@@ -392,14 +391,14 @@ FlexibleVoteCounter::FlexibleVoteCounter(
     if (adjust_voter_distribution_ && regional_voter_count.second <= 0) {
       continue;
     }
-    // num_voters_ += regional_voter_count.second;
+    // numVoters_ += regional_voter_count.second;
     yes_vote_count_.emplace(regional_voter_count.first, 0);
     no_vote_count_.emplace(regional_voter_count.first, 0);
   }
 
-  // Its critical that we count num_voters_ based on current voter list
+  // Its critical that we count numVoters_ based on current voter list
   // as voter_distribution_ can be greater or less than current voter list
-  num_voters_ = uuid_to_quorum_id_.size();
+  numVoters_ = uuid_to_quorum_id_.size();
   for (const auto& [uuid, quorum_id] : uuid_to_quorum_id_) {
     auto quorum_id_itr = num_voters_per_quorum_id_.find(quorum_id);
     if (quorum_id_itr == num_voters_per_quorum_id_.end()) {
@@ -409,17 +408,17 @@ FlexibleVoteCounter::FlexibleVoteCounter(
     }
   }
 
-  K_CHECK(num_voters_ > 0, election_num_voters, "No voters in the ring");
+  K_CHECK(numVoters_ > 0, election_num_voters, "No voters in the ring");
 }
 
-Status FlexibleVoteCounter::RegisterVote(
+Status FlexibleVoteCounter::registerVote(
     const std::string& voter_uuid,
     const VoteInfo& vote_info,
     bool* is_duplicate) {
   // The base function returns error if a voter has changed his
   // mind. We return error in that case and return early
   // in case this vote is a duplicate
-  Status s = VoteCounter::RegisterVote(voter_uuid, vote_info, is_duplicate);
+  Status s = VoteCounter::registerVote(voter_uuid, vote_info, is_duplicate);
   RETURN_NOT_OK(s);
 
   // No book-keeping required for duplicate votes.
@@ -1069,7 +1068,7 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
             << "Waiting for more votes. Election result hasn't been "
             << "determined. Election term: " << election_term_;
         return {
-            AreAllVotesIn() ? ElectionDecision::LOST
+            areAllVotesIn() ? ElectionDecision::LOST
                             : ElectionDecision::UNDECIDED,
             ElectionDecisionMethod::VOTER_HISTORY,
             std::move(next_leader_regions)};
@@ -1135,7 +1134,7 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
         ElectionDecision::LOST,
         ElectionDecisionMethod::INVALIDATED_BY_HIGHER_TERM};
   }
-  bool all_votes_are_in = AreAllVotesIn();
+  bool all_votes_are_in = areAllVotesIn();
   if (all_votes_are_in) {
     LOG_WITH_PREFIX(INFO) << "All expected number of votes are in";
   }
@@ -1283,7 +1282,7 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
   return result;
 }
 
-ElectionDecisionState FlexibleVoteCounter::GetDecision() const {
+ElectionDecisionState FlexibleVoteCounter::getDecision() const {
   return GetDynamicQuorumDecision();
 }
 
@@ -1360,8 +1359,8 @@ JointConsensusVoteCounter::JointConsensusVoteCounter(
     const RaftConfigPB& active_transitional_config,
     std::unique_ptr<VoteCounter> old_conf_vote_counter,
     std::unique_ptr<VoteCounter> new_conf_vote_counter)
-    : // JointConsensusVoteCounter does not directly use `num_voters_` and
-      // `majority_size_` from the base VoteCounter class. It is sufficient to
+    : // JointConsensusVoteCounter does not directly use `numVoters_` and
+      // `majoritySize_` from the base VoteCounter class. It is sufficient to
       // set them to 1 here, similar to FlexibleVoteCounter.
       VoteCounter(1, 1),
       voter_map_(
@@ -1380,7 +1379,7 @@ JointConsensusVoteCounter::JointConsensusVoteCounter(
 
   // The number of voters is the union of voters in old and new config.
   CHECK_GT(voter_map_.size(), 0);
-  num_voters_ = voter_map_.size();
+  numVoters_ = voter_map_.size();
 }
 
 JointConsensusVoteCounter::VoterConfigMap
@@ -1421,7 +1420,7 @@ JointConsensusVoteCounter::PopulateVoterConfigMapping(
   return mapping;
 }
 
-Status JointConsensusVoteCounter::RegisterVote(
+Status JointConsensusVoteCounter::registerVote(
     const std::string& voter_uuid,
     const VoteInfo& vote_info,
     bool* is_duplicate) {
@@ -1430,7 +1429,7 @@ Status JointConsensusVoteCounter::RegisterVote(
   // The base function returns error if a voter has changed his
   // mind. We return error in that case and return early
   // in case this vote is a duplicate
-  Status s = VoteCounter::RegisterVote(voter_uuid, vote_info, is_duplicate);
+  Status s = VoteCounter::registerVote(voter_uuid, vote_info, is_duplicate);
   RETURN_NOT_OK(s);
 
   // No book-keeping required for duplicate votes.
@@ -1453,18 +1452,18 @@ Status JointConsensusVoteCounter::RegisterVote(
   VoterConfigMembership voter_config_membership = it->second;
   switch (voter_config_membership) {
     case VoterConfigMembership::OLD_CONFIG_ONLY:
-      return old_conf_vote_counter_->RegisterVote(
+      return old_conf_vote_counter_->registerVote(
           voter_uuid, vote_info, is_duplicate);
     case VoterConfigMembership::NEW_CONFIG_ONLY:
-      return new_conf_vote_counter_->RegisterVote(
+      return new_conf_vote_counter_->registerVote(
           voter_uuid, vote_info, is_duplicate);
     case VoterConfigMembership::OLD_AND_NEW_CONFIG: {
       // Register the vote in both the old and new config vote counters.
       bool is_duplicate_old_conf = false;
       bool is_duplicate_new_conf = false;
-      Status old_conf_stat = old_conf_vote_counter_->RegisterVote(
+      Status old_conf_stat = old_conf_vote_counter_->registerVote(
           voter_uuid, vote_info, &is_duplicate_old_conf);
-      Status new_conf_stat = new_conf_vote_counter_->RegisterVote(
+      Status new_conf_stat = new_conf_vote_counter_->registerVote(
           voter_uuid, vote_info, &is_duplicate_new_conf);
       CHECK_EQ(old_conf_stat.ok(), new_conf_stat.ok())
           << "Failed to register the vote in both of the underlying"
@@ -1486,9 +1485,9 @@ Status JointConsensusVoteCounter::RegisterVote(
   return Status::OK();
 }
 
-ElectionDecisionState JointConsensusVoteCounter::GetDecision() const {
-  ElectionDecisionState old_conf_dcsn = old_conf_vote_counter_->GetDecision();
-  ElectionDecisionState new_conf_dcsn = new_conf_vote_counter_->GetDecision();
+ElectionDecisionState JointConsensusVoteCounter::getDecision() const {
+  ElectionDecisionState old_conf_dcsn = old_conf_vote_counter_->getDecision();
+  ElectionDecisionState new_conf_dcsn = new_conf_vote_counter_->getDecision();
   LOG(INFO) << "Joint-consensus election: combining decision from old_config ("
             << old_conf_vote_counter_->printableVoteTally(old_conf_dcsn)
             << ") and new_config ("
@@ -1692,14 +1691,14 @@ void LeaderElection::Run() {
 
   // Ensure that the candidate has already voted for itself.
   K_CHECK(
-      vote_counter_->GetTotalVotesCounted() == 1,
+      vote_counter_->getTotalVotesCounted() == 1,
       election_candidate_vote,
       "Candidate must vote for itself first");
 
   // Ensure that existing votes + future votes add up to the expected total.
   K_CHECK(
-      vote_counter_->GetTotalVotesCounted() + other_voter_uuids.size() ==
-          vote_counter_->GetTotalExpectedVotes(),
+      vote_counter_->getTotalVotesCounted() + other_voter_uuids.size() ==
+          vote_counter_->getTotalExpectedVotes(),
       election_vote_count,
       "Expected different number of voters. Voter UUIDs: [{}]; RaftConfig: {}",
       JoinStringsIterator(
@@ -1776,7 +1775,7 @@ void LeaderElection::CheckForDecision() {
     std::lock_guard<Lock> guard(lock_);
     std::optional<ElectionDecisionState> electionState;
     if (!result_) {
-      electionState = vote_counter_->GetDecision();
+      electionState = vote_counter_->getDecision();
     }
     // Check if the vote has been newly decided.
     if (!result_ && electionState->decided()) {
@@ -1803,7 +1802,7 @@ void LeaderElection::CheckForDecision() {
 
       bool is_candidate_removed = false;
       if (decision == VOTE_DENIED) {
-        is_candidate_removed = vote_counter_->IsCandidateRemoved();
+        is_candidate_removed = vote_counter_->isCandidateRemoved();
       }
 
       result_.reset(new ElectionResult(
@@ -1911,7 +1910,7 @@ void LeaderElection::RecordVoteUnlocked(
   // Record the vote.
   bool duplicate;
   Status s =
-      vote_counter_->RegisterVote(state.peer_uuid, vote_info, &duplicate);
+      vote_counter_->registerVote(state.peer_uuid, vote_info, &duplicate);
   if (!s.ok()) {
     LOG_WITH_PREFIX(WARNING) << "Error registering vote for peer "
                              << state.PeerInfo() << ": " << s.ToString();

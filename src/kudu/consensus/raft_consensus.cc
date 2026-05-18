@@ -868,7 +868,7 @@ Status RaftConsensus::startElection(
 
     // Vote for ourselves.
     bool duplicate;
-    RETURN_NOT_OK(counter->RegisterVote(peer_uuid(), voteInfo, &duplicate));
+    RETURN_NOT_OK(counter->registerVote(peer_uuid(), voteInfo, &duplicate));
     VLOG_WITH_PREFIX_UNLOCKED(1) << "Self-Voted " << modeStr;
     K_CHECK(
         !duplicate,

@@ -177,7 +177,7 @@ class VoteCounter {
   // If the same vote is duplicated, 'is_duplicate' is set to true.
   // Otherwise, it is set to false.
   // If an OK status is not returned, the value in 'is_duplicate' is undefined.
-  virtual Status RegisterVote(
+  virtual Status registerVote(
       const std::string& voter_uuid,
       const VoteInfo& vote_info,
       bool* is_duplicate);
@@ -191,20 +191,20 @@ class VoteCounter {
    *
    * @return The election decision state
    */
-  virtual ElectionDecisionState GetDecision() const;
+  virtual ElectionDecisionState getDecision() const;
 
-  bool IsCandidateRemoved() const;
+  bool isCandidateRemoved() const;
 
   // Return the total of "Yes" and "No" votes.
-  int GetTotalVotesCounted() const;
+  int getTotalVotesCounted() const;
 
   // Return total number of expected votes.
-  int GetTotalExpectedVotes() const {
-    return num_voters_;
+  int getTotalExpectedVotes() const {
+    return numVoters_;
   }
 
-  // Return true iff GetTotalVotesCounted() == num_voters_;
-  bool AreAllVotesIn() const;
+  // Return true iff getTotalVotesCounted() == numVoters_;
+  bool areAllVotesIn() const;
 
   /**
    * Returns a string representation for the vote tally.
@@ -220,21 +220,21 @@ class VoteCounter {
   virtual std::string printableVoteTally(const ElectionDecisionState&) const;
 
  protected:
-  int num_voters_;
+  int numVoters_;
 
   using VoteMap = std::map<std::string, VoteInfo>;
   VoteMap votes_; // Voting record.
 
   // Set to true when any voters respond with a 'no' vote and also indicate that
   // this candidate peer is removed from the committed config on the voter node
-  bool is_candidate_removed_;
+  bool isCandidateRemoved_;
 
  private:
   friend class VoteCounterTest;
 
-  const int majority_size_;
-  int yes_votes_; // Accumulated yes votes, for quick counting.
-  int no_votes_; // Accumulated no votes.
+  const int majoritySize_;
+  int yesVotes_; // Accumulated yes votes, for quick counting.
+  int noVotes_; // Accumulated no votes.
   DISALLOW_COPY_AND_ASSIGN(VoteCounter);
 };
 
@@ -251,7 +251,7 @@ class FlexibleVoteCounter : public VoteCounter {
   // Synchronization is done by the LeaderElection class. Therefore, VoteCounter
   // class doesn't need to take care of thread safety of its book-keeping
   // variables.
-  Status RegisterVote(
+  Status registerVote(
       const std::string& voter_uuid,
       const VoteInfo& vote,
       bool* is_duplicate) override;
@@ -266,7 +266,7 @@ class FlexibleVoteCounter : public VoteCounter {
    *
    * @return The election decision state
    */
-  virtual ElectionDecisionState GetDecision() const override;
+  virtual ElectionDecisionState getDecision() const override;
 
   /**
    * Returns a string representation for the vote tally.
@@ -534,7 +534,7 @@ class JointConsensusVoteCounter : public VoteCounter {
    * @return Status::OK if the vote is registered successfully internally for
    *         the old config's counter, new config's counter, or both.
    */
-  Status RegisterVote(
+  Status registerVote(
       const std::string& voter_uuid,
       const VoteInfo& vote_info,
       bool* is_duplicate) override;
@@ -545,7 +545,7 @@ class JointConsensusVoteCounter : public VoteCounter {
    * @return The election decision state, either WON, LOST, or UNDECIDED, along
    * with metadata indicating decision from JOINT_CONSENSUS_LEADER_ELECTION.
    */
-  ElectionDecisionState GetDecision() const override;
+  ElectionDecisionState getDecision() const override;
 
   /**
    * Return a string representation of the vote tally so far. The format is
@@ -554,7 +554,7 @@ class JointConsensusVoteCounter : public VoteCounter {
    *  New Config: (Y/N/A|R/T)
    * where (Y/N/A|R/T) => (Yes/No/Absent|Required/Total).
    *
-   * @param decision The decision obtained from GetDecision(), which will be
+   * @param decision The decision obtained from getDecision(), which will be
    *        passed to the underlying vote counters.
    *
    * @return A string representation of the vote tally.
