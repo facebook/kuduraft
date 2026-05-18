@@ -61,7 +61,7 @@ int escapeStrForCsv(const char* src, char* dest, int destLen) {
 }
 
 // ----------------------------------------------------------------------
-// UnescapeCEscapeSequences()
+// unescapeCEscapeSequences()
 //    This does all the unescaping that C does: \ooo, \r, \n, etc
 //    Returns length of resulting string.
 //    The implementation of \x parses any positive number of hex digits,
@@ -79,11 +79,11 @@ int escapeStrForCsv(const char* src, char* dest, int destLen) {
 
 #define IS_OCTAL_DIGIT(c) (((c) >= '0') && ((c) <= '7'))
 
-int UnescapeCEscapeSequences(const char* source, char* dest) {
-  return UnescapeCEscapeSequences(source, dest, nullptr);
+int unescapeCEscapeSequences(const char* source, char* dest) {
+  return unescapeCEscapeSequences(source, dest, nullptr);
 }
 
-int UnescapeCEscapeSequences(
+int unescapeCEscapeSequences(
     const char* source,
     char* dest,
     vector<string>* /* errors */) {
@@ -214,8 +214,8 @@ int UnescapeCEscapeSequences(
 }
 
 // ----------------------------------------------------------------------
-// UnescapeCEscapeString()
-//    This does the same thing as UnescapeCEscapeSequences, but creates
+// unescapeCEscapeString()
+//    This does the same thing as unescapeCEscapeSequences, but creates
 //    a new string. The caller does not need to worry about allocating
 //    a dest buffer. This should be used for non performance critical
 //    tasks such as printing debug messages. It is safe for src and dest
@@ -230,25 +230,25 @@ int UnescapeCEscapeSequences(
 //    *** DEPRECATED: Use cUnescape() in new code ***
 //
 // ----------------------------------------------------------------------
-int UnescapeCEscapeString(const string& src, string* dest) {
-  return UnescapeCEscapeString(src, dest, nullptr);
+int unescapeCEscapeString(const string& src, string* dest) {
+  return unescapeCEscapeString(src, dest, nullptr);
 }
 
-int UnescapeCEscapeString(
+int unescapeCEscapeString(
     const string& src,
     string* dest,
     vector<string>* errors) {
   CHECK(dest);
   dest->resize(src.size() + 1);
-  int len = UnescapeCEscapeSequences(
+  int len = unescapeCEscapeSequences(
       src.c_str(), const_cast<char*>(dest->data()), errors);
   dest->resize(len);
   return len;
 }
 
-string UnescapeCEscapeString(const string& src) {
+string unescapeCEscapeString(const string& src) {
   const unique_ptr<char[]> unescaped(new char[src.size() + 1]);
-  int len = UnescapeCEscapeSequences(src.c_str(), unescaped.get(), nullptr);
+  int len = unescapeCEscapeSequences(src.c_str(), unescaped.get(), nullptr);
   return string(unescaped.get(), len);
 }
 
@@ -267,7 +267,7 @@ string UnescapeCEscapeString(const string& src) {
 //    'source' and 'dest' may be the same.
 //
 //     NOTE: any changes to this function must also be reflected in the older
-//     UnescapeCEscapeSequences().
+//     unescapeCEscapeSequences().
 // ----------------------------------------------------------------------
 static bool cUnescapeInternal(
     const StringPiece& source,
@@ -906,16 +906,16 @@ int calculateBase64EscapedLen(int inputLen, bool doPadding) {
   return len;
 }
 
-// Base64Escape does padding, so this calculation includes padding.
+// base64Escape does padding, so this calculation includes padding.
 int calculateBase64EscapedLen(int inputLen) {
   return calculateBase64EscapedLen(inputLen, true);
 }
 
 // ----------------------------------------------------------------------
-// int Base64Unescape() - base64 decoder
-// int Base64Escape() - base64 encoder
-// int WebSafeBase64Unescape() - Google's variation of base64 decoder
-// int WebSafeBase64Escape() - Google's variation of base64 encoder
+// int base64Unescape() - base64 decoder
+// int base64Escape() - base64 encoder
+// int webSafeBase64Unescape() - Google's variation of base64 decoder
+// int webSafeBase64Escape() - Google's variation of base64 encoder
 //
 // Check out
 // http://www.cis.ohio-state.edu/htbin/rfc/rfc2045.html for formal
@@ -1292,7 +1292,7 @@ static const signed char kUnWebSafeBase64[] = {
     -1,       -1,       -1,       -1,       -1,       -1,       -1,
     -1,       -1,       -1,       -1};
 
-int Base64Unescape(
+int base64Unescape(
     const unsigned char* src,
     int szsrc,
     char* dest,
@@ -1300,7 +1300,7 @@ int Base64Unescape(
   return Base64UnescapeInternal(src, szsrc, dest, szdest, kUnBase64);
 }
 
-int WebSafeBase64Unescape(
+int webSafeBase64Unescape(
     const unsigned char* src,
     int szsrc,
     char* dest,
@@ -1338,11 +1338,11 @@ static bool Base64UnescapeInternal(
   return true;
 }
 
-bool Base64Unescape(const unsigned char* src, int slen, string* dest) {
+bool base64Unescape(const unsigned char* src, int slen, string* dest) {
   return Base64UnescapeInternal(src, slen, dest, kUnBase64);
 }
 
-bool WebSafeBase64Unescape(const unsigned char* src, int slen, string* dest) {
+bool webSafeBase64Unescape(const unsigned char* src, int slen, string* dest) {
   return Base64UnescapeInternal(src, slen, dest, kUnWebSafeBase64);
 }
 
@@ -1433,10 +1433,10 @@ static const char kBase64Chars[] =
 static const char kWebSafeBase64Chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-int Base64Escape(const unsigned char* src, int szsrc, char* dest, int szdest) {
+int base64Escape(const unsigned char* src, int szsrc, char* dest, int szdest) {
   return Base64EscapeInternal(src, szsrc, dest, szdest, kBase64Chars, true);
 }
-int WebSafeBase64Escape(
+int webSafeBase64Escape(
     const unsigned char* src,
     int szsrc,
     char* dest,
@@ -1460,7 +1460,7 @@ void Base64EscapeInternal(
   DCHECK_EQ(calcEscapedSize, escapedLen);
 }
 
-void Base64Escape(
+void base64Escape(
     const unsigned char* src,
     int szsrc,
     string* dest,
@@ -1468,7 +1468,7 @@ void Base64Escape(
   Base64EscapeInternal(src, szsrc, dest, doPadding, kBase64Chars);
 }
 
-void WebSafeBase64Escape(
+void webSafeBase64Escape(
     const unsigned char* src,
     int szsrc,
     string* dest,
@@ -1476,24 +1476,24 @@ void WebSafeBase64Escape(
   Base64EscapeInternal(src, szsrc, dest, doPadding, kWebSafeBase64Chars);
 }
 
-void Base64Escape(const string& src, string* dest) {
-  Base64Escape(
+void base64Escape(const string& src, string* dest) {
+  base64Escape(
       reinterpret_cast<const unsigned char*>(src.data()),
       src.size(),
       dest,
       true);
 }
 
-void WebSafeBase64Escape(const string& src, string* dest) {
-  WebSafeBase64Escape(
+void webSafeBase64Escape(const string& src, string* dest) {
+  webSafeBase64Escape(
       reinterpret_cast<const unsigned char*>(src.data()),
       src.size(),
       dest,
       false);
 }
 
-void WebSafeBase64EscapeWithPadding(const string& src, string* dest) {
-  WebSafeBase64Escape(
+void webSafeBase64EscapeWithPadding(const string& src, string* dest) {
+  webSafeBase64Escape(
       reinterpret_cast<const unsigned char*>(src.data()),
       src.size(),
       dest,
@@ -1517,7 +1517,7 @@ bool validBase32Byte(char c) {
 // See http://tools.ietf.org/html/rfc4648#section-6 for details.
 static const int kBase32NumUnescapedBytes[] = {0, 5, 1, 5, 2, 3, 5, 4, 5};
 
-int Base32Unescape(const char* src, int slen, char* dest, int szdest) {
+int base32Unescape(const char* src, int slen, char* dest, int szdest) {
   int destidx = 0;
   unsigned char escapedBytes[8];
   unsigned char unescapedBytes[5];
@@ -1554,7 +1554,7 @@ int Base32Unescape(const char* src, int slen, char* dest, int szdest) {
   return destidx;
 }
 
-bool Base32Unescape(const char* src, int slen, string* dest) {
+bool base32Unescape(const char* src, int slen, string* dest) {
   // Determine the size of the output string.
   const int dest_len = 5 * (slen / 8) + kBase32NumUnescapedBytes[slen % 8];
 
@@ -1563,7 +1563,7 @@ bool Base32Unescape(const char* src, int slen, string* dest) {
 
   // We are getting the destination buffer by getting the beginning of the
   // string and converting it into a char *.
-  const int len = Base32Unescape(src, slen, dest->data(), dest->size());
+  const int len = base32Unescape(src, slen, dest->data(), dest->size());
   if (len < 0) {
     dest->clear();
     return false;
@@ -1682,7 +1682,7 @@ static const char kBase32Alphabet[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
                                        'Y', 'Z', '2', '3', '4', '5', '6', '7'};
 
-int Base32Escape(
+int base32Escape(
     const unsigned char* src,
     size_t szsrc,
     char* dest,
@@ -1690,7 +1690,7 @@ int Base32Escape(
   return generalBase32Escape(src, szsrc, dest, szdest, kBase32Alphabet);
 }
 
-bool Base32Escape(const string& src, string* dest) {
+bool base32Escape(const string& src, string* dest) {
   return generalBase32Escape(src, dest, kBase32Alphabet);
 }
 
@@ -1704,7 +1704,7 @@ static const char kBase32HexAlphabet[] = {
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
 };
 
-int Base32HexEscape(
+int base32HexEscape(
     const unsigned char* src,
     size_t szsrc,
     char* dest,
@@ -1712,7 +1712,7 @@ int Base32HexEscape(
   return generalBase32Escape(src, szsrc, dest, szdest, kBase32HexAlphabet);
 }
 
-bool Base32HexEscape(const string& src, string* dest) {
+bool base32HexEscape(const string& src, string* dest) {
   return generalBase32Escape(src, dest, kBase32HexAlphabet);
 }
 

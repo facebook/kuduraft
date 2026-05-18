@@ -43,7 +43,7 @@ namespace strings {
 int escapeStrForCsv(const char* src, char* dest, int destLen);
 
 // ----------------------------------------------------------------------
-// UnescapeCEscapeSequences()
+// unescapeCEscapeSequences()
 //    Copies "source" to "dest", rewriting C-style escape sequences
 //    -- '\n', '\r', '\\', '\ooo', etc -- to their ASCII
 //    equivalents.  "dest" must be sufficiently large to hold all
@@ -78,15 +78,15 @@ int escapeStrForCsv(const char* src, char* dest, int destLen);
 //
 //    *** DEPRECATED: Use cUnescape() in new code ***
 //    ----------------------------------------------------------------------
-int UnescapeCEscapeSequences(const char* source, char* dest);
-int UnescapeCEscapeSequences(
+int unescapeCEscapeSequences(const char* source, char* dest);
+int unescapeCEscapeSequences(
     const char* source,
     char* dest,
     std::vector<std::string>* errors);
 
 // ----------------------------------------------------------------------
-// UnescapeCEscapeString()
-//    This does the same thing as UnescapeCEscapeSequences, but creates
+// unescapeCEscapeString()
+//    This does the same thing as unescapeCEscapeSequences, but creates
 //    a new string. The caller does not need to worry about allocating
 //    a dest buffer. This should be used for non performance critical
 //    tasks such as printing debug messages. It is safe for src and dest
@@ -100,12 +100,12 @@ int UnescapeCEscapeSequences(
 //
 //    *** DEPRECATED: Use cUnescape() in new code ***
 // ----------------------------------------------------------------------
-int UnescapeCEscapeString(const std::string& src, std::string* dest);
-int UnescapeCEscapeString(
+int unescapeCEscapeString(const std::string& src, std::string* dest);
+int unescapeCEscapeString(
     const std::string& src,
     std::string* dest,
     std::vector<std::string>* errors);
-std::string UnescapeCEscapeString(const std::string& src);
+std::string unescapeCEscapeString(const std::string& src);
 
 // ----------------------------------------------------------------------
 // cUnescape()
@@ -313,8 +313,8 @@ int quotedPrintableUnescape(const char* src, int slen, char* dest, int szdest);
 int qEncodingUnescape(const char* src, int slen, char* dest, int szdest);
 
 // ----------------------------------------------------------------------
-// Base64Unescape()
-// WebSafeBase64Unescape()
+// base64Unescape()
+// webSafeBase64Unescape()
 //    Copies "src" to "dest", where src is in base64 and is written to its
 //    ASCII equivalents. src is not null terminated, instead specify len.
 //    I recommend that slen<szdest, but we honor szdest anyway.
@@ -324,24 +324,24 @@ int qEncodingUnescape(const char* src, int slen, char* dest, int szdest);
 //    return false (with dest empty) if src contains invalid chars; for
 //    these versions src and dest must be different strings.
 // ----------------------------------------------------------------------
-int Base64Unescape(const unsigned char* src, int slen, char* dest, int szdest);
-bool Base64Unescape(const unsigned char* src, int slen, std::string* dest);
-inline bool Base64Unescape(const std::string& src, std::string* dest) {
-  return Base64Unescape(
+int base64Unescape(const unsigned char* src, int slen, char* dest, int szdest);
+bool base64Unescape(const unsigned char* src, int slen, std::string* dest);
+inline bool base64Unescape(const std::string& src, std::string* dest) {
+  return base64Unescape(
       reinterpret_cast<const unsigned char*>(src.data()), src.size(), dest);
 }
 
-int WebSafeBase64Unescape(
+int webSafeBase64Unescape(
     const unsigned char* src,
     int slen,
     char* dest,
     int szdest);
-bool WebSafeBase64Unescape(
+bool webSafeBase64Unescape(
     const unsigned char* src,
     int slen,
     std::string* dest);
-inline bool WebSafeBase64Unescape(const std::string& src, std::string* dest) {
-  return WebSafeBase64Unescape(
+inline bool webSafeBase64Unescape(const std::string& src, std::string* dest) {
+  return webSafeBase64Unescape(
       reinterpret_cast<const unsigned char*>(src.data()), src.size(), dest);
 }
 
@@ -350,12 +350,12 @@ inline bool WebSafeBase64Unescape(const std::string& src, std::string* dest) {
 // This function may return incorrect results if given inputLen values that
 // are extremely high, which should happen rarely.
 int calculateBase64EscapedLen(int inputLen, bool doPadding);
-// Use this version when calling Base64Escape without a doPadding arg.
+// Use this version when calling base64Escape without a doPadding arg.
 int calculateBase64EscapedLen(int inputLen);
 
 // ----------------------------------------------------------------------
-// Base64Escape()
-// WebSafeBase64Escape()
+// base64Escape()
+// webSafeBase64Escape()
 //    Encode "src" to "dest" using base64 encoding.
 //    src is not null terminated, instead specify len.
 //    'dest' should have at least calculateBase64EscapedLen() length.
@@ -365,45 +365,45 @@ int calculateBase64EscapedLen(int inputLen);
 //    to escape them.  It also has an extra parameter "do_padding",
 //    which when set to false will prevent padding with "=".
 // ----------------------------------------------------------------------
-int Base64Escape(const unsigned char* src, int slen, char* dest, int szdest);
-int WebSafeBase64Escape(
+int base64Escape(const unsigned char* src, int slen, char* dest, int szdest);
+int webSafeBase64Escape(
     const unsigned char* src,
     int slen,
     char* dest,
     int szdest,
     bool doPadding);
 // Encode src into dest with padding.
-void Base64Escape(const std::string& src, std::string* dest);
+void base64Escape(const std::string& src, std::string* dest);
 // Encode src into dest web-safely without padding.
-void WebSafeBase64Escape(const std::string& src, std::string* dest);
+void webSafeBase64Escape(const std::string& src, std::string* dest);
 // Encode src into dest web-safely with padding.
-void WebSafeBase64EscapeWithPadding(const std::string& src, std::string* dest);
+void webSafeBase64EscapeWithPadding(const std::string& src, std::string* dest);
 
-void Base64Escape(
+void base64Escape(
     const unsigned char* src,
     int szsrc,
     std::string* dest,
     bool doPadding);
-void WebSafeBase64Escape(
+void webSafeBase64Escape(
     const unsigned char* src,
     int szsrc,
     std::string* dest,
     bool doPadding);
 
 // ----------------------------------------------------------------------
-// Base32Unescape()
+// base32Unescape()
 //    Copies "src" to "dest", where src is in base32 and is written to its
 //    ASCII equivalents. src is not null terminated, instead specify len.
 //    RETURNS the length of dest, or -1 if src contains invalid chars.
 // ----------------------------------------------------------------------
-int Base32Unescape(const char* src, int slen, char* dest, int szdest);
-bool Base32Unescape(const char* src, int slen, std::string* dest);
-inline bool Base32Unescape(const std::string& src, std::string* dest) {
-  return Base32Unescape(src.data(), src.size(), dest);
+int base32Unescape(const char* src, int slen, char* dest, int szdest);
+bool base32Unescape(const char* src, int slen, std::string* dest);
+inline bool base32Unescape(const std::string& src, std::string* dest) {
+  return base32Unescape(src.data(), src.size(), dest);
 }
 
 // ----------------------------------------------------------------------
-// Base32Escape()
+// base32Escape()
 //    Encode "src" to "dest" using base32 encoding.
 //    src is not null terminated, instead specify len.
 //    'dest' should have at least calculateBase32EscapedLen() length.
@@ -412,15 +412,15 @@ inline bool Base32Unescape(const std::string& src, std::string* dest) {
 //
 //    Note that this is "Base 32 Encoding" from RFC 4648 section 6.
 // ----------------------------------------------------------------------
-int Base32Escape(
+int base32Escape(
     const unsigned char* src,
     size_t szsrc,
     char* dest,
     size_t szdest);
-bool Base32Escape(const std::string& src, std::string* dest);
+bool base32Escape(const std::string& src, std::string* dest);
 
 // ----------------------------------------------------------------------
-// Base32HexEscape()
+// base32HexEscape()
 //    Encode "src" to "dest" using base32hex encoding.
 //    src is not null terminated, instead specify len.
 //    'dest' should have at least calculateBase32EscapedLen() length.
@@ -430,12 +430,12 @@ bool Base32Escape(const std::string& src, std::string* dest);
 //    Note that this is "Base 32 Encoding with Extended Hex Alphabet"
 //    from RFC 4648 section 7.
 // ----------------------------------------------------------------------
-int Base32HexEscape(
+int base32HexEscape(
     const unsigned char* src,
     size_t szsrc,
     char* dest,
     size_t szdest);
-bool Base32HexEscape(const std::string& src, std::string* dest);
+bool base32HexEscape(const std::string& src, std::string* dest);
 
 // Return the length to use for the output buffer given to the base32 escape
 // routines.  This function may return incorrect results if given inputLen
@@ -455,7 +455,7 @@ int calculateBase32EscapedLen(size_t inputLen);
 //     *in must point to 10 hex digits.
 //     *out must point to 8 bytes.
 //
-//   Note that the Base64 functions above are different. They convert base64
+//   Note that the base64 functions above are different. They convert base64
 //   to and from binary data. We convert to and from string representations
 //   of hex. They deal with arbitrary lengths and we deal with single,
 //   whole base32 quanta.
@@ -479,7 +479,7 @@ void tenHexDigitsToEightBase32Digits(const char* in, char* out);
 //     *in must point to 5 bytes.
 //     *out must point to 8 bytes.
 //
-//   Note that the Base64 functions above are different.  They deal with
+//   Note that the base64 functions above are different.  They deal with
 //   arbitrary lengths and we deal with single, whole base32 quanta.
 // ----------------------------------------------------------------------
 void eightBase32DigitsToFiveBytes(
