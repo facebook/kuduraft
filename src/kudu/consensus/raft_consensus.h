@@ -1144,16 +1144,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   std::string GetCandidateContextString(const VoteRequestPB* request);
 
   // Callback for leader election driver. The "callback" arg is run in the
-  // same caller thread but the rest of the ElectionCallback is run on the
-  // reactor thread, so it simply defers its work to DoElectionCallback.
-  void ElectionCallback(
+  // same caller thread but the rest of the electionCallback is run on the
+  // reactor thread, so it simply defers its work to doElectionCallback.
+  void electionCallback(
       ElectionContext context,
       const ElectionResult& result,
       std::function<void(const ElectionResult&)> callback);
-  void DoElectionCallback(
+  void doElectionCallback(
       const ElectionContext& context,
       const ElectionResult& result);
-  void NestedElectionDecisionCallback(
+  void nestedElectionDecisionCallback(
       const ElectionContext& context,
       const ElectionResult& result);
 
@@ -1165,7 +1165,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // See EnableFailureDetector() for an explanation of the 'delta' parameter,
   // which is used if it is determined that the failure detector should be
   // enabled.
-  void UpdateFailureDetectorState(std::optional<MonoDelta> delta = {});
+  void updateFailureDetectorState(std::optional<MonoDelta> delta = {});
 
   // "Reset" the failure detector to indicate leader activity.
   //
@@ -1178,7 +1178,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // when called.
   //
   // If the failure detector is unregistered, has no effect.
-  void SnoozeFailureDetector(
+  void snoozeFailureDetector(
       std::optional<std::string> reason_for_log = {},
       std::optional<MonoDelta> delta = {});
 
@@ -1189,30 +1189,30 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //
   // The maximum delta is capped by
   // 'FLAGS_leader_failure_exp_backoff_max_delta_ms'.
-  MonoDelta LeaderElectionExpBackoffDeltaUnlocked();
-  MonoDelta LeaderElectionExpBackoffNotInConfig();
+  MonoDelta leaderElectionExpBackoffDeltaUnlocked();
+  MonoDelta leaderElectionExpBackoffNotInConfig();
 
-  MonoDelta TimeoutBackoffHelper(double backoff_factor);
+  MonoDelta timeoutBackoffHelper(double backoff_factor);
 
   // Handle when the term has advanced beyond the current term.
   //
   // 'flush' may be used to control whether the term change is flushed to
   // disk.
-  Status HandleTermAdvanceUnlocked(
+  Status handleTermAdvanceUnlocked(
       ConsensusTerm new_term,
       FlushToDisk flush = kFlushToDisk);
 
   // Handle when a op id with a new term has been appended
-  void HandleNewTermAppendedUnlocked(int64_t new_term);
+  void handleNewTermAppendedUnlocked(int64_t new_term);
 
   // Asynchronously (on thread_pool_) notify the TabletReplica that the
   // consensus configuration has changed, thus reporting it back to the
   // master.
-  void MarkDirty(const std::string& reason);
+  void markDirty(const std::string& reason);
 
-  // Calls MarkDirty() if 'status' == OK. Then, always calls 'clientCb' with
+  // Calls markDirty() if 'status' == OK. Then, always calls 'clientCb' with
   // 'status' as its argument.
-  void MarkDirtyOnSuccess(
+  void markDirtyOnSuccess(
       const std::string& reason,
       const StdStatusCallback& clientCb,
       const Status& status);
@@ -1240,12 +1240,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       std::optional<OpId> mockElectionSnapshotOpId = {});
 
   // Called when the failure detector expires.
-  // Submits ReportFailureDetectedTask() to a thread pool.
-  void ReportFailureDetected();
+  // Submits reportFailureDetectedTask() to a thread pool.
+  void reportFailureDetected();
 
   // Call StartElection(), log a warning if the call fails (usually due to
   // being shut down).
-  void ReportFailureDetectedTask();
+  void reportFailureDetectedTask();
 
   // Handle the completion of replication of a config change operation.
   // If 'status' is OK, this takes care of persisting the new configuration

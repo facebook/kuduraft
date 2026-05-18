@@ -552,7 +552,7 @@ Status RaftConsensus::start(
       peerProxyFactory_->messenger(),
       [w]() {
         if (auto consensus = w.lock()) {
-          consensus->ReportFailureDetected();
+          consensus->reportFailureDetected();
         }
       },
       minimumElectionTimeout());
@@ -651,7 +651,7 @@ Status RaftConsensus::start(
   }
 
   // Report become visible to the Master.
-  MarkDirty("RaftConsensus started");
+  markDirty("RaftConsensus started");
 
   return Status::OK();
 }
@@ -678,7 +678,7 @@ Status RaftConsensus::emulateElection() {
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Emulating election...";
 
   // Assume leadership of new term.
-  RETURN_NOT_OK(HandleTermAdvanceUnlocked(currentTermUnlocked() + 1));
+  RETURN_NOT_OK(handleTermAdvanceUnlocked(currentTermUnlocked() + 1));
   RETURN_NOT_OK(setLeaderUuidUnlocked(peer_uuid()));
   return becomeLeaderUnlocked();
 }
@@ -798,8 +798,8 @@ Status RaftConsensus::startElection(
     // Snooze to avoid the election timer firing again as much as possible.
     // We do not disable the election timer while running an election, so that
     // if the election times out, we will try again.
-    MonoDelta timeout = LeaderElectionExpBackoffDeltaUnlocked();
-    SnoozeFailureDetector(string("starting election"), timeout);
+    MonoDelta timeout = leaderElectionExpBackoffDeltaUnlocked();
+    snoozeFailureDetector(string("starting election"), timeout);
 
     // Increment the term and vote for ourselves, unless it's a pre or mock
     // election.
@@ -809,7 +809,7 @@ Status RaftConsensus::startElection(
 
       // We skip flushing the term to disk because setting the vote just below
       // also flushes to disk, and the double fsync doesn't buy us anything.
-      RETURN_NOT_OK(HandleTermAdvanceUnlocked(
+      RETURN_NOT_OK(handleTermAdvanceUnlocked(
           currentTermUnlocked() + 1, kSkipFlushToDisk));
       RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(peer_uuid()));
     }
@@ -915,7 +915,7 @@ Status RaftConsensus::startElection(
         std::move(counter),
         timeout,
         std::bind(
-            &RaftConsensus::ElectionCallback,
+            &RaftConsensus::electionCallback,
             shared_from_this(),
             std::move(context),
             std::placeholders::_1,
@@ -968,11 +968,11 @@ Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
   }
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Received request to step down";
   RETURN_NOT_OK(
-      HandleTermAdvanceUnlocked(currentTermUnlocked() + 1, kSkipFlushToDisk));
+      handleTermAdvanceUnlocked(currentTermUnlocked() + 1, kSkipFlushToDisk));
   // Snooze the failure detector for an extra leader failure timeout.
   // This should ensure that a different replica is elected leader after this
   // one steps down.
-  SnoozeFailureDetector(
+  snoozeFailureDetector(
       string("explicit stepdown request"),
       MonoDelta::FromMilliseconds(
           2 * minimumElectionTimeout().ToMilliseconds()));
@@ -1177,7 +1177,7 @@ std::shared_ptr<ConsensusRound> RaftConsensus::newRound(
       new ConsensusRound(this, std::move(r)));
 }
 
-void RaftConsensus::ReportFailureDetectedTask() {
+void RaftConsensus::reportFailureDetectedTask() {
   std::unique_lock<simple_mutexlock> try_lock(
       failureDetectorElectionLock_, std::try_to_lock);
   if (try_lock.owns_lock()) {
@@ -1199,13 +1199,13 @@ void RaftConsensus::ReportFailureDetectedTask() {
   }
 }
 
-void RaftConsensus::ReportFailureDetected() {
+void RaftConsensus::reportFailureDetected() {
   // We're running on a timer thread; start an election on a different thread
   // pool.
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
-              &RaftConsensus::ReportFailureDetectedTask, shared_from_this())),
+              &RaftConsensus::reportFailureDetectedTask, shared_from_this())),
       LogPrefixThreadSafe() + "failed to submit failure detected task");
 }
 
@@ -1280,7 +1280,7 @@ Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
 
   // Enable/disable leader failure detection if becoming VOTER/NON_VOTER replica
   // correspondingly.
-  UpdateFailureDetectorState(std::move(fd_delta));
+  updateFailureDetectorState(std::move(fd_delta));
 
   StopCheckQuorumDetectorUnlocked();
 
@@ -1371,7 +1371,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
       queue_->AppendOperation(msg_wrapper),
       fmt::format("{}: could not append to queue", logPrefixUnlocked()));
   if (round->replicate_msg()->op_type() == NO_OP) {
-    HandleNewTermAppendedUnlocked(round->replicate_msg()->id().term());
+    handleNewTermAppendedUnlocked(round->replicate_msg()->id().term());
   }
   return Status::OK();
 }
@@ -1486,7 +1486,7 @@ void RaftConsensus::notifyTermChange(int64_t term) {
     return;
   }
   WARN_NOT_OK(
-      HandleTermAdvanceUnlocked(term), "Couldn't advance consensus term.");
+      handleTermAdvanceUnlocked(term), "Couldn't advance consensus term.");
 }
 
 void RaftConsensus::notifyFailedFollower(
@@ -1569,10 +1569,10 @@ void RaftConsensus::notifyPeerToStartElection(
 }
 
 void RaftConsensus::notifyPeerHealthChange() {
-  MarkDirty("Peer health change");
+  markDirty("Peer health change");
 }
 
-void RaftConsensus::HandleNewTermAppendedUnlocked(int64_t new_term) {
+void RaftConsensus::handleNewTermAppendedUnlocked(int64_t new_term) {
   DCHECK(lock_.is_locked());
   CHECK_OK(cmeta_->syncLastKnownLeader(new_term));
 }
@@ -1927,7 +1927,7 @@ Status RaftConsensus::handleLeaderRequestTermUnlocked(
           response, ConsensusErrorPB::INVALID_TERM, Status::IllegalState(msg));
       return Status::OK();
     }
-    RETURN_NOT_OK(HandleTermAdvanceUnlocked(request->caller_term()));
+    RETURN_NOT_OK(handleTermAdvanceUnlocked(request->caller_term()));
   }
   return Status::OK();
 }
@@ -2205,7 +2205,7 @@ Status RaftConsensus::updateReplica(
   // the election
   // We only activate this after the proper snooze point below
   auto snoozeGuard = folly::makeDismissedGuard(
-      [this]() { SnoozeFailureDetector({}, minimumElectionTimeoutWithBan()); });
+      [this]() { snoozeFailureDetector({}, minimumElectionTimeoutWithBan()); });
 
   {
     ThreadRestrictions::assertWaitAllowed();
@@ -2231,7 +2231,7 @@ Status RaftConsensus::updateReplica(
     // We snooze for a longer timeout to allow for processing. snoozeGuard here
     // overwrites it to election timeout again at the end.
     snoozeGuard.rehire();
-    SnoozeFailureDetector({}, updateReplicaSnoozeTimeout());
+    snoozeFailureDetector({}, updateReplicaSnoozeTimeout());
 
     STATS_raftNumLeaderHeartbeatReceived.add(1, KUDU_STATS_TAG);
     lastLeaderCommunicationTimeMicros_ = getMonoTimeMicros();
@@ -2455,7 +2455,7 @@ Status RaftConsensus::updateReplica(
       CHECK_OK(queue_->AppendOperations(msgWrappers, syncStatusCb));
       if (cmeta_->lastKnownLeader().uuid().empty() ||
           lastFromLeader.term() != precedingTerm) {
-        HandleNewTermAppendedUnlocked(lastFromLeader.term());
+        handleNewTermAppendedUnlocked(lastFromLeader.term());
       }
     } else {
       lastFromLeader = dedupedReq.precedingOpId;
@@ -2519,7 +2519,7 @@ Status RaftConsensus::updateReplica(
       // If just waiting for our log append to finish lets snooze the timer.
       // We don't want to fire leader election because we're waiting on our own
       // log.
-      SnoozeFailureDetector();
+      snoozeFailureDetector();
       s = logSynchronizer.waitFor(
           MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
     } while (s.IsTimedOut());
@@ -2806,7 +2806,7 @@ Status RaftConsensus::requestVote(
     // the term advancement to disk here.
     auto flush = voteYes ? kSkipFlushToDisk : kFlushToDisk;
     RETURN_NOT_OK_PREPEND(
-        HandleTermAdvanceUnlocked(request->candidate_term(), flush),
+        handleTermAdvanceUnlocked(request->candidate_term(), flush),
         fmt::format(
             "Could not step down in RequestVote. Current term: {}, candidate term: {}",
             currentTermUnlocked(),
@@ -2885,7 +2885,7 @@ Status RaftConsensus::bulkChangeConfig(
         committedConfig,
         std::move(newConfig),
         std::bind(
-            &RaftConsensus::MarkDirtyOnSuccess,
+            &RaftConsensus::markDirtyOnSuccess,
             this,
             string("Config change replication complete"),
             std::move(clientCb),
@@ -3621,7 +3621,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
   // below, as it also does unsupported things, e.g. enqueing a CommitMsg
   if (!disableNoop_) {
     StdStatusCallback client_cb = std::bind(
-        &RaftConsensus::MarkDirtyOnSuccess,
+        &RaftConsensus::markDirtyOnSuccess,
         this,
         string("Replicated consensus-only round"),
         &doNothingStatusCb,
@@ -3641,7 +3641,7 @@ Status RaftConsensus::advanceTermForTests(int64_t new_term) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   CHECK_OK(CheckRunningUnlocked());
-  return HandleTermAdvanceUnlocked(new_term);
+  return handleTermAdvanceUnlocked(new_term);
 }
 
 std::string RaftConsensus::getRequestVoteLogPrefixUnlocked(
@@ -3853,8 +3853,8 @@ Status RaftConsensus::requestVoteRespondVoteGranted(
   // We know our vote will be "yes", so avoid triggering an election while we
   // persist our vote to disk. We use an exponential backoff to avoid too much
   // split-vote contention when nodes display high latencies.
-  MonoDelta backoff = LeaderElectionExpBackoffDeltaUnlocked();
-  SnoozeFailureDetector(string("vote granted"), backoff);
+  MonoDelta backoff = leaderElectionExpBackoffDeltaUnlocked();
+  snoozeFailureDetector(string("vote granted"), backoff);
 
   ElectionMode mode = request->mode();
   if (mode != ElectionMode::PRE_ELECTION &&
@@ -3867,7 +3867,7 @@ Status RaftConsensus::requestVoteRespondVoteGranted(
 
   // Give peer time to become leader. Snooze one more time after persisting our
   // vote. When disk latency is high, this should help reduce churn.
-  SnoozeFailureDetector(/*reason_for_log=*/{}, backoff);
+  snoozeFailureDetector(/*reason_for_log=*/{}, backoff);
 
   LOG(INFO) << fmt::format(
       "{}: Granting yes vote for candidate {} {} in term {}. "
@@ -3993,7 +3993,7 @@ Status RaftConsensus::setLeaderUuidUnlocked(const string& uuid) {
 
   Status s = Status::OK();
   routingTableContainer_->updateLeader(uuid);
-  MarkDirty(fmt::format("New leader {}", uuid));
+  markDirty(fmt::format("New leader {}", uuid));
   return s;
 }
 
@@ -4161,7 +4161,7 @@ Status RaftConsensus::pendingConfig(RaftConfigPB* pendingConfigOut) const {
   return Status::NotFound("No pending config found");
 }
 
-void RaftConsensus::ElectionCallback(
+void RaftConsensus::electionCallback(
     ElectionContext context,
     const ElectionResult& result,
     std::function<void(const ElectionResult&)> callback) {
@@ -4182,14 +4182,14 @@ void RaftConsensus::ElectionCallback(
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
-              &RaftConsensus::NestedElectionDecisionCallback,
+              &RaftConsensus::nestedElectionDecisionCallback,
               shared_from_this(),
               std::move(context),
               result)),
       LogPrefixThreadSafe() + "Unable to run election callback");
 }
 
-void RaftConsensus::DoElectionCallback(
+void RaftConsensus::doElectionCallback(
     const ElectionContext& context,
     const ElectionResult& result) {
   DCHECK(result.vote_request.mode() != MOCK_ELECTION);
@@ -4218,13 +4218,13 @@ void RaftConsensus::DoElectionCallback(
   //   they finish another one is triggered already.
   if (result.decision == VOTE_DENIED && result.is_candidate_removed) {
     // TODO: disable detector after a few attempts
-    SnoozeFailureDetector(
+    snoozeFailureDetector(
         string("election complete - candidate not in config"),
-        LeaderElectionExpBackoffNotInConfig());
+        leaderElectionExpBackoffNotInConfig());
     failedElectionsCandidateNotInConfig_++;
   } else {
-    SnoozeFailureDetector(
-        string("election complete"), LeaderElectionExpBackoffDeltaUnlocked());
+    snoozeFailureDetector(
+        string("election complete"), leaderElectionExpBackoffDeltaUnlocked());
   }
 
   if (result.decision == VOTE_DENIED) {
@@ -4246,7 +4246,7 @@ void RaftConsensus::DoElectionCallback(
     // rejection, such that its next pre-election (for term 3) would
     // succeed.
     if (result.highest_voter_term > currentTermUnlocked()) {
-      HandleTermAdvanceUnlocked(result.highest_voter_term);
+      handleTermAdvanceUnlocked(result.highest_voter_term);
     }
 
     LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -4324,11 +4324,11 @@ void RaftConsensus::DoElectionCallback(
   }
 }
 
-void RaftConsensus::NestedElectionDecisionCallback(
+void RaftConsensus::nestedElectionDecisionCallback(
     const ElectionContext& context,
     const ElectionResult& result) {
   DCHECK(result.vote_request.mode() != MOCK_ELECTION);
-  DoElectionCallback(context, result);
+  doElectionCallback(context, result);
   if (result.vote_request.mode() != ElectionMode::PRE_ELECTION && edcb_) {
     edcb_(result, std::move(context));
   }
@@ -4380,18 +4380,18 @@ log::RetentionIndexes RaftConsensus::getRetentionIndexes() {
       queue_->GetRegionDurableIndex()); // for region based durability
 }
 
-void RaftConsensus::MarkDirty(const std::string& reason) {
+void RaftConsensus::markDirty(const std::string& reason) {
   WARN_NOT_OK(
       raftPoolToken_->submitClosure(Bind(markDirtyClbk_, reason)),
       LogPrefixThreadSafe() + "Unable to run MarkDirty callback");
 }
 
-void RaftConsensus::MarkDirtyOnSuccess(
+void RaftConsensus::markDirtyOnSuccess(
     const string& reason,
     const StdStatusCallback& clientCb,
     const Status& status) {
   if (PREDICT_TRUE(status.ok())) {
-    MarkDirty(reason);
+    markDirty(reason);
   }
   clientCb(status);
 }
@@ -4466,7 +4466,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
 
       // Disable leader failure detection if transitioning from VOTER to
       // NON_VOTER and vice versa.
-      UpdateFailureDetectorState();
+      updateFailureDetectorState();
     } else {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Skipping abort of non-pending config change with OpId " << opId
@@ -4587,7 +4587,7 @@ void RaftConsensus::setAdjustVoterDistribution(bool val) {
   adjustVoterDistribution_ = val;
 }
 
-void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
+void RaftConsensus::updateFailureDetectorState(std::optional<MonoDelta> delta) {
   DCHECK(lock_.is_locked());
   const auto& uuid = peer_uuid();
   if (uuid != cmeta_->leaderUuid() &&
@@ -4601,7 +4601,7 @@ void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
   }
 }
 
-void RaftConsensus::SnoozeFailureDetector(
+void RaftConsensus::snoozeFailureDetector(
     std::optional<string> reason_for_log,
     std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(failureDetector_ && FLAGS_enable_leader_failure_detection)) {
@@ -4681,7 +4681,7 @@ MonoDelta RaftConsensus::minimumElectionTimeoutWithBan() {
   // 1.5 times Min-Election-Timeout i.e. from 3 HBs to
   // 4.5 HBs ( 1.5 seconds in default to 2.25 seconds )
   if (fabs(FLAGS_snooze_for_leader_ban_ratio - 1.0) < 0.001) {
-    return TimeoutBackoffHelper(1.5);
+    return timeoutBackoffHelper(1.5);
   }
 
   int32_t failure_timeout = FLAGS_leader_failure_max_missed_heartbeat_periods *
@@ -4691,7 +4691,7 @@ MonoDelta RaftConsensus::minimumElectionTimeoutWithBan() {
 
 // Value of 5 here will cap backoff at around 1 hour
 constexpr int64_t kMaxBackOffExponent = 5;
-MonoDelta RaftConsensus::LeaderElectionExpBackoffNotInConfig() {
+MonoDelta RaftConsensus::leaderElectionExpBackoffNotInConfig() {
   DCHECK(lock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stablie leader with a 'not-in-config' indicator
@@ -4703,15 +4703,15 @@ MonoDelta RaftConsensus::LeaderElectionExpBackoffNotInConfig() {
   return MonoDelta::FromSeconds(duration);
 }
 
-MonoDelta RaftConsensus::LeaderElectionExpBackoffDeltaUnlocked() {
+MonoDelta RaftConsensus::leaderElectionExpBackoffDeltaUnlocked() {
   DCHECK(lock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stable leader was last seen.
   double backoff_factor = pow(1.5, failedElectionsSinceStableLeader_ + 1);
-  return TimeoutBackoffHelper(backoff_factor);
+  return timeoutBackoffHelper(backoff_factor);
 }
 
-MonoDelta RaftConsensus::TimeoutBackoffHelper(double backoff_factor) {
+MonoDelta RaftConsensus::timeoutBackoffHelper(double backoff_factor) {
   double min_timeout = minimumElectionTimeout().ToMilliseconds();
   double max_timeout = std::max(
       min_timeout,
@@ -4730,7 +4730,7 @@ MonoDelta RaftConsensus::TimeoutBackoffHelper(double backoff_factor) {
   return MonoDelta::FromMilliseconds(timeout);
 }
 
-Status RaftConsensus::HandleTermAdvanceUnlocked(
+Status RaftConsensus::handleTermAdvanceUnlocked(
     ConsensusTerm new_term,
     FlushToDisk flush) {
   DCHECK(lock_.is_locked());
@@ -4835,7 +4835,7 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
   RETURN_NOT_OK(routingTableContainer_->updateRaftConfig(active_config));
   UpdateLocalPeerUnlocked(active_config);
 
-  UpdateFailureDetectorState();
+  updateFailureDetectorState();
 
   return Status::OK();
 }
