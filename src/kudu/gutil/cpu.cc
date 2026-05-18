@@ -167,7 +167,7 @@ class LazyCpuInfoValue {
   DISALLOW_COPY_AND_ASSIGN(LazyCpuInfoValue);
 };
 
-base::LazyInstance<LazyCpuInfoValue>::Leaky g_lazy_cpuinfo =
+base::LazyInstance<LazyCpuInfoValue>::Leaky gLazyCpuinfo =
     LAZY_INSTANCE_INITIALIZER;
 
 #endif // defined(ARCH_CPU_ARM_FAMILY) && (defined(OS_ANDROID) ||
@@ -260,8 +260,8 @@ void Cpu::initialize() {
     hasNonStopTimeStampCounter_ = (cpuInfo[3] & (1 << 8)) != 0;
   }
 #elif defined(ARCH_CPU_ARM_FAMILY) && (defined(OS_ANDROID) || defined(OS_LINUX))
-  cpuBrand_.assign(g_lazy_cpuinfo.Get().brand());
-  hasBrokenNeon_ = g_lazy_cpuinfo.Get().hasBrokenNeon();
+  cpuBrand_.assign(gLazyCpuinfo.Get().brand());
+  hasBrokenNeon_ = gLazyCpuinfo.Get().hasBrokenNeon();
 #elif defined(__aarch64__)
   cpuBrand_.assign("ARM64");
   hasBrokenNeon_ = false;
