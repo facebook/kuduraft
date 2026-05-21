@@ -339,8 +339,11 @@ void InboundCall::recordHandlingCompleted() {
   }
 
   if (methodInfo_) {
-    methodInfo_->handlerLatencyHistogram->increment(
-        (timing_.timeCompleted - timing_.timeHandled).ToMicroseconds());
+    auto micros =
+        (timing_.timeCompleted - timing_.timeHandled).ToMicroseconds();
+    methodInfo_->handlerLatencyHistogram->increment(micros);
+    STATS_handlerLatency.addValue(
+        micros, remoteMethod_.serviceName(), remoteMethod_.methodName());
   }
 }
 

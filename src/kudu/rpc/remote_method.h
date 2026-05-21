@@ -31,10 +31,10 @@ class RemoteMethod {
  public:
   RemoteMethod() {}
   RemoteMethod(std::string serviceName, std::string methodName);
-  std::string serviceName() const {
+  const std::string& serviceName() const {
     return serviceName_;
   }
-  std::string methodName() const {
+  const std::string& methodName() const {
     return methodName_;
   }
 

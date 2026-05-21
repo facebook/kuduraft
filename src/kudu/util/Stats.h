@@ -128,6 +128,9 @@ DECLARE_dynamic_quantile_stat(reactorActiveLatencyUs, 1);
 // --- rpc/inbound_call.cc: histogram ---
 DECLARE_dynamic_quantile_stat(rpcIncomingQueueTimeUs, 1);
 
+// --- rpc/inbound_call.cc: histogram (tags = service name, method name) ---
+DECLARE_dynamic_quantile_stat(handlerLatency, 2);
+
 // --- rpc/connection.cc: counter ---
 DECLARE_dynamic_timeseries(timeoutConnectionKill, 1);
 

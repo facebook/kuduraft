@@ -355,6 +355,15 @@ DEFINE_dynamic_quantile_stat(
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
+// ---- rpc/inbound_call.cc: histogram (tags = service name, method name) ----
+
+DEFINE_dynamic_quantile_stat(
+    handlerLatency,
+    "{}.{}.handler_latency_us",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
 // ---- rpc/connection.cc: counter ----
 
 DEFINE_dynamic_timeseries(

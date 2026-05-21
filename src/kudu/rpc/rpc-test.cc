@@ -24,6 +24,7 @@
 
 #include <latch>
 #include <limits>
+#include <map>
 #include <memory>
 #include <ostream>
 #include <set>
@@ -56,6 +57,7 @@
 #include "kudu/rpc/serialization.h"
 #include "kudu/rpc/transfer.h"
 #include "kudu/security/test/test_certs.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
@@ -1447,6 +1449,17 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   CHECK(it2 != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
   ASSERT_TRUE(it2->second);
+
+  // Verify fb303 handler_latency stat was populated
+  facebook::tcData().publishStats();
+  auto fb303Counters = facebook::fb303::fbData->getRegexCounters(
+      "kudu\\.rpc_test\\.CalculatorService\\.Sleep\\.handler_latency_us\\..*\\.60");
+  ASSERT_FALSE(fb303Counters.empty())
+      << "No fb303 handler_latency counters found for Sleep RPC";
+  std::string countKey =
+      "kudu.rpc_test.CalculatorService.Sleep.handler_latency_us.count.60";
+  EXPECT_GT(fb303Counters.count(countKey), 0)
+      << "Missing fb303 counter: " << countKey;
 }
 
 static void destroyMessengerCallback(
