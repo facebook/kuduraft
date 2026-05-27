@@ -629,7 +629,7 @@ void Connection::handleLongIncomingCall() {
   if (serialization::tryParseRpcHeader(inbound_->data(), &totalSize, &header)
           .ok()) {
     inbound_->setLongTransferCallback(
-        reactorThread_->reactor()->messenger()->SignalLongInboundCall(
+        reactorThread_->reactor()->messenger()->signalLongInboundCall(
             header.remote_method().service_name(),
             header.remote_method().method_name()));
   }

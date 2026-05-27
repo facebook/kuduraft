@@ -224,7 +224,7 @@ void ReactorThread::shutdown(Messenger::ShutdownMode mode) {
   VLOG(1) << name() << ": shutting down Reactor thread.";
   wakeThread();
 
-  if (mode == Messenger::ShutdownMode::SYNC) {
+  if (mode == Messenger::ShutdownMode::Sync) {
     // join() will return a bad status if asked to join on the currently
     // running thread.
     CHECK_OK(ThreadJoiner(thread_.get()).join());
@@ -846,7 +846,7 @@ void Reactor::shutdown(Messenger::ShutdownMode mode) {
 }
 
 Reactor::~Reactor() {
-  shutdown(Messenger::ShutdownMode::ASYNC);
+  shutdown(Messenger::ShutdownMode::Async);
 }
 
 const std::string& Reactor::name() const {

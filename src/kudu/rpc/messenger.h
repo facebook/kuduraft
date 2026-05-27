@@ -207,7 +207,7 @@ class Messenger {
   using RpcServicesMap =
       std::unordered_map<std::string, std::shared_ptr<RpcService>>;
 
-  static const uint64_t UNKNOWN_CALL_ID = 0;
+  static const uint64_t kUnknownCallId = 0;
 
   ~Messenger();
 
@@ -258,7 +258,7 @@ class Messenger {
       const boost::function<void(const Status&)>& func,
       MonoDelta when);
 
-  std::function<void()> SignalLongInboundCall(
+  std::function<void()> signalLongInboundCall(
       std::string service,
       std::string method);
 
@@ -339,23 +339,23 @@ class Messenger {
 
   explicit Messenger(const MessengerBuilder& bld);
 
-  Reactor* RemoteToReactor(const Sockaddr& remote);
+  Reactor* remoteToReactor(const Sockaddr& remote);
   Status Init();
-  void RunTimeoutThread();
-  void UpdateCurTime();
+  void runTimeoutThread();
+  void updateCurTime();
 
   // Shuts down the messenger.
   //
   // Depending on 'mode', may or may not wait on any outstanding reactor tasks.
   enum class ShutdownMode {
-    SYNC,
-    ASYNC,
+    Sync,
+    Async,
   };
-  void ShutdownInternal(ShutdownMode mode);
+  void shutdownInternal(ShutdownMode mode);
 
   // Called by external-facing shared_ptr when the user no longer holds
-  // any references. See 'retain_self_' for more info.
-  void AllExternalReferencesDropped();
+  // any references. See 'retainSelf_' for more info.
+  void allExternalReferencesDropped();
 
   const std::string name_;
 
@@ -376,8 +376,8 @@ class Messenger {
 
   // Separate client and server negotiation pools to avoid possibility of
   // distributed deadlock. See KUDU-2041.
-  std::unique_ptr<ThreadPool> client_negotiation_pool_;
-  std::unique_ptr<ThreadPool> server_negotiation_pool_;
+  std::unique_ptr<ThreadPool> clientNegotiationPool_;
+  std::unique_ptr<ThreadPool> serverNegotiationPool_;
 
   std::unique_ptr<security::TlsContext> tls_context_;
 
@@ -411,9 +411,9 @@ class Messenger {
   //       ^    |      ------------- bare pointer  --> Reactor
   //        \__/
   //     shared_ptr[2]
-  //     (retain_self_)
+  //     (retainSelf_)
   //
-  // shared_ptr[1] instances use Messenger::AllExternalReferencesDropped()
+  // shared_ptr[1] instances use Messenger::allExternalReferencesDropped()
   //   as a deleter.
   // shared_ptr[2] are "traditional" shared_ptrs which call 'delete' on the
   //   object.
@@ -422,17 +422,17 @@ class Messenger {
   // Option 1): User calls "Shutdown()" explicitly:
   //  - Messenger::Shutdown tells Reactors to shut down.
   //  - When each reactor thread finishes, it drops its shared_ptr[2].
-  //  - the Messenger::retain_self instance remains, keeping the Messenger
+  //  - the Messenger::retainSelf_ instance remains, keeping the Messenger
   //    alive.
   //  - Before returning, Messenger::Shutdown waits for Reactors to shut down.
   //  - The user eventually drops its shared_ptr[1], which calls
-  //    Messenger::AllExternalReferencesDropped. This drops retain_self_
+  //    Messenger::allExternalReferencesDropped. This drops retainSelf_
   //    and results in object destruction.
   // Option 2): User drops all of its shared_ptr[1] references
   //  - Though the Reactors still reference the Messenger,
-  //  AllExternalReferencesDropped
+  //  allExternalReferencesDropped
   //    will get called, which triggers Messenger::Shutdown.
-  //  - AllExternalReferencesDropped drops retain_self_, so the only remaining
+  //  - allExternalReferencesDropped drops retainSelf_, so the only remaining
   //    references are from Reactor threads. But the reactor threads are
   //    shutting down.
   //  - When the last Reactor thread dies, there will be no more shared_ptr[1]
@@ -445,7 +445,7 @@ class Messenger {
   // handed out to users, the Messenger destructor may be forced to Join() the
   // reactor threads, which deadlocks if the user destructs the Messenger from
   // within a Reactor thread itself.
-  std::shared_ptr<Messenger> retain_self_;
+  std::shared_ptr<Messenger> retainSelf_;
 
   DISALLOW_COPY_AND_ASSIGN(Messenger);
 };

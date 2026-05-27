@@ -166,7 +166,7 @@ class ReactorThread {
   // Shuts down a reactor thread, optionally waiting for it to exit.
   // Reactor::shutdown() must have been called already.
   //
-  // If mode == SYNC, may not be called from the reactor thread itself.
+  // If mode == Sync, may not be called from the reactor thread itself.
   void shutdown(Messenger::ShutdownMode mode);
 
   // This method is thread-safe.

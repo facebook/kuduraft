@@ -177,7 +177,7 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
   Messenger* new_msgr(new Messenger(*this));
 
   auto cleanup =
-      folly::makeGuard([&]() { new_msgr->AllExternalReferencesDropped(); });
+      folly::makeGuard([&]() { new_msgr->allExternalReferencesDropped(); });
 
   RETURN_NOT_OK(parseTriState(
       "--rpc_authentication", rpcAuthentication_, &new_msgr->authentication_));
@@ -216,43 +216,43 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
     }
   }
 
-  // See docs on Messenger::retain_self_ for info about this odd hack.
+  // See docs on Messenger::retainSelf_ for info about this odd hack.
   cleanup.dismiss();
   *msgr = shared_ptr<Messenger>(
-      new_msgr, std::mem_fun(&Messenger::AllExternalReferencesDropped));
+      new_msgr, std::mem_fun(&Messenger::allExternalReferencesDropped));
   return Status::OK();
 }
 
-// See comment on Messenger::retain_self_ member.
-void Messenger::AllExternalReferencesDropped() {
+// See comment on Messenger::retainSelf_ member.
+void Messenger::allExternalReferencesDropped() {
   // The last external ref may have been dropped in the context of a task
-  // running on a reactor thread. If that's the case, a SYNC shutdown here
+  // running on a reactor thread. If that's the case, a Sync shutdown here
   // would deadlock.
   //
-  // If a SYNC shutdown is desired, Shutdown() should be called explicitly.
-  ShutdownInternal(ShutdownMode::ASYNC);
+  // If a Sync shutdown is desired, Shutdown() should be called explicitly.
+  shutdownInternal(ShutdownMode::Async);
 
-  CHECK(retain_self_.get());
+  CHECK(retainSelf_.get());
   // If we have no more external references, then we no longer
   // need to retain ourself. We'll destruct as soon as all our
   // internal-facing references are dropped (ie those from reactor
   // threads).
-  retain_self_.reset();
+  retainSelf_.reset();
 }
 
 void Messenger::Shutdown() {
-  ShutdownInternal(ShutdownMode::SYNC);
+  shutdownInternal(ShutdownMode::Sync);
 }
 
-void Messenger::ShutdownInternal(ShutdownMode mode) {
-  if (mode == ShutdownMode::SYNC) {
+void Messenger::shutdownInternal(ShutdownMode mode) {
+  if (mode == ShutdownMode::Sync) {
     ThreadRestrictions::assertWaitAllowed();
   }
 
   // Since we're shutting down, it's OK to block.
   //
-  // TODO(adar): this ought to be removed (i.e. if ASYNC, waiting should be
-  // forbidden, and if SYNC, we already asserted above), but that's not
+  // TODO(adar): this ought to be removed (i.e. if Async, waiting should be
+  // forbidden, and if Sync, we already asserted above), but that's not
   // possible while shutting down thread and acceptor pools still involves
   // joining threads.
   ThreadRestrictions::ScopedAllowWait allow_wait;
@@ -270,8 +270,8 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
   // Need to shut down negotiation pool before the reactors, since the
   // reactors close the Connection sockets, and may race against the negotiation
   // threads' blocking reads & writes.
-  client_negotiation_pool_->Shutdown();
-  server_negotiation_pool_->Shutdown();
+  clientNegotiationPool_->Shutdown();
+  serverNegotiationPool_->Shutdown();
 
   for (Reactor* reactor : reactors_) {
     reactor->shutdown(mode);
@@ -297,7 +297,7 @@ void Messenger::UnregisterAllServices() {
 }
 
 void Messenger::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
-  Reactor* reactor = RemoteToReactor(call->connId().remote());
+  Reactor* reactor = remoteToReactor(call->connId().remote());
   reactor->queueOutboundCall(call);
 }
 
@@ -323,23 +323,23 @@ void Messenger::queueInboundCall(unique_ptr<InboundCall> call) {
 }
 
 void Messenger::queueCancellation(const shared_ptr<OutboundCall>& call) {
-  Reactor* reactor = RemoteToReactor(call->connId().remote());
+  Reactor* reactor = remoteToReactor(call->connId().remote());
   reactor->queueCancellation(call);
 }
 
 void Messenger::registerInboundSocket(
     Socket* new_socket,
     const Sockaddr& remote) {
-  Reactor* reactor = RemoteToReactor(remote);
+  Reactor* reactor = remoteToReactor(remote);
   reactor->registerInboundSocket(new_socket, remote);
 }
 
-std::function<void()> Messenger::SignalLongInboundCall(
+std::function<void()> Messenger::signalLongInboundCall(
     std::string service,
     std::string method) {
   auto rpcService = rpcService_.load();
   if (PREDICT_FALSE(rpcService == nullptr)) {
-    VLOG(2) << "No such service: " << service << "for SignalLongInboundCall";
+    VLOG(2) << "No such service: " << service << "for signalLongInboundCall";
     return {};
   }
   RemoteMethod remoteMethod = {std::move(service), std::move(method)};
@@ -362,18 +362,18 @@ Messenger::Messenger(const MessengerBuilder& bld)
       rpczStore_(new RpczStore()),
       metric_entity_(bld.metricEntity_),
       rpc_negotiation_timeout_ms_(bld.rpcNegotiationTimeoutMs_),
-      retain_self_(this) {
+      retainSelf_(this) {
   for (int i = 0; i < bld.numReactors_; i++) {
-    reactors_.push_back(new Reactor(retain_self_, i, bld));
+    reactors_.push_back(new Reactor(retainSelf_, i, bld));
   }
   CHECK_OK(ThreadPoolBuilder("client-negotiator")
                .setMinThreads(bld.minNegotiationThreads_)
                .setMaxThreads(bld.maxNegotiationThreads_)
-               .build(&client_negotiation_pool_));
+               .build(&clientNegotiationPool_));
   CHECK_OK(ThreadPoolBuilder("server-negotiator")
                .setMinThreads(bld.minNegotiationThreads_)
                .setMaxThreads(bld.maxNegotiationThreads_)
-               .build(&server_negotiation_pool_));
+               .build(&serverNegotiationPool_));
 }
 
 Messenger::~Messenger() {
@@ -385,7 +385,7 @@ Messenger::~Messenger() {
   reactors_.clear();
 }
 
-Reactor* Messenger::RemoteToReactor(const Sockaddr& remote) {
+Reactor* Messenger::remoteToReactor(const Sockaddr& remote) {
   uint32_t hashCode = remote.HashCode();
   int reactor_idx = hashCode % reactors_.size();
   // This is just a static partitioning; we could get a lot
@@ -446,9 +446,9 @@ const std::shared_ptr<RpcService> Messenger::rpc_service(
 ThreadPool* Messenger::negotiation_pool(ConnectionDirection dir) {
   switch (dir) {
     case ConnectionDirection::kClient:
-      return client_negotiation_pool_.get();
+      return clientNegotiationPool_.get();
     case ConnectionDirection::kServer:
-      return server_negotiation_pool_.get();
+      return serverNegotiationPool_.get();
   }
   DCHECK(false) << "Unknown ConnectionDirection value: " << dir;
   return nullptr;
