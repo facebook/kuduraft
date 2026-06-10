@@ -258,7 +258,7 @@ Status RpcServer::getAdvertisedAddresses(vector<Sockaddr>* addresses) const {
 
 const rpc::ServicePool* RpcServer::servicePool(
     const string& serviceName) const {
-  return kudu::down_cast<rpc::ServicePool*>(
+  return kudu::downCast<rpc::ServicePool*>(
       messenger_->rpc_service(serviceName).get());
 }
 

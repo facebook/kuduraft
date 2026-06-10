@@ -282,8 +282,7 @@ LeaderElectionTest::setUpElectionWithHighTermVoter(ConsensusTerm electionTerm) {
   statusToPb(
       Status::InvalidArgument("Bad term"),
       response.mutable_consensus_error()->mutable_status());
-  kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
-      proxies_[voterUuids_[0]])
+  kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(proxies_[voterUuids_[0]])
       ->proxy()
       ->setVoteResponse(response);
 
@@ -291,8 +290,7 @@ LeaderElectionTest::setUpElectionWithHighTermVoter(ConsensusTerm electionTerm) {
   response.set_responder_uuid(voterUuids_[1]);
   response.set_responder_term(electionTerm);
   response.set_vote_granted(true);
-  kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
-      proxies_[voterUuids_[1]])
+  kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(proxies_[voterUuids_[1]])
       ->proxy()
       ->setVoteResponse(response);
 
@@ -358,7 +356,7 @@ LeaderElectionTest::setUpElectionWithGrantDenyErrorVotes(
       LOG(FATAL) << "Unexpected fallthrough";
     }
 
-    kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
+    kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(
         proxies_[voterUuids_[voterIndex]])
         ->proxy()
         ->setVoteResponse(response);
@@ -432,8 +430,7 @@ TEST_F(LeaderElectionTest, TestHigherTermBeforeDecision) {
   election->Run();
 
   // This guy has a higher term.
-  kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
-      proxies_[voterUuids_[0]])
+  kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(proxies_[voterUuids_[0]])
       ->respond(TestPeerProxy::kRequestVote);
   latch_.wait();
 
@@ -443,8 +440,7 @@ TEST_F(LeaderElectionTest, TestHigherTermBeforeDecision) {
   LOG(INFO) << "Election lost. Reason: " << result_->message;
 
   // This guy will vote "yes".
-  kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
-      proxies_[voterUuids_[1]])
+  kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(proxies_[voterUuids_[1]])
       ->respond(TestPeerProxy::kRequestVote);
 
   waitForPool(*pool_); // Wait for the election callbacks to finish
@@ -460,8 +456,7 @@ TEST_F(LeaderElectionTest, TestHigherTermAfterDecision) {
   election->Run();
 
   // This guy will vote "yes".
-  kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
-      proxies_[voterUuids_[1]])
+  kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(proxies_[voterUuids_[1]])
       ->respond(TestPeerProxy::kRequestVote);
   latch_.wait();
 
@@ -472,8 +467,7 @@ TEST_F(LeaderElectionTest, TestHigherTermAfterDecision) {
   LOG(INFO) << "Election won.";
 
   // This guy has a higher term.
-  kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
-      proxies_[voterUuids_[0]])
+  kudu::downCast<DelayablePeerProxy<MockedPeerProxy>*>(proxies_[voterUuids_[0]])
       ->respond(TestPeerProxy::kRequestVote);
 
   waitForPool(*pool_); // Wait for the election callbacks to finish

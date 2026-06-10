@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <assert.h> // for use with down_cast<>
+#include <assert.h> // for use with downCast<>
 #include <string.h> // for memcpy
 
 #include <glog/logging.h>
@@ -21,7 +21,7 @@
 // Note: implicit_cast has been removed. Use static_cast instead.
 // For implicit conversions, static_cast is clearer and more explicit.
 
-// namespace down_cast() as it conflicts with
+// namespace downCast() as it conflicts with
 // //mysql/server/include/template_utils.h
 namespace kudu {
 // When you upcast (that is, cast a pointer from type Foo to type
@@ -42,8 +42,8 @@ namespace kudu {
 //    if (dynamic_cast<Subclass2>(foo)) HandleASubclass2Object(foo);
 // You should design the code some other way not to need this.
 
-template <typename To, typename From> // use like this: down_cast<T*>(foo);
-inline To down_cast(From* f) { // so we only accept pointers
+template <typename To, typename From> // use like this: downCast<T*>(foo);
+inline To downCast(From* f) { // so we only accept pointers
   // Ensures that To is a sub-type of From *.  This test is here only
   // for compile-time type checking, and has no overhead in an
   // optimized build at run-time, as it will be optimized away
@@ -59,16 +59,16 @@ inline To down_cast(From* f) { // so we only accept pointers
   return static_cast<To>(f);
 }
 
-// Overload of down_cast for references. Use like this: down_cast<T&>(foo).
+// Overload of downCast for references. Use like this: downCast<T&>(foo).
 // The code is slightly convoluted because we're still using the pointer
 // form of dynamic cast. (The reference form throws an exception if it
 // fails.)
 //
 // There's no need for a special const overload either for the pointer
-// or the reference form. If you call down_cast with a const T&, the
+// or the reference form. If you call downCast with a const T&, the
 // compiler will just bind From to const T.
 template <typename To, typename From>
-inline To down_cast(From& f) {
+inline To downCast(From& f) {
   KUDU_COMPILE_ASSERT(
       base::is_reference<To>::value, target_type_not_a_reference);
   using ToAsPointer = typename base::remove_reference<To>::type*;

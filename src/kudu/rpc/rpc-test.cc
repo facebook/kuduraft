@@ -1048,7 +1048,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
   CHECK(it != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
   auto* metric = it->second.get();
-  ASSERT_EQ(1, kudu::down_cast<Histogram*>(metric)->totalCount());
+  ASSERT_EQ(1, kudu::downCast<Histogram*>(metric)->totalCount());
 }
 
 // Tests that if we reset the connection after negotiation completes the
