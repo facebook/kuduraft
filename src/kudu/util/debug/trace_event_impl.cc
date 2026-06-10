@@ -63,7 +63,7 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-__thread TraceLog::PerThreadInfo* TraceLog::thread_local_info_ = nullptr;
+__thread TraceLog::PerThreadInfo* TraceLog::threadLocalInfo_ = nullptr;
 
 namespace {
 
@@ -1256,9 +1256,9 @@ const char* TraceLog::getCategoryGroupName(
   return gCategoryGroups[category_index];
 }
 
-void TraceLog::updateCategoryGroupEnabledFlag(int category_index) {
+void TraceLog::updateCategoryGroupEnabledFlag(int categoryIndex) {
   unsigned char enabled_flag = 0;
-  const char* category_group = gCategoryGroups[category_index];
+  const char* category_group = gCategoryGroups[categoryIndex];
   if (mode_ == RECORDING_MODE &&
       categoryFilter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_RECORDING;
@@ -1271,12 +1271,12 @@ void TraceLog::updateCategoryGroupEnabledFlag(int category_index) {
       eventCallbackCategoryFilter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_EVENT_CALLBACK;
   }
-  gCategoryGroupEnabled[category_index] = enabled_flag;
+  gCategoryGroupEnabled[categoryIndex] = enabled_flag;
 }
 
 void TraceLog::updateCategoryGroupEnabledFlags() {
-  int category_index = base::subtle::NoBarrier_Load(&gCategoryIndex);
-  for (int i = 0; i < category_index; i++) {
+  int categoryIndex = base::subtle::NoBarrier_Load(&gCategoryIndex);
+  for (int i = 0; i < categoryIndex; i++) {
     updateCategoryGroupEnabledFlag(i);
   }
 }
@@ -1571,7 +1571,7 @@ TraceBuffer* TraceLog::createTraceBuffer() {
 
 TraceEvent* TraceLog::addEventToThreadSharedChunkWhileLocked(
     TraceEventHandle* handle,
-    bool check_buffer_is_full) {
+    bool checkBufferIsFull) {
   DCHECK(lock_.isHeld());
 
   if (threadSharedChunk_ && threadSharedChunk_->isFull()) {
@@ -1581,7 +1581,7 @@ TraceEvent* TraceLog::addEventToThreadSharedChunkWhileLocked(
 
   if (!threadSharedChunk_) {
     threadSharedChunk_ = loggedEvents_->getChunk(&threadSharedChunkIndex_);
-    if (check_buffer_is_full) {
+    if (checkBufferIsFull) {
       checkIfBufferIsFullWhileLocked();
     }
   }
@@ -1832,7 +1832,7 @@ TraceLog::PerThreadInfo* TraceLog::setupThreadLocalBuffer() {
   auto thrInfo = new PerThreadInfo();
   thrInfo->eventBuffer_ = nullptr;
   thrInfo->isInTraceEvent_ = 0;
-  thread_local_info_ = thrInfo;
+  threadLocalInfo_ = thrInfo;
 
   threadlocal::internal::addDestructor(&TraceLog::threadExitingCb, this);
 
@@ -1849,7 +1849,7 @@ void TraceLog::threadExitingCb(void* arg) {
 }
 
 void TraceLog::threadExiting() {
-  PerThreadInfo* thrInfo = thread_local_info_;
+  PerThreadInfo* thrInfo = threadLocalInfo_;
   if (!thrInfo) {
     return;
   }
@@ -1901,7 +1901,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   kudu::MicrosecondsInt64 now = offsetTimestamp(timestamp);
   kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
 
-  PerThreadInfo* thrInfo = thread_local_info_;
+  PerThreadInfo* thrInfo = threadLocalInfo_;
   if (PREDICT_FALSE(!thrInfo)) {
     thrInfo = setupThreadLocalBuffer();
   }
@@ -2149,7 +2149,7 @@ void TraceLog::updateTraceEventDuration(
     const unsigned char* category_group_enabled,
     const char* name,
     TraceEventHandle handle) {
-  PerThreadInfo* thrInfo = thread_local_info_;
+  PerThreadInfo* thrInfo = threadLocalInfo_;
   if (!thrInfo) {
     thrInfo = setupThreadLocalBuffer();
   }
@@ -2306,7 +2306,7 @@ TraceEvent* TraceLog::getEventByHandle(TraceEventHandle handle) {
 TraceEvent* TraceLog::getEventByHandleInternal(
     TraceEventHandle handle,
     OptionalAutoLock* lock) {
-  TraceLog::PerThreadInfo* thrInfo = TraceLog::thread_local_info_;
+  TraceLog::PerThreadInfo* thrInfo = TraceLog::threadLocalInfo_;
 
   if (!handle.chunkSeq) {
     return nullptr;
@@ -2343,8 +2343,8 @@ TraceEvent* TraceLog::getEventByHandleInternal(
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-void TraceLog::setProcessId(int process_id) {
-  processId_ = process_id;
+void TraceLog::setProcessId(int processId) {
+  processId_ = processId;
   // Create a FNV hash from the process ID for XORing.
   // See http://isthe.com/chongo/tech/comp/fnv/ for algorithm details.
   uint64_t offsetBasis = 14695981039346656037ull;
@@ -2353,30 +2353,30 @@ void TraceLog::setProcessId(int process_id) {
   processIdHash_ = (offsetBasis ^ pid) * fnvPrime;
 }
 
-void TraceLog::setProcessSortIndex(int sort_index) {
+void TraceLog::setProcessSortIndex(int sortIndex) {
   SpinLockHolder lock(lock_);
-  processSortIndex_ = sort_index;
+  processSortIndex_ = sortIndex;
 }
 
-void TraceLog::setProcessName(const std::string& process_name) {
+void TraceLog::setProcessName(const std::string& processName) {
   SpinLockHolder lock(lock_);
-  processName_ = process_name;
+  processName_ = processName;
 }
 
 void TraceLog::updateProcessLabel(
-    int label_id,
-    const std::string& current_label) {
-  if (!current_label.length()) {
-    return removeProcessLabel(label_id);
+    int labelId,
+    const std::string& currentLabel) {
+  if (!currentLabel.length()) {
+    return removeProcessLabel(labelId);
   }
 
   SpinLockHolder lock(lock_);
-  processLabels_[label_id] = current_label;
+  processLabels_[labelId] = currentLabel;
 }
 
-void TraceLog::removeProcessLabel(int label_id) {
+void TraceLog::removeProcessLabel(int labelId) {
   SpinLockHolder lock(lock_);
-  auto it = processLabels_.find(label_id);
+  auto it = processLabels_.find(labelId);
   if (it == processLabels_.end()) {
     return;
   }
@@ -2420,9 +2420,9 @@ bool CategoryFilter::doesCategoryGroupContainCategory(
   return false;
 }
 
-CategoryFilter::CategoryFilter(const std::string& filter_string) {
-  if (!filter_string.empty()) {
-    initializeFilter(filter_string);
+CategoryFilter::CategoryFilter(const std::string& filterString) {
+  if (!filterString.empty()) {
+    initializeFilter(filterString);
   } else {
     initializeFilter(CategoryFilter::kDefaultCategoryFilterString);
   }
@@ -2446,9 +2446,9 @@ CategoryFilter& CategoryFilter::operator=(const CategoryFilter& rhs) {
   return *this;
 }
 
-void CategoryFilter::initializeFilter(const std::string& filter_string) {
+void CategoryFilter::initializeFilter(const std::string& filterString) {
   // Tokenize list of categories, delimited by ','.
-  vector<string> tokens = strings::split(filter_string, ",");
+  vector<string> tokens = strings::split(filterString, ",");
   // Add each token to the appropriate list (included_,excluded_).
   for (string category : tokens) {
     // Ignore empty categories.
@@ -2558,31 +2558,29 @@ bool CategoryFilter::hasIncludedPatterns() const {
   return !included_.empty();
 }
 
-void CategoryFilter::merge(const CategoryFilter& nested_filter) {
+void CategoryFilter::merge(const CategoryFilter& nestedFilter) {
   // Keep included patterns only if both filters have an included entry.
   // Otherwise, one of the filter was specifying "*" and we want to honour the
   // broadest filter.
-  if (hasIncludedPatterns() && nested_filter.hasIncludedPatterns()) {
+  if (hasIncludedPatterns() && nestedFilter.hasIncludedPatterns()) {
     included_.insert(
         included_.end(),
-        nested_filter.included_.begin(),
-        nested_filter.included_.end());
+        nestedFilter.included_.begin(),
+        nestedFilter.included_.end());
   } else {
     included_.clear();
   }
 
   disabled_.insert(
       disabled_.end(),
-      nested_filter.disabled_.begin(),
-      nested_filter.disabled_.end());
+      nestedFilter.disabled_.begin(),
+      nestedFilter.disabled_.end());
   excluded_.insert(
       excluded_.end(),
-      nested_filter.excluded_.begin(),
-      nested_filter.excluded_.end());
+      nestedFilter.excluded_.begin(),
+      nestedFilter.excluded_.end());
   delays_.insert(
-      delays_.end(),
-      nested_filter.delays_.begin(),
-      nested_filter.delays_.end());
+      delays_.end(), nestedFilter.delays_.begin(), nestedFilter.delays_.end());
 }
 
 void CategoryFilter::clear() {

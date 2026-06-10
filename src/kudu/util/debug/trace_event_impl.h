@@ -264,8 +264,8 @@ class BASE_EXPORT TraceBuffer {
   virtual std::unique_ptr<TraceBuffer> cloneForIteration() const = 0;
 };
 
-// TraceResultBuffer collects and converts trace fragments returned by TraceLog
-// to JSON output.
+// TraceResultBuffer collects and converts trace fragments returned by
+// TraceLog to JSON output.
 class TraceResultBuffer {
  public:
   static std::string flushTraceLogToString();
@@ -289,20 +289,21 @@ class BASE_EXPORT CategoryFilter {
   using StringList = std::vector<std::string>;
 
   // The default category filter, used when none is provided.
-  // Allows all categories through, except if they end in the suffix 'Debug' or
-  // 'Test'.
+  // Allows all categories through, except if they end in the suffix 'Debug'
+  // or 'Test'.
   static const char* kDefaultCategoryFilterString;
 
   // |filter_string| is a comma-delimited list of category wildcards.
-  // A category can have an optional '-' prefix to make it an excluded category.
-  // All the same rules apply above, so for example, having both included and
-  // excluded categories in the same list would not be supported.
+  // A category can have an optional '-' prefix to make it an excluded
+  // category. All the same rules apply above, so for example, having both
+  // included and excluded categories in the same list would not be supported.
   //
   // Example: CategoryFilter"test_MyTest*");
   // Example: CategoryFilter("test_MyTest*,test_OtherStuff");
   // Example: CategoryFilter("-excluded_category1,-excluded_category2");
-  // Example: CategoryFilter("-*,webkit"); would disable everything but webkit.
-  // Example: CategoryFilter("-webkit"); would enable everything but webkit.
+  // Example: CategoryFilter("-*,webkit"); would disable everything but
+  // webkit. Example: CategoryFilter("-webkit"); would enable everything but
+  // webkit.
   //
   // Category filters can also be used to configure synthetic delays.
   //
@@ -314,7 +315,7 @@ class BASE_EXPORT CategoryFilter {
   // Example: CategoryFilter("DELAY(gpu.PresentingFrame;16;alternating)");
   //          would make swap buffers take at least 16 ms every other time it
   //          is called.
-  explicit CategoryFilter(const std::string& filter_string);
+  explicit CategoryFilter(const std::string& filterString);
 
   CategoryFilter(const CategoryFilter& cf);
 
@@ -338,8 +339,8 @@ class BASE_EXPORT CategoryFilter {
   // Return a list of the synthetic delays specified in this category filter.
   const StringList& getSyntheticDelayValues() const;
 
-  // Merges nested_filter with the current CategoryFilter
-  void merge(const CategoryFilter& nested_filter);
+  // Merges nestedFilter with the current CategoryFilter
+  void merge(const CategoryFilter& nestedFilter);
 
   // Clears both included/excluded pattern lists. This would be equivalent to
   // creating a CategoryFilter with an empty string, through the constructor.
@@ -355,7 +356,7 @@ class BASE_EXPORT CategoryFilter {
   static bool isEmptyOrContainsLeadingOrTrailingWhitespace(
       const std::string& str);
 
-  void initializeFilter(const std::string& filter_string);
+  void initializeFilter(const std::string& filterString);
   void writeString(const StringList& values, std::string* out, bool included)
       const;
   void writeString(const StringList& delays, std::string* out) const;
@@ -425,8 +426,8 @@ class BASE_EXPORT TraceLog {
 
   // Enables normal tracing (recording trace events in the trace buffer).
   // See CategoryFilter comments for details on how to control what categories
-  // will be traced. If tracing has already been enabled, |category_filter| will
-  // be merged into the current category filter.
+  // will be traced. If tracing has already been enabled, |category_filter|
+  // will be merged into the current category filter.
   void
   setEnabled(const CategoryFilter& category_filter, Mode mode, Options options);
 
@@ -483,9 +484,9 @@ class BASE_EXPORT TraceLog {
   // after a call to setEventCallbackEnabled() that replaces or a call to
   // setEventCallbackDisabled() that disables the callback.
   // This callback may be invoked on any thread.
-  // For TRACE_EVENT_PHASE_COMPLETE events, the client will still receive pairs
-  // of TRACE_EVENT_PHASE_BEGIN and TRACE_EVENT_PHASE_END events to keep the
-  // interface simple.
+  // For TRACE_EVENT_PHASE_COMPLETE events, the client will still receive
+  // pairs of TRACE_EVENT_PHASE_BEGIN and TRACE_EVENT_PHASE_END events to keep
+  // the interface simple.
   using EventCallback = void (*)(
       kudu::MicrosecondsInt64 timestamp,
       char phase,
@@ -504,15 +505,15 @@ class BASE_EXPORT TraceLog {
       EventCallback cb);
   void setEventCallbackDisabled();
 
-  // Flush all collected events to the given output callback. The callback will
-  // be called one or more times synchronously from
-  // the current thread with IPC-bite-size chunks. The string format is
-  // undefined. Use TraceResultBuffer to convert one or more trace strings to
-  // JSON. The callback can be null if the caller doesn't want any data.
-  // Due to the implementation of thread-local buffers, flush can't be
-  // done when tracing is enabled. If called when tracing is enabled, the
-  // callback will be called directly with (empty_string, false) to indicate
-  // the end of this unsuccessful flush.
+  // Flush all collected events to the given output callback. The callback
+  // will be called one or more times synchronously from the current thread
+  // with IPC-bite-size chunks. The string format is undefined. Use
+  // TraceResultBuffer to convert one or more trace strings to JSON. The
+  // callback can be null if the caller doesn't want any data. Due to the
+  // implementation of thread-local buffers, flush can't be done when tracing
+  // is enabled. If called when tracing is enabled, the callback will be
+  // called directly with (empty_string, false) to indicate the end of this
+  // unsuccessful flush.
   using OutputCallback = kudu::Callback<
       void(const std::shared_ptr<kudu::RefCountedString>&, bool hasMoreEvents)>;
   void flush(const OutputCallback& cb);
@@ -588,28 +589,28 @@ class BASE_EXPORT TraceLog {
   }
   TraceEvent* getEventByHandle(TraceEventHandle handle);
 
-  void setProcessId(int process_id);
+  void setProcessId(int processId);
 
   // Process sort indices, if set, override the order of a process will appear
-  // relative to other processes in the trace viewer. Processes are sorted first
-  // on their sort index, ascending, then by their name, and then tid.
-  void setProcessSortIndex(int sort_index);
+  // relative to other processes in the trace viewer. Processes are sorted
+  // first on their sort index, ascending, then by their name, and then tid.
+  void setProcessSortIndex(int sortIndex);
 
   // Sets the name of the process.
-  void setProcessName(const std::string& process_name);
+  void setProcessName(const std::string& processName);
 
   // Processes can have labels in addition to their names. Use labels, for
   // instance, to list out the web page titles that a process is handling.
-  void updateProcessLabel(int label_id, const std::string& current_label);
-  void removeProcessLabel(int label_id);
+  void updateProcessLabel(int labelId, const std::string& currentLabel);
+  void removeProcessLabel(int labelId);
 
   // Thread sort indices, if set, override the order of a thread will appear
   // within its process in the trace viewer. Threads are sorted first on their
   // sort index, ascending, then by their name, and then tid.
   void setThreadSortIndex(int64_t tid, int sort_index);
 
-  // Allow setting an offset between the current MicrosecondsInt64 time and the
-  // time that should be reported.
+  // Allow setting an offset between the current MicrosecondsInt64 time and
+  // the time that should be reported.
   void setTimeOffset(kudu::MicrosecondsInt64 offset);
 
   size_t getObserverCountForTest() const;
@@ -629,7 +630,7 @@ class BASE_EXPORT TraceLog {
   // the category group, or event_callback_ is not null and
   // eventCallbackCategoryFilter_ matches the category group.
   void updateCategoryGroupEnabledFlags();
-  void updateCategoryGroupEnabledFlag(int category_index);
+  void updateCategoryGroupEnabledFlag(int categoryIndex);
 
   // Configure synthetic delays based on the values set in the current
   // category filter.
@@ -658,7 +659,7 @@ class BASE_EXPORT TraceLog {
 
   TraceEvent* addEventToThreadSharedChunkWhileLocked(
       TraceEventHandle* handle,
-      bool check_buffer_is_full);
+      bool checkBufferIsFull);
   void checkIfBufferIsFullWhileLocked();
   void setDisabledWhileLocked();
 
@@ -751,7 +752,7 @@ class BASE_EXPORT TraceLog {
     // Returns the old value of the member.
     ThreadLocalEventBuffer* atomicTakeBuffer();
   };
-  static __thread PerThreadInfo* thread_local_info_;
+  static __thread PerThreadInfo* threadLocalInfo_;
 
   Mutex activeThreadsLock_;
   // Map of PID -> PerThreadInfo
@@ -764,10 +765,10 @@ class BASE_EXPORT TraceLog {
   std::unique_ptr<TraceBufferChunk> threadSharedChunk_;
   size_t threadSharedChunkIndex_;
 
-  // The generation is incremented whenever tracing is enabled, and incremented
-  // again when the buffers are flushed. This ensures that trace events logged
-  // for a previous tracing session do not get accidentally flushed in the
-  // next tracing session.
+  // The generation is incremented whenever tracing is enabled, and
+  // incremented again when the buffers are flushed. This ensures that trace
+  // events logged for a previous tracing session do not get accidentally
+  // flushed in the next tracing session.
   AtomicWord generation_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceLog);
