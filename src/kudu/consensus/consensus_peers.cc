@@ -218,7 +218,7 @@ Status Peer::signalRequest(bool evenIfQueueEmpty, bool isLeaderLeaseRevoke) {
   //
   // "requestPending_" is an atomic, hence no need to take peerLock_ here.
   // This allows to return early without blocking on "peerLock_". Note that
-  // "peerLock_" is also held during Peer::SendNextRequest(...) which could
+  // "peerLock_" is also held during Peer::sendNextRequest(...) which could
   // take some time for a lagging peer as it involves multiple disk IO
   if (requestPending_) {
     return Status::OK();
@@ -473,7 +473,7 @@ void Peer::processResponse() {
   }
 
   // The queue's handling of the peer response may generate IO (reads against
-  // the WAL) and SendNextRequest() may do the same thing. So we run the rest
+  // the WAL) and sendNextRequest() may do the same thing. So we run the rest
   // of the response handling logic on our thread pool and not on the reactor
   // thread.
   //
@@ -666,9 +666,9 @@ bool validationPeerRpcFaultsRemote(const string& remotePeerUuid) {
 
   string line;
   while (std::getline(input, line)) {
-    const auto comment_pos = line.find('#');
-    if (comment_pos != string::npos) {
-      line.resize(comment_pos);
+    const auto commentPos = line.find('#');
+    if (commentPos != string::npos) {
+      line.resize(commentPos);
     }
     std::replace(line.begin(), line.end(), ',', ' ');
     std::replace(line.begin(), line.end(), ';', ' ');
@@ -730,7 +730,7 @@ void RpcPeerProxy::updateAsync(
         // time
         if (controller->status().ok()) {
           checkAndEnforceResponseToken(
-              "UpdateAsync", response, requestToken, mismatchCounter);
+              "updateAsync", response, requestToken, mismatchCounter);
         }
         callback();
       });
@@ -777,7 +777,7 @@ void RpcPeerProxy::requestConsensusVoteAsync(
        mismatchCounter = numRpcTokenMismatches_]() {
         if (controller->status().ok()) {
           checkAndEnforceResponseToken(
-              "RequestConsensusVoteAsync",
+              "requestConsensusVoteAsync",
               response,
               requestToken,
               mismatchCounter);

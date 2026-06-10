@@ -124,9 +124,9 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // Creates a new remote peer and makes the queue track it.'
   //
   // Requests to this peer (which may end up doing IO to read non-cached
-  // log entries) are assembled on 'raft_pool_token'.
+  // log entries) are assembled on 'raftPoolToken'.
   // Response handling may also involve IO related to log-entry lookups and is
-  // also done on 'raft_pool_token'.
+  // also done on 'raftPoolToken'.
   static Status newRemotePeer(
       RaftPeerPB peerPb,
       std::string tabletId,
@@ -154,11 +154,11 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // Signals that a response was received from the peer.
   //
   // This method is called from the reactor thread and calls
-  // doProcessResponse() on raft_pool_token_ to do any work that requires IO or
+  // doProcessResponse() on raftPoolToken_ to do any work that requires IO or
   // lock-taking.
   void processResponse();
 
-  // Run on 'raft_pool_token'. Does response handling that requires IO or may
+  // Run on 'raftPoolToken'. Does response handling that requires IO or may
   // block.
   void doProcessResponse();
 
