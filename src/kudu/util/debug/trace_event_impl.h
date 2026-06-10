@@ -722,7 +722,7 @@ class BASE_EXPORT TraceLog {
       threadEventStartTimes_;
   std::unordered_map<std::string, int> threadColors_;
 
-  // XORed with TraceID to make it unlikely to collide with other processes.
+  // XORed with TraceId to make it unlikely to collide with other processes.
   uint64_t processIdHash_;
 
   int processId_;

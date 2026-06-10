@@ -206,7 +206,7 @@
 
 // By default, pointers are mangled with the Process ID in TRACE_EVENT_ASYNC
 // macros. Use this macro to prevent Process ID mangling.
-#define TRACE_ID_DONT_MANGLE(id) trace_event_internal::TraceID::DontMangle(id)
+#define TRACE_ID_DONT_MANGLE(id) trace_event_internal::TraceId::DontMangle(id)
 
 // Records a pair of begin and end events called "name" for the current
 // scope, with 0, 1 or 2 associated arguments. If the category is not
@@ -1231,7 +1231,7 @@ TRACE_EVENT_API_CLASS_EXPORT extern TRACE_EVENT_API_ATOMIC_WORD gTraceState[3];
     INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                 \
     if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) { \
       unsigned char trace_event_flags = flags | TRACE_EVENT_FLAG_HAS_ID;    \
-      trace_event_internal::TraceID trace_event_trace_id(                   \
+      trace_event_internal::TraceId trace_event_trace_id(                   \
           id, &trace_event_flags);                                          \
       trace_event_internal::addTraceEvent(                                  \
           phase,                                                            \
@@ -1251,7 +1251,7 @@ TRACE_EVENT_API_CLASS_EXPORT extern TRACE_EVENT_API_ATOMIC_WORD gTraceState[3];
     INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO(category_group);                 \
     if (INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE()) { \
       unsigned char trace_event_flags = flags | TRACE_EVENT_FLAG_HAS_ID;    \
-      trace_event_internal::TraceID trace_event_trace_id(                   \
+      trace_event_internal::TraceId trace_event_trace_id(                   \
           id, &trace_event_flags);                                          \
       trace_event_internal::addTraceEventWithThreadIdAndTimestamp(          \
           phase,                                                            \
@@ -1327,10 +1327,10 @@ namespace trace_event_internal {
 const int kZeroNumArgs = 0;
 const uint64_t kNoEventId = 0;
 
-// TraceID encapsulates an ID that can either be an integer or pointer. Pointers
+// TraceId encapsulates an ID that can either be an integer or pointer. Pointers
 // are by default mangled with the Process ID so that they are unlikely to
 // collide when the same pointer is used on different processes.
-class TraceID {
+class TraceId {
  public:
   class DontMangle {
    public:
@@ -1353,37 +1353,37 @@ class TraceID {
     uint64_t data_;
   };
 
-  TraceID(const void* id, unsigned char* flags)
+  TraceId(const void* id, unsigned char* flags)
       : data_(static_cast<uint64_t>(reinterpret_cast<unsigned long>(id))) {
     *flags |= TRACE_EVENT_FLAG_MANGLE_ID;
   }
-  TraceID(DontMangle id, unsigned char* /* flags */) : data_(id.data()) {}
-  TraceID(uint64_t id, unsigned char* flags) : data_(id) {
+  TraceId(DontMangle id, unsigned char* /* flags */) : data_(id.data()) {}
+  TraceId(uint64_t id, unsigned char* flags) : data_(id) {
     (void)flags;
   }
-  TraceID(unsigned int id, unsigned char* flags) : data_(id) {
+  TraceId(unsigned int id, unsigned char* flags) : data_(id) {
     (void)flags;
   }
-  TraceID(unsigned short id, unsigned char* flags) : data_(id) {
+  TraceId(unsigned short id, unsigned char* flags) : data_(id) {
     (void)flags;
   }
-  TraceID(unsigned char id, unsigned char* flags) : data_(id) {
+  TraceId(unsigned char id, unsigned char* flags) : data_(id) {
     (void)flags;
   }
-  TraceID(long long id, unsigned char* flags)
+  TraceId(long long id, unsigned char* flags)
       : data_(static_cast<uint64_t>(id)) {
     (void)flags;
   }
-  TraceID(long id, unsigned char* flags) : data_(static_cast<uint64_t>(id)) {
+  TraceId(long id, unsigned char* flags) : data_(static_cast<uint64_t>(id)) {
     (void)flags;
   }
-  TraceID(int id, unsigned char* flags) : data_(static_cast<uint64_t>(id)) {
+  TraceId(int id, unsigned char* flags) : data_(static_cast<uint64_t>(id)) {
     (void)flags;
   }
-  TraceID(short id, unsigned char* flags) : data_(static_cast<uint64_t>(id)) {
+  TraceId(short id, unsigned char* flags) : data_(static_cast<uint64_t>(id)) {
     (void)flags;
   }
-  TraceID(signed char id, unsigned char* flags)
+  TraceId(signed char id, unsigned char* flags)
       : data_(static_cast<uint64_t>(id)) {
     (void)flags;
   }
@@ -1877,13 +1877,13 @@ class TraceEventSamplingStateScope {
 namespace kudu {
 namespace debug {
 
-template <typename IDType>
+template <typename IdType>
 class TraceScopedTrackableObject {
  public:
   TraceScopedTrackableObject(
       const char* category_group,
       const char* name,
-      IDType id)
+      IdType id)
       : categoryGroup_(category_group), name_(name), id_(id) {
     TRACE_EVENT_OBJECT_CREATED_WITH_ID(categoryGroup_, name_, id_);
   }
@@ -1900,7 +1900,7 @@ class TraceScopedTrackableObject {
  private:
   const char* categoryGroup_;
   const char* name_;
-  IDType id_;
+  IdType id_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceScopedTrackableObject);
 };
