@@ -76,14 +76,14 @@ class HdrHistogram {
   // Specify the highest trackable value so that the class has a bound on the
   // number of buckets, and # of significant digits (in decimal) so that the
   // class can determine the granularity of those buckets.
-  HdrHistogram(uint64_t highest_trackable_value, int num_significant_digits);
+  HdrHistogram(uint64_t highestTrackableValue, int numSignificantDigits);
 
   // Copy-construct a (non-consistent) snapshot of other.
   explicit HdrHistogram(const HdrHistogram& other);
 
   // Validate your params before trying to construct the object.
-  static bool isValidHighestTrackableValue(uint64_t highest_trackable_value);
-  static bool isValidNumSignificantDigits(int num_significant_digits);
+  static bool isValidHighestTrackableValue(uint64_t highestTrackableValue);
+  static bool isValidNumSignificantDigits(int numSignificantDigits);
 
   // Record new data.
   void increment(int64_t value);
@@ -100,10 +100,10 @@ class HdrHistogram {
 
   // Fetch configuration params.
   uint64_t highestTrackableValue() const {
-    return highest_trackable_value_;
+    return highestTrackableValue_;
   }
   int numSignificantDigits() const {
-    return num_significant_digits_;
+    return numSignificantDigits_;
   }
 
   // Get indexes into histogram based on value.
@@ -112,12 +112,12 @@ class HdrHistogram {
 
   // Count of all events recorded.
   uint64_t totalCount() const {
-    return base::subtle::NoBarrier_Load(&total_count_);
+    return base::subtle::NoBarrier_Load(&totalCount_);
   }
 
   // Sum of all events recorded.
   uint64_t totalSum() const {
-    return base::subtle::NoBarrier_Load(&total_sum_);
+    return base::subtle::NoBarrier_Load(&totalSum_);
   }
 
   // Return number of items at index.
@@ -191,23 +191,23 @@ class HdrHistogram {
   void init();
   int countsArrayIndex(int bucket_index, int sub_bucket_index) const;
 
-  uint64_t highest_trackable_value_;
-  int num_significant_digits_;
-  int counts_array_length_;
-  int bucket_count_;
-  int sub_bucket_count_;
-  rw_spinlock histogram_mutex_;
+  uint64_t highestTrackableValue_;
+  int numSignificantDigits_;
+  int countsArrayLength_;
+  int bucketCount_;
+  int subBucketCount_;
+  rw_spinlock histogramMutex_;
 
   // "Hot" fields in the write path.
-  uint8_t sub_bucket_half_count_magnitude_;
-  int sub_bucket_half_count_;
-  uint32_t sub_bucket_mask_;
+  uint8_t subBucketHalfCountMagnitude_;
+  int subBucketHalfCount_;
+  uint32_t subBucketMask_;
 
   // Also hot.
-  base::subtle::Atomic64 total_count_;
-  base::subtle::Atomic64 total_sum_;
-  base::subtle::Atomic64 min_value_;
-  base::subtle::Atomic64 max_value_;
+  base::subtle::Atomic64 totalCount_;
+  base::subtle::Atomic64 totalSum_;
+  base::subtle::Atomic64 minValue_;
+  base::subtle::Atomic64 maxValue_;
   std::unique_ptr<base::subtle::Atomic64[]> counts_;
 
   HdrHistogram& operator=(

@@ -49,79 +49,79 @@ const int HdrHistogram::kMinValidNumSignificantDigits;
 const int HdrHistogram::kMaxValidNumSignificantDigits;
 
 HdrHistogram::HdrHistogram(
-    uint64_t highest_trackable_value,
-    int num_significant_digits)
-    : highest_trackable_value_(highest_trackable_value),
-      num_significant_digits_(num_significant_digits),
-      counts_array_length_(0),
-      bucket_count_(0),
-      sub_bucket_count_(0),
-      sub_bucket_half_count_magnitude_(0),
-      sub_bucket_half_count_(0),
-      sub_bucket_mask_(0),
-      total_count_(0),
-      total_sum_(0),
-      min_value_(std::numeric_limits<Atomic64>::max()),
-      max_value_(0) {
+    uint64_t highestTrackableValue,
+    int numSignificantDigits)
+    : highestTrackableValue_(highestTrackableValue),
+      numSignificantDigits_(numSignificantDigits),
+      countsArrayLength_(0),
+      bucketCount_(0),
+      subBucketCount_(0),
+      subBucketHalfCountMagnitude_(0),
+      subBucketHalfCount_(0),
+      subBucketMask_(0),
+      totalCount_(0),
+      totalSum_(0),
+      minValue_(std::numeric_limits<Atomic64>::max()),
+      maxValue_(0) {
   init();
 }
 
 HdrHistogram::HdrHistogram(const HdrHistogram& other)
-    : highest_trackable_value_(other.highest_trackable_value_),
-      num_significant_digits_(other.num_significant_digits_),
-      counts_array_length_(0),
-      bucket_count_(0),
-      sub_bucket_count_(0),
-      sub_bucket_half_count_magnitude_(0),
-      sub_bucket_half_count_(0),
-      sub_bucket_mask_(0),
-      total_count_(0),
-      total_sum_(0),
-      min_value_(std::numeric_limits<Atomic64>::max()),
-      max_value_(0) {
+    : highestTrackableValue_(other.highestTrackableValue_),
+      numSignificantDigits_(other.numSignificantDigits_),
+      countsArrayLength_(0),
+      bucketCount_(0),
+      subBucketCount_(0),
+      subBucketHalfCountMagnitude_(0),
+      subBucketHalfCount_(0),
+      subBucketMask_(0),
+      totalCount_(0),
+      totalSum_(0),
+      minValue_(std::numeric_limits<Atomic64>::max()),
+      maxValue_(0) {
   init();
 
   // Not a consistent snapshot but we try to roughly keep it close.
   // Copy the sum and min first.
-  NoBarrier_Store(&total_sum_, NoBarrier_Load(&other.total_sum_));
-  NoBarrier_Store(&min_value_, NoBarrier_Load(&other.min_value_));
+  NoBarrier_Store(&totalSum_, NoBarrier_Load(&other.totalSum_));
+  NoBarrier_Store(&minValue_, NoBarrier_Load(&other.minValue_));
 
   uint64_t total_copied_count = 0;
   // Copy the counts in order of ascending magnitude.
-  for (int i = 0; i < counts_array_length_; i++) {
+  for (int i = 0; i < countsArrayLength_; i++) {
     uint64_t count = NoBarrier_Load(&other.counts_[i]);
     NoBarrier_Store(&counts_[i], count);
     total_copied_count += count;
   }
   // Copy the max observed value last.
-  NoBarrier_Store(&max_value_, NoBarrier_Load(&other.max_value_));
+  NoBarrier_Store(&maxValue_, NoBarrier_Load(&other.maxValue_));
   // We must ensure the total is consistent with the copied counts.
-  NoBarrier_Store(&total_count_, total_copied_count);
+  NoBarrier_Store(&totalCount_, total_copied_count);
 }
 
 bool HdrHistogram::isValidHighestTrackableValue(
-    uint64_t highest_trackable_value) {
-  return highest_trackable_value >= kMinHighestTrackableValue;
+    uint64_t highestTrackableValue) {
+  return highestTrackableValue >= kMinHighestTrackableValue;
 }
 
-bool HdrHistogram::isValidNumSignificantDigits(int num_significant_digits) {
-  return num_significant_digits >= kMinValidNumSignificantDigits &&
-      num_significant_digits <= kMaxValidNumSignificantDigits;
+bool HdrHistogram::isValidNumSignificantDigits(int numSignificantDigits) {
+  return numSignificantDigits >= kMinValidNumSignificantDigits &&
+      numSignificantDigits <= kMaxValidNumSignificantDigits;
 }
 
 void HdrHistogram::init() {
   // Verify parameter validity
-  CHECK(isValidHighestTrackableValue(highest_trackable_value_)) << fmt::format(
-      "highest_trackable_value must be >= {}", kMinHighestTrackableValue);
-  CHECK(isValidNumSignificantDigits(num_significant_digits_)) << fmt::format(
-      "num_significant_digits must be between {} and {}",
+  CHECK(isValidHighestTrackableValue(highestTrackableValue_)) << fmt::format(
+      "highestTrackableValue must be >= {}", kMinHighestTrackableValue);
+  CHECK(isValidNumSignificantDigits(numSignificantDigits_)) << fmt::format(
+      "numSignificantDigits must be between {} and {}",
       kMinValidNumSignificantDigits,
       kMaxValidNumSignificantDigits);
 
   uint32_t largest_value_with_single_unit_resolution =
-      2 * static_cast<uint32_t>(pow(10.0, num_significant_digits_));
+      2 * static_cast<uint32_t>(pow(10.0, numSignificantDigits_));
 
-  // We need to maintain power-of-two sub_bucket_count_ (for clean direct
+  // We need to maintain power-of-two subBucketCount_ (for clean direct
   // indexing) that is large enough to provide unit resolution to at least
   // largest_value_with_single_unit_resolution. So figure out
   // largest_value_with_single_unit_resolution's nearest power-of-two
@@ -132,27 +132,27 @@ void HdrHistogram::init() {
   // 10^precision accuracy.
   int sub_bucket_count_magnitude =
       Bits::log2Ceiling(largest_value_with_single_unit_resolution);
-  sub_bucket_half_count_magnitude_ =
+  subBucketHalfCountMagnitude_ =
       (sub_bucket_count_magnitude >= 1) ? sub_bucket_count_magnitude - 1 : 0;
 
-  // sub_bucket_count_ is approx. 10^num_sig_digits (as a power of 2)
-  sub_bucket_count_ = pow(2.0, sub_bucket_half_count_magnitude_ + 1);
-  sub_bucket_mask_ = sub_bucket_count_ - 1;
-  sub_bucket_half_count_ = sub_bucket_count_ / 2;
+  // subBucketCount_ is approx. 10^num_sig_digits (as a power of 2)
+  subBucketCount_ = pow(2.0, subBucketHalfCountMagnitude_ + 1);
+  subBucketMask_ = subBucketCount_ - 1;
+  subBucketHalfCount_ = subBucketCount_ / 2;
 
   // The buckets take care of the magnitude.
   // Determine exponent range needed to support the trackable value with no
   // overflow:
-  uint64_t trackable_value = sub_bucket_count_ - 1;
+  uint64_t trackable_value = subBucketCount_ - 1;
   int buckets_needed = 1;
-  while (trackable_value < highest_trackable_value_) {
+  while (trackable_value < highestTrackableValue_) {
     trackable_value <<= 1;
     buckets_needed++;
   }
-  bucket_count_ = buckets_needed;
+  bucketCount_ = buckets_needed;
 
-  counts_array_length_ = (bucket_count_ + 1) * sub_bucket_half_count_;
-  counts_.reset(new Atomic64[counts_array_length_]()); // value-initialized
+  countsArrayLength_ = (bucketCount_ + 1) * subBucketHalfCount_;
+  counts_.reset(new Atomic64[countsArrayLength_]()); // value-initialized
 }
 
 void HdrHistogram::increment(int64_t value) {
@@ -160,7 +160,7 @@ void HdrHistogram::increment(int64_t value) {
 }
 
 void HdrHistogram::incrementBy(int64_t value, int64_t count) {
-  shared_lock<rw_spinlock> lock(histogram_mutex_);
+  shared_lock<rw_spinlock> lock(histogramMutex_);
   DCHECK_GE(value, 0);
   DCHECK_GE(count, 0);
 
@@ -172,14 +172,14 @@ void HdrHistogram::incrementBy(int64_t value, int64_t count) {
 
   // Increment bucket, total, and sum.
   NoBarrier_AtomicIncrement(&counts_[counts_index], count);
-  NoBarrier_AtomicIncrement(&total_count_, count);
-  NoBarrier_AtomicIncrement(&total_sum_, value * count);
+  NoBarrier_AtomicIncrement(&totalCount_, count);
+  NoBarrier_AtomicIncrement(&totalSum_, value * count);
 
   // Update min, if needed.
   {
     Atomic64 min_val;
     while (PREDICT_FALSE(value < (min_val = minValue()))) {
-      Atomic64 old_val = NoBarrier_CompareAndSwap(&min_value_, min_val, value);
+      Atomic64 old_val = NoBarrier_CompareAndSwap(&minValue_, min_val, value);
       if (PREDICT_TRUE(old_val == min_val)) {
         break; // CAS success.
       }
@@ -190,7 +190,7 @@ void HdrHistogram::incrementBy(int64_t value, int64_t count) {
   {
     Atomic64 max_val;
     while (PREDICT_FALSE(value > (max_val = maxValue()))) {
-      Atomic64 old_val = NoBarrier_CompareAndSwap(&max_value_, max_val, value);
+      Atomic64 old_val = NoBarrier_CompareAndSwap(&maxValue_, max_val, value);
       if (PREDICT_TRUE(old_val == max_val)) {
         break; // CAS success.
       }
@@ -215,19 +215,19 @@ void HdrHistogram::incrementWithExpectedInterval(
 ////////////////////////////////////
 
 int HdrHistogram::bucketIndex(uint64_t value) const {
-  if (PREDICT_FALSE(value > highest_trackable_value_)) {
-    value = highest_trackable_value_;
+  if (PREDICT_FALSE(value > highestTrackableValue_)) {
+    value = highestTrackableValue_;
   }
   // Here we are calculating the power-of-2 magnitude of the value with a
   // correction for precision in the first bucket.
   // Smallest power of 2 containing value.
-  int pow2ceiling = Bits::log2Ceiling64(value | sub_bucket_mask_);
-  return pow2ceiling - (sub_bucket_half_count_magnitude_ + 1);
+  int pow2ceiling = Bits::log2Ceiling64(value | subBucketMask_);
+  return pow2ceiling - (subBucketHalfCountMagnitude_ + 1);
 }
 
 int HdrHistogram::subBucketIndex(uint64_t value, int bucket_index) const {
-  if (PREDICT_FALSE(value > highest_trackable_value_)) {
-    value = highest_trackable_value_;
+  if (PREDICT_FALSE(value > highestTrackableValue_)) {
+    value = highestTrackableValue_;
   }
   // We hack off the magnitude and are left with only the relevant precision
   // portion, which gives us a direct index into the sub-bucket. TODO: Right??
@@ -236,16 +236,15 @@ int HdrHistogram::subBucketIndex(uint64_t value, int bucket_index) const {
 
 int HdrHistogram::countsArrayIndex(int bucket_index, int sub_bucket_index)
     const {
-  DCHECK(sub_bucket_index < sub_bucket_count_);
-  DCHECK(bucket_index < bucket_count_);
-  DCHECK(bucket_index == 0 || (sub_bucket_index >= sub_bucket_half_count_));
+  DCHECK(sub_bucket_index < subBucketCount_);
+  DCHECK(bucket_index < bucketCount_);
+  DCHECK(bucket_index == 0 || (sub_bucket_index >= subBucketHalfCount_));
   // Calculate the index for the first entry in the bucket:
   // (The following is the equivalent of ((bucket_index + 1) *
-  // sub_bucket_half_count_) ):
-  int bucket_base_index = (bucket_index + 1)
-      << sub_bucket_half_count_magnitude_;
+  // subBucketHalfCount_) ):
+  int bucket_base_index = (bucket_index + 1) << subBucketHalfCountMagnitude_;
   // Calculate the offset in the bucket:
-  int offset_in_bucket = sub_bucket_index - sub_bucket_half_count_;
+  int offset_in_bucket = sub_bucket_index - subBucketHalfCount_;
   return bucket_base_index + offset_in_bucket;
 }
 
@@ -270,8 +269,8 @@ uint64_t HdrHistogram::sizeOfEquivalentValueRange(uint64_t value) const {
   int sub_bucket_index = subBucketIndex(value, bucket_index);
   uint64_t distance_to_next_value =
       (1
-       << ((sub_bucket_index >= sub_bucket_count_) ? (bucket_index + 1)
-                                                   : bucket_index));
+       << ((sub_bucket_index >= subBucketCount_) ? (bucket_index + 1)
+                                                 : bucket_index));
   return distance_to_next_value;
 }
 
@@ -304,14 +303,14 @@ uint64_t HdrHistogram::minValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
-  return NoBarrier_Load(&min_value_);
+  return NoBarrier_Load(&minValue_);
 }
 
 uint64_t HdrHistogram::maxValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
-  return NoBarrier_Load(&max_value_);
+  return NoBarrier_Load(&maxValue_);
 }
 
 double HdrHistogram::meanValue() const {
@@ -338,9 +337,9 @@ uint64_t HdrHistogram::valueAtPercentile(double percentile) const {
   count_at_percentile = std::max(count_at_percentile, static_cast<uint64_t>(1));
 
   uint64_t total_to_current_iJ = 0;
-  for (int i = 0; i < bucket_count_; i++) {
-    int j = (i == 0) ? 0 : (sub_bucket_count_ / 2);
-    for (; j < sub_bucket_count_; j++) {
+  for (int i = 0; i < bucketCount_; i++) {
+    int j = (i == 0) ? 0 : (subBucketCount_ / 2);
+    for (; j < subBucketCount_; j++) {
       total_to_current_iJ += countAt(i, j);
       if (total_to_current_iJ >= count_at_percentile) {
         uint64_t valueAtIndex = valueFromIndex(i, j);
@@ -355,12 +354,12 @@ uint64_t HdrHistogram::valueAtPercentile(double percentile) const {
 }
 
 void HdrHistogram::resetHistogram() {
-  std::lock_guard<rw_spinlock> lock(histogram_mutex_);
-  total_count_ = 0;
-  total_sum_ = 0;
-  min_value_ = std::numeric_limits<Atomic64>::max();
-  max_value_ = 0;
-  counts_.reset(new Atomic64[counts_array_length_]());
+  std::lock_guard<rw_spinlock> lock(histogramMutex_);
+  totalCount_ = 0;
+  totalSum_ = 0;
+  minValue_ = std::numeric_limits<Atomic64>::max();
+  maxValue_ = 0;
+  counts_.reset(new Atomic64[countsArrayLength_]());
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -451,7 +450,7 @@ uint64_t AbstractHistogramIterator::valueIteratedTo() const {
 }
 
 bool AbstractHistogramIterator::exhaustedSubBuckets() const {
-  return (current_bucket_index_ >= histogram_->bucket_count_);
+  return (current_bucket_index_ >= histogram_->bucketCount_);
 }
 
 void AbstractHistogramIterator::incrementSubBucket() {
@@ -462,8 +461,8 @@ void AbstractHistogramIterator::incrementSubBucket() {
   current_value_at_index_ = next_value_at_index_;
   // Figure out the next next index:
   next_sub_bucket_index_++;
-  if (next_sub_bucket_index_ >= histogram_->sub_bucket_count_) {
-    next_sub_bucket_index_ = histogram_->sub_bucket_half_count_;
+  if (next_sub_bucket_index_ >= histogram_->subBucketCount_) {
+    next_sub_bucket_index_ = histogram_->subBucketHalfCount_;
     next_bucket_index_++;
   }
   next_value_at_index_ =
