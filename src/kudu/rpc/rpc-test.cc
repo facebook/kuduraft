@@ -1041,8 +1041,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
 
   // Only the second call should have been received by the server, because we
   // don't bother sending an already-timed-out call.
-  auto metricMap =
-      serverMessenger_->metric_entity()->unsafeMetricsMapForTests();
+  auto metricMap = serverMessenger_->metricEntity()->unsafeMetricsMapForTests();
   auto it = metricMap.find(&METRIC_rpc_incoming_queue_time);
   CHECK(it != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
@@ -1421,7 +1420,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   ASSERT_OK(p.syncRequest("Sleep", req, &resp, &controller));
 
   const unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>
-      metricMap = serverMessenger_->metric_entity()->unsafeMetricsMapForTests();
+      metricMap = serverMessenger_->metricEntity()->unsafeMetricsMapForTests();
 
   auto it = metricMap.find(
       &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep);

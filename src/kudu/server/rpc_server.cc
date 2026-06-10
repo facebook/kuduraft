@@ -156,7 +156,7 @@ Status RpcServer::registerService(unique_ptr<rpc::ServiceIf> service) {
   string serviceName = service->serviceName();
   std::shared_ptr<rpc::ServicePool> newServicePool(new rpc::ServicePool(
       std::move(service),
-      messenger_->metric_entity(),
+      messenger_->metricEntity(),
       options_.serviceQueueLength));
   RETURN_NOT_OK(newServicePool->init(options_.numServiceThreads));
   auto* newServicePoolRawPtr = newServicePool.get();

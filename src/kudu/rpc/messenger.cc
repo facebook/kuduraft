@@ -187,7 +187,7 @@ Status MessengerBuilder::build(shared_ptr<Messenger>* msgr) {
 
   RETURN_NOT_OK(new_msgr->Init());
   if (new_msgr->encryption_ != RpcEncryption::Disabled && enableInboundTls_) {
-    auto* tls_context = new_msgr->mutable_tls_context();
+    auto* tls_context = new_msgr->mutableTlsContext();
 
     if (!rpcCertificateFile_.empty()) {
       CHECK(!rpcPrivateKeyFile_.empty());
@@ -356,12 +356,12 @@ Messenger::Messenger(const MessengerBuilder& bld)
       closing_(false),
       authentication_(RpcAuthentication::Required),
       encryption_(RpcEncryption::Required),
-      tls_context_(
+      tlsContext_(
           new security::TlsContext(bld.rpcTlsCiphers_, bld.rpcTlsMinProtocol_)),
-      token_verifier_(new security::TokenVerifier()),
+      tokenVerifier_(new security::TokenVerifier()),
       rpczStore_(new RpczStore()),
-      metric_entity_(bld.metricEntity_),
-      rpc_negotiation_timeout_ms_(bld.rpcNegotiationTimeoutMs_),
+      metricEntity_(bld.metricEntity_),
+      rpcNegotiationTimeoutMs_(bld.rpcNegotiationTimeoutMs_),
       retainSelf_(this) {
   for (int i = 0; i < bld.numReactors_; i++) {
     reactors_.push_back(new Reactor(retainSelf_, i, bld));
@@ -394,7 +394,7 @@ Reactor* Messenger::remoteToReactor(const Sockaddr& remote) {
 }
 
 Status Messenger::Init() {
-  RETURN_NOT_OK(tls_context_->init());
+  RETURN_NOT_OK(tlsContext_->init());
   for (Reactor* r : reactors_) {
     RETURN_NOT_OK(r->init());
   }

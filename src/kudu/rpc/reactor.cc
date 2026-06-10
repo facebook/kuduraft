@@ -647,7 +647,7 @@ Status ReactorThread::startConnectionNegotiation(
   // Set a limit on how long the server will negotiate with a new client.
   MonoTime deadline = MonoTime::Now() +
       MonoDelta::FromMilliseconds(
-                          reactor()->messenger()->rpc_negotiation_timeout_ms());
+                          reactor()->messenger()->rpcNegotiationTimeoutMs());
 
   std::shared_ptr<Trace> trace = std::make_shared<Trace>();
   ADOPT_TRACE(trace);

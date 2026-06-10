@@ -270,19 +270,19 @@ Sockaddr ServerBase::firstRpcAddress() const {
 }
 
 const security::TlsContext& ServerBase::tlsContext() const {
-  return messenger_->tls_context();
+  return messenger_->tlsContext();
 }
 
 security::TlsContext* ServerBase::mutableTlsContext() {
-  return messenger_->mutable_tls_context();
+  return messenger_->mutableTlsContext();
 }
 
 const security::TokenVerifier& ServerBase::tokenVerifier() const {
-  return messenger_->token_verifier();
+  return messenger_->tokenVerifier();
 }
 
 security::TokenVerifier* ServerBase::mutableTokenVerifier() {
-  return messenger_->mutable_token_verifier();
+  return messenger_->mutableTokenVerifier();
 }
 
 const NodeInstancePB& ServerBase::instancePb() const {

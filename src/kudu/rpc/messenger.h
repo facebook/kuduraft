@@ -260,30 +260,30 @@ class Messenger {
       std::string service,
       std::string method);
 
-  const security::TlsContext& tls_context() const {
-    return *tls_context_;
+  const security::TlsContext& tlsContext() const {
+    return *tlsContext_;
   }
-  security::TlsContext* mutable_tls_context() {
-    return tls_context_.get();
-  }
-
-  const security::TokenVerifier& token_verifier() const {
-    return *token_verifier_;
-  }
-  security::TokenVerifier* mutable_token_verifier() {
-    return token_verifier_.get();
-  }
-  std::shared_ptr<security::TokenVerifier> shared_token_verifier() const {
-    return token_verifier_;
+  security::TlsContext* mutableTlsContext() {
+    return tlsContext_.get();
   }
 
-  std::optional<security::SignedTokenPB> authn_token() const {
-    std::lock_guard<SimpleSpinlock> l(authn_token_lock_);
-    return authn_token_;
+  const security::TokenVerifier& tokenVerifier() const {
+    return *tokenVerifier_;
   }
-  void set_authn_token(const security::SignedTokenPB& token) {
-    std::lock_guard<SimpleSpinlock> l(authn_token_lock_);
-    authn_token_ = token;
+  security::TokenVerifier* mutableTokenVerifier() {
+    return tokenVerifier_.get();
+  }
+  std::shared_ptr<security::TokenVerifier> sharedTokenVerifier() const {
+    return tokenVerifier_;
+  }
+
+  std::optional<security::SignedTokenPB> authnToken() const {
+    std::lock_guard<SimpleSpinlock> l(authnTokenLock_);
+    return authnToken_;
+  }
+  void setAuthnToken(const security::SignedTokenPB& token) {
+    std::lock_guard<SimpleSpinlock> l(authnTokenLock_);
+    authnToken_ = token;
   }
 
   RpcAuthentication authentication() const {
@@ -311,12 +311,12 @@ class Messenger {
     return closing_;
   }
 
-  std::shared_ptr<MetricEntity> metric_entity() const {
-    return metric_entity_;
+  std::shared_ptr<MetricEntity> metricEntity() const {
+    return metricEntity_;
   }
 
-  const int64_t rpc_negotiation_timeout_ms() const {
-    return rpc_negotiation_timeout_ms_;
+  const int64_t rpcNegotiationTimeoutMs() const {
+    return rpcNegotiationTimeoutMs_;
   }
 
   const std::shared_ptr<RpcService> rpc_service(
@@ -377,22 +377,22 @@ class Messenger {
   std::unique_ptr<ThreadPool> clientNegotiationPool_;
   std::unique_ptr<ThreadPool> serverNegotiationPool_;
 
-  std::unique_ptr<security::TlsContext> tls_context_;
+  std::unique_ptr<security::TlsContext> tlsContext_;
 
   // A TokenVerifier, which can verify client provided authentication tokens.
-  std::shared_ptr<security::TokenVerifier> token_verifier_;
+  std::shared_ptr<security::TokenVerifier> tokenVerifier_;
 
   // An optional token, which can be used to authenticate to a server.
-  mutable SimpleSpinlock authn_token_lock_;
-  std::optional<security::SignedTokenPB> authn_token_;
+  mutable SimpleSpinlock authnTokenLock_;
+  std::optional<security::SignedTokenPB> authnToken_;
 
   std::unique_ptr<RpczStore> rpczStore_;
 
-  std::shared_ptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metricEntity_;
 
   // Timeout in milliseconds after which an incomplete connection negotiation
   // will timeout.
-  const int64_t rpc_negotiation_timeout_ms_;
+  const int64_t rpcNegotiationTimeoutMs_;
 
   // Whether to set SO_REUSEPORT on the listening sockets.
   bool reuseport_;

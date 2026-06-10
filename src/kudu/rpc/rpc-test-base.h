@@ -748,7 +748,7 @@ class RpcTestBase : public KuduTest {
         new ServiceClass(metricEntity_, resultTracker_));
     serviceName_ = service->serviceName();
     std::shared_ptr<MetricEntity> metricEntity =
-        serverMessenger_->metric_entity();
+        serverMessenger_->metricEntity();
     servicePool_ = std::make_shared<ServicePool>(
         std::move(service), metricEntity, serviceQueueLength_);
     serverMessenger_->RegisterService(serviceName_, servicePool_);

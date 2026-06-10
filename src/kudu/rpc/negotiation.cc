@@ -246,9 +246,9 @@ static Status doClientNegotiation(
   const auto authnToken =
       (conn->credentialsPolicy() == CredentialsPolicy::PrimaryCredentials)
       ? std::nullopt
-      : messenger->authn_token();
+      : messenger->authnToken();
   ClientNegotiation clientNegotiation(
-      conn->releaseSocket(), &messenger->tls_context(), authnToken, encryption);
+      conn->releaseSocket(), &messenger->tlsContext(), authnToken, encryption);
 
   clientNegotiation.setDeadline(deadline);
 
@@ -288,7 +288,7 @@ static Status doServerNegotiation(
     const MonoTime& deadline) {
   const auto* messenger = conn->reactorThread()->reactor()->messenger();
   if (authentication == RpcAuthentication::Required &&
-      !messenger->tls_context().isExternalCert()) {
+      !messenger->tlsContext().isExternalCert()) {
     return Status::InvalidArgument(
         "RPC authentication (--rpc_authentication) may not be "
         "required unless external PKI "
@@ -305,8 +305,8 @@ static Status doServerNegotiation(
   // Create a new ServerNegotiation to handle the synchronous negotiation.
   ServerNegotiation serverNegotiation(
       conn->releaseSocket(),
-      &messenger->tls_context(),
-      &messenger->token_verifier(),
+      &messenger->tlsContext(),
+      &messenger->tokenVerifier(),
       encryption);
 
   serverNegotiation.setDeadline(deadline);
@@ -355,7 +355,7 @@ void Negotiation::runNegotiation(
       !FLAGS_rpc_certificate_file.empty() &&
       !FLAGS_rpc_private_key_file.empty() &&
       !FLAGS_rpc_ca_certificate_file.empty()) {
-    auto* tlsContext = messenger->mutable_tls_context();
+    auto* tlsContext = messenger->mutableTlsContext();
     Status reloadStatus = tlsContext->loadCertFiles(
         FLAGS_rpc_ca_certificate_file,
         FLAGS_rpc_certificate_file,

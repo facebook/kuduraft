@@ -250,7 +250,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   unique_ptr<ServiceIf> service(new GenericCalculatorService());
   serviceName_ = service->serviceName();
   servicePool_ = new BogusServicePool(
-      std::move(service), serverMessenger_->metric_entity(), kMaxConcurrency);
+      std::move(service), serverMessenger_->metricEntity(), kMaxConcurrency);
   ASSERT_OK(servicePool_->init(nWorkerThreads_));
   serverMessenger_->RegisterService(serviceName_, servicePool_);
 
@@ -297,7 +297,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   // Check that RPC queue overflow metric is 1
   Counter* rpcsQueueOverflow =
-      METRIC_rpcs_queue_overflow.instantiate(serverMessenger_->metric_entity())
+      METRIC_rpcs_queue_overflow.instantiate(serverMessenger_->metricEntity())
           .get();
   ASSERT_EQ(1, rpcsQueueOverflow->value());
 }
@@ -344,7 +344,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   // the test threads.
   std::shared_ptr<Counter> connsAccepted =
       METRIC_rpc_connections_accepted.instantiate(
-          serverMessenger_->metric_entity());
+          serverMessenger_->metricEntity());
   while (connsAccepted->value() == 0) {
     SleepFor(MonoDelta::FromMicroseconds(100));
   }

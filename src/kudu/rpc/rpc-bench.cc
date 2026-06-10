@@ -108,13 +108,12 @@ class RpcBench : public RpcTestBase {
         static_cast<float>(elapsed.system / 1000.0 / totalReqs);
     float cswPerReq = static_cast<float>(elapsed.contextSwitches) / totalReqs;
 
-    HdrHistogram reactorLoad(
-        *METRIC_reactor_load_percent
-             .instantiate(serverMessenger_->metric_entity())
-             ->histogram());
+    HdrHistogram reactorLoad(*METRIC_reactor_load_percent
+                                  .instantiate(serverMessenger_->metricEntity())
+                                  ->histogram());
     HdrHistogram reactorLatency(
         *METRIC_reactor_active_latency_us
-             .instantiate(serverMessenger_->metric_entity())
+             .instantiate(serverMessenger_->metricEntity())
              ->histogram());
 
     LOG(INFO) << "Mode:            " << (sync ? "Sync" : "Async");
