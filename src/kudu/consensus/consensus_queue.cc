@@ -475,7 +475,7 @@ PeerMessageQueue::PeerMessageQueue(
       routingTableContainer_(std::move(routing_table_container)),
       tabletId_(std::move(tablet_id)),
       adjustVoterDistribution_(true),
-      successor_watch_in_progress_(false),
+      successorWatchInProgress_(false),
       log_cache_(
           std::make_shared<LogCache>(
               metric_entity,
@@ -483,10 +483,10 @@ PeerMessageQueue::PeerMessageQueue(
               localPeerPb_.permanent_uuid(),
               tabletId_)),
       metrics_(metric_entity),
-      time_manager_(std::move(time_manager)),
-      leader_lease_until_(MonoTime::Min()),
-      bounded_dataloss_window_until_(MonoTime::Min()),
-      time_provider_(TimeProvider::getInstance()) {
+      timeManager_(std::move(time_manager)),
+      leaderLeaseUntil_(MonoTime::Min()),
+      boundedDatalossWindowUntil_(MonoTime::Min()),
+      timeProvider_(TimeProvider::getInstance()) {
   DCHECK(localPeerPb_.has_permanent_uuid());
   DCHECK(localPeerPb_.has_last_known_addr());
   DCHECK(last_locally_replicated.IsInitialized());
@@ -512,28 +512,28 @@ PeerMessageQueue::PeerMessageQueue(
 
 void PeerMessageQueue::SetProxyFailureThreshold(
     int32_t proxyFailureThresholdMs) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  proxy_failure_threshold_ms_ = proxyFailureThresholdMs;
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  proxyFailureThresholdMs_ = proxyFailureThresholdMs;
 }
 
 void PeerMessageQueue::SetProxyFailureThresholdLag(
     int32_t proxyFailureThresholdLag) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  proxy_failure_threshold_lag_ = proxyFailureThresholdLag;
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  proxyFailureThresholdLag_ = proxyFailureThresholdLag;
 }
 
 bool PeerMessageQueue::HasProxyPeerFailedUnlocked(
     const TrackedPeer* proxyPeer,
     const TrackedPeer* destPeer) {
   auto maxProxyFailureThreshold =
-      MonoDelta::FromMilliseconds(proxy_failure_threshold_ms_);
+      MonoDelta::FromMilliseconds(proxyFailureThresholdMs_);
 
-  if (time_provider_->Now() - proxyPeer->lastSuccessfulExchange >
+  if (timeProvider_->Now() - proxyPeer->lastSuccessfulExchange >
       maxProxyFailureThreshold) {
     KLOG_EVERY_N_SECS(INFO, 180)
         << "Peer " << proxyPeer->uuid()
         << " did not complete a successful exchange after "
-        << proxy_failure_threshold_ms_ << "ms. Will not use as a proxy.";
+        << proxyFailureThresholdMs_ << "ms. Will not use as a proxy.";
 
     // The leader has not communicated with proxyPeer within the
     // proxy_failure_threshold_ms. Hence this peer cannot act as a 'proxy peer'
@@ -543,7 +543,7 @@ bool PeerMessageQueue::HasProxyPeerFailedUnlocked(
 
   bool isProxyLagging = (destPeer->nextIndex > proxyPeer->nextIndex) &&
       ((destPeer->nextIndex - proxyPeer->nextIndex) >
-       proxy_failure_threshold_lag_);
+       proxyFailureThresholdLag_);
 
   if (isProxyLagging) {
     // The proxy peer is lagging farther than the destination peer. Hence it
@@ -555,10 +555,10 @@ bool PeerMessageQueue::HasProxyPeerFailedUnlocked(
 }
 
 Status PeerMessageQueue::SetCompressionDictionary(const std::string& dict) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   RETURN_NOT_OK(log_cache()->clear());
   RETURN_NOT_OK(CompressionCodecManager::setDictionary(dict));
-  for (const PeersMap::value_type& entry : peers_map_) {
+  for (const PeersMap::value_type& entry : peersMap_) {
     entry.second->shouldSendCompressionDict = true;
   }
   return Status::OK();
@@ -568,7 +568,7 @@ void PeerMessageQueue::setLeaderMode(
     int64_t committed_index,
     int64_t current_term,
     const RaftConfigPB& active_config) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   if (current_term != queueState_.current_term) {
     CHECK_GT(current_term, queueState_.current_term)
         << "Terms should only increase";
@@ -589,11 +589,11 @@ void PeerMessageQueue::setLeaderMode(
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Queue going to LEADER mode. State: " << queueState_.ToString();
 
-  time_manager_->setLeaderMode();
+  timeManager_->setLeaderMode();
 }
 
 void PeerMessageQueue::setNonLeaderMode(const RaftConfigPB& active_config) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   queueState_.active_config.reset(new RaftConfigPB(active_config));
   queueState_.mode = NON_LEADER;
   queueState_.majority_size_ = -1;
@@ -606,11 +606,11 @@ void PeerMessageQueue::setNonLeaderMode(const RaftConfigPB& active_config) {
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Queue going to NON_LEADER mode. State: " << queueState_.ToString();
 
-  time_manager_->setNonLeaderMode();
+  timeManager_->setNonLeaderMode();
 }
 
 void PeerMessageQueue::trackPeer(const RaftPeerPB& peer_pb) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   trackPeerUnlocked(peer_pb);
 }
 
@@ -619,15 +619,15 @@ void PeerMessageQueue::trackPeerUnlocked(
     bool is_local_peer) {
   CHECK(!peer_pb.permanent_uuid().empty()) << SecureShortDebugString(peer_pb);
   CHECK(peer_pb.has_member_type()) << SecureShortDebugString(peer_pb);
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   DCHECK_EQ(queueState_.state, kQueueOpen);
 
   TrackedPeer* tracked_peer = new TrackedPeer(peer_pb, this);
-  // Ensure we never insert nullptr into peers_map_ to prevent crashes when
+  // Ensure we never insert nullptr into peersMap_ to prevent crashes when
   // migrating from FindPtrOrNull (which treats missing keys and nullptr values
   // identically) to standard map.find() + nullptr checks.
   DCHECK(tracked_peer != nullptr)
-      << "Attempting to insert nullptr into peers_map_";
+      << "Attempting to insert nullptr into peersMap_";
   // We don't know the last operation received by the peer so, following the
   // Raft protocol, we set nextIndex to one past the end of our own log. This
   // way, if calling this method is the result of a successful leader election
@@ -642,7 +642,7 @@ void PeerMessageQueue::trackPeerUnlocked(
     tracked_peer->resetConsecutiveFailures();
   }
 
-  auto [it, inserted] = peers_map_.insert({tracked_peer->uuid(), tracked_peer});
+  auto [it, inserted] = peersMap_.insert({tracked_peer->uuid(), tracked_peer});
   DCHECK(inserted) << "Peer already exists: " << tracked_peer->uuid();
 
   CheckPeersInActiveConfigIfLeaderUnlocked();
@@ -653,23 +653,23 @@ void PeerMessageQueue::trackPeerUnlocked(
 }
 
 void PeerMessageQueue::untrackPeer(const string& uuid) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   untrackPeerUnlocked(uuid);
 }
 
 void PeerMessageQueue::untrackPeerUnlocked(const string& uuid) {
-  DCHECK(queue_lock_.is_locked());
-  auto it = peers_map_.find(uuid);
+  DCHECK(queueLock_.is_locked());
+  auto it = peersMap_.find(uuid);
   TrackedPeer* peer = nullptr;
-  if (it != peers_map_.end()) {
+  if (it != peersMap_.end()) {
     peer = it->second;
-    peers_map_.erase(it);
+    peersMap_.erase(it);
   }
   delete peer; // Deleting a nullptr is safe.
 }
 
 void PeerMessageQueue::trackLocalPeerUnlocked() {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   RaftPeerPB* localPeerInConfig;
   Status s = getRaftConfigMember(
       queueState_.active_config.get(),
@@ -696,7 +696,7 @@ void PeerMessageQueue::trackLocalPeerUnlocked() {
       "Local peer {} is not a voter in config: {}",
       localPeerPb_.permanent_uuid(),
       queueState_.ToString());
-  if (peers_map_.contains(localPeerPb_.permanent_uuid())) {
+  if (peersMap_.contains(localPeerPb_.permanent_uuid())) {
     untrackPeerUnlocked(localPeerPb_.permanent_uuid());
   }
   trackPeerUnlocked(*localPeerInConfig, /*is_local_peer=*/true);
@@ -705,8 +705,8 @@ void PeerMessageQueue::trackLocalPeerUnlocked() {
 unordered_map<string, HealthReportPB> PeerMessageQueue::reportHealthOfPeers()
     const {
   unordered_map<string, HealthReportPB> reports;
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  for (const auto& entry : peers_map_) {
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  for (const auto& entry : peersMap_) {
     const string& peerUuid = entry.first;
     const TrackedPeer* peer = entry.second;
     HealthReportPB report;
@@ -723,7 +723,7 @@ unordered_map<string, HealthReportPB> PeerMessageQueue::reportHealthOfPeers()
 }
 
 void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   if (queueState_.mode != LEADER) {
     return;
   }
@@ -743,7 +743,7 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   }
 
   // Ensure that all instances of Peer exist on the active config
-  for (const PeersMap::value_type& entry : peers_map_) {
+  for (const PeersMap::value_type& entry : peersMap_) {
     if (!configPeerUuids.contains(entry.first)) {
       LOG_WITH_PREFIX_UNLOCKED(FATAL) << fmt::format(
           "Peer {} is not in the active config. "
@@ -766,7 +766,7 @@ void PeerMessageQueue::DoLocalPeerAppendFinished(
   *fake_response.mutable_status()->mutable_last_received() = id;
   *fake_response.mutable_status()->mutable_last_received_current_leader() = id;
   {
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
     fake_response.mutable_status()->set_last_committed_idx(
         queueState_.committed_index);
   }
@@ -788,7 +788,7 @@ void PeerMessageQueue::LocalPeerAppendFinished(
 
   // Schedule the function to gather local response and count local vote to run
   // asynchronously (so as not to block the thread writing to local log from
-  // blocking on queue_lock_)
+  // blocking on queueLock_)
   OpId local_id = id;
   if (FLAGS_HANDLER(FLAGS_async_local_vote_count)) {
     CHECK_OK(raftPoolObserversToken_->submitClosure(Bind(
@@ -816,8 +816,8 @@ Status PeerMessageQueue::appendOperation(const ReplicateRefPtr& msg) {
 Status PeerMessageQueue::appendOperations(
     const vector<ReplicateRefPtr>& msgs,
     const StatusCallback& log_append_callback) {
-  DFAKE_SCOPED_LOCK(append_fake_lock_);
-  std::unique_lock<simple_mutexlock> lock(queue_lock_);
+  DFAKE_SCOPED_LOCK(appendFakeLock_);
+  std::unique_lock<simple_mutexlock> lock(queueLock_);
 
   OpId last_id = msgs.back()->get()->id();
 
@@ -845,13 +845,13 @@ Status PeerMessageQueue::appendOperations(
   // assigned a timestamp to the message. Until we have leader leases, replicas
   // only call this when the message is committed.
   if (queueState_.mode == LEADER) {
-    time_manager_->advanceSafeTimeWithMessage(*msgs.back()->get());
+    timeManager_->advanceSafeTimeWithMessage(*msgs.back()->get());
   }
 
   // Unlock ourselves during Append to prevent a deadlock: it's possible that
   // the log buffer is full, in which case AppendOperations would block.
   // However, for the log buffer to empty, it may need to call
-  // LocalPeerAppendFinished() which also needs queue_lock_.
+  // LocalPeerAppendFinished() which also needs queueLock_.
   lock.unlock();
   RETURN_NOT_OK(log_cache_->appendOperations(
       msgs,
@@ -880,8 +880,8 @@ Status PeerMessageQueue::appendOperation(
 Status PeerMessageQueue::appendOperations(
     const vector<ReplicateMsgWrapper>& msg_wrappers,
     const StatusCallback& log_append_callback) {
-  DFAKE_SCOPED_LOCK(append_fake_lock_);
-  std::unique_lock<simple_mutexlock> lock(queue_lock_);
+  DFAKE_SCOPED_LOCK(appendFakeLock_);
+  std::unique_lock<simple_mutexlock> lock(queueLock_);
 
   OpId last_id = msg_wrappers.back().getOrigMsg()->get()->id();
 
@@ -909,14 +909,14 @@ Status PeerMessageQueue::appendOperations(
   // assigned a timestamp to the message. Until we have leader leases, replicas
   // only call this when the message is committed.
   if (queueState_.mode == LEADER) {
-    time_manager_->advanceSafeTimeWithMessage(
+    timeManager_->advanceSafeTimeWithMessage(
         *msg_wrappers.back().getOrigMsg()->get());
   }
 
   // Unlock ourselves during Append to prevent a deadlock: it's possible that
   // the log buffer is full, in which case appendOperations would block.
   // However, for the log buffer to empty, it may need to call
-  // LocalPeerAppendFinished() which also needs queue_lock_.
+  // LocalPeerAppendFinished() which also needs queueLock_.
   lock.unlock();
   RETURN_NOT_OK(log_cache_->appendOperations(
       msg_wrappers,
@@ -934,7 +934,7 @@ Status PeerMessageQueue::appendOperations(
 }
 
 void PeerMessageQueue::truncateOpsAfter(int64_t index) {
-  DFAKE_SCOPED_LOCK(append_fake_lock_); // should not race with append.
+  DFAKE_SCOPED_LOCK(appendFakeLock_); // should not race with append.
   OpId op;
   CHECK_OK_PREPEND(
       log_cache_->lookupOpId(index, &op),
@@ -943,7 +943,7 @@ void PeerMessageQueue::truncateOpsAfter(int64_t index) {
           logPrefixUnlocked(),
           index));
   {
-    std::unique_lock<simple_mutexlock> lock(queue_lock_);
+    std::unique_lock<simple_mutexlock> lock(queueLock_);
     DCHECK(op.IsInitialized());
     queueState_.last_appended = op;
   }
@@ -951,13 +951,13 @@ void PeerMessageQueue::truncateOpsAfter(int64_t index) {
 }
 
 OpId PeerMessageQueue::GetLastOpIdInLog() const {
-  std::unique_lock<simple_mutexlock> lock(queue_lock_);
+  std::unique_lock<simple_mutexlock> lock(queueLock_);
   DCHECK(queueState_.last_appended.IsInitialized());
   return queueState_.last_appended;
 }
 
 OpId PeerMessageQueue::GetNextOpId() const {
-  std::unique_lock<simple_mutexlock> lock(queue_lock_);
+  std::unique_lock<simple_mutexlock> lock(queueLock_);
   DCHECK(queueState_.last_appended.IsInitialized());
   return MakeOpId(
       queueState_.current_term, queueState_.last_appended.index() + 1);
@@ -967,25 +967,25 @@ MonoTime PeerMessageQueue::GetLeaderLeaseUntil() {
   if (queueState_.mode != LEADER) {
     return MonoTime().Min();
   }
-  return leader_lease_until_;
+  return leaderLeaseUntil_;
 }
 
 MonoTime PeerMessageQueue::GetBoundedDataLossWindowUntil() {
   if (queueState_.mode != LEADER) {
     return MonoTime().Min();
   }
-  return bounded_dataloss_window_until_;
+  return boundedDatalossWindowUntil_;
 }
 
 bool PeerMessageQueue::SafeToEvictUnlocked(const string& evictUuid) const {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   DCHECK_EQ(LEADER, queueState_.mode);
-  auto now = time_provider_->Now();
+  auto now = timeProvider_->Now();
 
   int remainingVoters = 0;
   int remainingViableVoters = 0;
 
-  for (const auto& e : peers_map_) {
+  for (const auto& e : peersMap_) {
     const auto& uuid = e.first;
     const auto& peer = e.second;
     if (uuid == evictUuid) {
@@ -1051,7 +1051,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evictUuid) const {
 }
 
 void PeerMessageQueue::UpdatePeerHealthUnlocked(TrackedPeer* peer) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   DCHECK_EQ(LEADER, queueState_.mode);
 
   auto overallHealthStatus = PeerHealthStatus(*peer);
@@ -1075,7 +1075,7 @@ void PeerMessageQueue::UpdatePeerHealthUnlocked(TrackedPeer* peer) {
           "with peer {} for more than {} seconds ({})",
           peer->uuid(),
           FLAGS_follower_unavailable_considered_failed_sec,
-          (time_provider_->Now() - peer->lastCommunicationTime).ToString());
+          (timeProvider_->Now() - peer->lastCommunicationTime).ToString());
     }
   }
 
@@ -1172,14 +1172,14 @@ Status PeerMessageQueue::RequestForPeer(
   TrackedPeer peerCopy;
   MonoDelta unreachableTime;
   {
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
     DCHECK_EQ(queueState_.state, kQueueOpen);
     DCHECK_NE(uuid, localPeerPb_.permanent_uuid());
 
-    auto it = peers_map_.find(uuid);
+    auto it = peersMap_.find(uuid);
     // Validate peer exists and has non-null value.
     if (PREDICT_FALSE(
-            it == peers_map_.end() || it->second == nullptr ||
+            it == peersMap_.end() || it->second == nullptr ||
             queueState_.mode == NON_LEADER)) {
       return Status::NotFound(
           fmt::format(
@@ -1219,7 +1219,7 @@ Status PeerMessageQueue::RequestForPeer(
       request->set_compression_dictionary(
           CompressionCodecManager::getDictionary());
     }
-    unreachableTime = time_provider_->Now() - peerCopy.lastCommunicationTime;
+    unreachableTime = timeProvider_->Now() - peerCopy.lastCommunicationTime;
 
     RETURN_NOT_OK(routingTableContainer_->nextHop(
         localPeerPb_.permanent_uuid(), uuid, next_hop_uuid));
@@ -1235,9 +1235,9 @@ Status PeerMessageQueue::RequestForPeer(
       if (peer->proxyTargetEnabled()) {
         bool should_proxy = false;
         if (peer->isHealthy()) {
-          auto proxy_it = peers_map_.find(*next_hop_uuid);
+          auto proxy_it = peersMap_.find(*next_hop_uuid);
           // Validate proxy peer exists and has non-null value.
-          if (proxy_it != peers_map_.end() && proxy_it->second != nullptr &&
+          if (proxy_it != peersMap_.end() && proxy_it->second != nullptr &&
               !HasProxyPeerFailedUnlocked(proxy_it->second, peer)) {
             should_proxy = true;
           }
@@ -1266,11 +1266,11 @@ Status PeerMessageQueue::RequestForPeer(
     if (!FLAGS_HANDLER(FLAGS_update_peer_health_status)) {
       return;
     }
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
-    auto it = peers_map_.find(uuid);
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
+    auto it = peersMap_.find(uuid);
     // Validate peer exists and has non-null value.
     if (PREDICT_FALSE(
-            it == peers_map_.end() || it->second == nullptr ||
+            it == peersMap_.end() || it->second == nullptr ||
             queueState_.mode == NON_LEADER)) {
       VLOG(1) << logPrefixUnlocked() << "peer " << uuid
               << " is no longer tracked or queue is not in leader mode";
@@ -1398,7 +1398,7 @@ Status PeerMessageQueue::RequestForPeer(
     // TODO(dralves) When we have leader leases, send this all the time.
   } else {
     if (PREDICT_TRUE(FLAGS_safe_time_advancement_without_writes)) {
-      request->set_safe_timestamp(time_manager_->getSafeTime().value());
+      request->set_safe_timestamp(timeManager_->getSafeTime().value());
     } else {
       KLOG_EVERY_N_SECS(WARNING, 300)
           << "Safe time advancement without writes is disabled. "
@@ -1462,7 +1462,7 @@ void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
   // region_durable_index is updated only if following constraints are satisfied
   // 1. region_durable_index <= committed_index
   // 2. Atleast one non-leader region has received this index
-  for (const PeersMap::value_type& peer : peers_map_) {
+  for (const PeersMap::value_type& peer : peersMap_) {
     if (!peer.second->isPeerInLocalRegion.has_value()) {
       continue;
     }
@@ -1514,9 +1514,9 @@ void PeerMessageQueue::AdvanceQueueWatermark(
       continue;
     }
 
-    auto it = peers_map_.find(peer_pb.permanent_uuid());
-    if (it == peers_map_.end()) {
-      // NOTE: We assume `peers_map_` always has all peers from the
+    auto it = peersMap_.find(peer_pb.permanent_uuid());
+    if (it == peersMap_.end()) {
+      // NOTE: We assume `peersMap_` always has all peers from the
       // considered_peers, which commonly is populated from peers in config.
       LOG(WARNING)
           << "A considered Peer " << peer_pb.permanent_uuid() << " "
@@ -1570,7 +1570,7 @@ void PeerMessageQueue::AdvanceQueueWatermark(
                                << old_watermark << " to " << new_watermark;
   if (VLOG_IS_ON(3)) {
     VLOG_WITH_PREFIX_UNLOCKED(3) << "Peers: ";
-    for (const PeersMap::value_type& peer : peers_map_) {
+    for (const PeersMap::value_type& peer : peersMap_) {
       VLOG_WITH_PREFIX_UNLOCKED(3) << "Peer: " << peer.second->ToString();
     }
     VLOG_WITH_PREFIX_UNLOCKED(3) << "Sorted watermarks:";
@@ -1588,7 +1588,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
     // populated other than uuid
     int num_satisfied = 0;
     std::vector<TrackedPeer*> quorum_peers;
-    for (const PeersMap::value_type& tracked_peer : peers_map_) {
+    for (const PeersMap::value_type& tracked_peer : peersMap_) {
       if (!tracked_peer.second->peerPb.has_member_type() ||
           tracked_peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
         continue;
@@ -1652,7 +1652,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   bool is_local_peer = peer.permanent_uuid() == localPeerPb_.permanent_uuid();
   int num_satisfied = 0;
   std::vector<TrackedPeer*> quorum_peers;
-  for (const PeersMap::value_type& tracked_peer : peers_map_) {
+  for (const PeersMap::value_type& tracked_peer : peersMap_) {
     if (!tracked_peer.second->peerPb.has_member_type() ||
         tracked_peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
       continue;
@@ -1695,7 +1695,7 @@ PeerMessageQueue::IsSecondRegionDurabilitySatisfiedUnlocked(
     const std::function<bool(const TrackedPeer*)>& predicate) {
   int acks_outoflocalregion = 0;
   std::vector<TrackedPeer*> outoflocalregion_peers;
-  for (const PeersMap::value_type& peer : peers_map_) {
+  for (const PeersMap::value_type& peer : peersMap_) {
     if (!peer.second->peerPb.has_member_type() ||
         peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
       continue;
@@ -1805,10 +1805,10 @@ void PeerMessageQueue::BeginWatchForSuccessor(
     const std::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     PeerMessageQueue::TransferContext transfer_context) {
-  std::lock_guard<simple_mutexlock> l(queue_lock_);
+  std::lock_guard<simple_mutexlock> l(queueLock_);
 
-  transfer_context_ = std::move(transfer_context);
-  successor_watch_peer_notified_ = false;
+  transferContext_ = std::move(transfer_context);
+  successorWatchPeerNotified_ = false;
 
   if (successor_uuid &&
       PeerTransferLeadershipImmediatelyUnlocked(*successor_uuid)) {
@@ -1821,21 +1821,21 @@ void PeerMessageQueue::BeginWatchForSuccessor(
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Leadership transfer: Watching for successor asynchronously";
 
-  successor_watch_in_progress_ = true;
-  designated_successor_uuid_ = successor_uuid;
-  tl_filter_fn_ = filter_fn;
+  successorWatchInProgress_ = true;
+  designatedSuccessorUuid_ = successor_uuid;
+  tlFilterFn_ = filter_fn;
 }
 
 void PeerMessageQueue::EndWatchForSuccessor() {
-  std::lock_guard<simple_mutexlock> l(queue_lock_);
-  successor_watch_in_progress_ = false;
-  transfer_context_ = {};
-  tl_filter_fn_ = nullptr;
+  std::lock_guard<simple_mutexlock> l(queueLock_);
+  successorWatchInProgress_ = false;
+  transferContext_ = {};
+  tlFilterFn_ = nullptr;
 }
 
 bool PeerMessageQueue::WatchForSuccessorPeerNotified() {
-  std::lock_guard<simple_mutexlock> l(queue_lock_);
-  return successor_watch_peer_notified_;
+  std::lock_guard<simple_mutexlock> l(queueLock_);
+  return successorWatchPeerNotified_;
 }
 
 Status PeerMessageQueue::GetNextRoutingHopFromLeader(
@@ -1849,7 +1849,7 @@ void PeerMessageQueue::updateFollowerWatermarks(
     int64_t committed_index,
     int64_t all_replicated_index,
     int64_t region_durable_index) {
-  std::lock_guard<simple_mutexlock> l(queue_lock_);
+  std::lock_guard<simple_mutexlock> l(queueLock_);
   DCHECK_EQ(queueState_.mode, NON_LEADER);
   queueState_.committed_index = committed_index;
   queueState_.all_replicated_index = all_replicated_index;
@@ -1863,7 +1863,7 @@ void PeerMessageQueue::updateFollowerWatermarks(
 
 void PeerMessageQueue::updateLastIndexAppendedToLeader(
     int64_t last_idx_appended_to_leader) {
-  std::lock_guard<simple_mutexlock> l(queue_lock_);
+  std::lock_guard<simple_mutexlock> l(queueLock_);
   DCHECK_EQ(queueState_.mode, NON_LEADER);
   queueState_.last_idx_appended_to_leader = last_idx_appended_to_leader;
   UpdateLagMetricsUnlocked();
@@ -1873,11 +1873,11 @@ void PeerMessageQueue::UpdatePeerStatus(
     const string& peer_uuid,
     PeerStatus ps,
     const Status& status) {
-  std::unique_lock<simple_mutexlock> l(queue_lock_);
-  auto it = peers_map_.find(peer_uuid);
+  std::unique_lock<simple_mutexlock> l(queueLock_);
+  auto it = peersMap_.find(peer_uuid);
   // Validate peer exists and has non-null value.
   if (PREDICT_FALSE(
-          it == peers_map_.end() || it->second == nullptr ||
+          it == peersMap_.end() || it->second == nullptr ||
           queueState_.mode == NON_LEADER)) {
     VLOG(1) << logPrefixUnlocked() << "peer " << peer_uuid
             << " is no longer tracked or queue is not in leader mode";
@@ -1941,10 +1941,10 @@ void PeerMessageQueue::UpdateExchangeStatus(
     PeerStatus last_exchange_status,
     const ConsensusResponsePB& response,
     bool* sendMoreImmediately) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   const ConsensusStatusPB& status = response.status();
 
-  MonoTime now = time_provider_->Now();
+  MonoTime now = timeProvider_->Now();
   peer->lastCommunicationTime = now;
   peer->lastKnownCommittedIndex = status.last_committed_idx();
 
@@ -2031,7 +2031,7 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
 }
 
 bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
 
   if (FLAGS_min_corruption_count <= 0 ||
       peer->corruptionCount < FLAGS_min_corruption_count) {
@@ -2049,7 +2049,7 @@ bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
   }
 
   size_t total_corrupted_peers = 0;
-  for (const auto& [_, other_peer] : peers_map_) {
+  for (const auto& [_, other_peer] : peersMap_) {
     if (other_peer->corruptionCount >= FLAGS_min_corruption_count &&
         peer->nextIndex == other_peer->nextIndex) {
       total_corrupted_peers += 1;
@@ -2073,7 +2073,7 @@ void PeerMessageQueue::PromoteIfNeeded(
     TrackedPeer* peer,
     const OpId& prev_last_received,
     const ConsensusStatusPB& status) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   if (queueState_.mode != PeerMessageQueue::LEADER ||
       peer->lastExchangeStatus != PeerStatus::Ok) {
     return;
@@ -2116,7 +2116,7 @@ void PeerMessageQueue::PromoteIfNeeded(
 bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
     const TrackedPeer& peer,
     RaftPeerPB** peer_pb_ptr) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
 
   // This check is redundant for ResponseFromPeer common path
   if (PREDICT_FALSE(queueState_.state != kQueueOpen)) {
@@ -2159,10 +2159,10 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
 
 bool PeerMessageQueue::PeerTransferLeadershipImmediatelyUnlocked(
     const std::string& peer_uuid) {
-  DCHECK(queue_lock_.is_locked());
-  auto it = peers_map_.find(peer_uuid);
+  DCHECK(queueLock_.is_locked());
+  auto it = peersMap_.find(peer_uuid);
   // Validate peer exists and has non-null value.
-  if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
+  if (PREDICT_FALSE(it == peersMap_.end() || it->second == nullptr)) {
     return false;
   }
   TrackedPeer* peer = it->second;
@@ -2197,10 +2197,10 @@ MonoDelta PeerMessageQueue::BoundedDataLossDefaultWindowInMsec() {
 void PeerMessageQueue::SetPeerRpcStartTime(
     const std::string& peer_uuid,
     MonoTime rpc_start) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  auto it = peers_map_.find(peer_uuid);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  auto it = peersMap_.find(peer_uuid);
   // Validate peer exists and has non-null value.
-  if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
+  if (PREDICT_FALSE(it == peersMap_.end() || it->second == nullptr)) {
     LOG(WARNING) << "Candidate peer " << peer_uuid
                  << " is not foung in Message Queue's Peers map";
     return;
@@ -2219,13 +2219,12 @@ void PeerMessageQueue::UpdatePeerRtt(
 void PeerMessageQueue::TransferLeadershipIfNeeded(
     const TrackedPeer& peer,
     const ConsensusStatusPB& status) {
-  DCHECK(queue_lock_.is_locked());
-  if (!successor_watch_in_progress_) {
+  DCHECK(queueLock_.is_locked());
+  if (!successorWatchInProgress_) {
     return;
   }
 
-  if (designated_successor_uuid_ &&
-      peer.uuid() != *designated_successor_uuid_) {
+  if (designatedSuccessorUuid_ && peer.uuid() != *designatedSuccessorUuid_) {
     return;
   }
 
@@ -2244,7 +2243,7 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
   }
 
   // check if this instance is filtered, if filter_fn has been provided
-  if (!designated_successor_uuid_ && tl_filter_fn_ && tl_filter_fn_(*peer_pb)) {
+  if (!designatedSuccessorUuid_ && tlFilterFn_ && tlFilterFn_(*peer_pb)) {
     return;
   }
 
@@ -2271,7 +2270,7 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
   VLOG(1) << "Successor watch: peer " << peer.uuid() << " is caught up to "
           << "the leader at OpId "
           << OpIdToString(status.last_received_current_leader());
-  successor_watch_in_progress_ = false;
+  successorWatchInProgress_ = false;
   NotifyObserversOfSuccessor(peer.uuid());
 }
 
@@ -2300,16 +2299,16 @@ bool PeerMessageQueue::DoResponseFromPeer(
   bool sendMoreImmediately = false;
   Mode mode_copy;
   {
-    std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
+    std::lock_guard<simple_mutexlock> scoped_lock(queueLock_);
 
     // TODO(mpercy): Handle response from proxy on behalf of another peer.
     // For now, we'll try to ignore proxying here, but we may need to
     // eventually handle that here for better health status and error logging.
 
-    auto it = peers_map_.find(peer_uuid);
+    auto it = peersMap_.find(peer_uuid);
     // Validate peer exists and has non-null value.
     if (PREDICT_FALSE(
-            queueState_.state != kQueueOpen || it == peers_map_.end() ||
+            queueState_.state != kQueueOpen || it == peersMap_.end() ||
             it->second == nullptr)) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Queue is closed or peer was untracked, disregarding "
@@ -2540,7 +2539,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
             /*who_caused=*/peer,
             /*considered_peers=*/considered_old_new_peers);
       } else {
-        int32_t num_all_peers = (int32_t)peers_map_.size();
+        int32_t num_all_peers = (int32_t)peersMap_.size();
         AdvanceQueueWatermark(
             /*type=*/"all_replicated",
             /*watermark=*/&queueState_.all_replicated_index,
@@ -2574,9 +2573,9 @@ bool PeerMessageQueue::DoResponseFromPeer(
           // Check for Quorum of lease renewal approvals from followers
           QuorumResults qresults;
           if (CanLeaderLeaseRenewUnlocked(qresults)) {
-            leader_lease_until_.store(
+            leaderLeaseUntil_.store(
                 std::max(
-                    leader_lease_until_.load(),
+                    leaderLeaseUntil_.load(),
                     GetQuorumMajorityOfPeerRpcStarts(qresults) +
                         LeaderLeaseTimeout()));
           }
@@ -2586,9 +2585,9 @@ bool PeerMessageQueue::DoResponseFromPeer(
           // Check for Vote Quorum of Bounded DataLoss ACKs from followers
           QuorumResults qresults;
           if (CanBoundedDataLossWindowRenewUnlocked(qresults)) {
-            bounded_dataloss_window_until_.store(
+            boundedDatalossWindowUntil_.store(
                 std::max(
-                    bounded_dataloss_window_until_.load(),
+                    boundedDatalossWindowUntil_.load(),
                     GetMaximumOfPeerRpcStarts(qresults) +
                         BoundedDataLossDefaultWindowInMsec()));
           }
@@ -2682,26 +2681,26 @@ MonoTime PeerMessageQueue::GetMaximumOfPeerRpcStarts(QuorumResults& qresults) {
 
 PeerMessageQueue::TrackedPeer PeerMessageQueue::getTrackedPeerForTests(
     const string& uuid) {
-  std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
-  auto it = peers_map_.find(uuid);
-  CHECK(it != peers_map_.end()) << "Map key not found: " << uuid;
+  std::lock_guard<simple_mutexlock> scoped_lock(queueLock_);
+  auto it = peersMap_.find(uuid);
+  CHECK(it != peersMap_.end()) << "Map key not found: " << uuid;
   TrackedPeer* tracked = it->second;
   return *tracked;
 }
 
 PeerMessageQueue::TrackedPeer* PeerMessageQueue::getTrackedPeerRefForTests(
     const std::string& uuid) {
-  std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
-  auto it = peers_map_.find(uuid);
-  CHECK(it != peers_map_.end()) << "Map key not found: " << uuid;
+  std::lock_guard<simple_mutexlock> scoped_lock(queueLock_);
+  auto it = peersMap_.find(uuid);
+  CHECK(it != peersMap_.end()) << "Map key not found: " << uuid;
   return it->second;
 }
 
 std::optional<bool> PeerMessageQueue::IsPeerInLocalRegion(
     const std::string& uuid) {
-  std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
-  auto it = peers_map_.find(uuid);
-  CHECK(it != peers_map_.end()) << "Map key not found: " << uuid;
+  std::lock_guard<simple_mutexlock> scoped_lock(queueLock_);
+  auto it = peersMap_.find(uuid);
+  CHECK(it != peersMap_.end()) << "Map key not found: " << uuid;
   TrackedPeer* tracked = it->second;
   if (tracked) {
     return tracked->isPeerInLocalRegion;
@@ -2710,7 +2709,7 @@ std::optional<bool> PeerMessageQueue::IsPeerInLocalRegion(
 }
 
 bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   string local_uuid = localPeerPb_.permanent_uuid();
   auto results =
       IsQuorumSatisfiedUnlocked(localPeerPb_, [this, &local_uuid](auto peer) {
@@ -2737,7 +2736,7 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
 
 bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
     QuorumResults& qresults) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   string local_uuid = localPeerPb_.permanent_uuid();
   auto results =
       IsSecondRegionDurabilitySatisfiedUnlocked([this, &local_uuid](auto peer) {
@@ -2764,38 +2763,38 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
 }
 
 int64_t PeerMessageQueue::GetAllReplicatedIndex() const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.all_replicated_index;
 }
 
 int64_t PeerMessageQueue::GetCommittedIndex() const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.committed_index;
 }
 
 int64_t PeerMessageQueue::GetRegionDurableIndex() const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.region_durable_index;
 }
 
 bool PeerMessageQueue::IsCommittedIndexInCurrentTerm() const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.first_index_in_current_term.has_value() &&
       queueState_.committed_index >= *queueState_.first_index_in_current_term;
 }
 
 bool PeerMessageQueue::isInLeaderMode() const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.mode == Mode::LEADER;
 }
 
 int64_t PeerMessageQueue::getMajorityReplicatedIndexForTests() const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.majority_replicated_index;
 }
 
 void PeerMessageQueue::UpdateMetricsUnlocked() {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   // Since operations have consecutive indices we can update the metrics based
   // on simple index math.
   // For non-leaders, majority_done_ops isn't meaningful because followers don't
@@ -2815,7 +2814,7 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
 }
 
 void PeerMessageQueue::UpdateLagMetricsUnlocked() {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   auto opsBehindVal = queueState_.mode == LEADER
       ? 0
       : queueState_.last_idx_appended_to_leader -
@@ -2825,14 +2824,14 @@ void PeerMessageQueue::UpdateLagMetricsUnlocked() {
 }
 
 void PeerMessageQueue::DumpToStrings(vector<string>* lines) const {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   DumpToStringsUnlocked(lines);
 }
 
 void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   lines->push_back("Watermarks:");
-  for (const PeersMap::value_type& entry : peers_map_) {
+  for (const PeersMap::value_type& entry : peersMap_) {
     lines->push_back(
         fmt::format(
             "Peer: {} Watermark: {}", entry.first, entry.second->ToString()));
@@ -2842,23 +2841,23 @@ void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
 }
 
 void PeerMessageQueue::ClearUnlocked() {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   // TODO(modernization): Consider std::unordered_map<std::string,
   // std::unique_ptr<TrackedPeer>>
-  for (auto& entry : peers_map_) {
+  for (auto& entry : peersMap_) {
     delete entry.second;
   }
-  peers_map_.clear();
+  peersMap_.clear();
   queueState_.state = kQueueClosed;
 }
 
 void PeerMessageQueue::Close() {
   raftPoolObserversToken_->Shutdown();
 
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   ClearUnlocked();
   // Reset here to appease folly::Singleton's check for leaky references
-  time_provider_.reset();
+  timeProvider_.reset();
 }
 
 int64_t PeerMessageQueue::getQueuedOperationsSizeBytesForTests() const {
@@ -2868,12 +2867,12 @@ int64_t PeerMessageQueue::getQueuedOperationsSizeBytesForTests() const {
 string PeerMessageQueue::ToString() const {
   // Even though metrics are thread-safe obtain the lock so that we get
   // a "consistent" snapshot of the metrics.
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   return ToStringUnlocked();
 }
 
 string PeerMessageQueue::ToStringUnlocked() const {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   return fmt::format(
       "Consensus queue metrics: "
       "Only Majority Done Ops: {}, In Progress Ops: {}, Cache: {}",
@@ -2883,7 +2882,7 @@ string PeerMessageQueue::ToStringUnlocked() const {
 }
 
 void PeerMessageQueue::RegisterObserver(PeerMessageQueueObserver* observer) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   auto iter = std::find(observers_.begin(), observers_.end(), observer);
   if (iter == observers_.end()) {
     observers_.push_back(observer);
@@ -2892,7 +2891,7 @@ void PeerMessageQueue::RegisterObserver(PeerMessageQueueObserver* observer) {
 
 Status PeerMessageQueue::UnRegisterObserver(
     PeerMessageQueueObserver* observer) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
   auto iter = std::find(observers_.begin(), observers_.end(), observer);
   if (iter == observers_.end()) {
     return Status::NotFound("Can't find observer.");
@@ -2976,12 +2975,12 @@ void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
 }
 
 void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   WARN_NOT_OK(
       raftPoolObserversToken_->submitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
-          [=, transfer_context = std::move(transfer_context_)](
+          [=, transfer_context = std::move(transferContext_)](
               PeerMessageQueueObserver* observer) mutable {
             observer->notifyPeerToStartElection(
                 peer_uuid,
@@ -2991,18 +2990,18 @@ void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
           })),
       logPrefixUnlocked() +
           "Unable to notify RaftConsensus of available successor.");
-  successor_watch_peer_notified_ = true;
-  transfer_context_ = {};
+  successorWatchPeerNotified_ = true;
+  transferContext_ = {};
 }
 
 Status PeerMessageQueue::GetSnapshotForMockElection(
     const std::string& new_leader_uuid,
     OpId* snapshot_op_id) {
-  std::unique_lock<simple_mutexlock> l(queue_lock_);
+  std::unique_lock<simple_mutexlock> l(queueLock_);
 
-  auto it = peers_map_.find(new_leader_uuid);
+  auto it = peersMap_.find(new_leader_uuid);
   // Validate peer exists and has non-null value.
-  if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
+  if (PREDICT_FALSE(it == peersMap_.end() || it->second == nullptr)) {
     return Status::IllegalState("Target peer is not tracked.");
   }
   TrackedPeer* peer = it->second;
@@ -3035,7 +3034,7 @@ void PeerMessageQueue::NotifyObserversTask(
       FLAGS_consensus_inject_latency_ms_in_notifications);
   std::vector<PeerMessageQueueObserver*> observers_copy;
   {
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
     observers_copy = observers_;
   }
   for (PeerMessageQueueObserver* observer : observers_copy) {
@@ -3084,7 +3083,7 @@ const std::string& PeerMessageQueue::getQuorumIdUsingCommitRule(
 }
 
 bool PeerMessageQueue::CheckQuorum() {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
 
   // We only check quorum if we're a leader.
   if (queueState_.mode != LEADER) {
@@ -3127,16 +3126,16 @@ bool PeerMessageQueue::CheckQuorum() {
 void PeerMessageQueue::updatePeerForTests(
     const std::string& peer_uuid,
     const std::function<void(TrackedPeer*)>& fn) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  auto it = peers_map_.find(peer_uuid);
-  TrackedPeer* peer = (it != peers_map_.end()) ? it->second : nullptr;
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  auto it = peersMap_.find(peer_uuid);
+  TrackedPeer* peer = (it != peersMap_.end()) ? it->second : nullptr;
   CHECK(peer);
   fn(peer);
 }
 
 bool PeerMessageQueue::RegionHasQuorumCommitUnlocked(
     const RaftPeerPB& target_peer) {
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
 
   // If we don't have VD, we assume this is vanilla raft and we don't need to
   // check if peer region has majority.
@@ -3150,7 +3149,7 @@ bool PeerMessageQueue::RegionHasQuorumCommitUnlocked(
 }
 
 int32_t PeerMessageQueue::GetAvailableCommitPeers() {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
 
   // If we are not leader, we are not concerned about commit peers, hence, we
   // simply return 0.
@@ -3173,11 +3172,11 @@ int32_t PeerMessageQueue::GetAvailableCommitPeers() {
 Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
     QuorumHealth* health) const {
   CHECK(health);
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   std::unordered_multimap<std::string, TrackedPeer*> by_quorum_id;
   std::unordered_set<std::string> quorum_ids;
 
-  for (const PeersMap::value_type& entry : peers_map_) {
+  for (const PeersMap::value_type& entry : peersMap_) {
     auto* peer = entry.second;
     // We only include voters.
     if (peer->peerPb.has_member_type() &&
@@ -3234,7 +3233,7 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
 Status PeerMessageQueue::GetQuorumHealthForVanillaRaftUnlocked(
     QuorumHealth* health) const {
   CHECK(health);
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   const RaftConfigPB* curr_config = queueState_.active_config.get();
   bool is_joint_consensus_mode = isJointConsensusPhase(*curr_config);
 
@@ -3274,7 +3273,7 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
     const std::string& leader_quorum_id,
     std::unordered_map<std::string, QuorumIdHealth>* quorum_id_health) const {
   CHECK(quorum_id_health);
-  DCHECK(queue_lock_.is_locked());
+  DCHECK(queueLock_.is_locked());
   quorum_id_health->clear();
 
   // Group Peers by their QuorumID, having QuorumID as the key and a
@@ -3291,8 +3290,8 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
         ? kVanillaRaftQuorumId
         : getQuorumIdUsingCommitRule(peer_pb);
     quorum_ids.insert(quorum_id);
-    auto it = peers_map_.find(peer_uuid);
-    const TrackedPeer* peer = (it != peers_map_.end()) ? it->second : nullptr;
+    auto it = peersMap_.find(peer_uuid);
+    const TrackedPeer* peer = (it != peersMap_.end()) ? it->second : nullptr;
     if (!peer) {
       LOG_WITH_PREFIX_UNLOCKED(ERROR)
           << "PopulateQuorumIdHealth: Peer " << peer_pb.permanent_uuid()
@@ -3367,7 +3366,7 @@ PeerMessageQueue::InferQuorumIdHealthStatus(
 
 Status PeerMessageQueue::GetQuorumHealth(QuorumHealth* health) const {
   CHECK(health);
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
 
   // Only leaders can provide quorum health.
   if (queueState_.mode != LEADER) {
@@ -3383,14 +3382,14 @@ Status PeerMessageQueue::GetQuorumHealth(QuorumHealth* health) const {
 Status PeerMessageQueue::getAllStateMachineMetrics(
     AllStateMachineMetrics* output) {
   CHECK(output);
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
 
   // Only leaders can provide quorum health.
   if (queueState_.mode != LEADER) {
     return Status::OK();
   }
 
-  for (const PeersMap::value_type& entry : peers_map_) {
+  for (const PeersMap::value_type& entry : peersMap_) {
     auto* peer = entry.second;
     // Skip server without state machine metrics
     if (!isBackingDbPresent(peer->peerPb)) {
@@ -3431,10 +3430,10 @@ bool PeerMessageQueue::IsStateMachineHealthyForElectionUnlock(
 bool PeerMessageQueue::IsStateMachineHealthyForElection(
     const std::string& candidate_uuid,
     std::optional<int> seconds_behind_master_threshold) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  auto it = peers_map_.find(candidate_uuid);
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  auto it = peersMap_.find(candidate_uuid);
   // Safe extraction: returns nullptr if peer not found or has null value.
-  TrackedPeer* peer = (it != peers_map_.end()) ? it->second : nullptr;
+  TrackedPeer* peer = (it != peersMap_.end()) ? it->second : nullptr;
   if (peer == nullptr) {
     LOG(ERROR) << "Could not find peer " << candidate_uuid;
     return false;
@@ -3452,8 +3451,8 @@ bool PeerMessageQueue::IsStateMachineHealthyForElection(
 
 bool PeerMessageQueue::isHealthyStateMachineForElectionPresent(
     std::optional<int> seconds_behind_master_threshold) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  for (const PeersMap::value_type& entry : peers_map_) {
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  for (const PeersMap::value_type& entry : peersMap_) {
     TrackedPeer* peer = entry.second;
 
     // Skip server without state machine metrics and skip non_voter

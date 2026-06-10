@@ -636,7 +636,7 @@ class PeerMessageQueue {
       const TrackedPeer* destPeer);
 
   void setAdjustVoterDistribution(bool val) {
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
     adjustVoterDistribution_ = val;
   }
 
@@ -668,7 +668,7 @@ class PeerMessageQueue {
 
   // Sets the Leader lease until timestamp
   void SetLeaderLeaseUntil(MonoTime update) {
-    leader_lease_until_ = update;
+    leaderLeaseUntil_ = update;
   }
 
   // Return the Leader Lease timeout.
@@ -943,7 +943,7 @@ class PeerMessageQueue {
   // of its voting status.
   //
   // This function checks the peers static metadata (e.g., voter type) from
-  // `considered_peers`, and not `peers_map_`. Therefore, the size of
+  // `considered_peers`, and not `peersMap_`. Therefore, the size of
   // `considered_peers` should be greater than or equal to
   // `num_peers_required`.
   void AdvanceQueueWatermark(
@@ -965,7 +965,7 @@ class PeerMessageQueue {
   // Function to compute the commit index in FlexiRaft. Same as
   // `AdvanceQueueWatermark` except that its only used for commit index
   // advancement.
-  // Please note: `queue_lock_` is held as well as `lock_` from the
+  // Please note: `queueLock_` is held as well as `lock_` from the
   // associated RaftConsensus instance while this function gets called.
   void AdvanceMajorityReplicatedWatermarkFlexiRaft(
       int64_t* watermark,
@@ -1025,49 +1025,49 @@ class PeerMessageQueue {
   bool adjustVoterDistribution_;
 
   // The currently tracked peers.
-  PeersMap peers_map_;
-  mutable simple_mutexlock queue_lock_; // TODO(todd): rename
+  PeersMap peersMap_;
+  mutable simple_mutexlock queueLock_; // TODO(todd): rename
 
-  bool successor_watch_in_progress_;
-  std::optional<std::string> designated_successor_uuid_;
-  std::optional<TransferContext> transfer_context_;
-  bool successor_watch_peer_notified_ = false;
+  bool successorWatchInProgress_;
+  std::optional<std::string> designatedSuccessorUuid_;
+  std::optional<TransferContext> transferContext_;
+  bool successorWatchPeerNotified_ = false;
 
-  std::function<bool(const kudu::consensus::RaftPeerPB&)> tl_filter_fn_;
+  std::function<bool(const kudu::consensus::RaftPeerPB&)> tlFilterFn_;
   // We assume that we never have multiple threads racing to append to the
   // queue. This fake mutex adds some extra assurance that this
   // implementation property doesn't change.
-  DFAKE_MUTEX(append_fake_lock_);
+  DFAKE_MUTEX(appendFakeLock_);
 
   std::shared_ptr<LogCache> log_cache_;
 
   Metrics metrics_;
 
-  std::shared_ptr<ITimeManager> time_manager_;
+  std::shared_ptr<ITimeManager> timeManager_;
 
   // Duration in milliseconds before a peer is marked as 'failed' to being a
   // proxy-peer.
   // If the leader has not communicated with a peer within this threshold,
   // then such a peer is deemed to have failed proxy health check and cannot
   // act as a proxy peer
-  int32_t proxy_failure_threshold_ms_ = INT_MAX;
+  int32_t proxyFailureThresholdMs_ = INT_MAX;
 
   // Maximum lag (in terms of #ops) as compared to the destination peer
   // after which proxy peer is marked unhealthy
-  int64_t proxy_failure_threshold_lag_ = 1000;
+  int64_t proxyFailureThresholdLag_ = 1000;
 
   // An instance of PersistentVars with access to some persistent global
   // vars
   std::shared_ptr<PersistentVars> persistentVars_;
 
   // Leader Leases to support strong reads on primary
-  std::atomic<MonoTime> leader_lease_until_;
+  std::atomic<MonoTime> leaderLeaseUntil_;
 
   // Bounded Data loss to support halting/start-throttling commits
   // using a time bound window
-  std::atomic<MonoTime> bounded_dataloss_window_until_;
+  std::atomic<MonoTime> boundedDatalossWindowUntil_;
 
-  std::shared_ptr<TimeProvider> time_provider_;
+  std::shared_ptr<TimeProvider> timeProvider_;
 };
 
 // The interface between RaftConsensus and the PeerMessageQueue.

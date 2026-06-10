@@ -145,7 +145,7 @@ class CompressionCodec {
  * Manages global compression codec, dictionary and compression level
  *
  * This class is thread safe but contention is not expected. In the commit path
- * we rely on taking RaftConsensus::lock_ and PeerConsensusQueue::queue_lock_
+ * we rely on taking RaftConsensus::lock_ and PeerConsensusQueue::queueLock_
  * while updating codec, dict, level etc. and also compression and decompression
  * using the codec
  */
