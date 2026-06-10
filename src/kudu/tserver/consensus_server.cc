@@ -141,7 +141,7 @@ Status RaftConsensusServer::Init() {
 
   std::unique_ptr<ServiceIf> consensusService(
       new ConsensusServiceImpl(this, *consensusManager_));
-  RETURN_NOT_OK(RegisterService(std::move(consensusService)));
+  RETURN_NOT_OK(registerService(std::move(consensusService)));
   if (!opts_.deferRpcStartUntilConsensusRunning) {
     RETURN_NOT_OK(KuduServer::Start());
   }
@@ -199,7 +199,7 @@ void RaftConsensusServer::Shutdown() {
   LOG(INFO) << name << " shutting down...";
 
   // 1. Stop accepting new RPCs.
-  UnregisterAllServices();
+  unregisterAllServices();
 
   // 2. Stop consensus
   consensusManager_->shutdown();

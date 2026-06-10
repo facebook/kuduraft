@@ -114,15 +114,15 @@ class ServerBase {
 
   // Return a PB describing the status of the server (version info, bound ports,
   // etc)
-  Status GetStatusPB(ServerStatusPB* status) const;
+  Status getStatusPb(ServerStatusPB* status) const;
 
-  enum { SUPER_USER = 1, USER = 1 << 1, SERVICE_USER = 1 << 2 };
+  enum { kSuperUser = 1, kUser = 1 << 1, kServiceUser = 1 << 2 };
 
   // Authorize an RPC. 'allowed_roles' is a bitset of which roles from the above
   // enum should be allowed to make hthe RPC.
   //
   // If authorization fails, return false and respond to the RPC.
-  bool Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles);
+  bool authorize(rpc::RpcContext* rpc, uint32_t allowed_roles);
 
  protected:
   ServerBase(
@@ -142,14 +142,14 @@ class ServerBase {
 
   // Registers a new RPC service. Once Start() is called, the server will
   // process and dispatch incoming RPCs belonging to this service.
-  Status RegisterService(std::unique_ptr<rpc::ServiceIf> rpc_impl);
+  Status registerService(std::unique_ptr<rpc::ServiceIf> rpc_impl);
 
   // Unregisters all RPC services. After this function returns, any subsequent
   // incoming RPCs will be rejected.
   //
   // When shutting down, this function should be called before shutting down
   // higher-level subsystems. For example:
-  // 1. ServerBase::UnregisterAllServices()
+  // 1. ServerBase::unregisterAllServices()
   // 2. <shut down other subsystems>
   // 3. ServerBase::Shutdown()
   //
@@ -163,9 +163,9 @@ class ServerBase {
   //
   // TODO(adar): this should also shutdown the webserver, but it isn't safe to
   // do that before before shutting down the tserver heartbeater.
-  void UnregisterAllServices();
+  void unregisterAllServices();
 
-  void LogUnauthorizedAccess(rpc::RpcContext* rpc) const;
+  void logUnauthorizedAccess(rpc::RpcContext* rpc) const;
 
   const std::string name_;
 
@@ -194,19 +194,19 @@ class ServerBase {
   security::SimpleAcl service_acl_;
 
  private:
-  Status InitAcls();
-  void GenerateInstanceID();
-  Status DumpServerInfo(const std::string& path, const std::string& format)
+  Status initAcls();
+  void generateInstanceId();
+  Status dumpServerInfo(const std::string& path, const std::string& format)
       const;
-  Status StartMetricsLogging();
-  void MetricsLoggingThread();
+  Status startMetricsLogging();
+  void metricsLoggingThread();
 
   // Callback from the RPC system when a service queue has overflowed.
-  void ServiceQueueOverflowed(rpc::ServicePool* service);
+  void serviceQueueOverflowed(rpc::ServicePool* service);
 
   // Start thread to remove excess glog and minidump files.
-  Status StartExcessLogFileDeleterThread();
-  void ExcessLogFileDeleterThread();
+  Status startExcessLogFileDeleterThread();
+  void excessLogFileDeleterThread();
 
   ServerBaseOptions options_;
 

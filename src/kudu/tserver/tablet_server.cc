@@ -116,7 +116,7 @@ Status TabletServer::Init() {
   // Raft::create makes remote GetNodeInstance RPC calls.
   unique_ptr<ServiceIf> consensusService(
       new ConsensusServiceImpl(this, *tabletManager_));
-  RETURN_NOT_OK(RegisterService(std::move(consensusService)));
+  RETURN_NOT_OK(registerService(std::move(consensusService)));
   RETURN_NOT_OK(KuduServer::Start());
 
   // Moving tablet manager initialization to Init phase of
@@ -153,7 +153,7 @@ void TabletServer::Shutdown() {
     LOG(INFO) << name << " shutting down...";
 
     // 1. Stop accepting new RPCs.
-    UnregisterAllServices();
+    unregisterAllServices();
 
     tabletManager_->shutdown();
 

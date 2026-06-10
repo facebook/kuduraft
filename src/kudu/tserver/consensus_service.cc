@@ -322,8 +322,8 @@ bool ConsensusServiceImpl::AuthorizeServiceUser(
     const google::protobuf::Message* /*req*/,
     google::protobuf::Message* /*resp*/,
     rpc::RpcContext* rpc) {
-  return server_->Authorize(
-      rpc, ServerBase::SUPER_USER | ServerBase::SERVICE_USER);
+  return server_->authorize(
+      rpc, ServerBase::kSuperUser | ServerBase::kServiceUser);
 }
 
 void ConsensusServiceImpl::LongUpdateConsensusLoading() {

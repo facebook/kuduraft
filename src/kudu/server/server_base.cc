@@ -289,7 +289,7 @@ const NodeInstancePB& ServerBase::instancePb() const {
   return *DCHECK_NOTNULL(instance_pb_.get());
 }
 
-void ServerBase::GenerateInstanceID() {
+void ServerBase::generateInstanceId() {
   instance_pb_.reset(new NodeInstancePB);
   instance_pb_->set_permanent_uuid(fs_manager_->uuid());
   // TODO: maybe actually bump a sequence number on local disk instead of
@@ -332,7 +332,7 @@ Status ServerBase::Init() {
   RETURN_NOT_OK_PREPEND(s, "Failed to load FS layout");
   RETURN_NOT_OK(report.logAndCheckForFatalErrors());
 
-  RETURN_NOT_OK(InitAcls());
+  RETURN_NOT_OK(initAcls());
 
   // Create the Messenger.
   rpc::MessengerBuilder builder(name_);
@@ -362,7 +362,7 @@ Status ServerBase::Init() {
   RETURN_NOT_OK(builder.build(&messenger_));
   rpc_server_->setTooBusyHook(
       std::bind(
-          &ServerBase::ServiceQueueOverflowed, this, std::placeholders::_1));
+          &ServerBase::serviceQueueOverflowed, this, std::placeholders::_1));
 
   RETURN_NOT_OK(rpc_server_->init(messenger_));
 
@@ -372,15 +372,15 @@ Status ServerBase::Init() {
   clock_->registerMetrics(metric_entity_);
 
   RETURN_NOT_OK_PREPEND(
-      StartMetricsLogging(), "Could not enable metrics logging");
+      startMetricsLogging(), "Could not enable metrics logging");
 
   result_tracker_->startGcThread();
-  RETURN_NOT_OK(StartExcessLogFileDeleterThread());
+  RETURN_NOT_OK(startExcessLogFileDeleterThread());
 
   return Status::OK();
 }
 
-Status ServerBase::InitAcls() {
+Status ServerBase::initAcls() {
   string service_user;
   std::optional<string> keytab_user = security::getLoggedInUsernameFromKeytab();
   if (keytab_user) {
@@ -415,7 +415,7 @@ Status ServerBase::InitAcls() {
   return Status::OK();
 }
 
-Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
+Status ServerBase::getStatusPb(ServerStatusPB* status) const {
   // Node instance
   status->mutable_node_instance()->CopyFrom(*instance_pb_);
 
@@ -440,39 +440,39 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
   return Status::OK();
 }
 
-void ServerBase::LogUnauthorizedAccess(rpc::RpcContext* rpc) const {
+void ServerBase::logUnauthorizedAccess(rpc::RpcContext* rpc) const {
   LOG(WARNING) << "Unauthorized access attempt to method " << rpc->serviceName()
                << "." << rpc->methodName() << " from "
                << rpc->requestorString();
 }
 
-bool ServerBase::Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
-  if ((allowed_roles & SUPER_USER) &&
+bool ServerBase::authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
+  if ((allowed_roles & kSuperUser) &&
       superuser_acl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
-  if ((allowed_roles & USER) &&
+  if ((allowed_roles & kUser) &&
       user_acl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
-  if ((allowed_roles & SERVICE_USER) &&
+  if ((allowed_roles & kServiceUser) &&
       service_acl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
-  LogUnauthorizedAccess(rpc);
+  logUnauthorizedAccess(rpc);
   rpc->respondFailure(
       Status::NotAuthorized(
           "unauthorized access to method", rpc->methodName()));
   return false;
 }
 
-Status ServerBase::DumpServerInfo(const string& path, const string& format)
+Status ServerBase::dumpServerInfo(const string& path, const string& format)
     const {
   ServerStatusPB status;
-  RETURN_NOT_OK_PREPEND(GetStatusPB(&status), "could not get server status");
+  RETURN_NOT_OK_PREPEND(getStatusPb(&status), "could not get server status");
 
   if (boost::iequals(format, "json")) {
     string json = JsonWriter::toJson(status, JsonWriter::kPretty);
@@ -493,11 +493,11 @@ Status ServerBase::DumpServerInfo(const string& path, const string& format)
   return Status::OK();
 }
 
-Status ServerBase::RegisterService(unique_ptr<rpc::ServiceIf> rpc_impl) {
+Status ServerBase::registerService(unique_ptr<rpc::ServiceIf> rpc_impl) {
   return rpc_server_->registerService(std::move(rpc_impl));
 }
 
-Status ServerBase::StartMetricsLogging() {
+Status ServerBase::startMetricsLogging() {
   if (options_.metricsLogIntervalMs <= 0) {
     return Status::OK();
   }
@@ -523,7 +523,7 @@ Status ServerBase::StartMetricsLogging() {
   return Status::OK();
 }
 
-Status ServerBase::StartExcessLogFileDeleterThread() {
+Status ServerBase::startExcessLogFileDeleterThread() {
   // Try synchronously deleting excess log files once at startup to make sure it
   // works, then start a background thread to continue deleting them in the
   // future. Same with minidumps.
@@ -535,12 +535,12 @@ Status ServerBase::StartExcessLogFileDeleterThread() {
   return Thread::create(
       "server",
       "excess-log-deleter",
-      &ServerBase::ExcessLogFileDeleterThread,
+      &ServerBase::excessLogFileDeleterThread,
       this,
       &excess_log_deleter_thread_);
 }
 
-void ServerBase::ExcessLogFileDeleterThread() {
+void ServerBase::excessLogFileDeleterThread() {
   // How often to attempt to clean up excess glog and minidump files.
   const MonoDelta kWait = MonoDelta::FromSeconds(60);
   while (!stop_background_threads_latch_.waitUntil(MonoTime::Now() + kWait)) {
@@ -551,13 +551,13 @@ void ServerBase::ExcessLogFileDeleterThread() {
 }
 
 Status ServerBase::Start() {
-  GenerateInstanceID();
+  generateInstanceId();
 
   RETURN_NOT_OK(rpc_server_->start());
 
   if (!options_.dumpInfoPath.empty()) {
     RETURN_NOT_OK_PREPEND(
-        DumpServerInfo(options_.dumpInfoPath, options_.dumpInfoFormat),
+        dumpServerInfo(options_.dumpInfoPath, options_.dumpInfoFormat),
         "Failed to dump server info to " + options_.dumpInfoPath);
   }
 
@@ -587,11 +587,11 @@ void ServerBase::Shutdown() {
   }
 }
 
-void ServerBase::UnregisterAllServices() {
+void ServerBase::unregisterAllServices() {
   messenger_->UnregisterAllServices();
 }
 
-void ServerBase::ServiceQueueOverflowed(rpc::ServicePool* service) {
+void ServerBase::serviceQueueOverflowed(rpc::ServicePool* service) {
   if (!diagLog_) {
     return;
   }
