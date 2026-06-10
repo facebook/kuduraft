@@ -944,7 +944,7 @@ int calculateBase64EscapedLen(int inputLen) {
 // filename-safe.
 // ----------------------------------------------------------------------
 
-int Base64UnescapeInternal(
+int base64UnescapeInternal(
     const unsigned char* src,
     int szsrc,
     char* dest,
@@ -1297,7 +1297,7 @@ int base64Unescape(
     int szsrc,
     char* dest,
     int szdest) {
-  return Base64UnescapeInternal(src, szsrc, dest, szdest, kUnBase64);
+  return base64UnescapeInternal(src, szsrc, dest, szdest, kUnBase64);
 }
 
 int webSafeBase64Unescape(
@@ -1305,10 +1305,10 @@ int webSafeBase64Unescape(
     int szsrc,
     char* dest,
     int szdest) {
-  return Base64UnescapeInternal(src, szsrc, dest, szdest, kUnWebSafeBase64);
+  return base64UnescapeInternal(src, szsrc, dest, szdest, kUnWebSafeBase64);
 }
 
-static bool Base64UnescapeInternal(
+static bool base64UnescapeInternal(
     const unsigned char* src,
     int slen,
     string* dest,
@@ -1317,36 +1317,36 @@ static bool Base64UnescapeInternal(
   // into 4 characters.  any leftover chars are added directly for good
   // measure. This is documented in the base64 RFC:
   // http://www.ietf.org/rfc/rfc3548.txt
-  const int dest_len = 3 * (slen / 4) + (slen % 4);
+  const int destLen = 3 * (slen / 4) + (slen % 4);
 
   dest->clear();
-  dest->resize(dest_len);
+  dest->resize(destLen);
 
   // We are getting the destination buffer by getting the beginning of the
   // string and converting it into a char *.
   const int len =
-      Base64UnescapeInternal(src, slen, dest->data(), dest->size(), unbase64);
+      base64UnescapeInternal(src, slen, dest->data(), dest->size(), unbase64);
   if (len < 0) {
     dest->clear();
     return false;
   }
 
   // could be shorter if there was padding
-  DCHECK_LE(len, dest_len);
+  DCHECK_LE(len, destLen);
   dest->resize(len);
 
   return true;
 }
 
 bool base64Unescape(const unsigned char* src, int slen, string* dest) {
-  return Base64UnescapeInternal(src, slen, dest, kUnBase64);
+  return base64UnescapeInternal(src, slen, dest, kUnBase64);
 }
 
 bool webSafeBase64Unescape(const unsigned char* src, int slen, string* dest) {
-  return Base64UnescapeInternal(src, slen, dest, kUnWebSafeBase64);
+  return base64UnescapeInternal(src, slen, dest, kUnWebSafeBase64);
 }
 
-int Base64EscapeInternal(
+int base64EscapeInternal(
     const unsigned char* src,
     int szsrc,
     char* dest,
@@ -1434,7 +1434,7 @@ static const char kWebSafeBase64Chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 int base64Escape(const unsigned char* src, int szsrc, char* dest, int szdest) {
-  return Base64EscapeInternal(src, szsrc, dest, szdest, kBase64Chars, true);
+  return base64EscapeInternal(src, szsrc, dest, szdest, kBase64Chars, true);
 }
 int webSafeBase64Escape(
     const unsigned char* src,
@@ -1442,11 +1442,11 @@ int webSafeBase64Escape(
     char* dest,
     int szdest,
     bool doPadding) {
-  return Base64EscapeInternal(
+  return base64EscapeInternal(
       src, szsrc, dest, szdest, kWebSafeBase64Chars, doPadding);
 }
 
-void Base64EscapeInternal(
+void base64EscapeInternal(
     const unsigned char* src,
     int szsrc,
     string* dest,
@@ -1455,7 +1455,7 @@ void Base64EscapeInternal(
   const int calcEscapedSize = calculateBase64EscapedLen(szsrc, doPadding);
   dest->clear();
   dest->resize(calcEscapedSize, '\0');
-  const int escapedLen = Base64EscapeInternal(
+  const int escapedLen = base64EscapeInternal(
       src, szsrc, dest->data(), dest->size(), base64Chars, doPadding);
   DCHECK_EQ(calcEscapedSize, escapedLen);
 }
@@ -1465,7 +1465,7 @@ void base64Escape(
     int szsrc,
     string* dest,
     bool doPadding) {
-  Base64EscapeInternal(src, szsrc, dest, doPadding, kBase64Chars);
+  base64EscapeInternal(src, szsrc, dest, doPadding, kBase64Chars);
 }
 
 void webSafeBase64Escape(
@@ -1473,7 +1473,7 @@ void webSafeBase64Escape(
     int szsrc,
     string* dest,
     bool doPadding) {
-  Base64EscapeInternal(src, szsrc, dest, doPadding, kWebSafeBase64Chars);
+  base64EscapeInternal(src, szsrc, dest, doPadding, kWebSafeBase64Chars);
 }
 
 void base64Escape(const string& src, string* dest) {
@@ -1556,10 +1556,10 @@ int base32Unescape(const char* src, int slen, char* dest, int szdest) {
 
 bool base32Unescape(const char* src, int slen, string* dest) {
   // Determine the size of the output string.
-  const int dest_len = 5 * (slen / 8) + kBase32NumUnescapedBytes[slen % 8];
+  const int destLen = 5 * (slen / 8) + kBase32NumUnescapedBytes[slen % 8];
 
   dest->clear();
-  dest->resize(dest_len);
+  dest->resize(destLen);
 
   // We are getting the destination buffer by getting the beginning of the
   // string and converting it into a char *.
@@ -1570,7 +1570,7 @@ bool base32Unescape(const char* src, int slen, string* dest) {
   }
 
   // Could be shorter if there was padding.
-  DCHECK_LE(len, dest_len);
+  DCHECK_LE(len, destLen);
   dest->resize(len);
 
   return true;
@@ -1745,7 +1745,7 @@ void eightBase32DigitsToTenHexDigits(const unsigned char* in, char* out) {
 void eightBase32DigitsToFiveBytes(
     const unsigned char* in,
     unsigned char* bytesOut) {
-  static const char Base32InverseAlphabet[] = {
+  static const char kBase32InverseAlphabet[] = {
       99,       99,       99,       99,       99,       99,       99,
       99,       99,       99,       99,       99,       99,       99,
       99,       99,       99,       99,       99,       99,       99,
@@ -1786,19 +1786,19 @@ void eightBase32DigitsToFiveBytes(
 
   // Convert to raw bytes. It's easier to just hard code this.
   bytesOut[0] =
-      Base32InverseAlphabet[in[0]] << 3 | Base32InverseAlphabet[in[1]] >> 2;
+      kBase32InverseAlphabet[in[0]] << 3 | kBase32InverseAlphabet[in[1]] >> 2;
 
-  bytesOut[1] = Base32InverseAlphabet[in[1]] << 6 |
-      Base32InverseAlphabet[in[2]] << 1 | Base32InverseAlphabet[in[3]] >> 4;
+  bytesOut[1] = kBase32InverseAlphabet[in[1]] << 6 |
+      kBase32InverseAlphabet[in[2]] << 1 | kBase32InverseAlphabet[in[3]] >> 4;
 
   bytesOut[2] =
-      Base32InverseAlphabet[in[3]] << 4 | Base32InverseAlphabet[in[4]] >> 1;
+      kBase32InverseAlphabet[in[3]] << 4 | kBase32InverseAlphabet[in[4]] >> 1;
 
-  bytesOut[3] = Base32InverseAlphabet[in[4]] << 7 |
-      Base32InverseAlphabet[in[5]] << 2 | Base32InverseAlphabet[in[6]] >> 3;
+  bytesOut[3] = kBase32InverseAlphabet[in[4]] << 7 |
+      kBase32InverseAlphabet[in[5]] << 2 | kBase32InverseAlphabet[in[6]] >> 3;
 
   bytesOut[4] =
-      Base32InverseAlphabet[in[6]] << 5 | Base32InverseAlphabet[in[7]];
+      kBase32InverseAlphabet[in[6]] << 5 | kBase32InverseAlphabet[in[7]];
 }
 
 // ----------------------------------------------------------------------
@@ -1900,16 +1900,16 @@ static void a2bHexT(const char* a, T b, int num) {
 string a2bBin(const string& a, bool byteOrderMsb) {
   string result;
   const char* data = a.c_str();
-  int num_bytes = (a.size() + 7) / 8;
-  for (int byte_offset = 0; byte_offset < num_bytes; ++byte_offset) {
+  int numBytes = (a.size() + 7) / 8;
+  for (int byteOffset = 0; byteOffset < numBytes; ++byteOffset) {
     unsigned char c = 0;
-    for (int bit_offset = 0; bit_offset < 8; ++bit_offset) {
+    for (int bitOffset = 0; bitOffset < 8; ++bitOffset) {
       if (*data == '\0') {
         break;
       }
       if (*data++ != '0') {
-        int bits_to_shift = (byteOrderMsb) ? 7 - bit_offset : bit_offset;
-        c |= (1 << bits_to_shift);
+        int bitsToShift = (byteOrderMsb) ? 7 - bitOffset : bitOffset;
+        c |= (1 << bitsToShift);
       }
     }
     result.append(1, c);
@@ -1931,8 +1931,8 @@ static void b2aHexT(const unsigned char* b, T a, int num) {
 string b2aBin(const string& b, bool byteOrderMsb) {
   string result;
   for (char c : b) {
-    for (int bit_offset = 0; bit_offset < 8; ++bit_offset) {
-      int x = (byteOrderMsb) ? 7 - bit_offset : bit_offset;
+    for (int bitOffset = 0; bitOffset < 8; ++bitOffset) {
+      int x = (byteOrderMsb) ? 7 - bitOffset : bitOffset;
       result.append(1, (c & (1 << x)) ? '1' : '0');
     }
   }
