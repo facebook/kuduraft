@@ -74,7 +74,7 @@
 #include "kudu/util/threadlocal.h"
 
 #define SCOPED_WATCH_STACK(threshold_ms) \
-  ScopedWatchKernelStack _stack_watcher( \
+  ScopedWatchKernelStack stackWatcher(   \
       __FILE__ ":" AS_STRING(__LINE__), threshold_ms)
 
 namespace kudu {
