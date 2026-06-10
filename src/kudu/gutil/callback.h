@@ -378,14 +378,14 @@ class Callback<R(void)> : public internal::CallbackBase {
     PolymorphicInvoke invoke_func =
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
-    polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
+    polymorphicInvoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
   }
 
   R Run() const {
     PolymorphicInvoke f =
-        reinterpret_cast<PolymorphicInvoke>(polymorphic_invoke_);
+        reinterpret_cast<PolymorphicInvoke>(polymorphicInvoke_);
 
-    return f(bind_state_.get());
+    return f(bindState_.get());
   }
 
  private:
@@ -411,14 +411,14 @@ class Callback<R(A1)> : public internal::CallbackBase {
     PolymorphicInvoke invoke_func =
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
-    polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
+    polymorphicInvoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
   }
 
   R Run(typename internal::CallbackParamTraits<A1>::ForwardType a1) const {
     PolymorphicInvoke f =
-        reinterpret_cast<PolymorphicInvoke>(polymorphic_invoke_);
+        reinterpret_cast<PolymorphicInvoke>(polymorphicInvoke_);
 
-    return f(bind_state_.get(), internal::CallbackForward(a1));
+    return f(bindState_.get(), internal::CallbackForward(a1));
   }
 
  private:
@@ -446,17 +446,17 @@ class Callback<R(A1, A2)> : public internal::CallbackBase {
     PolymorphicInvoke invoke_func =
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
-    polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
+    polymorphicInvoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
   }
 
   R Run(
       typename internal::CallbackParamTraits<A1>::ForwardType a1,
       typename internal::CallbackParamTraits<A2>::ForwardType a2) const {
     PolymorphicInvoke f =
-        reinterpret_cast<PolymorphicInvoke>(polymorphic_invoke_);
+        reinterpret_cast<PolymorphicInvoke>(polymorphicInvoke_);
 
     return f(
-        bind_state_.get(),
+        bindState_.get(),
         internal::CallbackForward(a1),
         internal::CallbackForward(a2));
   }
@@ -487,7 +487,7 @@ class Callback<R(A1, A2, A3)> : public internal::CallbackBase {
     PolymorphicInvoke invoke_func =
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
-    polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
+    polymorphicInvoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
   }
 
   R Run(
@@ -495,10 +495,10 @@ class Callback<R(A1, A2, A3)> : public internal::CallbackBase {
       typename internal::CallbackParamTraits<A2>::ForwardType a2,
       typename internal::CallbackParamTraits<A3>::ForwardType a3) const {
     PolymorphicInvoke f =
-        reinterpret_cast<PolymorphicInvoke>(polymorphic_invoke_);
+        reinterpret_cast<PolymorphicInvoke>(polymorphicInvoke_);
 
     return f(
-        bind_state_.get(),
+        bindState_.get(),
         internal::CallbackForward(a1),
         internal::CallbackForward(a2),
         internal::CallbackForward(a3));
@@ -538,7 +538,7 @@ class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
     PolymorphicInvoke invoke_func =
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
-    polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
+    polymorphicInvoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
   }
 
   R Run(
@@ -549,10 +549,10 @@ class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
       typename internal::CallbackParamTraits<A5>::ForwardType a5,
       typename internal::CallbackParamTraits<A6>::ForwardType a6) const {
     PolymorphicInvoke f =
-        reinterpret_cast<PolymorphicInvoke>(polymorphic_invoke_);
+        reinterpret_cast<PolymorphicInvoke>(polymorphicInvoke_);
 
     return f(
-        bind_state_.get(),
+        bindState_.get(),
         internal::CallbackForward(a1),
         internal::CallbackForward(a2),
         internal::CallbackForward(a3),

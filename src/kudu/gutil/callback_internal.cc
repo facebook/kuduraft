@@ -10,23 +10,23 @@ namespace kudu {
 namespace internal {
 
 bool CallbackBase::is_null() const {
-  return bind_state_.get() == nullptr;
+  return bindState_.get() == nullptr;
 }
 
 void CallbackBase::Reset() {
-  polymorphic_invoke_ = nullptr;
-  // NULL the bind_state_ last, since it may be holding the last ref to whatever
+  polymorphicInvoke_ = nullptr;
+  // NULL the bindState_ last, since it may be holding the last ref to whatever
   // object owns us, and we may be deleted after that.
-  bind_state_ = nullptr;
+  bindState_ = nullptr;
 }
 
 bool CallbackBase::Equals(const CallbackBase& other) const {
-  return bind_state_.get() == other.bind_state_.get() &&
-      polymorphic_invoke_ == other.polymorphic_invoke_;
+  return bindState_.get() == other.bindState_.get() &&
+      polymorphicInvoke_ == other.polymorphicInvoke_;
 }
 
-CallbackBase::CallbackBase(BindStateBase* bind_state)
-    : bind_state_(bind_state), polymorphic_invoke_(nullptr) {}
+CallbackBase::CallbackBase(BindStateBase* bindState)
+    : bindState_(bindState), polymorphicInvoke_(nullptr) {}
 
 CallbackBase::~CallbackBase() {}
 

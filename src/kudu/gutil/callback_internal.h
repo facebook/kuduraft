@@ -47,19 +47,19 @@ class CallbackBase {
   // Returns true if this callback equals |other|. |other| may be null.
   bool Equals(const CallbackBase& other) const;
 
-  // Allow initializing of |bind_state_| via the constructor to avoid default
+  // Allow initializing of |bindState_| via the constructor to avoid default
   // initialization of the std::shared_ptr.  We do not also initialize
-  // |polymorphic_invoke_| here because doing a normal assignment in the
+  // |polymorphicInvoke_| here because doing a normal assignment in the
   // derived Callback templates makes for much nicer compiler errors.
-  explicit CallbackBase(BindStateBase* bind_state);
+  explicit CallbackBase(BindStateBase* bindState);
 
   // Force the destructor to be instantiated inside this translation unit so
   // that our subclasses will not get inlined versions.  Avoids more template
   // bloat.
   ~CallbackBase();
 
-  std::shared_ptr<BindStateBase> bind_state_;
-  InvokeFuncStorage polymorphic_invoke_;
+  std::shared_ptr<BindStateBase> bindState_;
+  InvokeFuncStorage polymorphicInvoke_;
 };
 
 // A helper template to determine if given type is non-const move-only-type,
