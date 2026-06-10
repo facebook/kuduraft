@@ -112,7 +112,7 @@ const ErrorStatusPB* RpcController::errorResponse() const {
 }
 
 Status RpcController::getInboundSidecar(int idx, Slice* sidecar) const {
-  return call_->call_response_->GetSidecar(idx, sidecar);
+  return call_->callResponse_->GetSidecar(idx, sidecar);
 }
 
 void RpcController::set_timeout(const MonoDelta& timeout) {

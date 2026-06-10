@@ -153,7 +153,7 @@ class OutboundCall {
   void setResponse(std::unique_ptr<CallResponse> resp);
 
   const std::set<RpcFeatureFlag>& requiredRpcFeatures() const {
-    return required_rpc_features_;
+    return requiredRpcFeatures_;
   }
 
   std::string toString() const;
@@ -165,10 +165,10 @@ class OutboundCall {
   ////////////////////////////////////////////////////////////
 
   const ConnectionId& connId() const {
-    return conn_id_;
+    return connId_;
   }
   const RemoteMethod& remoteMethod() const {
-    return remote_method_;
+    return remoteMethod_;
   }
   const ResponseCallback& callback() const {
     return callback_;
@@ -193,7 +193,7 @@ class OutboundCall {
   // Returns true if cancellation has been requested. Must be called from
   // reactor thread.
   bool cancellationRequested() const {
-    return cancellation_requested_;
+    return cancellationRequested_;
   }
 
   // Test function which returns true if a cancellation request should be
@@ -240,19 +240,19 @@ class OutboundCall {
   Status status() const;
 
   // Time when the call was first initiatied.
-  MonoTime start_time_;
+  MonoTime startTime_;
 
   // Return the error protobuf, if a remote error occurred.
   // This will only be non-NULL if status().IsRemoteError().
   const ErrorStatusPB* errorPb() const;
 
-  // Lock for status_ and error_pb_ fields, since they
+  // Lock for status_ and errorPb_ fields, since they
   // may be mutated by the reactor thread while the client thread
   // reads them. state_ is now atomic and doesn't require locking.
   mutable SimpleSpinlock lock_;
   std::atomic<State> state_;
   Status status_;
-  std::unique_ptr<ErrorStatusPB> error_pb_;
+  std::unique_ptr<ErrorStatusPB> errorPb_;
 
   // Call the user-provided callback. Note that entries in 'sidecars_' are
   // cleared prior to invoking the callback so the client can assume that the
@@ -265,12 +265,12 @@ class OutboundCall {
   RequestHeader header_;
 
   // The remote method being called.
-  RemoteMethod remote_method_;
+  RemoteMethod remoteMethod_;
 
   // RPC-system features required to send this call.
-  std::set<RpcFeatureFlag> required_rpc_features_;
+  std::set<RpcFeatureFlag> requiredRpcFeatures_;
 
-  const ConnectionId conn_id_;
+  const ConnectionId connId_;
   ResponseCallback callback_;
   RpcController* controller_;
 
@@ -278,12 +278,12 @@ class OutboundCall {
   google::protobuf::Message* response_;
 
   // Buffers for storing segments of the wire-format request.
-  faststring header_buf_;
-  faststring request_buf_;
+  faststring headerBuf_;
+  faststring requestBuf_;
 
   // Once a response has been received for this call, contains that response.
   // Otherwise NULL.
-  std::unique_ptr<CallResponse> call_response_;
+  std::unique_ptr<CallResponse> callResponse_;
 
   // All sidecars to be sent with this call.
   std::vector<std::unique_ptr<RpcSidecar>> sidecars_;
@@ -291,10 +291,10 @@ class OutboundCall {
   // Total size in bytes of all sidecars in 'sidecars_'. Set in
   // SetRequestPayload(). This cannot exceed
   // TransferLimits::kMaxTotalSidecarBytes.
-  int32_t sidecar_byte_size_ = -1;
+  int32_t sidecarByteSize_ = -1;
 
   // True if cancellation was requested on this call.
-  bool cancellation_requested_;
+  bool cancellationRequested_;
 
   DISALLOW_COPY_AND_ASSIGN(OutboundCall);
   OutboundCall(OutboundCall&&) = delete;

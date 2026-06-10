@@ -85,12 +85,12 @@ OutboundCall::OutboundCall(
     RpcController* controller,
     ResponseCallback callback)
     : state_(kReady),
-      remote_method_(remoteMethod),
-      conn_id_(connId),
+      remoteMethod_(remoteMethod),
+      connId_(connId),
       callback_(std::move(callback)),
       controller_(DCHECK_NOTNULL(controller)),
       response_(DCHECK_NOTNULL(responseStorage)),
-      cancellation_requested_(false) {
+      cancellationRequested_(false) {
   DVLOG(4) << "OutboundCall " << this << " constructed with state_: "
            << stateName(state_.load(std::memory_order_relaxed))
            << " and RPC timeout: "
@@ -99,10 +99,10 @@ OutboundCall::OutboundCall(
                    : "none");
   header_.set_call_id(kInvalidCallId);
   remoteMethod.toPb(header_.mutable_remote_method());
-  start_time_ = MonoTime::Now();
+  startTime_ = MonoTime::Now();
 
   if (!controller_->required_server_features().empty()) {
-    required_rpc_features_.insert(RpcFeatureFlag::APPLICATION_FEATURE_FLAGS);
+    requiredRpcFeatures_.insert(RpcFeatureFlag::APPLICATION_FEATURE_FLAGS);
   }
 
   if (controller_->request_id_) {
@@ -117,7 +117,7 @@ OutboundCall::~OutboundCall() {
 }
 
 size_t OutboundCall::serializeTo(TransferPayload* slices) {
-  DCHECK_LT(0, request_buf_.size())
+  DCHECK_LT(0, requestBuf_.size())
       << "Must call setRequestPayload() before serializeTo()";
 
   const MonoDelta& timeout = controller_->timeout();
@@ -129,15 +129,15 @@ size_t OutboundCall::serializeTo(TransferPayload* slices) {
     header_.add_required_feature_flags(feature);
   }
 
-  DCHECK_LE(0, sidecar_byte_size_);
+  DCHECK_LE(0, sidecarByteSize_);
   serialization::serializeHeader(
-      header_, sidecar_byte_size_ + request_buf_.size(), &header_buf_);
+      header_, sidecarByteSize_ + requestBuf_.size(), &headerBuf_);
 
   size_t nSlices = 2 + sidecars_.size();
   DCHECK_LE(nSlices, slices->size());
   auto sliceIter = slices->begin();
-  *sliceIter++ = Slice(header_buf_);
-  *sliceIter++ = Slice(request_buf_);
+  *sliceIter++ = Slice(headerBuf_);
+  *sliceIter++ = Slice(requestBuf_);
   for (auto& sidecar : sidecars_) {
     *sliceIter++ = sidecar->asSlice();
   }
@@ -148,7 +148,7 @@ size_t OutboundCall::serializeTo(TransferPayload* slices) {
 void OutboundCall::setRequestPayload(
     const Message& req,
     vector<unique_ptr<RpcSidecar>>&& sidecars) {
-  DCHECK_EQ(-1, sidecar_byte_size_);
+  DCHECK_EQ(-1, sidecarByteSize_);
 
   sidecars_ = std::move(sidecars);
   DCHECK_LE(sidecars_.size(), TransferLimits::kMaxSidecars);
@@ -156,17 +156,16 @@ void OutboundCall::setRequestPayload(
   // Compute total size of sidecar payload so that extra space can be reserved
   // as part of the request body.
   uint32_t messageSize = req.ByteSize();
-  sidecar_byte_size_ = 0;
+  sidecarByteSize_ = 0;
   for (const unique_ptr<RpcSidecar>& car : sidecars_) {
-    header_.add_sidecar_offsets(sidecar_byte_size_ + messageSize);
+    header_.add_sidecar_offsets(sidecarByteSize_ + messageSize);
     int32_t sidecarBytes = car->asSlice().size();
     DCHECK_LE(
-        sidecar_byte_size_,
-        TransferLimits::kMaxTotalSidecarBytes - sidecarBytes);
-    sidecar_byte_size_ += sidecarBytes;
+        sidecarByteSize_, TransferLimits::kMaxTotalSidecarBytes - sidecarBytes);
+    sidecarByteSize_ += sidecarBytes;
   }
 
-  serialization::serializeMessage(req, &request_buf_, sidecar_byte_size_, true);
+  serialization::serializeMessage(req, &requestBuf_, sidecarByteSize_, true);
 }
 
 Status OutboundCall::status() const {
@@ -176,7 +175,7 @@ Status OutboundCall::status() const {
 
 const ErrorStatusPB* OutboundCall::errorPb() const {
   std::lock_guard<simple_spinlock> l(lock_);
-  return error_pb_.get();
+  return errorPb_.get();
 }
 
 string OutboundCall::stateName(State state) {
@@ -269,7 +268,7 @@ void OutboundCall::setStateUnlocked(State newState) {
 }
 
 void OutboundCall::cancel() {
-  cancellation_requested_ = true;
+  cancellationRequested_ = true;
   switch (state_.load(std::memory_order_acquire)) {
     case kReady:
     case kOnOutboundQueue:
@@ -314,10 +313,10 @@ void OutboundCall::callCallback() {
 }
 
 void OutboundCall::setResponse(unique_ptr<CallResponse> resp) {
-  call_response_ = std::move(resp);
-  Slice r(call_response_->serialized_response());
+  callResponse_ = std::move(resp);
+  Slice r(callResponse_->serialized_response());
 
-  if (call_response_->isSuccess()) {
+  if (callResponse_->isSuccess()) {
     // TODO: here we're deserializing the call response within the reactor
     // thread, which isn't great, since it would block processing of other RPCs
     // in parallel. Should look into a way to avoid this.
@@ -361,9 +360,9 @@ void OutboundCall::setSent() {
   // behavior is a lot more efficient if memory is freed from the same thread
   // which allocated it -- this lets it keep to thread-local operations instead
   // of taking a mutex to put memory back on the global freelist.
-  delete[] header_buf_.release();
+  delete[] headerBuf_.release();
 
-  // request_buf_ is also done being used here, but since it was allocated by
+  // requestBuf_ is also done being used here, but since it was allocated by
   // the caller thread, we would rather let that thread free it whenever it
   // deletes the RpcController.
 
@@ -383,7 +382,7 @@ void OutboundCall::setFailed(
   {
     std::lock_guard<simple_spinlock> l(lock_);
     status_ = std::move(status);
-    error_pb_ = std::move(errPb);
+    errorPb_ = std::move(errPb);
     setStateUnlocked(
         phase == Phase::ConnectionNegotiation ? kFinishedNegotiationError
                                               : kFinishedError);
@@ -403,16 +402,16 @@ void OutboundCall::setTimedOut(Phase phase) {
       status_ = Status::TimedOut(
           fmt::format(
               "{} RPC to {} timed out after {} ({})",
-              remote_method_.methodName(),
-              conn_id_.remote().ToString(),
+              remoteMethod_.methodName(),
+              connId_.remote().ToString(),
               timeout.ToString(),
               stateName(state_)));
     } else {
       status_ = Status::TimedOut(
           fmt::format(
               "connection negotiation to {} for RPC {} timed out after {} ({})",
-              conn_id_.remote().ToString(),
-              remote_method_.methodName(),
+              connId_.remote().ToString(),
+              remoteMethod_.methodName(),
               timeout.ToString(),
               stateName(state_.load(std::memory_order_relaxed))));
     }
@@ -429,8 +428,8 @@ void OutboundCall::setCancelled() {
     status_ = Status::Aborted(
         fmt::format(
             "{} RPC to {} is cancelled in state {}",
-            remote_method_.methodName(),
-            conn_id_.remote().ToString(),
+            remoteMethod_.methodName(),
+            connId_.remote().ToString(),
             stateName(state_.load(std::memory_order_relaxed))));
     setStateUnlocked(kCancelled);
   }
@@ -483,14 +482,14 @@ bool OutboundCall::isFinished() const {
 
 string OutboundCall::toString() const {
   return fmt::format(
-      "RPC call {} -> {}", remote_method_.toString(), conn_id_.ToString());
+      "RPC call {} -> {}", remoteMethod_.toString(), connId_.ToString());
 }
 
 void OutboundCall::dumpPb(
     const DumpRunningRpcsRequestPB& /* req */,
     RpcCallInProgressPB* resp) {
   resp->mutable_header()->CopyFrom(header_);
-  resp->set_micros_elapsed((MonoTime::Now() - start_time_).ToMicroseconds());
+  resp->set_micros_elapsed((MonoTime::Now() - startTime_).ToMicroseconds());
 
   switch (state_.load(std::memory_order_acquire)) {
     case kReady:
