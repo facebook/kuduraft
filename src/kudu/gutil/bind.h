@@ -64,7 +64,7 @@ Bind(Functor functor) {
   using BindState = internal::BindState<RunnableType, RunType, void()>;
 
   return Callback<typename BindState::UnboundRunType>(
-      new BindState(internal::MakeRunnable(functor)));
+      new BindState(internal::makeRunnable(functor)));
 }
 
 template <typename Functor, typename P1>
@@ -112,7 +112,7 @@ Bind(Functor functor, const P1& p1) {
       void(typename internal::CallbackParamTraits<P1>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
-      new BindState(internal::MakeRunnable(functor), p1));
+      new BindState(internal::makeRunnable(functor), p1));
 }
 
 template <typename Functor, typename P1, typename P2>
@@ -169,7 +169,7 @@ Bind(Functor functor, const P1& p1, const P2& p2) {
           typename internal::CallbackParamTraits<P2>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
-      new BindState(internal::MakeRunnable(functor), p1, p2));
+      new BindState(internal::makeRunnable(functor), p1, p2));
 }
 
 template <typename Functor, typename P1, typename P2, typename P3>
@@ -233,7 +233,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3) {
           typename internal::CallbackParamTraits<P3>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
-      new BindState(internal::MakeRunnable(functor), p1, p2, p3));
+      new BindState(internal::makeRunnable(functor), p1, p2, p3));
 }
 
 template <typename Functor, typename P1, typename P2, typename P3, typename P4>
@@ -304,7 +304,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4) {
           typename internal::CallbackParamTraits<P4>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
-      new BindState(internal::MakeRunnable(functor), p1, p2, p3, p4));
+      new BindState(internal::makeRunnable(functor), p1, p2, p3, p4));
 }
 
 template <
@@ -394,7 +394,7 @@ Bind(
           typename internal::CallbackParamTraits<P5>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
-      new BindState(internal::MakeRunnable(functor), p1, p2, p3, p4, p5));
+      new BindState(internal::makeRunnable(functor), p1, p2, p3, p4, p5));
 }
 
 } // namespace kudu

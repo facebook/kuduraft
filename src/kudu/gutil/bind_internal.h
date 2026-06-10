@@ -63,9 +63,9 @@ namespace internal {
 //                     RunnableType for a Functor.  This is where function
 //                     signature adapters are applied.
 //                    There are |ARITY| ForceVoidReturn types.
-//  MakeRunnable<> -- Takes a Functor and returns an object in the Runnable
+//  makeRunnable<> -- Takes a Functor and returns an object in the Runnable
 //                    type class that represents the underlying Functor.
-//                    There are |O(1)| MakeRunnable types.
+//                    There are |O(1)| makeRunnable types.
 //  InvokeHelper<> -- Take a Runnable + arguments and actully invokes it.
 // Handle the differing syntaxes needed for WeakPtr<> support,
 //                    and for ignoring return values.  This is separate from
@@ -940,23 +940,23 @@ struct FunctorTraits<Callback<T>> {
   using RunType = typename Callback<T>::RunType;
 };
 
-// MakeRunnable<>
+// makeRunnable<>
 //
 // Converts a passed in functor to a RunnableType using type inference.
 
 template <typename T>
-typename FunctorTraits<T>::RunnableType MakeRunnable(const T& t) {
+typename FunctorTraits<T>::RunnableType makeRunnable(const T& t) {
   return RunnableAdapter<T>(t);
 }
 
 template <typename T>
-typename FunctorTraits<T>::RunnableType MakeRunnable(
+typename FunctorTraits<T>::RunnableType makeRunnable(
     const IgnoreResultHelper<T>& t) {
-  return MakeRunnable(t.functor_);
+  return makeRunnable(t.functor_);
 }
 
 template <typename T>
-const typename FunctorTraits<Callback<T>>::RunnableType& MakeRunnable(
+const typename FunctorTraits<Callback<T>>::RunnableType& makeRunnable(
     const Callback<T>& t) {
   DCHECK(!t.is_null());
   return t;
