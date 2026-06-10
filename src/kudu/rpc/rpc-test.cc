@@ -1478,7 +1478,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
   req.set_y(rand());
   AddResponsePB resp;
   RpcController controller;
-  controller.set_timeout(MonoDelta::FromMilliseconds(1));
+  controller.setTimeout(MonoDelta::FromMilliseconds(1));
   {
     Proxy p(clientMessenger, badAddr, "xxx-host", "xxx-service");
     p.asyncRequest(
@@ -1520,7 +1520,7 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
   ASSERT_STR_CONTAINS(s.ToString(), "Missing required timeout");
 
   controller.Reset();
-  controller.set_timeout(MonoDelta::FromMilliseconds(1000));
+  controller.setTimeout(MonoDelta::FromMilliseconds(1000));
   ASSERT_OK(p.syncRequest("Sleep", req, &resp, &controller));
 }
 

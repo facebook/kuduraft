@@ -475,7 +475,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // Send enough sleep calls to occupy the worker threads.
   for (int i = 0; i < nWorkerThreads_; i++) {
     unique_ptr<AsyncSleep> sleep(new AsyncSleep);
-    sleep->rpc.set_timeout(MonoDelta::FromSeconds(1));
+    sleep->rpc.setTimeout(MonoDelta::FromSeconds(1));
     sleep->req.set_sleep_micros(1000 * 1000); // 1sec
     p.SleepAsync(
         sleep->req,
@@ -503,7 +503,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
     SleepRequestPB req;
     SleepResponsePB resp;
     req.set_sleep_micros(1); // unused but required.
-    rpc.set_timeout(MonoDelta::FromMilliseconds(5));
+    rpc.setTimeout(MonoDelta::FromMilliseconds(5));
     Status s = p.Sleep(req, &resp, &rpc);
     ASSERT_TRUE(s.IsTimedOut()) << s.ToString();
     // Since our timeout was short, it's possible in rare circumstances
@@ -562,7 +562,7 @@ TEST_F(RpcStubTest, TestEarliestDeadlineFirstQueue) {
           RpcController controller;
           SleepRequestPB req;
           SleepResponsePB resp;
-          controller.set_deadline(deadline);
+          controller.setDeadline(deadline);
           req.set_sleep_micros(100000);
           Status s = p.Sleep(req, &resp, &controller);
           if (s.ok()) {
@@ -687,7 +687,7 @@ TEST_F(RpcStubTest, DontTimeOutWhenReactorIsBlocked) {
   SleepRequestPB req;
   SleepResponsePB resp;
   req.set_sleep_micros(800 * 1000);
-  controller.set_timeout(MonoDelta::FromMilliseconds(1200));
+  controller.setTimeout(MonoDelta::FromMilliseconds(1200));
   ASSERT_OK(p.Sleep(req, &resp, &controller));
 }
 

@@ -296,7 +296,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     // Sleeps the preset number of msecs before sending the call.
     void SleepAndSend() {
       usleep(client_sleep_for_ms * 1000);
-      controller.set_timeout(MonoDelta::FromSeconds(20));
+      controller.setTimeout(MonoDelta::FromSeconds(20));
       CHECK_OK(proxy->AddExactlyOnce(req, &resp, &controller));
     }
 
@@ -450,7 +450,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsAfterRpcCompleted) {
   // should be executed and they should get the same response back.
   for (int i = 0; i < 10; i++) {
     RpcController controller;
-    controller.set_timeout(MonoDelta::FromSeconds(20));
+    controller.setTimeout(MonoDelta::FromSeconds(20));
     ExactlyOnceRequestPB req;
     req.set_value_to_add(1);
     ExactlyOnceResponsePB resp;

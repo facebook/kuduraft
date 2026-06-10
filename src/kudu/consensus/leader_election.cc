@@ -1746,7 +1746,7 @@ void LeaderElection::Run() {
     pnum++;
     msg.append(uuidToHostport(state->peerUuid, config_));
 
-    state->rpc.set_timeout(timeout_);
+    state->rpc.setTimeout(timeout_);
 
     state->request = request_;
     state->request.set_dest_uuid(voter_uuid);

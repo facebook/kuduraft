@@ -118,7 +118,7 @@ class RpcRetrier {
   RpcRetrier(MonoTime deadline, std::shared_ptr<rpc::Messenger> messenger)
       : attemptNum_(1), deadline_(deadline), messenger_(std::move(messenger)) {
     if (deadline_.Initialized()) {
-      controller_.set_deadline(deadline_);
+      controller_.setDeadline(deadline_);
     }
     controller_.Reset();
   }

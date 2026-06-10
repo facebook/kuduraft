@@ -711,7 +711,7 @@ void RpcPeerProxy::updateAsync(
     return;
   }
 
-  controller->set_timeout(
+  controller->setTimeout(
       MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
 
   std::optional<std::string> rpcToken = request->has_raft_rpc_token()
@@ -746,7 +746,7 @@ Status RpcPeerProxy::startElection(
     return validationPeerRpcFaultStatus(peerUuid_);
   }
 
-  controller->set_timeout(
+  controller->setTimeout(
       MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
   return consensusProxy_->RunLeaderElection(*request, response, controller);
 }

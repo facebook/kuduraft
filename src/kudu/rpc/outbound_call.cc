@@ -101,7 +101,7 @@ OutboundCall::OutboundCall(
   remoteMethod.toPb(header_.mutable_remote_method());
   startTime_ = MonoTime::Now();
 
-  if (!controller_->required_server_features().empty()) {
+  if (!controller_->requiredServerFeatures().empty()) {
     requiredRpcFeatures_.insert(RpcFeatureFlag::APPLICATION_FEATURE_FLAGS);
   }
 
@@ -125,7 +125,7 @@ size_t OutboundCall::serializeTo(TransferPayload* slices) {
     header_.set_timeout_millis(timeout.ToMilliseconds());
   }
 
-  for (uint32_t feature : controller_->required_server_features()) {
+  for (uint32_t feature : controller_->requiredServerFeatures()) {
     header_.add_required_feature_flags(feature);
   }
 

@@ -388,7 +388,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
   std::shared_ptr<Connection> conn;
   Status s = findOrStartConnection(
       call->connId(),
-      call->controller()->credentials_policy(),
+      call->controller()->credentialsPolicy(),
       &conn,
       metricEntity_);
   if (PREDICT_FALSE(!s.ok())) {
@@ -410,7 +410,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 
   std::shared_ptr<Connection> conn;
   if (findConnection(
-          call->connId(), call->controller()->credentials_policy(), &conn)) {
+          call->connId(), call->controller()->credentialsPolicy(), &conn)) {
     conn->cancelOutboundCall(call);
   }
   call->cancel();

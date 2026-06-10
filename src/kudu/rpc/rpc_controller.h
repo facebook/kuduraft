@@ -131,18 +131,18 @@ class RpcController {
   //
   // Using an uninitialized timeout will result in a call which never
   // times out (not recommended!)
-  void set_timeout(const MonoDelta& timeout);
+  void setTimeout(const MonoDelta& timeout);
 
   // Like a timeout, but based on a fixed point in time instead of a delta.
   //
   // Using an uninitialized deadline means the call won't time out.
-  void set_deadline(const MonoTime& deadline);
+  void setDeadline(const MonoTime& deadline);
 
   // Allows setting the request id for the next request sent to the server.
   // A request id allows the server to identify each request sent by the client
   // uniquely, in some cases even when sent to multiple servers, enabling
   // exactly once semantics.
-  void setRequestIdPb(std::unique_ptr<RequestIdPB> request_id);
+  void setRequestIdPb(std::unique_ptr<RequestIdPB> requestId);
 
   // Returns whether a request id has been set on RPC header.
   bool has_request_id() const;
@@ -198,18 +198,18 @@ class RpcController {
 
   // Executes the provided function with a reference to the required server
   // features.
-  const std::unordered_set<uint32_t>& required_server_features() const {
+  const std::unordered_set<uint32_t>& requiredServerFeatures() const {
     return required_server_features_;
   }
 
   // Return the configured timeout.
   MonoDelta timeout() const;
 
-  CredentialsPolicy credentials_policy() const {
+  CredentialsPolicy credentialsPolicy() const {
     return credentials_policy_;
   }
 
-  void set_credentials_policy(CredentialsPolicy policy) {
+  void setCredentialsPolicy(CredentialsPolicy policy) {
     credentials_policy_ = policy;
   }
 

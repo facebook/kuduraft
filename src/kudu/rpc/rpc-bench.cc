@@ -179,7 +179,7 @@ class ClientThread {
       req.set_x(requestCount);
       req.set_y(requestCount);
       RpcController controller;
-      controller.set_timeout(MonoDelta::FromSeconds(10));
+      controller.setTimeout(MonoDelta::FromSeconds(10));
       CHECK_OK(p.Add(req, &resp, &controller));
       CHECK_EQ(req.x() + req.y(), resp.result());
       requestCount++;
@@ -220,7 +220,7 @@ class ClientAsyncWorkload {
  public:
   ClientAsyncWorkload(RpcBench* bench, shared_ptr<Messenger> messenger)
       : bench_(bench), messenger_(std::move(messenger)), requestCount(0) {
-    controller_.set_timeout(MonoDelta::FromSeconds(10));
+    controller_.setTimeout(MonoDelta::FromSeconds(10));
     proxy_.reset(new CalculatorServiceProxy(
         messenger_, bench_->serverAddr_, "localhost"));
   }

@@ -115,19 +115,19 @@ Status RpcController::getInboundSidecar(int idx, Slice* sidecar) const {
   return call_->callResponse_->GetSidecar(idx, sidecar);
 }
 
-void RpcController::set_timeout(const MonoDelta& timeout) {
+void RpcController::setTimeout(const MonoDelta& timeout) {
   std::lock_guard<SimpleSpinlock> l(lock_);
   DCHECK(!call_ || call_->state() == OutboundCall::kReady);
   // Store timeout as atomic nanoseconds for lock-free reads
   timeout_nanos_.store(timeout.ToNanoseconds(), std::memory_order_relaxed);
 }
 
-void RpcController::set_deadline(const MonoTime& deadline) {
-  set_timeout(deadline - MonoTime::Now());
+void RpcController::setDeadline(const MonoTime& deadline) {
+  setTimeout(deadline - MonoTime::Now());
 }
 
-void RpcController::setRequestIdPb(std::unique_ptr<RequestIdPB> request_id) {
-  request_id_ = std::move(request_id);
+void RpcController::setRequestIdPb(std::unique_ptr<RequestIdPB> requestId) {
+  request_id_ = std::move(requestId);
 }
 
 bool RpcController::has_request_id() const {

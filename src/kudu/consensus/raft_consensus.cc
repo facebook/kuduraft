@@ -5510,7 +5510,7 @@ void RaftConsensus::handleProxyRequest(
 
   ConsensusResponsePB downstream_response;
   rpc::RpcController controller;
-  controller.set_timeout(
+  controller.setTimeout(
       MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
 
   // Here, we turn an async API into a blocking one with a CountdownLatch.
