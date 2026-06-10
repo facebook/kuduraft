@@ -244,7 +244,7 @@ class FsManager {
 
  private:
   FRIEND_TEST(FsManagerTestBase, TestDuplicatePaths);
-  FRIEND_TEST(FsManagerTestBase, TestMetadataDirInWALRoot);
+  FRIEND_TEST(FsManagerTestBase, TestMetadataDirInWalRoot);
   FRIEND_TEST(FsManagerTestBase, TestMetadataDirInDataRoot);
   FRIEND_TEST(FsManagerTestBase, TestIsolatedMetadataDir);
   FRIEND_TEST(tserver::MiniTabletServerTest, TestFsLayoutEndToEnd);

@@ -208,14 +208,14 @@ TEST_F(FsManagerTestBase, TestCannotUseNonEmptyFsRoot) {
   ASSERT_TRUE(fsManager()->CreateInitialFileSystemLayout().IsAlreadyPresent());
 }
 
-TEST_F(FsManagerTestBase, TestEmptyWALPath) {
+TEST_F(FsManagerTestBase, TestEmptyWalPath) {
   reinitFsManagerWithPaths("", {});
   Status s = fsManager()->CreateInitialFileSystemLayout();
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "directory (fs_wal_dir) not provided");
 }
 
-TEST_F(FsManagerTestBase, TestOnlyWALPath) {
+TEST_F(FsManagerTestBase, TestOnlyWalPath) {
   string path = GetTestPath("new_fs_root");
   ASSERT_OK(env_->CreateDir(path));
 
@@ -229,7 +229,7 @@ TEST_F(FsManagerTestBase, TestOnlyWALPath) {
   ASSERT_TRUE(hasPrefixString(dataDirs[0], path));
 }
 
-TEST_F(FsManagerTestBase, TestFormatWithSpecificUUID) {
+TEST_F(FsManagerTestBase, TestFormatWithSpecificUuid) {
   string path = GetTestPath("new_fs_root");
   reinitFsManagerWithPaths(path, {});
 
@@ -247,7 +247,7 @@ TEST_F(FsManagerTestBase, TestFormatWithSpecificUUID) {
   ASSERT_EQ(uuid, fsManager()->uuid());
 }
 
-TEST_F(FsManagerTestBase, TestMetadataDirInWALRoot) {
+TEST_F(FsManagerTestBase, TestMetadataDirInWalRoot) {
   // By default, the FsManager should put metadata in the wal root.
   FsManagerOpts opts;
   opts.wal_root = GetTestPath("wal");
