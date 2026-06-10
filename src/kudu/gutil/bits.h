@@ -120,9 +120,9 @@ class Bits {
   DISALLOW_COPY_AND_ASSIGN(Bits);
 };
 
-// A utility class for some handy bit patterns.  The names l and h
-// were chosen to match Knuth Volume 4: l is 0x010101... and h is 0x808080...;
-// half_ones is ones in the lower half only.  We assume sizeof(T) is 1 or even.
+// A utility class for some handy bit patterns.  The names kL and kH
+// were chosen to match Knuth Volume 4: kL is 0x010101... and kH is 0x808080...;
+// kHalfOnes is ones in the lower half only.  We assume sizeof(T) is 1 or even.
 template <class T>
 struct BitPattern {
   static const T kHalfOnes = (static_cast<T>(1) << (sizeof(T) * 4)) - 1;
