@@ -721,8 +721,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Return the log indexes which the consensus implementation would like to
   // retain.
   //
-  // The returned 'for_durability' index ensures that no logs are GCed before
-  // the operation is fully committed. The returned 'for_peers' index
+  // The returned 'forDurability' index ensures that no logs are GCed before
+  // the operation is fully committed. The returned 'forPeers' index
   // indicates the index of the farthest-behind peer so that the log will try
   // to avoid GCing these before the peer has caught up.
   log::RetentionIndexes getRetentionIndexes();

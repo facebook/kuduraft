@@ -556,7 +556,7 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
   ASSERT_EQ(4, segments.size()) << dumpSegmentsToString(segments);
   RetentionIndexes retention;
   ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
-      &retention.for_durability));
+      &retention.forDurability));
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_EQ(0, numGcedSegments);
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments))
@@ -576,9 +576,9 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
   ASSERT_OK(logAnchorRegistry_->unregister(anchors[0]));
   ASSERT_OK(logAnchorRegistry_->unregister(anchors[1]));
   ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
-      &retention.for_durability));
+      &retention.forDurability));
   // We should now be anchored on op 0.11, i.e. on the 3rd segment
-  ASSERT_EQ(anchors[2]->logIndex_, retention.for_durability);
+  ASSERT_EQ(anchors[2]->logIndex_, retention.forDurability);
 
   // However, first, we'll try bumping the min retention threshold and
   // verify that we don't GC any.
@@ -599,7 +599,7 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
   // last rolled segment.
   ASSERT_OK(logAnchorRegistry_->unregister(anchors[2]));
   ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
-      &retention.for_durability));
+      &retention.forDurability));
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_EQ(0, numGcedSegments) << dumpSegmentsToString(segments);
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments))
@@ -710,7 +710,7 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
   ASSERT_EQ(3, segments.size());
   RetentionIndexes retention;
   ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
-      &retention.for_durability));
+      &retention.forDurability));
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments))
   ASSERT_EQ(3, segments.size());
@@ -735,12 +735,12 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
     ASSERT_OK(logAnchorRegistry_->unregister(anchors[i]));
   }
   ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
-      &retention.for_durability));
+      &retention.forDurability));
 
-  // If we set the 'for_peers' index to indicate that these log
+  // If we set the 'forPeers' index to indicate that these log
   // segments are needed for catchup, that will prevent GC,
   // even though they're no longer necessary for durability.
-  retention.for_peers = 0;
+  retention.forPeers = 0;
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_EQ(0, numGcedSegments);
   NO_FATALS(checkRightNumberOfSegmentFiles(4));
@@ -1219,7 +1219,7 @@ TEST_P(LogTestOptionalCompression, TestTotalSize) {
   RetentionIndexes retention;
   ASSERT_OK(logAnchorRegistry_->unregister(anchors[0]));
   ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
-      &retention.for_durability));
+      &retention.forDurability));
   int numGcedSegments;
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_EQ(1, numGcedSegments) << dumpSegmentsToString(segments);
