@@ -85,7 +85,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
 
   string nextHop;
   ASSERT_OK(routingTable.nextHop(
-      /*src_uuid=*/"peer-0", /*dest_uuid=*/"peer-1", &nextHop));
+      /*srcUuid=*/"peer-0", /*destUuid=*/"peer-1", &nextHop));
   ASSERT_EQ("peer-1", nextHop); // Direct routing fallback.
 }
 
@@ -103,7 +103,7 @@ TEST(RoutingTest, TestStaleRouter) {
 
   string nextHop;
   ASSERT_OK(routingTable.nextHop(
-      /*src_uuid=*/"peer-1", /*dest_uuid=*/"peer-2", &nextHop));
+      /*srcUuid=*/"peer-1", /*destUuid=*/"peer-2", &nextHop));
   ASSERT_EQ("peer-2", nextHop); // Direct routing fallback.
 }
 
