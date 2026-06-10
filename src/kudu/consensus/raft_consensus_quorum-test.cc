@@ -140,8 +140,8 @@ class RaftConsensusQuorumTest : public KuduTest {
       parentMemTrackers_.push_back(parentMemTracker);
       string testPath = GetTestPath(fmt::format("peer-{}-root", i));
       FsManagerOpts opts;
-      opts.parent_mem_tracker = parentMemTracker;
-      opts.wal_root = testPath;
+      opts.parentMemTracker = parentMemTracker;
+      opts.walRoot = testPath;
       unique_ptr<FsManager> fsManager(new FsManager(env_, opts));
       RETURN_NOT_OK(fsManager->CreateInitialFileSystemLayout());
       RETURN_NOT_OK(fsManager->Open());

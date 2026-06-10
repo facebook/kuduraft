@@ -88,7 +88,7 @@ class FsManagerTestBase : public KuduTest {
 
   void reinitFsManagerWithPaths(string walPath, vector<string> dataPaths) {
     FsManagerOpts opts;
-    opts.wal_root = std::move(walPath);
+    opts.walRoot = std::move(walPath);
     opts.data_roots = std::move(dataPaths);
     reinitFsManagerWithOpts(std::move(opts));
   }
@@ -250,7 +250,7 @@ TEST_F(FsManagerTestBase, TestFormatWithSpecificUuid) {
 TEST_F(FsManagerTestBase, TestMetadataDirInWalRoot) {
   // By default, the FsManager should put metadata in the wal root.
   FsManagerOpts opts;
-  opts.wal_root = GetTestPath("wal");
+  opts.walRoot = GetTestPath("wal");
   opts.data_roots = {GetTestPath("data")};
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->CreateInitialFileSystemLayout());
@@ -261,32 +261,32 @@ TEST_F(FsManagerTestBase, TestMetadataDirInWalRoot) {
 
   // Reinitializing the FS layout with any other configured metadata root
   // should fail, as a non-empty metadata root will be used verbatim.
-  opts.metadata_root = GetTestPath("asdf");
+  opts.metadataRoot = GetTestPath("asdf");
   reinitFsManagerWithOpts(opts);
   Status s = fsManager()->Open();
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
   // The above comment also applies to the default value before Kudu 1.6: the
   // first configured data directory. Let's check that too.
-  opts.metadata_root = opts.data_roots[0];
+  opts.metadataRoot = opts.data_roots[0];
   reinitFsManagerWithOpts(opts);
   s = fsManager()->Open();
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
   // We should be able to verify that the metadata is in the WAL root.
-  opts.metadata_root = opts.wal_root;
+  opts.metadataRoot = opts.walRoot;
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->Open());
 }
 
 TEST_F(FsManagerTestBase, TestMetadataDirInDataRoot) {
   FsManagerOpts opts;
-  opts.wal_root = GetTestPath("wal");
+  opts.walRoot = GetTestPath("wal");
   opts.data_roots = {GetTestPath("data1")};
 
   // Creating a brand new FS layout configured with metadata in the first data
   // directory emulates the default behavior in Kudu 1.6 and below.
-  opts.metadata_root = opts.data_roots[0];
+  opts.metadataRoot = opts.data_roots[0];
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->CreateInitialFileSystemLayout());
   ASSERT_OK(fsManager()->Open());
@@ -296,7 +296,7 @@ TEST_F(FsManagerTestBase, TestMetadataDirInDataRoot) {
 
   // Opening the FsManager with an empty fs_metadata_dir flag should account
   // for the old default and use the first data directory for metadata.
-  opts.metadata_root.clear();
+  opts.metadataRoot.clear();
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->Open());
   ASSERT_STR_CONTAINS(fsManager()->GetTabletMetadataDir(), metaRootSuffix);
@@ -304,12 +304,12 @@ TEST_F(FsManagerTestBase, TestMetadataDirInDataRoot) {
 
 TEST_F(FsManagerTestBase, TestIsolatedMetadataDir) {
   FsManagerOpts opts;
-  opts.wal_root = GetTestPath("wal");
+  opts.walRoot = GetTestPath("wal");
   opts.data_roots = {GetTestPath("data")};
 
   // Creating a brand new FS layout configured to a directory outside the WAL
   // or data directories is supported.
-  opts.metadata_root = GetTestPath("asdf");
+  opts.metadataRoot = GetTestPath("asdf");
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->CreateInitialFileSystemLayout());
   ASSERT_OK(fsManager()->Open());
@@ -325,7 +325,7 @@ TEST_F(FsManagerTestBase, TestIsolatedMetadataDir) {
 
   // If the user henceforth forgets to specify the metadata root, the FsManager
   // will fail to open.
-  opts.metadata_root.clear();
+  opts.metadataRoot.clear();
   reinitFsManagerWithOpts(opts);
   Status s = fsManager()->Open();
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
@@ -409,7 +409,7 @@ TEST_F(FsManagerTestBase, TestOpenWithNoBlockManagerInstances) {
   // Open a healthy FS layout, sharing the WAL directory with a data directory.
   const string walPath = GetTestPath("wals");
   FsManagerOpts opts;
-  opts.wal_root = walPath;
+  opts.walRoot = walPath;
   reinitFsManagerWithOpts(std::move(opts));
   ASSERT_OK(fsManager()->CreateInitialFileSystemLayout());
   ASSERT_OK(fsManager()->Open());
@@ -418,12 +418,12 @@ TEST_F(FsManagerTestBase, TestOpenWithNoBlockManagerInstances) {
   // Even if we're not enforcing consistency, we must be able to find an
   // existing block manager instance to open the FsManager successfully.
   for (auto checkBehavior :
-       {ConsistencyCheckBehavior::IGNORE_INCONSISTENCY,
-        ConsistencyCheckBehavior::UPDATE_ON_DISK}) {
+       {ConsistencyCheckBehavior::IgnoreInconsistency,
+        ConsistencyCheckBehavior::UpdateOnDisk}) {
     FsManagerOpts newOpts;
-    newOpts.wal_root = walPath;
+    newOpts.walRoot = walPath;
     newOpts.data_roots = {GetTestPath("data")};
-    newOpts.consistency_check = checkBehavior;
+    newOpts.consistencyCheck = checkBehavior;
     reinitFsManagerWithOpts(newOpts);
     Status s = fsManager()->Open();
     ASSERT_STR_CONTAINS(s.ToString(), "no healthy data directories found");
@@ -444,9 +444,9 @@ TEST_F(FsManagerTestBase, TestOpenWithUnhealthyDataDir) {
   // Successfully create a multi-directory FS layout.
   const string newRoot = GetTestPath("new_root");
   FsManagerOpts opts;
-  opts.wal_root = fsRoot_;
+  opts.walRoot = fsRoot_;
   opts.data_roots = {fsRoot_, newRoot};
-  opts.consistency_check = ConsistencyCheckBehavior::UPDATE_ON_DISK;
+  opts.consistencyCheck = ConsistencyCheckBehavior::UpdateOnDisk;
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->Open());
   string newRootUuid;
@@ -456,7 +456,7 @@ TEST_F(FsManagerTestBase, TestOpenWithUnhealthyDataDir) {
   // and should list one as failed.
   FLAGS_env_inject_eio_globs = JoinPathSegments(newRoot, "**");
   FLAGS_env_inject_eio = 1.0;
-  opts.consistency_check = ConsistencyCheckBehavior::ENFORCE_CONSISTENCY;
+  opts.consistencyCheck = ConsistencyCheckBehavior::EnforceConsistency;
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->Open());
   ASSERT_EQ(1, fsManager()->dd_manager()->GetFailedDataDirs().size());
@@ -476,7 +476,7 @@ TEST_F(FsManagerTestBase, TestOpenWithUnhealthyDataDir) {
   // At this point, our remaining healthy instance file should know about two
   // data directories. Kudu should detect one missing and create a new one.
   // Let's update and ensure we get a new UUID.
-  opts.consistency_check = ConsistencyCheckBehavior::UPDATE_ON_DISK;
+  opts.consistencyCheck = ConsistencyCheckBehavior::UpdateOnDisk;
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->Open());
   ASSERT_EQ(0, fsManager()->dd_manager()->GetFailedDataDirs().size());
@@ -491,7 +491,7 @@ TEST_F(FsManagerTestBase, TestOpenWithUnhealthyDataDir) {
   FLAGS_env_inject_eio_globs =
       JoinStrings(JoinPathSegmentsV(opts.data_roots, "**"), ",");
   FLAGS_env_inject_eio = 1.0;
-  opts.consistency_check = ConsistencyCheckBehavior::ENFORCE_CONSISTENCY;
+  opts.consistencyCheck = ConsistencyCheckBehavior::EnforceConsistency;
   reinitFsManagerWithOpts(opts);
   Status s = fsManager()->Open();
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
@@ -531,7 +531,7 @@ TEST_F(FsManagerTestBase, TestOpenWithCanonicalizationFailure) {
   const string subdir1 = GetTestPath("test1/subdir");
   const string subdir2 = GetTestPath("test2/subdir");
   FsManagerOpts opts;
-  opts.wal_root = subdir1;
+  opts.walRoot = subdir1;
   opts.data_roots = {subdir1, subdir2};
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->CreateInitialFileSystemLayout());
@@ -554,7 +554,7 @@ TEST_F(FsManagerTestBase, TestOpenWithCanonicalizationFailure) {
   // In both of the above failures, the appropriate steps would be to run the
   // update tool after ensuring the bad mountpoint is replaced with a healthy
   // one. Until that happens, we won't be able to update the data dirs.
-  opts.consistency_check = ConsistencyCheckBehavior::UPDATE_ON_DISK;
+  opts.consistencyCheck = ConsistencyCheckBehavior::UpdateOnDisk;
   reinitFsManagerWithOpts(opts);
   Status s = fsManager()->Open();
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
@@ -711,16 +711,16 @@ TEST_F(FsManagerTestBase, TestOpenFailsWhenMissingImportantDir) {
 
 TEST_F(FsManagerTestBase, TestAncillaryDirsReported) {
   FsManagerOpts opts;
-  opts.wal_root = GetTestPath("wal");
+  opts.walRoot = GetTestPath("wal");
   opts.data_roots = {GetTestPath("data")};
-  opts.metadata_root = GetTestPath("metadata");
+  opts.metadataRoot = GetTestPath("metadata");
   reinitFsManagerWithOpts(opts);
   ASSERT_OK(fsManager()->CreateInitialFileSystemLayout());
   fs::FsReport report;
   ASSERT_OK(fsManager()->Open(&report));
   string reportStr = report.toString();
-  ASSERT_STR_CONTAINS(reportStr, "wal directory: " + opts.wal_root);
-  ASSERT_STR_CONTAINS(reportStr, "metadata directory: " + opts.metadata_root);
+  ASSERT_STR_CONTAINS(reportStr, "wal directory: " + opts.walRoot);
+  ASSERT_STR_CONTAINS(reportStr, "metadata directory: " + opts.metadataRoot);
 }
 
 } // namespace kudu

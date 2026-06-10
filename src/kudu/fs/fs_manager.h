@@ -55,15 +55,15 @@ namespace fs {
 // manager is opened.
 enum class ConsistencyCheckBehavior {
   // If the data directories don't match the on-disk path sets, fail.
-  ENFORCE_CONSISTENCY,
+  EnforceConsistency,
 
   // If the data directories don't match the on-disk path sets, update the
   // on-disk data to match. The directory manager must not be read-only.
-  UPDATE_ON_DISK,
+  UpdateOnDisk,
 
   // If the data directories don't match the on-disk path sets, continue
   // without updating the on-disk data.
-  IGNORE_INCONSISTENCY
+  IgnoreInconsistency
 };
 
 struct FsReport;
@@ -82,7 +82,7 @@ struct FsManagerOpts {
   // Creates a new FsManagerOpts with default values.
   FsManagerOpts();
 
-  // Creates a new FsManagerOpts with default values except 'wal_root' and
+  // Creates a new FsManagerOpts with default values except 'walRoot' and
   // 'data_roots', which are both initialized to 'root'.
   //
   // Should only be used in unit tests.
@@ -92,32 +92,32 @@ struct FsManagerOpts {
   // will not be produced.
   //
   // Defaults to null.
-  std::shared_ptr<MetricEntity> metric_entity;
+  std::shared_ptr<MetricEntity> metricEntity;
 
   // The memory tracker under which all new memory trackers will be parented.
   // If null, new memory trackers will be parented to the root tracker.
   //
   // Defaults to null.
-  std::shared_ptr<MemTracker> parent_mem_tracker;
+  std::shared_ptr<MemTracker> parentMemTracker;
 
   // The directory root where WALs will be stored. Cannot be empty.
-  std::string wal_root;
+  std::string walRoot;
 
   // The directory root where metadata will be stored. If empty, Kudu will use
   // the WAL root, or the first configured data root if metadata already exists
   // in it from a previous deployment (the only option in Kudu 1.6 and below
   // was to use the first data root).
-  std::string metadata_root;
+  std::string metadataRoot;
 
   // Whether or not read-write operations should be allowed.
   //
   // Defaults to false.
-  bool read_only;
+  bool readOnly;
 
   // The behavior to use when comparing 'data_roots' to the on-disk path sets.
   //
-  // Defaults to ENFORCE_CONSISTENCY.
-  fs::ConsistencyCheckBehavior consistency_check;
+  // Defaults to EnforceConsistency.
+  fs::ConsistencyCheckBehavior consistencyCheck;
 };
 
 // FsManager provides helpers to read data and metadata files,
@@ -226,8 +226,8 @@ class FsManager {
     return env_;
   }
 
-  bool read_only() const {
-    return opts_.read_only;
+  bool readOnly() const {
+    return opts_.readOnly;
   }
 
   // ==========================================================================

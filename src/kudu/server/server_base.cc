@@ -244,9 +244,9 @@ ServerBase::ServerBase(
       options_(options),
       stop_background_threads_latch_(1) {
   FsManagerOpts fs_opts;
-  fs_opts.metric_entity = metric_entity_;
-  fs_opts.parent_mem_tracker = mem_tracker_;
-  fs_opts.wal_root = options.fsOpts.wal_root;
+  fs_opts.metricEntity = metric_entity_;
+  fs_opts.parentMemTracker = mem_tracker_;
+  fs_opts.walRoot = options.fsOpts.walRoot;
   fs_manager_.reset(new FsManager(options.env, std::move(fs_opts)));
 
   if (FLAGS_use_hybrid_clock) {

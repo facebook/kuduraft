@@ -107,15 +107,15 @@ vector<string> getRootNames(const CanonicalizedRootsList& rootList) {
 } // namespace
 
 FsManagerOpts::FsManagerOpts()
-    : wal_root(FLAGS_fs_wal_dir),
-      metadata_root(FLAGS_fs_metadata_dir),
-      read_only(false),
-      consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
+    : walRoot(FLAGS_fs_wal_dir),
+      metadataRoot(FLAGS_fs_metadata_dir),
+      readOnly(false),
+      consistencyCheck(ConsistencyCheckBehavior::EnforceConsistency) {}
 
 FsManagerOpts::FsManagerOpts(const string& root)
-    : wal_root(root),
-      read_only(false),
-      consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
+    : walRoot(root),
+      readOnly(false),
+      consistencyCheck(ConsistencyCheckBehavior::EnforceConsistency) {}
 
 FsManager::FsManager(Env* env, const string& rootPath)
     : env_(DCHECK_NOTNULL(env)),
@@ -125,8 +125,8 @@ FsManager::FsManager(Env* env, const string& rootPath)
 FsManager::FsManager(Env* env, FsManagerOpts opts)
     : env_(DCHECK_NOTNULL(env)), opts_(std::move(opts)), initted_(false) {
   DCHECK(
-      opts_.consistency_check != ConsistencyCheckBehavior::UPDATE_ON_DISK ||
-      !opts_.read_only);
+      opts_.consistencyCheck != ConsistencyCheckBehavior::UpdateOnDisk ||
+      !opts_.readOnly);
 }
 
 FsManager::~FsManager() {}
@@ -137,18 +137,18 @@ Status FsManager::init() {
   }
 
   // The wal root must be set.
-  if (opts_.wal_root.empty()) {
+  if (opts_.walRoot.empty()) {
     return Status::IOError(
         "Write-ahead log directory (fs_wal_dir) not provided");
   }
 
   // Deduplicate all of the roots.
-  unordered_set<string> allRoots = {opts_.wal_root};
+  unordered_set<string> allRoots = {opts_.walRoot};
 
   // If the metadata root not set, Kudu will either use the wal root or the
   // first data root, in which case we needn't canonicalize additional roots.
-  if (!opts_.metadata_root.empty()) {
-    allRoots.insert(opts_.metadata_root);
+  if (!opts_.metadataRoot.empty()) {
+    allRoots.insert(opts_.metadataRoot);
   }
 
   // Build a map of original root --> canonicalized root, sanitizing each
@@ -191,9 +191,9 @@ Status FsManager::init() {
 
   // All done, use the map to set the canonicalized state.
 
-  auto itWal = canonicalizedRoots.find(opts_.wal_root);
+  auto itWal = canonicalizedRoots.find(opts_.walRoot);
   CHECK(itWal != canonicalizedRoots.end())
-      << "Map key not found: " << opts_.wal_root;
+      << "Map key not found: " << opts_.walRoot;
   canonicalizedWalFsRoot_ = itWal->second;
   unordered_set<string> uniqueRoots;
   LOG(INFO) << "Data directories (fs_data_dirs) not provided";
@@ -204,7 +204,7 @@ Status FsManager::init() {
   }
 
   // Decide on a metadata root to use.
-  if (opts_.metadata_root.empty()) {
+  if (opts_.metadataRoot.empty()) {
     // Check the first data root for metadata.
     const string metaDirInDataRoot = JoinPathSegments(
         canonicalizedDataFsRoots_[0].path, kTabletMetadataDirName);
@@ -221,9 +221,9 @@ Status FsManager::init() {
     }
   } else {
     // Keep track of the explicitly-defined metadata root.
-    auto itMeta = canonicalizedRoots.find(opts_.metadata_root);
+    auto itMeta = canonicalizedRoots.find(opts_.metadataRoot);
     CHECK(itMeta != canonicalizedRoots.end())
-        << "Map key not found: " << opts_.metadata_root;
+        << "Map key not found: " << opts_.metadataRoot;
     canonicalizedMetadataFsRoot_ = itMeta->second;
     if (insertIfNotPresent(&uniqueRoots, canonicalizedMetadataFsRoot_.path)) {
       canonicalizedAllFsRoots_.emplace_back(canonicalizedMetadataFsRoot_);
@@ -329,7 +329,7 @@ Status FsManager::Open(FsReport* report) {
   });
 
   // Create any missing roots, if desired.
-  if (opts_.consistency_check == ConsistencyCheckBehavior::UPDATE_ON_DISK) {
+  if (opts_.consistencyCheck == ConsistencyCheckBehavior::UpdateOnDisk) {
     RETURN_NOT_OK_PREPEND(
         createFileSystemRoots(
             missingRoots, *metadata_, &createdDirs, &createdFiles),
@@ -339,7 +339,7 @@ Status FsManager::Open(FsReport* report) {
   // Only clean temporary files after the data dir manager successfully opened.
   // This ensures that we were able to obtain the exclusive directory locks
   // on the data directories before we start deleting files.
-  if (!opts_.read_only) {
+  if (!opts_.readOnly) {
     cleanTmpFiles();
     checkAndFixPermissions();
     createDataDirLayoutForBackwardCompat();
@@ -379,7 +379,7 @@ Status FsManager::Open(FsReport* report) {
 }
 
 Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
-  CHECK(!opts_.read_only);
+  CHECK(!opts_.readOnly);
 
   RETURN_NOT_OK(init());
 
@@ -445,7 +445,7 @@ Status FsManager::createFileSystemRoots(
     const InstanceMetadataPB& metadata,
     vector<string>* createdDirs,
     vector<string>* createdFiles) {
-  CHECK(!opts_.read_only);
+  CHECK(!opts_.readOnly);
 
   // It's OK if a root already exists as long as there's nothing in it.
   vector<string> nonEmptyRoots;
@@ -613,7 +613,7 @@ string FsManager::GetWalSegmentFileName(
 }
 
 void FsManager::cleanTmpFiles() {
-  DCHECK(!opts_.read_only);
+  DCHECK(!opts_.readOnly);
   // Temporary files in the Block Manager directories are cleaned during
   // Block Manager startup.
   for (const auto& s :
