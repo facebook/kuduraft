@@ -97,13 +97,13 @@ parseStat(const std::string& buffer, std::string* name, ThreadStats* stats) {
   }
 
   int64_t tmp;
-  if (safe_strto64(splits[kUserTicks], &tmp)) {
+  if (safeStrto64(splits[kUserTicks], &tmp)) {
     stats->userNs = tmp * (1e9 / kTicksPerSec);
   }
-  if (safe_strto64(splits[kKernelTicks], &tmp)) {
+  if (safeStrto64(splits[kKernelTicks], &tmp)) {
     stats->kernelNs = tmp * (1e9 / kTicksPerSec);
   }
-  if (safe_strto64(splits[kIoWait], &tmp)) {
+  if (safeStrto64(splits[kIoWait], &tmp)) {
     stats->iowaitNs = tmp * (1e9 / kTicksPerSec);
   }
   if (name != nullptr) {
@@ -174,7 +174,7 @@ bool isBeingDebugged() {
     }
     std::pair<StringPiece, StringPiece> keyVal = split(l, "\t");
     int64_t tracerPid = -1;
-    if (!safe_strto64(keyVal.second.data(), keyVal.second.size(), &tracerPid)) {
+    if (!safeStrto64(keyVal.second.data(), keyVal.second.size(), &tracerPid)) {
       KLOG_FIRST_N(WARNING, 1) << "Invalid line in /proc/self/status: " << l;
       return false;
     }

@@ -106,7 +106,7 @@ Status ParsedLine::parse(string line) {
   // Sanity check the microsecond timestamp.
   // Eventually, it should be used when processing metrics records.
   int64_t timeUs;
-  if (!safe_strto64(fields[3].data(), fields[3].size(), &timeUs)) {
+  if (!safeStrto64(fields[3].data(), fields[3].size(), &timeUs)) {
     return Status::InvalidArgument("invalid timestamp", fields[3]);
   }
   // TODO(todd) JsonReader should be able to parse from a StringPiece

@@ -118,7 +118,7 @@ TAG_FLAG(umask, advanced);
 
 static bool validateUmask(const char* /*flagname*/, const string& value) {
   uint32_t parsed;
-  if (!safe_strtou32_base(value.c_str(), &parsed, 8)) {
+  if (!safeStrtou32Base(value.c_str(), &parsed, 8)) {
     LOG(ERROR) << "Invalid umask: must be an octal string";
     return false;
   }
@@ -476,7 +476,7 @@ void runCustomValidators() {
 void setUmask() {
   // We already validated with a nice error message using the validateUmask
   // FlagValidator above.
-  CHECK(safe_strtou32_base(FLAGS_umask.c_str(), &gParsedUmask, 8));
+  CHECK(safeStrtou32Base(FLAGS_umask.c_str(), &gParsedUmask, 8));
   uint32_t oldMask = umask(gParsedUmask);
   if (oldMask != gParsedUmask) {
     VLOG(2) << "Changed umask from " << fmt::format("{:03o}", oldMask) << " to "

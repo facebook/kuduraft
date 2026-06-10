@@ -345,7 +345,7 @@ int countOpenFds(Env* env, const string& pathPattern) {
       continue;
     }
     int32_t fd;
-    CHECK(safe_strto32(c, &fd)) << "Unexpected file in fd list: " << c;
+    CHECK(safeStrto32(c, &fd)) << "Unexpected file in fd list: " << c;
     pathBuf.resize(PATH_MAX);
     char* bufData = reinterpret_cast<char*>(pathBuf.data());
     auto procFile = JoinPathSegments(kProcSelfFd, c);
@@ -412,7 +412,7 @@ waitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
   vector<string> lines = strings::split(lsofOut, "\n");
   int32_t p = -1;
   if (lines.size() < 3 || lines[2].substr(0, 3) != "n*:" ||
-      !safe_strto32(lines[2].substr(3), &p) || p <= 0) {
+      !safeStrto32(lines[2].substr(3), &p) || p <= 0) {
     return Status::RuntimeError("unexpected lsof output", lsofOut);
   }
   CHECK(p > 0 && p < std::numeric_limits<uint16_t>::max())

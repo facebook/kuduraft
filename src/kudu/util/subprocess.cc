@@ -143,7 +143,7 @@ void closeNonStandardFds(DIR* fdDir) {
   // dir->lock, so seems not worth the added complexity in lifecycle & plumbing.
   while ((ent = READDIR(fdDir)) != nullptr) {
     uint32_t fd;
-    if (!safe_strtou32(ent->d_name, &fd)) {
+    if (!safeStrtou32(ent->d_name, &fd)) {
       continue;
     }
     if (!(fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO ||

@@ -34,53 +34,53 @@ std::string uint128ToHexString(kudu::Uint128 ui128);
 // Negative inputs are not allowed for unsigned ints (unlike strtoul).
 // Numbers must be in base 10; see the _base variants below for other bases.
 // Returns false on errors (including overflow/underflow).
-bool safe_strto32(const char* str, int32_t* value);
-bool safe_strto64(const char* str, int64_t* value);
-bool safe_strtou32(const char* str, uint32_t* value);
-bool safe_strtou64(const char* str, uint64_t* value);
+bool safeStrto32(const char* str, int32_t* value);
+bool safeStrto64(const char* str, int64_t* value);
+bool safeStrtou32(const char* str, uint32_t* value);
+bool safeStrtou64(const char* str, uint64_t* value);
 // Convert strings to floating point values.
 // Leading and trailing spaces are allowed.
 // Values may be rounded on over- and underflow.
-bool safe_strtof(const char* str, float* value);
-bool safe_strtod(const char* str, double* value);
+bool safeStrtof(const char* str, float* value);
+bool safeStrtod(const char* str, double* value);
 
-bool safe_strto32(const std::string& str, int32_t* value);
-bool safe_strto64(const std::string& str, int64_t* value);
-bool safe_strtou32(const std::string& str, uint32_t* value);
-bool safe_strtou64(const std::string& str, uint64_t* value);
-bool safe_strtof(const std::string& str, float* value);
-bool safe_strtod(const std::string& str, double* value);
+bool safeStrto32(const std::string& str, int32_t* value);
+bool safeStrto64(const std::string& str, int64_t* value);
+bool safeStrtou32(const std::string& str, uint32_t* value);
+bool safeStrtou64(const std::string& str, uint64_t* value);
+bool safeStrtof(const std::string& str, float* value);
+bool safeStrtod(const std::string& str, double* value);
 
 // Parses bufferSize many characters from startPtr into value.
-bool safe_strto32(const char* startPtr, int bufferSize, int32_t* value);
-bool safe_strto64(const char* startPtr, int bufferSize, int64_t* value);
+bool safeStrto32(const char* startPtr, int bufferSize, int32_t* value);
+bool safeStrto64(const char* startPtr, int bufferSize, int64_t* value);
 
 // Parses with a fixed base between 2 and 36. For base 16, leading "0x" is ok.
 // If base is set to 0, its value is inferred from the beginning of str:
 // "0x" means base 16, "0" means base 8, otherwise base 10 is used.
-bool safe_strto32_base(const char* str, int32_t* value, int base);
-bool safe_strto64_base(const char* str, int64_t* value, int base);
-bool safe_strtou32_base(const char* str, uint32_t* value, int base);
-bool safe_strtou64_base(const char* str, uint64_t* value, int base);
+bool safeStrto32Base(const char* str, int32_t* value, int base);
+bool safeStrto64Base(const char* str, int64_t* value, int base);
+bool safeStrtou32Base(const char* str, uint32_t* value, int base);
+bool safeStrtou64Base(const char* str, uint64_t* value, int base);
 
-bool safe_strto32_base(const std::string& str, int32_t* value, int base);
-bool safe_strto64_base(const std::string& str, int64_t* value, int base);
-bool safe_strtou32_base(const std::string& str, uint32_t* value, int base);
-bool safe_strtou64_base(const std::string& str, uint64_t* value, int base);
+bool safeStrto32Base(const std::string& str, int32_t* value, int base);
+bool safeStrto64Base(const std::string& str, int64_t* value, int base);
+bool safeStrtou32Base(const std::string& str, uint32_t* value, int base);
+bool safeStrtou64Base(const std::string& str, uint64_t* value, int base);
 
-bool safe_strto32_base(
+bool safeStrto32Base(
     const char* startPtr,
     int bufferSize,
     int32_t* value,
     int base);
-bool safe_strto64_base(
+bool safeStrto64Base(
     const char* startPtr,
     int bufferSize,
     int64_t* value,
     int base);
 
 // u64ToStrBase36()
-//    The inverse of safe_strtou64_base, converts the number agument to
+//    The inverse of safeStrtou64Base, converts the number agument to
 //    a string representation in base-36.
 //    Conversion fails if buffer is too small to to hold the string and
 //    terminating NUL.
@@ -423,7 +423,7 @@ inline std::string simpleItoa(unsigned __int128 i) {
 }
 
 // simpleAtoi converts a string to an integer.
-// Uses safe_strto?() for actual parsing, so strict checking is
+// Uses safeStrto?() for actual parsing, so strict checking is
 // applied, which is to say, the string must be a base-10 integer, optionally
 // followed or preceded by whitespace, and value has to be in the range of
 // the corresponding integer type.
@@ -436,15 +436,15 @@ bool MUST_USE_RESULT simpleAtoi(const char* s, int_type* out) {
       sizeof(*out) == 4 || sizeof(*out) == 8, SimpleAtoiWorksWith32Or64BitInts);
   if (std::numeric_limits<int_type>::is_signed) { // Signed
     if (sizeof(*out) == 64 / 8) { // 64-bit
-      return safe_strto64(s, reinterpret_cast<int64_t*>(out));
+      return safeStrto64(s, reinterpret_cast<int64_t*>(out));
     } else { // 32-bit
-      return safe_strto32(s, reinterpret_cast<int32_t*>(out));
+      return safeStrto32(s, reinterpret_cast<int32_t*>(out));
     }
   } else { // Unsigned
     if (sizeof(*out) == 64 / 8) { // 64-bit
-      return safe_strtou64(s, reinterpret_cast<uint64_t*>(out));
+      return safeStrtou64(s, reinterpret_cast<uint64_t*>(out));
     } else { // 32-bit
-      return safe_strtou32(s, reinterpret_cast<uint32_t*>(out));
+      return safeStrtou32(s, reinterpret_cast<uint32_t*>(out));
     }
   }
 }

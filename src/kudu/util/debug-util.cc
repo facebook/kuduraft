@@ -500,7 +500,7 @@ Status listThreads(vector<pid_t>* tids) {
   while ((d = readdir(dir)) != NULL) {
     if (d->d_name[0] != '.') {
       uint32_t tid;
-      if (!safe_strtou32(d->d_name, &tid)) {
+      if (!safeStrtou32(d->d_name, &tid)) {
         LOG(WARNING) << "bad tid found in procfs: " << d->d_name;
         continue;
       }

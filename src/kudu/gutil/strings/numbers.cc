@@ -685,7 +685,7 @@ bool safeIntInternal(
 
 } // anonymous namespace
 
-bool safe_strto32_base(
+bool safeStrto32Base(
     const char* startPtr,
     const int bufferSize,
     int32_t* v,
@@ -693,7 +693,7 @@ bool safe_strto32_base(
   return safeIntInternal<int32_t>(startPtr, startPtr + bufferSize, base, v);
 }
 
-bool safe_strto64_base(
+bool safeStrto64Base(
     const char* startPtr,
     const int bufferSize,
     int64_t* v,
@@ -701,15 +701,15 @@ bool safe_strto64_base(
   return safeIntInternal<int64_t>(startPtr, startPtr + bufferSize, base, v);
 }
 
-bool safe_strto32(const char* startPtr, const int bufferSize, int32_t* value) {
+bool safeStrto32(const char* startPtr, const int bufferSize, int32_t* value) {
   return safeIntInternal<int32_t>(startPtr, startPtr + bufferSize, 10, value);
 }
 
-bool safe_strto64(const char* startPtr, const int bufferSize, int64_t* value) {
+bool safeStrto64(const char* startPtr, const int bufferSize, int64_t* value) {
   return safeIntInternal<int64_t>(startPtr, startPtr + bufferSize, 10, value);
 }
 
-bool safe_strto32_base(const char* str, int32_t* value, int base) {
+bool safeStrto32Base(const char* str, int32_t* value, int base) {
   char* endptr;
   errno = 0; // errno only gets set on errors
   *value = strto32(str, &endptr, base);
@@ -720,7 +720,7 @@ bool safe_strto32_base(const char* str, int32_t* value, int base) {
   return *str != '\0' && *endptr == '\0' && errno == 0;
 }
 
-bool safe_strto64_base(const char* str, int64_t* value, int base) {
+bool safeStrto64Base(const char* str, int64_t* value, int base) {
   char* endptr;
   errno = 0; // errno only gets set on errors
   *value = strto64(str, &endptr, base);
@@ -731,7 +731,7 @@ bool safe_strto64_base(const char* str, int64_t* value, int base) {
   return *str != '\0' && *endptr == '\0' && errno == 0;
 }
 
-bool safe_strtou32_base(const char* str, uint32_t* value, int base) {
+bool safeStrtou32Base(const char* str, uint32_t* value, int base) {
   // strtoul does not give any errors on negative numbers, so we have to
   // search the string for '-' manually.
   while (asciiIsSpace(*str))
@@ -749,7 +749,7 @@ bool safe_strtou32_base(const char* str, uint32_t* value, int base) {
   return *str != '\0' && *endptr == '\0' && errno == 0;
 }
 
-bool safe_strtou64_base(const char* str, uint64_t* value, int base) {
+bool safeStrtou64Base(const char* str, uint64_t* value, int base) {
   // strtou64 does not give any errors on negative numbers, so we have to
   // search the string for '-' manually.
   while (asciiIsSpace(*str))
@@ -794,27 +794,27 @@ size_t u64ToStrBase36(uint64_t number, size_t bufSize, char* buffer) {
   return resultSize - 1;
 }
 
-// Generate functions that wrap safe_strtoXXX_base.
-#define GEN_SAFE_STRTO(name, type)                             \
-  /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/               \
-  bool name##_base(const string& str, type* value, int base) { \
-    return name##_base(str.c_str(), value, base);              \
-  }                                                            \
-  /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/               \
-  bool name(const char* str, type* value) {                    \
-    return name##_base(str, value, 10);                        \
-  }                                                            \
-  /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/               \
-  bool name(const string& str, type* value) {                  \
-    return name##_base(str.c_str(), value, 10);                \
+// Generate functions that wrap safeStrto*Base.
+#define GEN_SAFE_STRTO(name, type)                            \
+  /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/              \
+  bool name##Base(const string& str, type* value, int base) { \
+    return name##Base(str.c_str(), value, base);              \
+  }                                                           \
+  /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/              \
+  bool name(const char* str, type* value) {                   \
+    return name##Base(str, value, 10);                        \
+  }                                                           \
+  /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/              \
+  bool name(const string& str, type* value) {                 \
+    return name##Base(str.c_str(), value, 10);                \
   }
-GEN_SAFE_STRTO(safe_strto32, int32_t);
-GEN_SAFE_STRTO(safe_strtou32, uint32_t);
-GEN_SAFE_STRTO(safe_strto64, int64_t);
-GEN_SAFE_STRTO(safe_strtou64, uint64_t);
+GEN_SAFE_STRTO(safeStrto32, int32_t);
+GEN_SAFE_STRTO(safeStrtou32, uint32_t);
+GEN_SAFE_STRTO(safeStrto64, int64_t);
+GEN_SAFE_STRTO(safeStrtou64, uint64_t);
 #undef GEN_SAFE_STRTO
 
-bool safe_strtof(const char* str, float* value) {
+bool safeStrtof(const char* str, float* value) {
   char* endptr;
   *value = strtof(str, &endptr);
   if (endptr != str) {
@@ -828,7 +828,7 @@ bool safe_strtof(const char* str, float* value) {
   return *str != '\0' && *endptr == '\0';
 }
 
-bool safe_strtod(const char* str, double* value) {
+bool safeStrtod(const char* str, double* value) {
   char* endptr;
   *value = strtod(str, &endptr);
   if (endptr != str) {
@@ -841,12 +841,12 @@ bool safe_strtod(const char* str, double* value) {
   return *str != '\0' && *endptr == '\0';
 }
 
-bool safe_strtof(const string& str, float* value) {
-  return safe_strtof(str.c_str(), value);
+bool safeStrtof(const string& str, float* value) {
+  return safeStrtof(str.c_str(), value);
 }
 
-bool safe_strtod(const string& str, double* value) {
-  return safe_strtod(str.c_str(), value);
+bool safeStrtod(const string& str, double* value) {
+  return safeStrtod(str.c_str(), value);
 }
 
 uint64_t atoiKmgt(const char* s) {
@@ -1353,7 +1353,7 @@ char* floatToBuffer(float value, char* buffer) {
   DCHECK(snprintf_result > 0 && snprintf_result < kFloatToBufferSize);
 
   float parsed_value;
-  if (!safe_strtof(buffer, &parsed_value) || parsed_value != value) {
+  if (!safeStrtof(buffer, &parsed_value) || parsed_value != value) {
     snprintf_result =
         snprintf(buffer, kFloatToBufferSize, "%.*g", FLT_DIG + 2, value);
 
