@@ -314,7 +314,7 @@ static void hammerServerWithTcpConns(const Sockaddr& addr) {
       CHECK(s.IsNetworkError()) << "Unexpected error: " << s.ToString();
       return;
     }
-    CHECK_OK(socket.Close());
+    CHECK_OK(socket.close());
   }
 }
 

@@ -39,7 +39,7 @@ TlsSocket::TlsSocket(int fd, CUniquePtr<SSL> ssl)
     : Socket(fd), ssl_(std::move(ssl)) {}
 
 TlsSocket::~TlsSocket() {
-  ignoreResult(Close());
+  ignoreResult(close());
 }
 
 Status TlsSocket::write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
@@ -223,7 +223,7 @@ Status TlsSocket::recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   return Status::OK();
 }
 
-Status TlsSocket::Close() {
+Status TlsSocket::close() {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   errno = 0;
 
@@ -241,13 +241,13 @@ Status TlsSocket::Close() {
   } else {
     auto errorCode = SSL_get_error(ssl_.get(), ret);
     sslShutdown = Status::NetworkError(
-        "TlsSocket::Close", getSslErrorDescription(errorCode));
+        "TlsSocket::close", getSslErrorDescription(errorCode));
   }
 
   ssl_.reset();
 
   // Close the underlying socket.
-  RETURN_NOT_OK(Socket::Close());
+  RETURN_NOT_OK(Socket::close());
   return sslShutdown;
 }
 

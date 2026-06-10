@@ -54,10 +54,10 @@ class SocketTest : public KuduTest {
         Sockaddr newAddr;
         Socket sock;
         CHECK_OK(listener.accept(&sock, &newAddr, 0));
-        CHECK_OK(sock.Close());
+        CHECK_OK(sock.close());
       } else {
         SleepFor(MonoDelta::FromMilliseconds(200));
-        CHECK_OK(listener.Close());
+        CHECK_OK(listener.close());
       }
     });
 

@@ -45,7 +45,7 @@ class TlsSocket : public Socket {
   Status recv(uint8_t* buf, int32_t amt, int32_t* nread) override
       WARN_UNUSED_RESULT;
 
-  Status Close() override WARN_UNUSED_RESULT;
+  Status close() override WARN_UNUSED_RESULT;
 
  private:
   friend class TlsHandshake;

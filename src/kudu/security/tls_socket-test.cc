@@ -289,7 +289,7 @@ TEST_F(TlsSocketTest, TestTlsSocketInterrupted) {
         buf.get(), kEchoChunkSize, &n, MonoTime::Now() + kTimeout));
   }
   server.stop();
-  ASSERT_OK(clientSock->Close());
+  ASSERT_OK(clientSock->close());
   LOG(INFO) << "client done";
 }
 
@@ -372,7 +372,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
   }
 
   server.stop();
-  ASSERT_OK(clientSock->Close());
+  ASSERT_OK(clientSock->close());
 }
 
 } // namespace security

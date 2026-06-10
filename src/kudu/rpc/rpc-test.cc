@@ -1382,8 +1382,8 @@ TEST_F(TestRpc, TestServerShutsDown) {
   }
 
   // Shut down the socket.
-  ASSERT_OK(listenSock.Close());
-  ASSERT_OK(serverSock.Close());
+  ASSERT_OK(listenSock.close());
+  ASSERT_OK(serverSock.close());
 
   // Wait for the call to be marked finished.
   latch.wait();

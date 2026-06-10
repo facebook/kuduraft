@@ -236,7 +236,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     ADOPT_TRACE(t);
     clientStatus = clientNegotiation.negotiate();
     // Close the socket so that the server will not block forever on error.
-    clientNegotiation.socket()->Close();
+    clientNegotiation.socket()->close();
 
     if (FLAGS_rpc_trace_negotiation || !clientStatus.ok()) {
       string msg = Trace::currentTrace()->dumpToString();
@@ -252,7 +252,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     ADOPT_TRACE(t);
     serverStatus = serverNegotiation.negotiate();
     // Close the socket so that the client will not block forever on error.
-    serverNegotiation.socket()->Close();
+    serverNegotiation.socket()->close();
 
     if (FLAGS_rpc_trace_negotiation || !serverStatus.ok()) {
       string msg = Trace::currentTrace()->dumpToString();
@@ -532,7 +532,7 @@ static void runTimeoutNegotiationClient(unique_ptr<Socket> sock) {
   Status s = clientNegotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected NetworkError! Got: " << s.ToString();
-  CHECK_OK(clientNegotiation.socket()->Close());
+  CHECK_OK(clientNegotiation.socket()->close());
 }
 
 // Ensure that the client times out.
@@ -552,7 +552,7 @@ static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
   serverNegotiation.setDeadline(deadline);
   Status s = serverNegotiation.negotiate();
   ASSERT_TRUE(s.IsTimedOut()) << "Expected timeout! Got: " << s.ToString();
-  CHECK_OK(serverNegotiation.socket()->Close());
+  CHECK_OK(serverNegotiation.socket()->close());
 }
 
 static void runTimeoutExpectingClient(unique_ptr<Socket> socket) {

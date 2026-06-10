@@ -130,13 +130,13 @@ void AcceptorPool::shutdown() {
 
   // Close the socket: keeping the descriptor open and, possibly, receiving late
   // not-to-be-read messages from the peer does not make much sense. The
-  // Socket::Close() method is called upon destruction of the aggregated socket_
+  // Socket::close() method is called upon destruction of the aggregated socket_
   // object as well. However, the typical ownership pattern of an AcceptorPool
   // object includes two references wrapped via a shared_ptr smart pointer: one
-  // is held by Messenger, another by RpcServer. If not calling Socket::Close()
+  // is held by Messenger, another by RpcServer. If not calling Socket::close()
   // here, it would  necessary to wait until Messenger::Shutdown() is called for
   // the corresponding messenger object to close this socket.
-  ignoreResult(socket_.Close());
+  ignoreResult(socket_.close());
 }
 
 Sockaddr AcceptorPool::bindAddress() const {

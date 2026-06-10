@@ -45,7 +45,7 @@ class Socket {
   virtual ~Socket();
 
   // Close the Socket, checking for errors.
-  virtual Status Close();
+  virtual Status close();
 
   // call shutdown() on the socket
   Status shutdown(bool shutRead, bool shutWrite);

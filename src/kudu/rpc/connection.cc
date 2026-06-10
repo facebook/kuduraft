@@ -214,7 +214,7 @@ void Connection::shutdown(
   writeIo_.stop();
   isEpollRegistered_ = false;
   if (socket_) {
-    Status scStatus = socket_->Close();
+    Status scStatus = socket_->close();
     if (PREDICT_FALSE(!scStatus.ok())) {
       VLOG(2) << "Error closing socket: " << scStatus.ToString();
     }
