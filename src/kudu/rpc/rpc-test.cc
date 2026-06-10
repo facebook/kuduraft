@@ -155,10 +155,10 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
 
 TEST_F(TestRpc, TestConnHeaderValidation) {
   MessengerBuilder mb("TestRpc.TestConnHeaderValidation");
-  const int connHdrLen = kMagicNumberLength + kHeaderFlagsLength;
-  uint8_t buf[connHdrLen];
+  const int kConnHdrLen = kMagicNumberLength + kHeaderFlagsLength;
+  uint8_t buf[kConnHdrLen];
   serialization::serializeConnHeader(buf);
-  ASSERT_OK(serialization::validateConnHeader(Slice(buf, connHdrLen)));
+  ASSERT_OK(serialization::validateConnHeader(Slice(buf, kConnHdrLen)));
 }
 
 // Regression test for KUDU-2041
@@ -1398,7 +1398,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
 
 // Test handler latency metric.
 TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
-  const uint64_t sleepMicros = 20 * 1000;
+  const uint64_t kSleepMicros = 20 * 1000;
 
   // Set up server.
   Sockaddr serverAddr;
@@ -1416,7 +1416,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
 
   RpcController controller;
   SleepRequestPB req;
-  req.set_sleep_micros(sleepMicros);
+  req.set_sleep_micros(kSleepMicros);
   req.set_deferred(true);
   SleepResponsePB resp;
   ASSERT_OK(p.syncRequest("Sleep", req, &resp, &controller));
@@ -1438,7 +1438,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   LOG(INFO) << "Sleep() #calls: " << latencyHistogram->totalCount();
 
   ASSERT_EQ(1, latencyHistogram->totalCount());
-  ASSERT_GE(latencyHistogram->maxValueForTests(), sleepMicros);
+  ASSERT_GE(latencyHistogram->maxValueForTests(), kSleepMicros);
   ASSERT_TRUE(
       latencyHistogram->minValueForTests() ==
       latencyHistogram->maxValueForTests());
@@ -1496,7 +1496,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
 // Test that setting the client timeout / deadline gets propagated to RPC
 // services.
 TEST_P(TestRpc, TestRpcContextClientDeadline) {
-  const uint64_t sleepMicros = 20 * 1000;
+  const uint64_t kSleepMicros = 20 * 1000;
 
   // Set up server.
   Sockaddr serverAddr;
@@ -1513,7 +1513,7 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
       CalculatorService::staticServiceName());
 
   SleepRequestPB req;
-  req.set_sleep_micros(sleepMicros);
+  req.set_sleep_micros(kSleepMicros);
   req.set_client_timeout_defined(true);
   SleepResponsePB resp;
   RpcController controller;
