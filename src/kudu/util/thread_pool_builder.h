@@ -35,7 +35,7 @@ namespace kudu {
 //    choose a short name here.
 //    Required.
 //
-// trace_metric_prefix: used to prefix the names of TraceMetric counters.
+// traceMetricPrefix: used to prefix the names of TraceMetric counters.
 //    When a task on a thread pool has an associated trace, the thread pool
 //    implementation will increment TraceMetric counters to indicate the
 //    amount of time spent waiting in the queue as well as the amount of wall
@@ -47,7 +47,7 @@ namespace kudu {
 //    The TraceMetrics implementation relies on the number of distinct counter
 //    names being small. Thus, if the thread pool name itself is dynamically
 //    generated, the default behavior described above would result in an
-//    unbounded number of distinct counter names. The 'trace_metric_prefix'
+//    unbounded number of distinct counter names. The 'traceMetricPrefix'
 //    setting can be used to override the prefix used in generating the trace
 //    metric names.
 //
@@ -56,18 +56,18 @@ namespace kudu {
 //    tablet IDs over its lifetime). In that case, setting the prefix to
 //    "raft" will avoid any issues.
 //
-// min_threads: Minimum number of threads we'll have at any time.
+// minThreads: Minimum number of threads we'll have at any time.
 //    Default: 0.
 //
-// max_threads: Maximum number of threads we'll have at any time.
+// maxThreads: Maximum number of threads we'll have at any time.
 //    Default: Number of CPUs detected on the system.
 //
-// max_queue_size: Maximum number of items to enqueue before returning a
+// maxQueueSize: Maximum number of items to enqueue before returning a
 //    Status::ServiceUnavailable message from Submit().
 //    Default: INT_MAX.
 //
-// idle_timeout: How long we'll keep around an idle thread before timing it out.
-//    We always keep at least min_threads.
+// idleTimeout: How long we'll keep around an idle thread before timing it out.
+//    We always keep at least minThreads.
 //    Default: 500 milliseconds.
 //
 // metrics: Histograms, counters, etc. to update on various threadpool events.
