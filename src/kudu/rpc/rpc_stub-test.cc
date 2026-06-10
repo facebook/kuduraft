@@ -417,8 +417,8 @@ TEST_F(RpcStubTest, TestRpcPanic) {
     argv.emplace_back("--gtest_filter=RpcStubTest.TestRpcPanic");
     Subprocess subp(argv);
     subp.shareParentStderr(false);
-    CHECK_OK(subp.Start());
-    FILE* in = fdopen(subp.from_child_stderr_fd(), "r");
+    CHECK_OK(subp.start());
+    FILE* in = fdopen(subp.fromChildStderrFd(), "r");
     PCHECK(in);
 
     // Search for string "Test method panicking!" somewhere in stderr
@@ -434,7 +434,7 @@ TEST_F(RpcStubTest, TestRpcPanic) {
 
     // Check return status
     int waitStatus = 0;
-    CHECK_OK(subp.Wait(&waitStatus));
+    CHECK_OK(subp.wait(&waitStatus));
     CHECK(!WIFEXITED(waitStatus)); // should not have been successful
     if (WIFSIGNALED(waitStatus)) {
       CHECK_EQ(WTERMSIG(waitStatus), SIGABRT);
