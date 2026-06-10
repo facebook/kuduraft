@@ -11,27 +11,9 @@
 #include <stdlib.h> // for free()
 #include <string.h> // for memcpy()
 
-#if defined(__APPLE__)
-#include <unistd.h> // for getpagesize() on mac
-#elif defined(OS_CYGWIN)
-#include <malloc.h> // for memalign()
-#endif
-
 #include <type_traits>
 
 #include <cstdint>
-
-// Must happens before inttypes.h inclusion */
-#if defined(__APPLE__)
-/* From MacOSX's inttypes.h:
- * "C++ implementations should define these macros only when
- *  __STDC_FORMAT_MACROS is defined before <inttypes.h> is included." */
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif /* __STDC_FORMAT_MACROS */
-#endif /* __APPLE__ */
-
-#if defined OS_LINUX || defined OS_CYGWIN
 
 // _BIG_ENDIAN
 #include <endian.h>
@@ -65,84 +47,11 @@ typedef unsigned long ulong;
 #define HAVE_TLS 1
 #endif
 
-#elif defined OS_FREEBSD
-
-// _BIG_ENDIAN
-#include <machine/endian.h> // @manual
-
-#elif defined OS_SOLARIS
-
-// _BIG_ENDIAN
-#include <sys/isa_defs.h> // @manual
-
-// Solaris doesn't define sig_t (function taking an int, returning void)
-typedef void (*sig_t)(int);
-
-// Solaris only defines strtoll, not strtoq
-#define strtoq strtoll
-#define strtouq strtoull
-
-// It doesn't define the posix-standard(?) u_int_16
-#include <sys/int_types.h> // @manual // NOLINT(build/include)
-typedef uint16_t u_int16_t;
-
-#elif defined __APPLE__
-
-// BIG_ENDIAN
-#include <machine/endian.h> // @manual // NOLINT(build/include)
-/* Let's try and follow the Linux convention */
-#define __BYTE_ORDER BYTE_ORDER
-#define __LITTLE_ENDIAN LITTLE_ENDIAN
-#define __BIG_ENDIAN BIG_ENDIAN
-
-#endif
-
-// The following guarenty declaration of the byte swap functions, and
-// define __BYTE_ORDER for MSVC
-#ifdef _MSC_VER
-#include <stdlib.h> // NOLINT(build/include)
-#define __BYTE_ORDER __LITTLE_ENDIAN
-#define bswap_16(x) _byteswap_ushort(x)
-#define bswap_32(x) _byteswap_ulong(x)
-#define bswap_64(x) _byteswap_uint64(x)
-
-#elif defined(__APPLE__)
-// Mac OS X / Darwin features
-#include <libkern/OSByteOrder.h>
-#define bswap_16(x) OSSwapInt16(x)
-#define bswap_32(x) OSSwapInt32(x)
-#define bswap_64(x) OSSwapInt64(x)
-
-#elif defined(__GLIBC__)
+// The following guarenty declaration of the byte swap functions
 #include <byteswap.h> // IWYU pragma: export
 
-#else
-
-static inline uint16_t bswap_16(uint16_t x) {
-  return ((x & 0xFF) << 8) | ((x & 0xFF00) >> 8);
-}
-#define bswap_16(x) bswap_16(x)
-static inline uint32_t bswap_32(uint32_t x) {
-  return (
-      ((x & 0xFF) << 24) | ((x & 0xFF00) << 8) | ((x & 0xFF0000) >> 8) |
-      ((x & 0xFF000000) >> 24));
-}
-#define bswap_32(x) bswap_32(x)
-static inline uint64_t bswap_64(uint64_t x) {
-  return (
-      ((x & 0xFFULL) << 56) | ((x & 0xFF00ULL) << 40) |
-      ((x & 0xFF0000ULL) << 24) | ((x & 0xFF000000ULL) << 8) |
-      ((x & 0xFF00000000ULL) >> 8) | ((x & 0xFF0000000000ULL) >> 24) |
-      ((x & 0xFF000000000000ULL) >> 40) | ((x & 0xFF00000000000000ULL) >> 56));
-}
-#define bswap_64(x) bswap_64(x)
-
-#endif
-
 // define the macros IS_LITTLE_ENDIAN or IS_BIG_ENDIAN
-// using the above endian defintions from endian.h if
-// endian.h was included
-#ifdef __BYTE_ORDER
+// using the above endian defintions from endian.h
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define IS_LITTLE_ENDIAN
 #endif
@@ -151,115 +60,18 @@ static inline uint64_t bswap_64(uint64_t x) {
 #define IS_BIG_ENDIAN
 #endif
 
-#else
-
-#if defined(__LITTLE_ENDIAN__)
-#define IS_LITTLE_ENDIAN
-#elif defined(__BIG_ENDIAN__)
-#define IS_BIG_ENDIAN
-#endif
-
-// there is also PDP endian ...
-
-#endif // __BYTE_ORDER
-
 // Define the OS's path separator
 #ifdef __cplusplus // C won't merge duplicate const variables at link time
 // Some headers provide a macro for this (GCC's system.h), remove it so that we
 // can use our own.
 #undef PATH_SEPARATOR
-#if defined(OS_WINDOWS)
-const char PATH_SEPARATOR = '\\';
-#else
 const char PATH_SEPARATOR = '/';
-#endif
 #endif
 
 // Windows has O_BINARY as a flag to open() (like "b" for fopen).
 // Linux doesn't need make this distinction.
-#if defined OS_LINUX && !defined O_BINARY
+#ifndef O_BINARY
 #define O_BINARY 0
-#endif
-
-// va_copy portability definitions
-#ifdef _MSC_VER
-// MSVC doesn't have va_copy yet.
-// This is believed to work for 32-bit msvc.  This may not work at all for
-// other platforms.
-// If va_list uses the single-element-array trick, you will probably get
-// a compiler error here.
-//
-#include <stdarg.h>
-inline void va_copy(va_list& a, va_list& b) {
-  a = b;
-}
-
-// Nor does it have uid_t
-typedef int uid_t;
-
-#endif
-
-// Mac OS X / Darwin features
-
-#if defined(__APPLE__)
-
-// For mmap, Linux defines both MAP_ANONYMOUS and MAP_ANON and says MAP_ANON is
-// deprecated. In Darwin, MAP_ANON is all there is.
-#if !defined MAP_ANONYMOUS
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-
-// Linux has this in <sys/cdefs.h>
-#define __ptr_t void*
-
-// Linux has this in <linux/errno.h>
-#define EXFULL ENOMEM // not really that great a translation...
-
-// Darwin doesn't have strnlen. No comment.
-inline size_t strnlen(const char* s, size_t maxlen) {
-  const char* end = (const char*)memchr(s, '\0', maxlen);
-  if (end)
-    return end - s;
-  return maxlen;
-}
-
-// Doesn't exist on OSX; used in google.cc for send() to mean "no flags".
-#define MSG_NOSIGNAL 0
-
-#elif defined(OS_CYGWIN) // Cygwin-specific behavior.
-
-#if defined(__CYGWIN32__)
-#define __WORDSIZE 32
-#else
-// It's probably possible to support 64-bit, but the #defines will need checked.
-#error "Cygwin is currently only 32-bit."
-#endif
-
-struct stack_t {
-  void* ss_sp;
-  int ss_flags;
-  size_t ss_size;
-};
-inline int sigaltstack(stack_t* ss, stack_t* oss) {
-  return 0;
-}
-
-#define PTHREAD_STACK_MIN 0 // Not provided by cygwin
-
-// Scans memory for a character.
-// memrchr is used in a few places, but it's linux-specific.
-inline void* memrchr(const void* bytes, int findChar, size_t len) {
-  const unsigned char* cursor =
-      reinterpret_cast<const unsigned char*>(bytes) + len - 1;
-  unsigned char actualChar = findChar;
-  for (; cursor >= bytes; --cursor) {
-    if (*cursor == actualChar) {
-      return const_cast<void*>(reinterpret_cast<const void*>(cursor));
-    }
-  }
-  return nullptr;
-}
-
 #endif
 
 // Klocwork static analysis tool's C/C++ complier kwcc
@@ -279,7 +91,7 @@ inline void* memrchr(const void* bytes, int findChar, size_t len) {
 
 // GCC-specific features
 
-#if (defined(__GNUC__) || defined(__APPLE__)) && !defined(SWIG)
+#if defined(__GNUC__) && !defined(SWIG)
 
 //
 // Tell the compiler to do printf format string checking if the
@@ -514,34 +326,19 @@ extern inline void prefetch(const char* x) {
 #define PREDICT_TRUE(x) x
 #endif
 
-#if !defined(__cplusplus) && !defined(__APPLE__) && !defined(OS_CYGWIN)
+#if !defined(__cplusplus)
 // stdlib.h only declares this in C++, not in C, so we declare it here.
 // Also make sure to avoid declaring it on platforms which don't support it.
 extern int posix_memalign(void** memptr, size_t alignment, size_t size);
 #endif
 
 inline void* alignedMalloc(size_t size, int minimumAlignment) {
-#if defined(__APPLE__)
-  // mac lacks memalign(), posix_memalign(), however, according to
-  // http://stackoverflow.com/questions/196329/osx-lacks-memalign
-  // mac allocs are already 16-byte aligned.
-  if (minimumAlignment <= 16)
-    return malloc(size);
-  // next, try to return page-aligned memory. perhaps overkill
-  if (minimumAlignment <= getpagesize())
-    return valloc(size);
-  // give up
-  return nullptr;
-#elif defined(OS_CYGWIN)
-  return memalign(minimumAlignment, size);
-#else // !__APPLE__ && !OS_CYGWIN
   void* ptr = nullptr;
   if (posix_memalign(&ptr, minimumAlignment, size) != 0) {
     return nullptr;
   } else {
     return ptr;
   }
-#endif
 }
 
 inline void alignedFree(void* alignedMemory) {
@@ -584,13 +381,8 @@ template <int size>
 struct AlignType<0, size> {
   using result = char[size];
 };
-#if defined(_MSC_VER)
-#define BASE_PORT_H_ALIGN_ATTRIBUTE(X) __declspec(align(X))
-#define BASE_PORT_H_ALIGN_OF(T) __alignof(T)
-#elif defined(__GNUC__)
 #define BASE_PORT_H_ALIGN_ATTRIBUTE(X) __attribute__((aligned(X)))
 #define BASE_PORT_H_ALIGN_OF(T) __alignof__(T)
-#endif
 
 #if defined(BASE_PORT_H_ALIGN_ATTRIBUTE)
 
@@ -642,248 +434,9 @@ struct AlignType {
 #define ALIGNED_CHAR_ARRAY ALIGNED_CHAR_ARRAY_is_not_available_without_Cplusplus
 #endif // __cplusplus
 
-#ifdef _MSC_VER /* if Visual C++ */
-
-// This compiler flag can be easily overlooked on MSVC.
-// _CHAR_UNSIGNED gets set with the /J flag.
-#ifndef _CHAR_UNSIGNED
-#error chars must be unsigned!  Use the /J flag on the compiler command line.
-#endif
-
-// MSVC is a little hyper-active in its warnings
-// Signed vs. unsigned comparison is ok.
-#pragma warning(disable : 4018)
-// We know casting from a long to a char may lose data
-#pragma warning(disable : 4244)
-// Don't need performance warnings about converting ints to bools
-#pragma warning(disable : 4800)
-// Integral constant overflow is apparently ok too
-// for example:
-//  short k;  int n;
-//  k = k + n;
-#pragma warning(disable : 4307)
-// It's ok to use this* in constructor
-// Example:
-//  class C {
-//   Container cont_;
-//   C() : cont_(this) { ...
-#pragma warning(disable : 4355)
-// Truncating from double to float is ok
-#pragma warning(disable : 4305)
-
-#include <assert.h>
-#include <windows.h>
-#include <winsock2.h> // @manual
-#undef ERROR
-
-#include <float.h> // for nextafter functionality on windows
-#include <math.h> // for HUGE_VAL
-
-#ifndef HUGE_VALF
-#define HUGE_VALF (static_cast<float>(HUGE_VAL))
-#endif
-
-namespace std {} // namespace std
-using namespace std;
-
-// VC++ doesn't understand "uint"
-#ifndef HAVE_UINT
-#define HAVE_UINT 1
-typedef unsigned int uint;
-#endif
-
-// VC++ doesn't understand "ssize_t"
-#ifndef HAVE_SSIZET
-#define HAVE_SSIZET 1
-// The following correctly defines ssize_t on most (all?) VC++ versions:
-//   #include <BaseTsd.h>
-//   typedef SSIZE_T ssize_t;
-// However, several projects in googleclient already use plain 'int', e.g.,
-//   googleclient/posix/unistd.h
-//   googleclient/earth/client/libs/base/types.h
-// so to avoid conflicts with those definitions, we do the same here.
-typedef int ssize_t;
-#endif
-
-#define strtoq _strtoi64
-#define strtouq _strtoui64
-#define strtoll _strtoi64
-#define strtoull _strtoui64
-#define atoll _atoi64
-
-// VC++ 6 and before ship without an ostream << operator for 64-bit ints
-#if (_MSC_VER <= 1200)
-#include <iosfwd>
-using std::ostream;
-inline ostream& operator<<(ostream& os, const unsigned __int64& num) {
-  // Fake operator; doesn't actually do anything.
-  LOG(FATAL) << "64-bit ostream operator << not supported in VC++ 6";
-  return os;
-}
-#endif
-
-// You say tomato, I say atotom
-#define PATH_MAX MAX_PATH
-
-// You say tomato, I say _tomato
-#define vsnprintf _vsnprintf
-#define snprintf _snprintf
-#define strcasecmp _stricmp
-#define strncasecmp _strnicmp
-
-#define nextafter _nextafter
-
-#define hypot _hypot
-#define hypotf _hypotf
-
-#define strdup _strdup
-#define tempnam _tempnam
-#define chdir _chdir
-#define getcwd _getcwd
-#define putenv _putenv
-
-// You say tomato, I say toma
-#define random() rand()
-#define srandom(x) srand(x)
-
-// You say juxtapose, I say transpose
-#define bcopy(s, d, n) memcpy(d, s, n)
-
-inline void* alignedMalloc(size_t size, int minimumAlignment) {
-  return _aligned_malloc(size, minimumAlignment);
-}
-
-inline void alignedFree(void* alignedMemory) {
-  _aligned_free(alignedMemory);
-}
-
-// ----- BEGIN VC++ STUBS & FAKE DEFINITIONS ---------------------------------
-
-// See http://en.wikipedia.org/wiki/IEEE_754 for details of
-// floating point format.
-
-enum {
-  FP_NAN, //  is "Not a Number"
-  FP_INFINITE, //  is either plus or minus infinity.
-  FP_ZERO,
-  FP_SUBNORMAL, // is too small to be represented in normalized format.
-  FP_NORMAL // if nothing of the above is correct that it must be a
-  // normal floating-point number.
-};
-
-inline int fpclassifyDouble(double x) {
-  const int floatPointClass = _fpclass(x);
-  int c99Class;
-  switch (floatPointClass) {
-    case _FPCLASS_SNAN: // Signaling NaN
-    case _FPCLASS_QNAN: // Quiet NaN
-      c99Class = FP_NAN;
-      break;
-    case _FPCLASS_NZ: // Negative zero ( -0)
-    case _FPCLASS_PZ: // Positive 0 (+0)
-      c99Class = FP_ZERO;
-      break;
-    case _FPCLASS_NINF: // Negative infinity ( -INF)
-    case _FPCLASS_PINF: // Positive infinity (+INF)
-      c99Class = FP_INFINITE;
-      break;
-    case _FPCLASS_ND: // Negative denormalized
-    case _FPCLASS_PD: // Positive denormalized
-      c99Class = FP_SUBNORMAL;
-      break;
-    case _FPCLASS_NN: // Negative normalized non-zero
-    case _FPCLASS_PN: // Positive normalized non-zero
-      c99Class = FP_NORMAL;
-      break;
-    default:
-      c99Class = FP_NAN; // Should never happen
-      break;
-  }
-  return c99Class;
-}
-
-// This function handle the special subnormal case for float; it will
-// become a normal number while casting to double.
-// bit_cast is avoided to simplify dependency and to create a code that is
-// easy to deploy in C code
-inline int fpclassifyFloat(float x) {
-  uint32_t bitwiseRepresentation;
-  memcpy(&bitwiseRepresentation, &x, 4);
-  if ((bitwiseRepresentation & 0x7f800000) == 0 &&
-      (bitwiseRepresentation & 0x007fffff) != 0)
-    return FP_SUBNORMAL;
-  return fpclassifyDouble(x);
-}
-//
-// This define takes care of the denormalized float; the casting to
-// double make it a normal number
-#define fpclassify(x) \
-  ((sizeof(x) == sizeof(float)) ? fpclassifyFloat(x) : fpclassifyDouble(x))
-
-#define isnan _isnan
-
-inline int isinf(double x) {
-  const int floatPointClass = _fpclass(x);
-  if (floatPointClass == _FPCLASS_PINF)
-    return 1;
-  if (floatPointClass == _FPCLASS_NINF)
-    return -1;
-  return 0;
-}
-
-// #include "kudu/conflict-signal.h"
-typedef void (*sig_t)(int);
-
-// These actually belong in errno.h but there's a name confilict in errno
-// on WinNT. They (and a ton more) are also found in Winsock2.h, but
-// if'd out under NT. We need this subset at minimum.
-#define EXFULL ENOMEM // not really that great a translation...
-// The following are already defined in VS2010.
-#if (_MSC_VER < 1600)
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#ifndef PTHREADS_REDHAT_WIN32
-#define ETIMEDOUT WSAETIMEDOUT
-#endif
-#define ENOTSOCK WSAENOTSOCK
-#define EINPROGRESS WSAEINPROGRESS
-#define ECONNRESET WSAECONNRESET
-#endif
-
-//
-// Really from <string.h>
-//
-
-inline void bzero(void* s, int n) {
-  memset(s, 0, n);
-}
-
-// From glob.h
-#define __ptr_t void*
-
-// Defined all over the place.
-typedef int pid_t;
-
-// From stat.h
-typedef unsigned int mode_t;
-
-// u_int16_t, int16_t don't exist in MSVC
-typedef unsigned short u_int16_t;
-typedef short int16_t;
-
-// ----- END VC++ STUBS & FAKE DEFINITIONS ----------------------------------
-
-#endif // _MSC_VER
-
-#if defined(OS_WINDOWS) || defined(__APPLE__)
-// gethostbyname() *is* thread-safe for Windows native threads. It is also
-// safe on Mac OS X, where it uses thread-local storage, even though the
-// manpages claim otherwise. For details, see
-// http://lists.apple.com/archives/Darwin-dev/2006/May/msg00008.html
-#else
 // gethostbyname() is not thread-safe.  So disallow its use.  People
 // should either use the HostLookup::Lookup*() methods, or gethostbyname_r()
 #define gethostbyname gethostbyname_is_not_thread_safe_DO_NOT_USE
-#endif
 
 // Portable handling of unaligned loads, stores, and copies.
 // On some platforms, like ARM, the copy functions can be more efficient
@@ -1050,14 +603,6 @@ inline void UnalignedStore(void* dst, const T& src) {
 }
 
 #endif // defined(__cpluscplus)
-
-#ifdef PTHREADS_REDHAT_WIN32
-#include <iosfwd>
-using std::ostream; // NOLINT(build/include)
-#include <pthread.h> // NOLINT(build/include)
-// pthread_t is not a simple integer or pointer on Win32
-std::ostream& operator<<(std::ostream& out, const pthread_t& thread_id);
-#endif
 
 // GXX_EXPERIMENTAL_CXX0X is defined by gcc and clang up to at least
 // gcc-4.7 and clang-3.1 (2011-12-13).  __cplusplus was defined to 1
