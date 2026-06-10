@@ -122,8 +122,8 @@ class ConsensusQueueTest : public KuduTest {
   }
 
   void closeAndReopenQueue(
-      const OpId& replicatedOpid,
-      const OpId& committedOpid) {
+      const OpId& replicatedOpId,
+      const OpId& committedOpId) {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
     ASSERT_OK(clock->init());
@@ -139,8 +139,8 @@ class ConsensusQueueTest : public KuduTest {
         routingTableContainer_,
         kTestTablet,
         raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
-        replicatedOpid,
-        committedOpid));
+        replicatedOpId,
+        committedOpId));
   }
 
   virtual void TearDown() override {
@@ -688,11 +688,11 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
 // and then start tracking a peer whose first required operation
 // is before the first operation in the queue.
 TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
-  OpId opid = MakeOpId(1, 1);
+  OpId opId = MakeOpId(1, 1);
 
   const int kOpsToAppend = 100;
   for (int i = 1; i <= kOpsToAppend; i++) {
-    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opid));
+    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opId));
     // Roll the log every 10 ops
     // (Skipped with mock log)
     // if (i % 10 == 0) {
@@ -700,16 +700,16 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
     // }
   }
 
-  ASSERT_OPID_EQ(MakeOpId(1, kOpsToAppend + 1), opid);
-  OpId lastLoggedOpid = MakeOpId(opid.term(), opid.index() - 1);
+  ASSERT_OPID_EQ(MakeOpId(1, kOpsToAppend + 1), opId);
+  OpId lastLoggedOpId = MakeOpId(opId.term(), opId.index() - 1);
 
   // Now reset the queue so that we can pass a new committed index,
   // the last operation in the log.
-  closeAndReopenQueue(lastLoggedOpid, lastLoggedOpid);
+  closeAndReopenQueue(lastLoggedOpId, lastLoggedOpId);
 
   queue_->setLeaderMode(
-      lastLoggedOpid.index(),
-      lastLoggedOpid.term(),
+      lastLoggedOpId.index(),
+      lastLoggedOpId.term(),
       buildRaftConfigPbForTests(3));
 
   ConsensusRequestPB request;
@@ -757,10 +757,10 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
 // a new leader starts at term 2 with only a part of the operations of the
 // previous leader having been committed.
 TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
-  OpId opid = MakeOpId(1, 1);
+  OpId opId = MakeOpId(1, 1);
   // Append 10 messages in term 1 to the log.
   for (int i = 1; i <= 10; i++) {
-    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opid));
+    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opId));
     // Roll the log every 3 ops
     // (Skipped with mock log)
     // if (i % 3 == 0) {
@@ -768,10 +768,10 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
     // }
   }
 
-  opid = MakeOpId(2, 11);
+  opId = MakeOpId(2, 11);
   // Now append 10 more messages in term 2.
   for (int i = 11; i <= 20; i++) {
-    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opid));
+    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opId));
     // Roll the log every 3 ops
     // (Skipped with mock log)
     // if (i % 3 == 0) {
@@ -779,7 +779,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
     // }
   }
 
-  OpId lastInLog = MakeOpId(opid.term(), opid.index() - 1);
+  OpId lastInLog = MakeOpId(opId.term(), opId.index() - 1);
   int64_t committedIndex = 15;
 
   // Now reset the queue so that we can pass a new committed index (15).
