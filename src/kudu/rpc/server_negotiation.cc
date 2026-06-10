@@ -135,10 +135,10 @@ namespace rpc {
 namespace {
 vector<Network>* gTrustedSubnets = nullptr;
 
-bool validateTrustedCn(const std::string& valueList, const std::string& CN) {
+bool validateTrustedCn(const std::string& valueList, const std::string& cn) {
   std::vector<string> result =
       strings::split(valueList, ",", strings::SkipEmpty());
-  auto itr = std::find(result.begin(), result.end(), CN);
+  auto itr = std::find(result.begin(), result.end(), cn);
   return (itr != result.end());
 }
 
