@@ -39,7 +39,7 @@ readBackBitmap(uint8_t* bm, size_t bits, std::vector<size_t>* result) {
   return iters;
 }
 
-TEST(TestBitMap, TestIteration) {
+TEST(TestBitmap, TestIteration) {
   uint8_t bm[8];
   memset(bm, 0, sizeof(bm));
   bitmapSet(bm, 0);
@@ -60,7 +60,7 @@ TEST(TestBitMap, TestIteration) {
   ASSERT_EQ("0,8,31,32,33,63", JoinElements(readBack, ","));
 }
 
-TEST(TestBitMap, TestIteration2) {
+TEST(TestBitmap, TestIteration2) {
   uint8_t bm[1];
   memset(bm, 0, sizeof(bm));
   bitmapSet(bm, 1);
@@ -72,7 +72,7 @@ TEST(TestBitMap, TestIteration2) {
   ASSERT_EQ("1", JoinElements(readBack, ","));
 }
 
-TEST(TestBitMap, TestSetAndTestBits) {
+TEST(TestBitmap, TestSetAndTestBits) {
   uint8_t bm[1];
   memset(bm, 0, sizeof(bm));
 
@@ -127,7 +127,7 @@ TEST(TestBitMap, TestSetAndTestBits) {
   }
 }
 
-TEST(TestBitMap, TestBulkSetAndTestBits) {
+TEST(TestBitmap, TestBulkSetAndTestBits) {
   uint8_t bm[16];
   size_t totalSize = sizeof(bm) * 8;
 
@@ -158,7 +158,7 @@ TEST(TestBitMap, TestBulkSetAndTestBits) {
   }
 }
 
-TEST(TestBitMap, TestFindBit) {
+TEST(TestBitmap, TestFindBit) {
   uint8_t bm[16];
 
   size_t numBits = sizeof(bm) * 8;
@@ -203,7 +203,7 @@ TEST(TestBitMap, TestFindBit) {
   }
 }
 
-TEST(TestBitMap, TestBitmapIteration) {
+TEST(TestBitmap, TestBitmapIteration) {
   uint8_t bm[8];
   memset(bm, 0, sizeof(bm));
   bitmapSet(bm, 0);
@@ -230,7 +230,7 @@ TEST(TestBitMap, TestBitmapIteration) {
   ASSERT_EQ(expectedSizes[i], size);
 }
 
-TEST(TestBitMap, TestEquals) {
+TEST(TestBitmap, TestEquals) {
   uint8_t bm1[8] = {0};
   uint8_t bm2[8] = {0};
   size_t numBits = sizeof(bm1) * 8;
