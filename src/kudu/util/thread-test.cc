@@ -112,7 +112,7 @@ TEST_F(ThreadTest, ThreadStartBenchmark) {
 // The following tests only run in debug mode, since thread restrictions are
 // no-ops in release builds.
 #ifndef NDEBUG
-TEST_F(ThreadTest, TestThreadRestrictions_IO) {
+TEST_F(ThreadTest, TestThreadRestrictionsIo) {
   // Default should be to allow IO
   ThreadRestrictions::assertIoAllowed();
 
@@ -132,7 +132,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_IO) {
       "Function marked as IO-only was called from a thread that disallows IO");
 }
 
-TEST_F(ThreadTest, TestThreadRestrictions_Waiting) {
+TEST_F(ThreadTest, TestThreadRestrictionsWaiting) {
   // Default should be to allow IO
   ThreadRestrictions::assertWaitAllowed();
 
