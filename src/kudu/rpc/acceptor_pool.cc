@@ -163,7 +163,7 @@ void AcceptorPool::runThread() {
         break;
       }
       KLOG_EVERY_N_SECS(WARNING, 1)
-          << "AcceptorPool: accept failed: " << s.ToString() << THROTTLE_MSG;
+          << "AcceptorPool: accept failed: " << s.ToString() << kThrottleMsg;
       continue;
     }
     s = newSock.setNoDelay(true);
@@ -171,7 +171,7 @@ void AcceptorPool::runThread() {
       KLOG_EVERY_N_SECS(WARNING, 1)
           << "Acceptor with remote = " << remote.ToString()
           << " failed to set TCP_NODELAY on a newly accepted socket: "
-          << s.ToString() << THROTTLE_MSG;
+          << s.ToString() << kThrottleMsg;
       continue;
     }
     rpcConnectionsAccepted_->increment();

@@ -49,7 +49,7 @@ TEST(LoggingTest, TestThrottledLogging) {
   ScopedRegisterSink srs(&sink);
 
   for (int i = 0; i < 10000; i++) {
-    KLOG_EVERY_N_SECS(INFO, 1) << "test" << THROTTLE_MSG;
+    KLOG_EVERY_N_SECS(INFO, 1) << "test" << kThrottleMsg;
     SleepFor(MonoDelta::FromMilliseconds(1));
     if (sink.loggedMsgs().size() >= 2)
       break;
@@ -75,7 +75,7 @@ TEST(LoggingTest, TestAdvancedThrottling) {
   // First, log only using a single tag and throttler.
   for (int i = 0; i < 100000; i++) {
     KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_a")
-        << "test" << THROTTLE_MSG;
+        << "test" << kThrottleMsg;
     SleepFor(MonoDelta::FromMilliseconds(1));
     if (sink.loggedMsgs().size() >= 2)
       break;
@@ -95,13 +95,13 @@ TEST(LoggingTest, TestAdvancedThrottling) {
   // Now, try logging using two different tags in rapid succession. This should
   // not throttle, because the tag is switching.
   KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_b")
-      << "test b" << THROTTLE_MSG;
+      << "test b" << kThrottleMsg;
   KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_b")
-      << "test b" << THROTTLE_MSG;
+      << "test b" << kThrottleMsg;
   KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_c")
-      << "test c" << THROTTLE_MSG;
+      << "test c" << kThrottleMsg;
   KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_b")
-      << "test b" << THROTTLE_MSG;
+      << "test b" << kThrottleMsg;
   ASSERT_EQ(msgs.size(), 3);
   EXPECT_THAT(msgs[0], testing::ContainsRegex("test b$"));
   EXPECT_THAT(msgs[1], testing::ContainsRegex("test c$"));

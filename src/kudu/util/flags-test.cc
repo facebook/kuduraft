@@ -93,7 +93,7 @@ TEST_F(FlagsTest, TestNonDefaultFlags) {
   // Setting a sensitive flag with non-default value should return
   // a redacted value.
   FLAGS_test_sensitive_flag = true;
-  kudu::g_should_redact = kudu::RedactContext::LOG;
+  kudu::gShouldRedact = kudu::RedactContext::Log;
   std::string result = getNonDefaultFlags(defaultFlags);
 
   for (const auto& expected : expectedFlags) {

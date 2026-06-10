@@ -165,7 +165,7 @@ TAG_FLAG(redact, advanced);
 TAG_FLAG(redact, evolving);
 
 static bool validateRedact(const char* /*flagname*/, const string& value) {
-  kudu::g_should_redact = kudu::RedactContext::NONE;
+  kudu::gShouldRedact = kudu::RedactContext::None;
 
   // Flag value is case insensitive.
   string redactFlags;
@@ -173,7 +173,7 @@ static bool validateRedact(const char* /*flagname*/, const string& value) {
 
   // 'all', 'none', and '' must be specified without any other option.
   if (redactFlags == "ALL") {
-    kudu::g_should_redact = kudu::RedactContext::ALL;
+    kudu::gShouldRedact = kudu::RedactContext::All;
     return true;
   }
   if (redactFlags == "NONE" || redactFlags.empty()) {
@@ -182,7 +182,7 @@ static bool validateRedact(const char* /*flagname*/, const string& value) {
 
   for (const auto& t : strings::split(redactFlags, ",", strings::SkipEmpty())) {
     if (t == "LOG") {
-      kudu::g_should_redact = kudu::RedactContext::LOG;
+      kudu::gShouldRedact = kudu::RedactContext::Log;
     } else if (t == "ALL" || t == "NONE") {
       LOG(ERROR) << "Invalid redaction options: " << value << ", '" << t
                  << "' must be specified by itself.";

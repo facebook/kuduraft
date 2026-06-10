@@ -2334,11 +2334,11 @@ Status RaftConsensus::updateReplica(
         if (capacityPct >= FLAGS_memory_limit_warn_threshold_percentage) {
           KLOG_EVERY_N_SECS(WARNING, 1)
               << "Rejecting consensus request [EVERY 1 second]: " << msg
-              << THROTTLE_MSG;
+              << kThrottleMsg;
         } else {
           KLOG_EVERY_N_SECS(INFO, 1)
               << "Rejecting consensus request [EVERY 1 second]: " << msg
-              << THROTTLE_MSG;
+              << kThrottleMsg;
         }
         return Status::ServiceUnavailable(msg);
       }

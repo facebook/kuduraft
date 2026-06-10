@@ -1288,7 +1288,7 @@ Status PeerMessageQueue::RequestForPeer(
 
   if (peerCopy.lastExchangeStatus == PeerStatus::TabletNotFound) {
     VLOG(3) << logPrefixUnlocked() << "Peer " << uuid << " needs tablet copy"
-            << THROTTLE_MSG;
+            << kThrottleMsg;
     *needs_tablet_copy = true;
     return Status::OK();
   }
@@ -1391,7 +1391,7 @@ Status PeerMessageQueue::RequestForPeer(
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Peer " << uuid << " is lagging by at least "
           << (request->committed_index() - last_op_sent)
-          << " ops behind the committed index " << THROTTLE_MSG;
+          << " ops behind the committed index " << kThrottleMsg;
     }
     // If we're not sending ops to the follower, set the safe time on the
     // request.

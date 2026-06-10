@@ -87,8 +87,8 @@ using base::SpinLockHolder;
 
 namespace kudu {
 
-__thread bool tls_redact_user_data = true;
-kudu::RedactContext g_should_redact;
+__thread bool tlsRedactUserData = true;
+kudu::RedactContext gShouldRedact;
 const char* const kRedactionMessage = "<redacted>";
 
 namespace {
@@ -427,8 +427,8 @@ Status deleteExcessLogFiles(Env* env) {
   return Status::OK();
 }
 
-// Support for the special THROTTLE_MSG token in a log message stream.
-ostream& operator<<(ostream& os, const PRIVATE_ThrottleMsg& /*unused*/) {
+// Support for the special kThrottleMsg token in a log message stream.
+ostream& operator<<(ostream& os, const PrivateThrottleMsg& /*unused*/) {
   using google::LogMessage;
 #ifdef DISABLE_RTTI
   LogMessage::LogStream* log = static_cast<LogMessage::LogStream*>(&os);

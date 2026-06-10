@@ -62,10 +62,10 @@
 // Evaluates to 'true' if the caller should redact any user data in the current
 // scope. Most callers should instead use KUDU_REDACT(...) defined below, but
 // this can be useful to short-circuit expensive logic.
-#define KUDU_SHOULD_REDACT()                              \
-  ((kudu::g_should_redact == kudu::RedactContext::ALL ||  \
-    kudu::g_should_redact == kudu::RedactContext::LOG) && \
-   kudu::tls_redact_user_data)
+#define KUDU_SHOULD_REDACT()                            \
+  ((kudu::gShouldRedact == kudu::RedactContext::All ||  \
+    kudu::gShouldRedact == kudu::RedactContext::Log) && \
+   kudu::tlsRedactUserData)
 
 // Either evaluate and return 'expr', or return the string "<redacted>",
 // depending on whether redaction is enabled in the current scope.
@@ -86,24 +86,24 @@ namespace kudu {
 // Defaults to enabling redaction, since it's the safer default with respect to
 // leaking user data, and it's easier to identify when data is over-redacted
 // than vice-versa.
-extern __thread bool tls_redact_user_data;
+extern __thread bool tlsRedactUserData;
 
 // Redacted log messages are replaced with this constant.
 extern const char* const kRedactionMessage;
 
-enum class RedactContext { ALL, LOG, NONE };
+enum class RedactContext { All, Log, None };
 
 // Flag to indicate which redaction context is enabled.
-extern kudu::RedactContext g_should_redact;
+extern kudu::RedactContext gShouldRedact;
 
 class ScopedDisableRedaction {
  public:
-  ScopedDisableRedaction() : oldVal_(tls_redact_user_data) {
-    tls_redact_user_data = false;
+  ScopedDisableRedaction() : oldVal_(tlsRedactUserData) {
+    tlsRedactUserData = false;
   }
 
   ~ScopedDisableRedaction() {
-    tls_redact_user_data = oldVal_;
+    tlsRedactUserData = oldVal_;
   }
 
  private:
@@ -119,11 +119,11 @@ class ScopedDisableRedaction {
 // Logs a message throttled to appear at most once every 'n_secs' seconds to
 // the given severity.
 //
-// The log message may include the special token 'THROTTLE_MSG' which expands
+// The log message may include the special token 'kThrottleMsg' which expands
 // to either an empty string or '[suppressed <n> similar messages]'.
 //
 // Example usage:
-//   KLOG_EVERY_N_SECS(WARNING, 1) << "server is low on memory" << THROTTLE_MSG;
+//   KLOG_EVERY_N_SECS(WARNING, 1) << "server is low on memory" << kThrottleMsg;
 //
 //
 // Advanced per-instance throttling
@@ -168,7 +168,7 @@ class ScopedDisableRedaction {
   KLOG_EVERY_N_SECS_THROTTLER(severity, n_secs, LOG_THROTTLER, "no-tag")
 
 namespace kudu {
-enum PRIVATE_ThrottleMsg { THROTTLE_MSG };
+enum PrivateThrottleMsg { kThrottleMsg };
 } // namespace kudu
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -321,7 +321,7 @@ class LogThrottler {
 };
 } // namespace logging
 
-std::ostream& operator<<(std::ostream& os, const PRIVATE_ThrottleMsg&);
+std::ostream& operator<<(std::ostream& os, const PrivateThrottleMsg&);
 
 // Convenience macros to prefix log messages with some prefix, these are the
 // unlocked versions and should not obtain a lock (if one is required to obtain
