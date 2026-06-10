@@ -86,7 +86,7 @@ KuduTest::KuduTest()
     : env_(Env::Default()),
       flagSaver_(new gflags::FlagSaver()),
       testDir_(GetTestDataDirectory()) {
-  std::map<const char*, const char*> flags_for_tests = {
+  std::map<const char*, const char*> flagsForTests = {
       // Disabling fsync() speeds up tests dramatically, and it's safe to do as
       // no
       // tests rely on cutting power to a machine or equivalent.
@@ -106,7 +106,7 @@ KuduTest::KuduTest()
       {"ipki_ca_key_size", "1024"},
       {"tsk_num_rsa_bits", "512"},
   };
-  for (const auto& e : flags_for_tests) {
+  for (const auto& e : flagsForTests) {
     // We don't check for errors here, because we have some default flags that
     // only apply to certain tests.
     gflags::SetCommandLineOptionWithMode(
@@ -152,8 +152,8 @@ void KuduTest::SetUp() {
   overrideKrb5Environment();
 }
 
-string KuduTest::GetTestPath(const string& relative_path) const {
-  return JoinPathSegments(testDir_, relative_path);
+string KuduTest::GetTestPath(const string& relativePath) const {
+  return JoinPathSegments(testDir_, relativePath);
 }
 
 void KuduTest::overrideKrb5Environment() {
@@ -189,17 +189,17 @@ bool AllowSlowTests() {
 }
 
 void overrideFlagForSlowTests(
-    const std::string& flag_name,
-    const std::string& new_value) {
+    const std::string& flagName,
+    const std::string& newValue) {
   // Ensure that the flag is valid.
-  gflags::GetCommandLineFlagInfoOrDie(flag_name.c_str());
+  gflags::GetCommandLineFlagInfoOrDie(flagName.c_str());
 
   // If we're not running slow tests, don't override it.
   if (!AllowSlowTests()) {
     return;
   }
   gflags::SetCommandLineOptionWithMode(
-      flag_name.c_str(), new_value.c_str(), gflags::SET_FLAG_IF_DEFAULT);
+      flagName.c_str(), newValue.c_str(), gflags::SET_FLAG_IF_DEFAULT);
 }
 
 int SeedRandom() {
@@ -217,9 +217,9 @@ int SeedRandom() {
 }
 
 string GetTestDataDirectory() {
-  const ::testing::TestInfo* const test_info =
+  const ::testing::TestInfo* const testInfo =
       ::testing::UnitTest::GetInstance()->current_test_info();
-  CHECK(test_info)
+  CHECK(testInfo)
       << "Must be running in a gtest unit test to call this function";
   string dir;
   CHECK_OK(Env::Default()->getTestDirectory(&dir));
@@ -232,17 +232,17 @@ string GetTestDataDirectory() {
   //
   // If the test is sharded, the shard index is also included so that the test
   // invoker can more easily identify all directories belonging to each shard.
-  string shard_index_infix;
-  const char* shard_index = getenv("GTEST_SHARD_INDEX");
-  if (shard_index && shard_index[0] != '\0') {
-    shard_index_infix = fmt::format("{}.", shard_index);
+  string shardIndexInfix;
+  const char* shardIndex = getenv("GTEST_SHARD_INDEX");
+  if (shardIndex && shardIndex[0] != '\0') {
+    shardIndexInfix = fmt::format("{}.", shardIndex);
   }
   dir += fmt::format(
       "/{}.{}{}.{}.{}-{}",
       stringReplace(gflags::ProgramInvocationShortName(), "/", "_", true),
-      shard_index_infix,
-      stringReplace(test_info->test_suite_name(), "/", "_", true),
-      stringReplace(test_info->name(), "/", "_", true),
+      shardIndexInfix,
+      stringReplace(testInfo->test_suite_name(), "/", "_", true),
+      stringReplace(testInfo->name(), "/", "_", true),
       kTestBeganAtMicros,
       getpid());
   Status s = Env::Default()->CreateDir(dir);
@@ -255,9 +255,9 @@ string GetTestDataDirectory() {
 
     strAppend(&metadata, fmt::format("PPID={}\n", getppid()));
 
-    char* jenkins_build_id = getenv("BUILD_ID");
-    if (jenkins_build_id) {
-      strAppend(&metadata, fmt::format("BUILD_ID={}\n", jenkins_build_id));
+    char* jenkinsBuildId = getenv("BUILD_ID");
+    if (jenkinsBuildId) {
+      strAppend(&metadata, fmt::format("BUILD_ID={}\n", jenkinsBuildId));
     }
 
     CHECK_OK(WriteStringToFile(
@@ -281,9 +281,9 @@ void assertEventually(
     // Disable --gtest_break_on_failure, or else the assertion failures
     // inside our attempts will cause the test to SEGV even though we
     // would like to retry.
-    bool old_break_on_failure = testing::FLAGS_gtest_break_on_failure;
-    auto c = folly::makeGuard([old_break_on_failure]() {
-      testing::FLAGS_gtest_break_on_failure = old_break_on_failure;
+    bool oldBreakOnFailure = testing::FLAGS_gtest_break_on_failure;
+    auto c = folly::makeGuard([oldBreakOnFailure]() {
+      testing::FLAGS_gtest_break_on_failure = oldBreakOnFailure;
     });
     testing::FLAGS_gtest_break_on_failure = false;
 
@@ -298,27 +298,27 @@ void assertEventually(
       f();
 
       // Determine whether their function produced any new test failure results.
-      bool has_failures = false;
+      bool hasFailures = false;
       for (int i = 0; i < results.size(); i++) {
-        has_failures |= results.GetTestPartResult(i).failed();
+        hasFailures |= results.GetTestPartResult(i).failed();
       }
-      if (!has_failures) {
+      if (!hasFailures) {
         return;
       }
 
       // If they had failures, sleep and try again.
-      int sleep_ms;
+      int sleepMs;
       switch (backoff) {
         case AssertBackoff::Exponential:
-          sleep_ms = (attempts < 10) ? (1 << attempts) : 1000;
+          sleepMs = (attempts < 10) ? (1 << attempts) : 1000;
           break;
         case AssertBackoff::None:
-          sleep_ms = 1;
+          sleepMs = 1;
           break;
         default:
           LOG(FATAL) << "Unknown backoff type";
       }
-      SleepFor(MonoDelta::FromMilliseconds(sleep_ms));
+      SleepFor(MonoDelta::FromMilliseconds(sleepMs));
     }
   }
 
@@ -333,12 +333,12 @@ void assertEventually(
   }
 }
 
-int countOpenFds(Env* env, const string& path_pattern) {
+int countOpenFds(Env* env, const string& pathPattern) {
   static const char* kProcSelfFd = "/proc/self/fd";
-  faststring path_buf;
+  faststring pathBuf;
   vector<string> children;
   CHECK_OK(env->GetChildren(kProcSelfFd, &children));
-  int num_fds = 0;
+  int numFds = 0;
   for (const auto& c : children) {
     // Skip '.' and '..'.
     if (c == "." || c == "..") {
@@ -346,26 +346,26 @@ int countOpenFds(Env* env, const string& path_pattern) {
     }
     int32_t fd;
     CHECK(safe_strto32(c, &fd)) << "Unexpected file in fd list: " << c;
-    path_buf.resize(PATH_MAX);
-    char* buf_data = reinterpret_cast<char*>(path_buf.data());
-    auto proc_file = JoinPathSegments(kProcSelfFd, c);
-    int path_len = readlink(proc_file.c_str(), buf_data, path_buf.size());
-    if (path_len < 0) {
+    pathBuf.resize(PATH_MAX);
+    char* bufData = reinterpret_cast<char*>(pathBuf.data());
+    auto procFile = JoinPathSegments(kProcSelfFd, c);
+    int pathLen = readlink(procFile.c_str(), bufData, pathBuf.size());
+    if (pathLen < 0) {
       if (errno == ENOENT) {
         // The file was closed while we were looping. This is likely the
         // actual file descriptor used for opening /proc/fd itself.
         continue;
       }
-      PLOG(FATAL) << "Unknown error in readlink: " << proc_file;
+      PLOG(FATAL) << "Unknown error in readlink: " << procFile;
     }
-    path_buf.resize(path_len);
-    if (!matchPattern(path_buf.toString(), path_pattern)) {
+    pathBuf.resize(pathLen);
+    if (!matchPattern(pathBuf.toString(), pathPattern)) {
       continue;
     }
-    num_fds++;
+    numFds++;
   }
 
-  return num_fds;
+  return numFds;
 }
 
 namespace {
@@ -384,14 +384,14 @@ waitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
       lsof, "-wbnP", "-Ffn", "-p", std::to_string(pid), "-a", "-i", kind};
 
   MonoTime deadline = MonoTime::Now() + timeout;
-  string lsof_out;
+  string lsofOut;
 
   for (int64_t i = 1;; i++) {
-    lsof_out.clear();
-    Status s = Subprocess::call(cmd, "", &lsof_out);
+    lsofOut.clear();
+    Status s = Subprocess::call(cmd, "", &lsofOut);
 
     if (s.ok()) {
-      StripTrailingNewline(&lsof_out);
+      StripTrailingNewline(&lsofOut);
       break;
     }
     if (deadline < MonoTime::Now()) {
@@ -409,11 +409,11 @@ waitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
   // The second line is the file descriptor number. We ignore it.
   // The third line has the bind address and port.
   // Subsequent lines show active connections.
-  vector<string> lines = strings::split(lsof_out, "\n");
+  vector<string> lines = strings::split(lsofOut, "\n");
   int32_t p = -1;
   if (lines.size() < 3 || lines[2].substr(0, 3) != "n*:" ||
       !safe_strto32(lines[2].substr(3), &p) || p <= 0) {
-    return Status::RuntimeError("unexpected lsof output", lsof_out);
+    return Status::RuntimeError("unexpected lsof output", lsofOut);
   }
   CHECK(p > 0 && p < std::numeric_limits<uint16_t>::max())
       << "parsed invalid port: " << p;
@@ -431,22 +431,21 @@ Status waitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
   return waitForBind(pid, port, "4UDP", timeout);
 }
 
-Status
-findHomeDir(const string& name, const string& bin_dir, string* home_dir) {
-  string name_upper;
-  toUpperCase(name, &name_upper);
+Status findHomeDir(const string& name, const string& binDir, string* homeDir) {
+  string nameUpper;
+  toUpperCase(name, &nameUpper);
 
-  string env_var = fmt::format("{}_HOME", name_upper);
-  const char* env = std::getenv(env_var.c_str());
+  string envVar = fmt::format("{}_HOME", nameUpper);
+  const char* env = std::getenv(envVar.c_str());
   string dir = env == nullptr
-      ? JoinPathSegments(bin_dir, fmt::format("{}-home", name))
+      ? JoinPathSegments(binDir, fmt::format("{}-home", name))
       : env;
 
   if (!Env::Default()->FileExists(dir)) {
     return Status::NotFound(
-        fmt::format("{} directory does not exist", env_var), dir);
+        fmt::format("{} directory does not exist", envVar), dir);
   }
-  *home_dir = dir;
+  *homeDir = dir;
   return Status::OK();
 }
 

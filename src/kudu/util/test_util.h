@@ -67,7 +67,7 @@ class KuduTest : public ::testing::Test {
   // Returns absolute path based on a unit test-specific work directory, given
   // a relative path. Useful for writing test files that should be deleted after
   // the test ends.
-  std::string GetTestPath(const std::string& relative_path) const;
+  std::string GetTestPath(const std::string& relativePath) const;
 
   Env* env_;
 
@@ -91,8 +91,8 @@ bool AllowSlowTests();
 //     fmt::format("{}", FLAGS_client_inserts_per_thread * 100));
 //
 void overrideFlagForSlowTests(
-    const std::string& flag_name,
-    const std::string& new_value);
+    const std::string& flagName,
+    const std::string& newValue);
 
 // Call srand() with a random seed based on the current time, reporting
 // that seed to the logs. The time-based seed may be overridden by passing
@@ -135,10 +135,10 @@ void assertEventually(
     AssertBackoff backoff = AssertBackoff::Exponential);
 
 // Count the number of open file descriptors in use by this process.
-// 'path_pattern' is a glob-style pattern. Only paths that match this
+// 'pathPattern' is a glob-style pattern. Only paths that match this
 // pattern are included. Note that '*' in this pattern is recursive
 // unlike the usual behavior of path globs.
-int countOpenFds(Env* env, const std::string& path_pattern);
+int countOpenFds(Env* env, const std::string& pathPattern);
 
 // Waits for the subprocess to bind to any listening TCP port, and returns the
 // port.
@@ -157,8 +157,8 @@ Status waitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
 // directory.
 Status findHomeDir(
     const std::string& name,
-    const std::string& bin_dir,
-    std::string* home_dir) WARN_UNUSED_RESULT;
+    const std::string& binDir,
+    std::string* homeDir) WARN_UNUSED_RESULT;
 
 } // namespace kudu
 #endif
