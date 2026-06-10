@@ -1038,16 +1038,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Begin a replica transaction. If the type of message in 'msg' is not a
   // type that uses transactions, delegates to
-  // StartConsensusOnlyRoundUnlocked().
-  Status StartFollowerTransactionUnlocked(const ReplicateRefPtr& msg);
+  // startConsensusOnlyRoundUnlocked().
+  Status startFollowerTransactionUnlocked(const ReplicateRefPtr& msg);
 
-  // Just like StartFollowerTransactionUnlocked() above but with msg wrapper
+  // Just like startFollowerTransactionUnlocked() above but with msg wrapper
   // as input
-  Status StartFollowerTransactionUnlocked(
+  Status startFollowerTransactionUnlocked(
       const ReplicateMsgWrapper& msg_wrapper);
 
   // Returns true if this node is the only voter in the Raft configuration.
-  bool IsSingleVoterConfig() const;
+  bool isSingleVoterConfig() const;
 
   // Return header string for RequestVote log messages. 'lock_' must be held.
   std::string getRequestVoteLogPrefixUnlocked(
@@ -1225,15 +1225,15 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // it may fail due to the configuration changing, the local node losing
   // leadership, or the tablet shutting down.
   // Logs a warning on failure.
-  void TryRemoveFollowerTask(
+  void tryRemoveFollowerTask(
       const std::string& uuid,
       const RaftConfigPB& committedConfig,
       const std::string& reason);
 
   // Attempt to promote the given non-voter to a voter.
-  void TryPromoteNonVoterTask(const std::string& peerUuid);
+  void tryPromoteNonVoterTask(const std::string& peerUuid);
 
-  void TryStartElectionOnPeerTask(
+  void tryStartElectionOnPeerTask(
       const std::string& peerUuid,
       const std::optional<PeerMessageQueue::TransferContext>& transferContext,
       std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise = nullptr,
@@ -1252,51 +1252,51 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // to disk as the committed configuration. A non-OK status indicates that
   // the replication failed, in which case the pending configuration needs
   // to be cleared such that we revert back to the old configuration.
-  void CompleteConfigChangeRoundUnlocked(
+  void completeConfigChangeRoundUnlocked(
       ConsensusRound* round,
       const Status& status);
 
   // As a leader, append a new ConsensusRound to the queue.
-  Status AppendNewRoundToQueueUnlocked(
+  Status appendNewRoundToQueueUnlocked(
       const std::shared_ptr<ConsensusRound>& round);
 
   // As a follower, start a consensus round not associated with a Transaction.
-  Status StartConsensusOnlyRoundUnlocked(const ReplicateRefPtr& msg);
+  Status startConsensusOnlyRoundUnlocked(const ReplicateRefPtr& msg);
 
   // Add a new pending operation to PendingRounds, including the special
   // handling necessary if this round contains a configuration change. These
   // rounds must take effect as soon as they are received, rather than waiting
   // for commitment (see Diego Ongaro's thesis section 4.1).
-  Status AddPendingOperationUnlocked(
+  Status addPendingOperationUnlocked(
       const std::shared_ptr<ConsensusRound>& round);
 
   // Checks that the replica is in the appropriate state and role to replicate
   // the provided operation and that the replicate message does not yet have
   // an OpId assigned.
-  Status CheckSafeToReplicateUnlocked(const ReplicateMsg& msg) const
+  Status checkSafeToReplicateUnlocked(const ReplicateMsg& msg) const
       WARN_UNUSED_RESULT;
 
   // Return Status::IllegalState if 'state_' != kRunning, OK otherwise.
-  Status CheckRunningUnlocked() const WARN_UNUSED_RESULT;
+  Status checkRunningUnlocked() const WARN_UNUSED_RESULT;
 
   // Ensure the local peer is the active leader.
   // Returns OK if leader, IllegalState otherwise.
-  Status CheckActiveLeaderUnlocked() const WARN_UNUSED_RESULT;
+  Status checkActiveLeaderUnlocked() const WARN_UNUSED_RESULT;
 
   // Returns OK if there is currently *no* configuration change pending, and
   // IllegalState is there *is* a configuration change pending.
-  Status CheckNoConfigChangePendingUnlocked() const WARN_UNUSED_RESULT;
+  Status checkNoConfigChangePendingUnlocked() const WARN_UNUSED_RESULT;
 
   // Sets the given configuration as pending commit. Does not persist into the
-  // peers metadata. In order to be persisted, SetCommittedConfigUnlocked()
+  // peers metadata. In order to be persisted, setCommittedConfigUnlocked()
   // must be called.
-  Status SetPendingConfigUnlocked(const RaftConfigPB& new_config)
+  Status setPendingConfigUnlocked(const RaftConfigPB& new_config)
       WARN_UNUSED_RESULT;
 
   // Changes the committed config for this replica. Checks that there is a
   // pending configuration and that it is equal to this one. Persists changes
   // to disk. Resets the pending configuration to null.
-  Status SetCommittedConfigUnlocked(const RaftConfigPB& config_to_commit);
+  Status setCommittedConfigUnlocked(const RaftConfigPB& config_to_commit);
 
   void ScheduleTermAdvancementCallback(int64_t term);
   void DoTermAdvancmentCallback(int64_t term);

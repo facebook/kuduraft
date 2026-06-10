@@ -608,7 +608,7 @@ Status RaftConsensus::start(
         << " pending transactions. Active config: "
         << SecureShortDebugString(cmeta_->activeConfig());
     for (const auto& replicate_ptr : info->orphaned_replicates) {
-      RETURN_NOT_OK(StartFollowerTransactionUnlocked(replicate_ptr));
+      RETURN_NOT_OK(startFollowerTransactionUnlocked(replicate_ptr));
     }
 
     // Set the initial committed opid for the PendingRounds only after
@@ -642,7 +642,7 @@ Status RaftConsensus::start(
     setStateUnlocked(kRunning);
   }
 
-  if (IsSingleVoterConfig() && FLAGS_enable_leader_failure_detection) {
+  if (isSingleVoterConfig() && FLAGS_enable_leader_failure_detection) {
     LOG_WITH_PREFIX(INFO)
         << "Only one voter in the Raft config. Triggering election immediately";
     RETURN_NOT_OK(startElection(
@@ -673,7 +673,7 @@ Status RaftConsensus::emulateElection() {
 
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  RETURN_NOT_OK(CheckRunningUnlocked());
+  RETURN_NOT_OK(checkRunningUnlocked());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Emulating election...";
 
@@ -735,7 +735,7 @@ Status RaftConsensus::startElection(
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    RETURN_NOT_OK(CheckRunningUnlocked());
+    RETURN_NOT_OK(checkRunningUnlocked());
 
     if (!persistentVars_->isStartElectionAllowed()) {
       std::string msg = fmt::format(
@@ -955,7 +955,7 @@ Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
        cmeta_->activeRole() == RaftPeerPB::LEADER) ||
       (!queue_->isInLeaderMode() &&
        cmeta_->activeRole() != RaftPeerPB::LEADER));
-  RETURN_NOT_OK(CheckRunningUnlocked());
+  RETURN_NOT_OK(checkRunningUnlocked());
   if (cmeta_->activeRole() != RaftPeerPB::LEADER) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting request to step down while not leader";
@@ -987,7 +987,7 @@ Status RaftConsensus::ValidateTransferLeadership(
        cmeta_->activeRole() == RaftPeerPB::LEADER) ||
       (!queue_->isInLeaderMode() &&
        cmeta_->activeRole() != RaftPeerPB::LEADER));
-  RETURN_NOT_OK(CheckRunningUnlocked());
+  RETURN_NOT_OK(checkRunningUnlocked());
   if (cmeta_->activeRole() != RaftPeerPB::LEADER) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting request to tranfser leadership while not leader";
@@ -1268,7 +1268,7 @@ Status RaftConsensus::becomeLeaderUnlocked() {
 
   lastLeaderCommunicationTimeMicros_ = 0;
 
-  return AppendNewRoundToQueueUnlocked(round);
+  return appendNewRoundToQueueUnlocked(round);
 }
 
 Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
@@ -1301,9 +1301,9 @@ Status RaftConsensus::replicate(const std::shared_ptr<ConsensusRound>& round) {
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    RETURN_NOT_OK(CheckSafeToReplicateUnlocked(*round->replicate_msg()));
+    RETURN_NOT_OK(checkSafeToReplicateUnlocked(*round->replicate_msg()));
     RETURN_NOT_OK(round->CheckBoundTerm(currentTermUnlocked()));
-    RETURN_NOT_OK(AppendNewRoundToQueueUnlocked(round));
+    RETURN_NOT_OK(appendNewRoundToQueueUnlocked(round));
     round->setFlushCompleteTime(std::chrono::steady_clock::now());
   }
 
@@ -1315,7 +1315,7 @@ Status RaftConsensus::truncateCallbackWithRaftLock(
     int64_t* index_if_truncated) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  RETURN_NOT_OK(CheckRunningUnlocked());
+  RETURN_NOT_OK(checkRunningUnlocked());
 
   // We pass -1 to TruncateOpsAfter in the log abstraction
   // It is the responsibility of the derived log to truncate from
@@ -1333,12 +1333,12 @@ Status RaftConsensus::checkLeadershipAndBindTerm(
     const std::shared_ptr<ConsensusRound>& round) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  RETURN_NOT_OK(CheckSafeToReplicateUnlocked(*round->replicate_msg()));
+  RETURN_NOT_OK(checkSafeToReplicateUnlocked(*round->replicate_msg()));
   round->BindToTerm(currentTermUnlocked());
   return Status::OK();
 }
 
-Status RaftConsensus::AppendNewRoundToQueueUnlocked(
+Status RaftConsensus::appendNewRoundToQueueUnlocked(
     const std::shared_ptr<ConsensusRound>& round) {
   DCHECK(lock_.is_locked());
 
@@ -1360,7 +1360,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
   } else {
     *round->replicate_msg()->mutable_id() = queue_->GetNextOpId();
   }
-  RETURN_NOT_OK(AddPendingOperationUnlocked(round));
+  RETURN_NOT_OK(addPendingOperationUnlocked(round));
 
   ReplicateMsgWrapper msg_wrapper(round->replicate_scoped_refptr());
   RETURN_NOT_OK(msg_wrapper.init(&compressionBuffer_));
@@ -1376,7 +1376,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
   return Status::OK();
 }
 
-Status RaftConsensus::AddPendingOperationUnlocked(
+Status RaftConsensus::addPendingOperationUnlocked(
     const std::shared_ptr<ConsensusRound>& round) {
   DCHECK(lock_.is_locked());
   DCHECK(pending_);
@@ -1399,7 +1399,7 @@ Status RaftConsensus::AddPendingOperationUnlocked(
     const RaftConfigPB& new_config = change_record->new_config();
 
     if (!new_config.unsafe_config_change()) {
-      Status s = CheckNoConfigChangePendingUnlocked();
+      Status s = checkNoConfigChangePendingUnlocked();
       if (PREDICT_FALSE(!s.ok())) {
         s = s.cloneAndAppend(
             fmt::format(
@@ -1414,7 +1414,7 @@ Status RaftConsensus::AddPendingOperationUnlocked(
     int64_t committed_config_opid_index =
         cmeta_->getConfigOpIdIndex(kCommittedConfig);
     if (round->replicate_msg()->id().index() > committed_config_opid_index) {
-      RETURN_NOT_OK(SetPendingConfigUnlocked(new_config));
+      RETURN_NOT_OK(setPendingConfigUnlocked(new_config));
       if (cmeta_->activeRole() == RaftPeerPB::LEADER) {
         RETURN_NOT_OK(refreshConsensusQueueAndPeersUnlocked());
       }
@@ -1478,7 +1478,7 @@ void RaftConsensus::notifyTermChange(int64_t term) {
 
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  Status s = CheckRunningUnlocked();
+  Status s = checkRunningUnlocked();
   if (PREDICT_FALSE(!s.ok())) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Unable to handle notification of new term " << "(" << term
@@ -1531,12 +1531,12 @@ void RaftConsensus::notifyFailedFollower(
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
-              &RaftConsensus::TryRemoveFollowerTask,
+              &RaftConsensus::tryRemoveFollowerTask,
               shared_from_this(),
               uuid,
               committedConfig,
               reason)),
-      LogPrefixThreadSafe() + "Unable to start TryRemoveFollowerTask");
+      LogPrefixThreadSafe() + "Unable to start tryRemoveFollowerTask");
 }
 
 void RaftConsensus::notifyPeerToPromote(const std::string& peerUuid) {
@@ -1544,10 +1544,10 @@ void RaftConsensus::notifyPeerToPromote(const std::string& peerUuid) {
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
-              &RaftConsensus::TryPromoteNonVoterTask,
+              &RaftConsensus::tryPromoteNonVoterTask,
               shared_from_this(),
               peerUuid)),
-      LogPrefixThreadSafe() + "Unable to start TryPromoteNonVoterTask");
+      LogPrefixThreadSafe() + "Unable to start tryPromoteNonVoterTask");
 }
 
 void RaftConsensus::notifyPeerToStartElection(
@@ -1559,13 +1559,13 @@ void RaftConsensus::notifyPeerToStartElection(
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
-              &RaftConsensus::TryStartElectionOnPeerTask,
+              &RaftConsensus::tryStartElectionOnPeerTask,
               shared_from_this(),
               peerUuid,
               std::move(transferContext),
               promise,
               std::move(mockElectionSnapshotOpId))),
-      LogPrefixThreadSafe() + "Unable to start TryStartElectionOnPeerTask");
+      LogPrefixThreadSafe() + "Unable to start tryStartElectionOnPeerTask");
 }
 
 void RaftConsensus::notifyPeerHealthChange() {
@@ -1577,7 +1577,7 @@ void RaftConsensus::handleNewTermAppendedUnlocked(int64_t new_term) {
   CHECK_OK(cmeta_->syncLastKnownLeader(new_term));
 }
 
-void RaftConsensus::TryRemoveFollowerTask(
+void RaftConsensus::tryRemoveFollowerTask(
     const string& uuid,
     const RaftConfigPB& committedConfig,
     const std::string& reason) {
@@ -1594,7 +1594,7 @@ void RaftConsensus::TryRemoveFollowerTask(
       LogPrefixThreadSafe() + "Unable to remove follower " + uuid);
 }
 
-void RaftConsensus::TryPromoteNonVoterTask(const std::string& peerUuid) {
+void RaftConsensus::tryPromoteNonVoterTask(const std::string& peerUuid) {
   string msg = fmt::format("attempt to promote peer {}: ", peerUuid);
   int64_t currentCommittedConfigIndex;
   {
@@ -1651,7 +1651,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peerUuid) {
           fmt::format("Unable to promote non-voter {}", peerUuid));
 }
 
-void RaftConsensus::TryStartElectionOnPeerTask(
+void RaftConsensus::tryStartElectionOnPeerTask(
     const string& peerUuid,
     const std::optional<PeerMessageQueue::TransferContext>& transferContext,
     std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
@@ -1755,15 +1755,15 @@ static bool IsConsensusOnlyOperation(OperationType op_type) {
   return op_type == NO_OP || op_type == CHANGE_CONFIG_OP;
 }
 
-Status RaftConsensus::StartFollowerTransactionUnlocked(
+Status RaftConsensus::startFollowerTransactionUnlocked(
     const ReplicateMsgWrapper& msg_wrapper) {
   if (!msg_wrapper.getUncompressedMsg()) {
     return Status::IllegalState("Rejected: Msg wrapper is null");
   }
-  return StartFollowerTransactionUnlocked(msg_wrapper.getUncompressedMsg());
+  return startFollowerTransactionUnlocked(msg_wrapper.getUncompressedMsg());
 }
 
-Status RaftConsensus::StartFollowerTransactionUnlocked(
+Status RaftConsensus::startFollowerTransactionUnlocked(
     const ReplicateRefPtr& msg) {
   DCHECK(lock_.is_locked());
 
@@ -1781,7 +1781,7 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
   }
 
   if (IsConsensusOnlyOperation(msg->get()->op_type())) {
-    return StartConsensusOnlyRoundUnlocked(msg);
+    return startConsensusOnlyRoundUnlocked(msg);
   }
 
   if (PREDICT_FALSE(FLAGS_follower_fail_all_prepare)) {
@@ -1794,10 +1794,10 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
       << "Starting transaction: " << SecureShortDebugString(msg->get()->id());
   std::shared_ptr<ConsensusRound> round(new ConsensusRound(this, msg));
   RETURN_NOT_OK(roundHandler_->startFollowerTransaction(round));
-  return AddPendingOperationUnlocked(round);
+  return addPendingOperationUnlocked(round);
 }
 
-bool RaftConsensus::IsSingleVoterConfig() const {
+bool RaftConsensus::isSingleVoterConfig() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   return cmeta_->countVotersInConfig(kCommittedConfig) == 1 &&
@@ -2210,7 +2210,7 @@ Status RaftConsensus::updateReplica(
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    RETURN_NOT_OK(CheckRunningUnlocked());
+    RETURN_NOT_OK(checkRunningUnlocked());
     if (!cmeta_->isMemberInConfig(peer_uuid(), kActiveConfig)) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Allowing update even though not a member of the config";
@@ -2366,7 +2366,7 @@ Status RaftConsensus::updateReplica(
       prepareStatus = msgWrapper.init(&compressionBuffer_);
 
       if (prepareStatus.ok()) {
-        prepareStatus = StartFollowerTransactionUnlocked(msgWrapper);
+        prepareStatus = startFollowerTransactionUnlocked(msgWrapper);
       }
 
       if (PREDICT_FALSE(!prepareStatus.ok())) {
@@ -3020,9 +3020,9 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
     RaftConfigPB* newConfig) {
   {
     DCHECK(lock_.is_locked());
-    RETURN_NOT_OK(CheckRunningUnlocked());
-    RETURN_NOT_OK(CheckActiveLeaderUnlocked());
-    RETURN_NOT_OK(CheckNoConfigChangePendingUnlocked());
+    RETURN_NOT_OK(checkRunningUnlocked());
+    RETURN_NOT_OK(checkActiveLeaderUnlocked());
+    RETURN_NOT_OK(checkNoConfigChangePendingUnlocked());
 
     // We are required by Raft to reject config change operations until we have
     // committed at least one operation in our current term as leader.
@@ -3230,7 +3230,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
 
                 // In SINGLE REGION DYANMIC mode, we only do this extra check
                 // in current LEADER region. the local peer is the LEADER
-                // because of CheckActiveLeaderUnlocked above
+                // because of checkActiveLeaderUnlocked above
                 if (quorumId != peer_quorum_id(/* need_lock */ false)) {
                   break;
                 }
@@ -3598,7 +3598,7 @@ void RaftConsensus::shutdown() {
   shutdown_.store(true, kMemOrderRelease);
 }
 
-Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
+Status RaftConsensus::startConsensusOnlyRoundUnlocked(
     const ReplicateRefPtr& msg) {
   DCHECK(lock_.is_locked());
   OperationType op_type = msg->get()->op_type();
@@ -3634,13 +3634,13 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
             std::move(client_cb),
             std::placeholders::_1));
   }
-  return AddPendingOperationUnlocked(round);
+  return addPendingOperationUnlocked(round);
 }
 
 Status RaftConsensus::advanceTermForTests(int64_t new_term) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  CHECK_OK(CheckRunningUnlocked());
+  CHECK_OK(checkRunningUnlocked());
   return handleTermAdvanceUnlocked(new_term);
 }
 
@@ -4018,7 +4018,7 @@ Status RaftConsensus::replicateConfigChangeUnlocked(
           std::move(clientCb),
           std::placeholders::_1));
 
-  return AppendNewRoundToQueueUnlocked(round);
+  return appendNewRoundToQueueUnlocked(round);
 }
 
 Status RaftConsensus::createReplicateMsgFromConfigsUnlocked(
@@ -4201,7 +4201,7 @@ void RaftConsensus::doElectionCallback(
   // The vote was granted, become leader.
   ThreadRestrictions::assertWaitAllowed();
   UniqueLock lock(lock_);
-  Status s = CheckRunningUnlocked();
+  Status s = checkRunningUnlocked();
   if (PREDICT_FALSE(!s.ok())) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Received " << electionType << " callback for term " << electionTerm
@@ -4409,7 +4409,7 @@ void RaftConsensus::nonTxRoundReplicationFinished(
       << "Unexpected op type: " << op_type_str;
 
   if (op_type == CHANGE_CONFIG_OP) {
-    CompleteConfigChangeRoundUnlocked(round, status);
+    completeConfigChangeRoundUnlocked(round, status);
     // Fall through to the generic handling.
   }
 
@@ -4444,7 +4444,7 @@ void RaftConsensus::nonTxRoundReplicationFinished(
   clientCb(status);
 }
 
-void RaftConsensus::CompleteConfigChangeRoundUnlocked(
+void RaftConsensus::completeConfigChangeRoundUnlocked(
     ConsensusRound* round,
     const Status& status) {
   DCHECK(lock_.is_locked());
@@ -4509,7 +4509,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Committing config change with OpId " << opId << ": " << configDiff
         << ". New config: { " << SecureShortDebugString(newConfig) << " }";
-    CHECK_OK(SetCommittedConfigUnlocked(newConfig));
+    CHECK_OK(setCommittedConfigUnlocked(newConfig));
 
     if (FLAGS_track_removed_peers) {
       cmeta_->insertIntoRemovedPeersList(removedPeers);
@@ -4754,14 +4754,14 @@ Status RaftConsensus::handleTermAdvanceUnlocked(
   return Status::OK();
 }
 
-Status RaftConsensus::CheckSafeToReplicateUnlocked(
+Status RaftConsensus::checkSafeToReplicateUnlocked(
     const ReplicateMsg& /* msg */) const {
   DCHECK(lock_.is_locked());
-  RETURN_NOT_OK(CheckRunningUnlocked());
-  return CheckActiveLeaderUnlocked();
+  RETURN_NOT_OK(checkRunningUnlocked());
+  return checkActiveLeaderUnlocked();
 }
 
-Status RaftConsensus::CheckRunningUnlocked() const {
+Status RaftConsensus::checkRunningUnlocked() const {
   DCHECK(lock_.is_locked());
   if (PREDICT_FALSE(state_ != kRunning)) {
     return Status::IllegalState(
@@ -4771,7 +4771,7 @@ Status RaftConsensus::CheckRunningUnlocked() const {
   return Status::OK();
 }
 
-Status RaftConsensus::CheckActiveLeaderUnlocked() const {
+Status RaftConsensus::checkActiveLeaderUnlocked() const {
   DCHECK(lock_.is_locked());
   RaftPeerPB::Role role = cmeta_->activeRole();
   switch (role) {
@@ -4798,7 +4798,7 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
   }
 }
 
-Status RaftConsensus::CheckNoConfigChangePendingUnlocked() const {
+Status RaftConsensus::checkNoConfigChangePendingUnlocked() const {
   DCHECK(lock_.is_locked());
   if (cmeta_->hasPendingConfig()) {
     return Status::IllegalState(
@@ -4811,7 +4811,7 @@ Status RaftConsensus::CheckNoConfigChangePendingUnlocked() const {
   return Status::OK();
 }
 
-Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
+Status RaftConsensus::setPendingConfigUnlocked(const RaftConfigPB& new_config) {
   DCHECK(lock_.is_locked());
   RETURN_NOT_OK_PREPEND(
       verifyRaftConfig(new_config), "Invalid config to set as pending");
@@ -4858,7 +4858,7 @@ Status RaftConsensus::changeVoterDistribution(
   // changes and force apply a voter distribution to run an election
   if (!force) {
     // Do not allow any voter distribution changes on a unsquelched ring.
-    Status s = CheckNoConfigChangePendingUnlocked();
+    Status s = checkNoConfigChangePendingUnlocked();
     RETURN_NOT_OK(s);
   }
 
@@ -4900,9 +4900,9 @@ QuorumType RaftConsensus::getQuorumType() const {
       : QuorumType::REGION;
 }
 
-Status RaftConsensus::SetCommittedConfigUnlocked(
+Status RaftConsensus::setCommittedConfigUnlocked(
     const RaftConfigPB& config_to_commit) {
-  TRACE_EVENT0("consensus", "RaftConsensus::SetCommittedConfigUnlocked");
+  TRACE_EVENT0("consensus", "RaftConsensus::setCommittedConfigUnlocked");
   DCHECK(lock_.is_locked());
   DCHECK(config_to_commit.IsInitialized());
   RETURN_NOT_OK_PREPEND(
@@ -5252,7 +5252,7 @@ void RaftConsensus::handleProxyRequest(
     // messages.
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    RET_RESPOND_ERROR_NOT_OK(CheckRunningUnlocked());
+    RET_RESPOND_ERROR_NOT_OK(checkRunningUnlocked());
     active_config = cmeta_->activeConfig();
   }
 
