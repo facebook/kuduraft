@@ -385,11 +385,11 @@ Status ClientNegotiation::sendConnectionContext() {
   RequestHeader header;
   header.set_call_id(kConnectionContextCallId);
 
-  ConnectionContextPB conn_context;
+  ConnectionContextPB connContext;
   // This field is deprecated, use a default value for backward compatibility.
-  conn_context.mutable_deprecated_user_info()->set_real_user("cpp-client");
+  connContext.mutable_deprecated_user_info()->set_real_user("cpp-client");
 
-  return sendFramedMessageBlocking(socket(), header, conn_context, deadline_);
+  return sendFramedMessageBlocking(socket(), header, connContext, deadline_);
 }
 
 } // namespace rpc

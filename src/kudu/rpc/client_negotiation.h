@@ -52,8 +52,8 @@ class ClientNegotiation {
  public:
   // Creates a new client negotiation instance, taking ownership of the
   // provided socket. After completing the negotiation process by setting the
-  // desired options and calling Negotiate(), the socket can be retrieved with
-  // 'release_socket'.
+  // desired options and calling negotiate(), the socket can be retrieved with
+  // 'releaseSocket'.
   //
   // The provided TlsContext must outlive this negotiation instance.
   ClientNegotiation(
@@ -63,32 +63,32 @@ class ClientNegotiation {
       RpcEncryption encryption);
 
   // Returns the negotiated authentication type for the connection.
-  // Must be called after Negotiate().
+  // Must be called after negotiate().
   AuthenticationType negotiatedAuthn() const {
     DCHECK_NE(negotiatedAuthn_, AuthenticationType::Invalid);
     return negotiatedAuthn_;
   }
 
   // Returns true if TLS was negotiated.
-  // Must be called after Negotiate().
+  // Must be called after negotiate().
   bool tlsNegotiated() const {
     return tlsNegotiated_;
   }
 
   // Returns true if normal TLS was negotiated.
-  // Must be called after Negotiate().
+  // Must be called after negotiate().
   bool normalTlsNegotiated() const {
     return normalTlsNegotiated_;
   }
 
   // Returns the set of RPC system features supported by the remote server.
-  // Must be called before Negotiate().
+  // Must be called before negotiate().
   std::set<RpcFeatureFlag> serverFeatures() const {
     return serverFeatures_;
   }
 
   // Returns the set of RPC system features supported by the remote server.
-  // Must be called after Negotiate().
+  // Must be called after negotiate().
   // Subsequent calls to this method or serverFeatures() will return an empty
   // set.
   std::set<RpcFeatureFlag> takeServerFeatures() {
@@ -104,7 +104,7 @@ class ClientNegotiation {
 
   // Takes and returns the socket owned by this client negotiation. The caller
   // will own the socket after this call, and the negotiation instance should no
-  // longer be used. Must be called after Negotiate(). Subsequent calls to this
+  // longer be used. Must be called after negotiate(). Subsequent calls to this
   // method or socket() will return a null pointer.
   std::unique_ptr<Socket> releaseSocket() {
     return std::move(socket_);
