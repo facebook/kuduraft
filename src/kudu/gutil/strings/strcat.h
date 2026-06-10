@@ -185,9 +185,9 @@ inline std::string strCat(
     const AlphaNum& g,
     const AlphaNum& h,
     const AlphaNum& i) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -201,9 +201,9 @@ inline std::string strCat(
     const AlphaNum& h,
     const AlphaNum& i,
     const AlphaNum& j) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -218,9 +218,9 @@ inline std::string strCat(
     const AlphaNum& i,
     const AlphaNum& j,
     const AlphaNum& k) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -236,9 +236,9 @@ inline std::string strCat(
     const AlphaNum& j,
     const AlphaNum& k,
     const AlphaNum& l) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -255,9 +255,9 @@ inline std::string strCat(
     const AlphaNum& k,
     const AlphaNum& l,
     const AlphaNum& m) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -275,9 +275,9 @@ inline std::string strCat(
     const AlphaNum& l,
     const AlphaNum& m,
     const AlphaNum& n) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -296,9 +296,9 @@ inline std::string strCat(
     const AlphaNum& m,
     const AlphaNum& n,
     const AlphaNum& o) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
-      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o, nullAlphanum);
+      &a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o, nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -318,7 +318,7 @@ inline std::string strCat(
     const AlphaNum& n,
     const AlphaNum& o,
     const AlphaNum& p) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -336,7 +336,7 @@ inline std::string strCat(
       &n,
       &o,
       &p,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -357,7 +357,7 @@ inline std::string strCat(
     const AlphaNum& o,
     const AlphaNum& p,
     const AlphaNum& q) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -376,7 +376,7 @@ inline std::string strCat(
       &o,
       &p,
       &q,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -398,7 +398,7 @@ inline std::string strCat(
     const AlphaNum& p,
     const AlphaNum& q,
     const AlphaNum& r) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -418,7 +418,7 @@ inline std::string strCat(
       &p,
       &q,
       &r,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -441,7 +441,7 @@ inline std::string strCat(
     const AlphaNum& q,
     const AlphaNum& r,
     const AlphaNum& s) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -462,7 +462,7 @@ inline std::string strCat(
       &q,
       &r,
       &s,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -486,7 +486,7 @@ inline std::string strCat(
     const AlphaNum& r,
     const AlphaNum& s,
     const AlphaNum& t) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -508,7 +508,7 @@ inline std::string strCat(
       &r,
       &s,
       &t,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -533,7 +533,7 @@ inline std::string strCat(
     const AlphaNum& s,
     const AlphaNum& t,
     const AlphaNum& u) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -556,7 +556,7 @@ inline std::string strCat(
       &s,
       &t,
       &u,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -582,7 +582,7 @@ inline std::string strCat(
     const AlphaNum& t,
     const AlphaNum& u,
     const AlphaNum& v) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -606,7 +606,7 @@ inline std::string strCat(
       &t,
       &u,
       &v,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -633,7 +633,7 @@ inline std::string strCat(
     const AlphaNum& u,
     const AlphaNum& v,
     const AlphaNum& w) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -658,7 +658,7 @@ inline std::string strCat(
       &u,
       &v,
       &w,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -686,7 +686,7 @@ inline std::string strCat(
     const AlphaNum& v,
     const AlphaNum& w,
     const AlphaNum& x) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -712,7 +712,7 @@ inline std::string strCat(
       &v,
       &w,
       &x,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -741,7 +741,7 @@ inline std::string strCat(
     const AlphaNum& w,
     const AlphaNum& x,
     const AlphaNum& y) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -768,7 +768,7 @@ inline std::string strCat(
       &w,
       &x,
       &y,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 inline std::string strCat(
@@ -798,7 +798,7 @@ inline std::string strCat(
     const AlphaNum& x,
     const AlphaNum& y,
     const AlphaNum& z) {
-  const AlphaNum* nullAlphanum = nullptr;
+  const AlphaNum* nullAlphaNum = nullptr;
   return strings::internal::strCatNineOrMore(
       &a,
       &b,
@@ -826,7 +826,7 @@ inline std::string strCat(
       &x,
       &y,
       &z,
-      nullAlphanum);
+      nullAlphaNum);
 }
 
 // ----------------------------------------------------------------------
