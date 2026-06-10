@@ -893,7 +893,7 @@ Status RaftConsensus::startElection(
     request.set_tablet_id(options_.tablet_id);
 
     if (context.mockElectionSnapshotOpId) {
-      *request.mutable_candidate_status()->mutable_last_received() = MinOpId(
+      *request.mutable_candidate_status()->mutable_last_received() = minOpId(
           *context.mockElectionSnapshotOpId, queue_->GetLastOpIdInLog());
       *request.mutable_mock_election_snapshot_op_id() =
           *context.mockElectionSnapshotOpId;
@@ -1839,7 +1839,7 @@ void RaftConsensus::deduplicateLeaderRequestUnlocked(
 
   // Snapshot the original ops range string before extraction empties the
   // request's ops list (needed for the deduplication log message below).
-  std::string originalOpsRange = OpsRangeString(*rpcReq);
+  std::string originalOpsRange = opsRangeString(*rpcReq);
 
   // Extract all ops from the request upfront so that ownership is explicit.
   // UnsafeArenaExtractSubrange releases the protobuf's ownership; we
@@ -1921,7 +1921,7 @@ Status RaftConsensus::handleLeaderRequestTermUnlocked(
           request->caller_uuid(),
           request->caller_term(),
           currentTermUnlocked(),
-          OpsRangeString(*request));
+          opsRangeString(*request));
       LOG_WITH_PREFIX_UNLOCKED(INFO) << msg;
       fillConsensusResponseError(
           response, ConsensusErrorPB::INVALID_TERM, Status::IllegalState(msg));
@@ -2643,7 +2643,7 @@ Status RaftConsensus::requestVote(
           "mock_election_snapshot_op_id must be provided in a Mock Election");
     }
     localLastLoggedOpId =
-        MinOpId(localLastLoggedOpId, request->mock_election_snapshot_op_id());
+        minOpId(localLastLoggedOpId, request->mock_election_snapshot_op_id());
   }
 
   // If the node is not in the configuration, allow the vote (this is required

@@ -43,21 +43,21 @@ bool OpIdEquals(const OpId& left, const OpId& right);
 bool OpIdLessThan(const OpId& left, const OpId& right);
 
 // Returns true iff left > right.
-bool OpIdBiggerThan(const OpId& left, const OpId& right);
+bool opIdBiggerThan(const OpId& left, const OpId& right);
 
-// Copies to_compare into target under the following conditions:
-// - If to_compare is initialized and target is not.
-// - If they are both initialized and to_compare is less than target.
+// Copies toCompare into target under the following conditions:
+// - If toCompare is initialized and target is not.
+// - If they are both initialized and toCompare is less than target.
 // Otherwise, does nothing.
-// If to_compare is copied into target, returns true, else false.
-bool CopyIfOpIdLessThan(const OpId& to_compare, OpId* target);
+// If toCompare is copied into target, returns true, else false.
+bool copyIfOpIdLessThan(const OpId& toCompare, OpId* target);
 
-const OpId& MinOpId(const OpId& left, const OpId& right);
+const OpId& minOpId(const OpId& left, const OpId& right);
 
 // Return -1 if left < right,
 //         0 if equal,
 //         1 if left > right.
-int OpIdCompare(const OpId& left, const OpId& right);
+int opIdCompare(const OpId& left, const OpId& right);
 
 // OpId hash functor. Suitable for use with std::unordered_map.
 struct OpIdHashFunctor {
@@ -100,11 +100,11 @@ std::ostream& operator<<(std::ostream& os, const consensus::OpId& op_id);
 OpId MinimumOpId();
 
 // Return the maximum possible OpId.
-OpId MaximumOpId();
+OpId maximumOpId();
 
 std::string OpIdToString(const OpId& id);
 
-std::string OpsRangeString(const ConsensusRequestPB& req);
+std::string opsRangeString(const ConsensusRequestPB& req);
 
 OpId MakeOpId(int64_t term, int64_t index);
 

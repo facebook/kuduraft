@@ -33,7 +33,7 @@ const int64_t kMinimumTerm = 0;
 const int64_t kMinimumOpIdIndex = 0;
 const int64_t kInvalidOpIdIndex = -1;
 
-int OpIdCompare(const OpId& left, const OpId& right) {
+int opIdCompare(const OpId& left, const OpId& right) {
   DCHECK(left.IsInitialized());
   DCHECK(right.IsInitialized());
   if (PREDICT_TRUE(left.term() == right.term())) {
@@ -62,7 +62,7 @@ bool OpIdLessThan(const OpId& left, const OpId& right) {
   return left.index() < right.index();
 }
 
-bool OpIdBiggerThan(const OpId& left, const OpId& right) {
+bool opIdBiggerThan(const OpId& left, const OpId& right) {
   DCHECK(left.IsInitialized());
   DCHECK(right.IsInitialized());
   if (left.term() > right.term()) {
@@ -74,18 +74,18 @@ bool OpIdBiggerThan(const OpId& left, const OpId& right) {
   return left.index() > right.index();
 }
 
-bool CopyIfOpIdLessThan(
-    const consensus::OpId& to_compare,
+bool copyIfOpIdLessThan(
+    const consensus::OpId& toCompare,
     consensus::OpId* target) {
-  if (to_compare.IsInitialized() &&
-      (!target->IsInitialized() || OpIdLessThan(to_compare, *target))) {
-    target->CopyFrom(to_compare);
+  if (toCompare.IsInitialized() &&
+      (!target->IsInitialized() || OpIdLessThan(toCompare, *target))) {
+    target->CopyFrom(toCompare);
     return true;
   }
   return false;
 }
 
-const OpId& MinOpId(const OpId& left, const OpId& right) {
+const OpId& minOpId(const OpId& left, const OpId& right) {
   return OpIdLessThan(left, right) ? left : right;
 }
 
@@ -114,21 +114,21 @@ bool OpIdCompareFunctor::operator()(const OpId& left, const OpId& right) const {
 
 bool OpIdBiggerThanFunctor::operator()(const OpId& left, const OpId& right)
     const {
-  return OpIdBiggerThan(left, right);
+  return opIdBiggerThan(left, right);
 }
 
 OpId MinimumOpId() {
-  OpId op_id;
-  op_id.set_term(0);
-  op_id.set_index(0);
-  return op_id;
+  OpId opId;
+  opId.set_term(0);
+  opId.set_index(0);
+  return opId;
 }
 
-OpId MaximumOpId() {
-  OpId op_id;
-  op_id.set_term(std::numeric_limits<int64_t>::max());
-  op_id.set_index(std::numeric_limits<int64_t>::max());
-  return op_id;
+OpId maximumOpId() {
+  OpId opId;
+  opId.set_term(std::numeric_limits<int64_t>::max());
+  opId.set_index(std::numeric_limits<int64_t>::max());
+  return opId;
 }
 
 // helper hash functor for delta store ids
@@ -147,8 +147,8 @@ struct DeltaIdEqualsTo {
   }
 };
 
-std::ostream& operator<<(std::ostream& os, const consensus::OpId& op_id) {
-  os << OpIdToString(op_id);
+std::ostream& operator<<(std::ostream& os, const consensus::OpId& opId) {
+  os << OpIdToString(opId);
   return os;
 }
 
@@ -159,19 +159,19 @@ std::string OpIdToString(const OpId& id) {
   return fmt::format("{}.{}", id.term(), id.index());
 }
 
-std::string OpsRangeString(const ConsensusRequestPB& req) {
+std::string opsRangeString(const ConsensusRequestPB& req) {
   std::string ret;
   ret.reserve(100);
   ret.push_back('[');
   if (req.ops_size() > 0) {
-    const OpId& first_op = req.ops(0).id();
-    const OpId& last_op = req.ops(req.ops_size() - 1).id();
+    const OpId& firstOp = req.ops(0).id();
+    const OpId& lastOp = req.ops(req.ops_size() - 1).id();
     ret += fmt::format(
         "{}.{}-{}.{}",
-        first_op.term(),
-        first_op.index(),
-        last_op.term(),
-        last_op.index());
+        firstOp.term(),
+        firstOp.index(),
+        lastOp.term(),
+        lastOp.index());
   }
   ret.push_back(']');
   return ret;
