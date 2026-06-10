@@ -38,35 +38,35 @@ using std::unique_ptr;
 // efficient.  Sets *text to the end of the double, and val to the
 // converted value, and the length of the double is subtracted from
 // *len. <double> may also be a '?', in which case val will be
-// unchanged. Returns true upon success.  If initial_minus is
-// non-NULL, then *initial_minus will indicate whether the first
+// unchanged. Returns true upon success.  If initialMinus is
+// non-NULL, then *initialMinus will indicate whether the first
 // symbol seen was a '-', which will be ignored. Similarly, if
-// final_period is non-NULL, then *final_period will indicate whether
+// finalPeriod is non-NULL, then *finalPeriod will indicate whether
 // the last symbol seen was a '.', which will be ignored. This is
 // useful in case that an initial '-' or final '.' would have another
 // meaning (as a separator, e.g.).
-static inline bool EatADouble(
+static inline bool eatADouble(
     const char** text,
     int* len,
-    bool allow_question,
+    bool allowQuestion,
     double* val,
-    bool* initial_minus,
-    bool* final_period) {
+    bool* initialMinus,
+    bool* finalPeriod) {
   const char* pos = *text;
   int rem = *len; // remaining length, or -1 if null-terminated
 
   if (pos == nullptr || rem == 0)
     return false;
 
-  if (allow_question && (*pos == '?')) {
+  if (allowQuestion && (*pos == '?')) {
     *text = pos + 1;
     if (rem != -1)
       *len = rem - 1;
     return true;
   }
 
-  if (initial_minus) {
-    if ((*initial_minus = (*pos == '-'))) { // Yes, we want assignment.
+  if (initialMinus) {
+    if ((*initialMinus = (*pos == '-'))) { // Yes, we want assignment.
       if (rem == 1)
         return false;
       ++pos;
@@ -81,52 +81,52 @@ static inline bool EatADouble(
     return false;
 
   // strtod is evil in that the second param is a non-const char**
-  char* end_nonconst;
+  char* endNonconst;
   double retval;
   if (rem == -1) {
-    retval = strtod(pos, &end_nonconst);
+    retval = strtod(pos, &endNonconst);
   } else {
     // not '\0'-terminated & no obvious terminator found. must copy.
     const unique_ptr<char[]> buf(new char[rem + 1]);
     memcpy(buf.get(), pos, rem);
     buf[rem] = '\0';
-    retval = strtod(buf.get(), &end_nonconst);
-    end_nonconst = const_cast<char*>(pos) + (end_nonconst - buf.get());
+    retval = strtod(buf.get(), &endNonconst);
+    endNonconst = const_cast<char*>(pos) + (endNonconst - buf.get());
   }
 
-  if (pos == end_nonconst)
+  if (pos == endNonconst)
     return false;
 
-  if (final_period) {
-    *final_period = (end_nonconst[-1] == '.');
-    if (*final_period) {
-      --end_nonconst;
+  if (finalPeriod) {
+    *finalPeriod = (endNonconst[-1] == '.');
+    if (*finalPeriod) {
+      --endNonconst;
     }
   }
 
-  *text = end_nonconst;
+  *text = endNonconst;
   *val = retval;
   if (rem != -1)
-    *len = rem - (end_nonconst - pos);
+    *len = rem - (endNonconst - pos);
   return true;
 }
 
-// If update, consume one of acceptable_chars from string *text of
+// If update, consume one of acceptableChars from string *text of
 // length len and return that char, or '\0' otherwise. If len is -1,
 // *text is null-terminated. If update is false, don't alter *text and
-// *len. If null_ok, then update must be false, and, if text has no
+// *len. If nullOk, then update must be false, and, if text has no
 // more chars, then return '\1' (arbitrary nonzero).
-static inline char EatAChar(
+static inline char eatAChar(
     const char** text,
     int* len,
-    const char* acceptable_chars,
+    const char* acceptableChars,
     bool update,
-    bool null_ok) {
-  assert(!(update && null_ok));
+    bool nullOk) {
+  assert(!(update && nullOk));
   if ((*len == 0) || (**text == '\0'))
-    return (null_ok ? '\1' : '\0'); // if null_ok, we're in predicate mode.
+    return (nullOk ? '\1' : '\0'); // if nullOk, we're in predicate mode.
 
-  if (strchr(acceptable_chars, **text)) {
+  if (strchr(acceptableChars, **text)) {
     char result = **text;
     if (update) {
       ++(*text);
@@ -149,7 +149,7 @@ bool parseDoubleRange(
     double* to,
     bool* isCurrency,
     const DoubleRangeOptions& opts) {
-  const double from_default = opts.dontModifyUnbounded ? *from : -HUGE_VAL;
+  const double fromDefault = opts.dontModifyUnbounded ? *from : -HUGE_VAL;
 
   if (!opts.dontModifyUnbounded) {
     *from = -HUGE_VAL;
@@ -166,18 +166,18 @@ bool parseDoubleRange(
 
   // Handle easier cases of comparators (<, >) first
   if (opts.allowComparators) {
-    char comparator = EatAChar(&text, &len, "<>", true, false);
+    char comparator = eatAChar(&text, &len, "<>", true, false);
     if (comparator) {
       double* dest = (comparator == '>') ? from : to;
-      EatAChar(&text, &len, "=", true, false);
-      if (opts.allowCurrency && EatAChar(&text, &len, "$", true, false))
+      eatAChar(&text, &len, "=", true, false);
+      if (opts.allowCurrency && eatAChar(&text, &len, "$", true, false))
         if (isCurrency != nullptr)
           *isCurrency = true;
-      if (!EatADouble(
+      if (!eatADouble(
               &text, &len, opts.allowUnboundedMarkers, dest, nullptr, nullptr))
         return false;
       *end = text;
-      return EatAChar(
+      return eatAChar(
           &text,
           &len,
           opts.acceptableTerminators,
@@ -186,8 +186,8 @@ bool parseDoubleRange(
     }
   }
 
-  bool seen_dollar =
-      (opts.allowCurrency && EatAChar(&text, &len, "$", true, false));
+  bool seenDollar =
+      (opts.allowCurrency && eatAChar(&text, &len, "$", true, false));
 
   // If we see a '-', two things could be happening: -<to> or
   // <from>... where <from> is negative. Treat initial minus sign as a
@@ -195,45 +195,45 @@ bool parseDoubleRange(
   // Similarly, we prepare for the possibility of seeing a '.' at the
   // end of the number, in case '.' (which really means '..') is a
   // separator.
-  bool initial_minus_sign = false;
-  bool final_period = false;
-  bool* check_initial_minus = (strchr(opts.separators, '-') && !seen_dollar &&
-                               (opts.numRequiredBounds < 2))
-      ? (&initial_minus_sign)
+  bool initialMinusSign = false;
+  bool finalPeriod = false;
+  bool* checkInitialMinus = (strchr(opts.separators, '-') && !seenDollar &&
+                             (opts.numRequiredBounds < 2))
+      ? (&initialMinusSign)
       : nullptr;
-  bool* check_final_period =
-      strchr(opts.separators, '.') ? (&final_period) : nullptr;
-  bool double_seen = EatADouble(
+  bool* checkFinalPeriod =
+      strchr(opts.separators, '.') ? (&finalPeriod) : nullptr;
+  bool doubleSeen = eatADouble(
       &text,
       &len,
       opts.allowUnboundedMarkers,
       from,
-      check_initial_minus,
-      check_final_period);
+      checkInitialMinus,
+      checkFinalPeriod);
 
   // if 2 bounds required, must see a double (or '?' if allowed)
-  if ((opts.numRequiredBounds == 2) && !double_seen)
+  if ((opts.numRequiredBounds == 2) && !doubleSeen)
     return false;
 
-  if (seen_dollar && !double_seen) {
+  if (seenDollar && !doubleSeen) {
     --text;
     if (len != -1)
       ++len;
-    seen_dollar = false;
+    seenDollar = false;
   }
   // If we're here, we've read the first double and now expect a
   // separator and another <double>.
-  char separator = EatAChar(&text, &len, opts.separators, true, false);
+  char separator = eatAChar(&text, &len, opts.separators, true, false);
   if (separator == '.') {
     // seen one '.' as separator; must check for another; perhaps set seplen=2
-    if (EatAChar(&text, &len, ".", true, false)) {
-      if (final_period) {
+    if (eatAChar(&text, &len, ".", true, false)) {
+      if (finalPeriod) {
         // We may have three periods in a row. The first is part of the
         // first number, the others are a separator. Policy: 234...567
         // is "234." to "567", not "234" to ".567".
-        EatAChar(&text, &len, ".", true, false);
+        eatAChar(&text, &len, ".", true, false);
       }
-    } else if (!EatAChar(&text, &len, opts.separators, true, false)) {
+    } else if (!eatAChar(&text, &len, opts.separators, true, false)) {
       // just one '.' and no other separator; uneat the first '.' we saw
       --text;
       if (len != -1)
@@ -244,42 +244,42 @@ bool parseDoubleRange(
   // By now, we've consumed whatever separator there may have been,
   // and separator is true iff there was one.
   if (!separator) {
-    if (final_period) // final period now considered part of first double
-      EatAChar(&text, &len, ".", true, false);
-    if (initial_minus_sign && double_seen) {
+    if (finalPeriod) // final period now considered part of first double
+      eatAChar(&text, &len, ".", true, false);
+    if (initialMinusSign && doubleSeen) {
       *to = *from;
-      *from = from_default;
+      *from = fromDefault;
     } else if (
-        opts.requireSeparator || (opts.numRequiredBounds > 0 && !double_seen) ||
+        opts.requireSeparator || (opts.numRequiredBounds > 0 && !doubleSeen) ||
         (opts.numRequiredBounds > 1)) {
       return false;
     }
   } else {
-    if (initial_minus_sign && double_seen)
+    if (initialMinusSign && doubleSeen)
       *from = -(*from);
     // read second <double>
-    bool second_dollar_seen =
-        (seen_dollar || (opts.allowCurrency && !double_seen)) &&
-        EatAChar(&text, &len, "$", true, false);
-    bool second_double_seen = EatADouble(
+    bool secondDollarSeen =
+        (seenDollar || (opts.allowCurrency && !doubleSeen)) &&
+        eatAChar(&text, &len, "$", true, false);
+    bool secondDoubleSeen = eatADouble(
         &text, &len, opts.allowUnboundedMarkers, to, nullptr, nullptr);
-    if (opts.numRequiredBounds > double_seen + second_double_seen)
+    if (opts.numRequiredBounds > doubleSeen + secondDoubleSeen)
       return false;
-    if (second_dollar_seen && !second_double_seen) {
+    if (secondDollarSeen && !secondDoubleSeen) {
       --text;
       if (len != -1)
         ++len;
-      second_dollar_seen = false;
+      secondDollarSeen = false;
     }
-    seen_dollar = seen_dollar || second_dollar_seen;
+    seenDollar = seenDollar || secondDollarSeen;
   }
 
-  if (seen_dollar && (isCurrency != nullptr))
+  if (seenDollar && (isCurrency != nullptr))
     *isCurrency = true;
   // We're done. But we have to check that the next char is a proper
   // terminator.
   *end = text;
-  char terminator = EatAChar(
+  char terminator = eatAChar(
       &text, &len, opts.acceptableTerminators, false, opts.nullTerminatorOk);
   if (terminator == '.')
     --(*end);
@@ -554,11 +554,11 @@ static const int8_t kAsciiToInt[256] = {
 // Input format based on POSIX.1-2008 strtol
 // http://pubs.opengroup.org/onlinepubs/9699919799/functions/strtol.html
 template <typename IntType>
-bool safe_int_internal(
+bool safeIntInternal(
     const char* start,
     const char* end,
     int base,
-    IntType* value_p) {
+    IntType* valueP) {
   // Consume whitespace.
   while (start < end && asciiIsSpace(start[0])) {
     ++start;
@@ -679,7 +679,7 @@ bool safe_int_internal(
   }
 
   // Store output.
-  *value_p = value;
+  *valueP = value;
   return true;
 }
 
@@ -690,7 +690,7 @@ bool safe_strto32_base(
     const int bufferSize,
     int32_t* v,
     int base) {
-  return safe_int_internal<int32_t>(startPtr, startPtr + bufferSize, base, v);
+  return safeIntInternal<int32_t>(startPtr, startPtr + bufferSize, base, v);
 }
 
 bool safe_strto64_base(
@@ -698,15 +698,15 @@ bool safe_strto64_base(
     const int bufferSize,
     int64_t* v,
     int base) {
-  return safe_int_internal<int64_t>(startPtr, startPtr + bufferSize, base, v);
+  return safeIntInternal<int64_t>(startPtr, startPtr + bufferSize, base, v);
 }
 
 bool safe_strto32(const char* startPtr, const int bufferSize, int32_t* value) {
-  return safe_int_internal<int32_t>(startPtr, startPtr + bufferSize, 10, value);
+  return safeIntInternal<int32_t>(startPtr, startPtr + bufferSize, 10, value);
 }
 
 bool safe_strto64(const char* startPtr, const int bufferSize, int64_t* value) {
-  return safe_int_internal<int64_t>(startPtr, startPtr + bufferSize, 10, value);
+  return safeIntInternal<int64_t>(startPtr, startPtr + bufferSize, 10, value);
 }
 
 bool safe_strto32_base(const char* str, int32_t* value, int base) {
