@@ -180,7 +180,7 @@ struct CpuTimes {
 // or more.
 //
 // NOTE: the user time reported by this class is based on Linux scheduler ticks
-// and thus has low precision. Use GetThreadCpuTimeMicros() from walltime.h if
+// and thus has low precision. Use getThreadCpuTimeMicros() from walltime.h if
 // more accurate per-thread CPU usage timing is required.
 class Stopwatch {
  public:
