@@ -67,13 +67,13 @@ class MultiThreadedRpcTest : public RpcTestBase {
       CountDownLatch* latch) {
     LOG(INFO) << "Connecting to " << serverAddr.ToString();
     shared_ptr<Messenger> clientMessenger;
-    CHECK_OK(CreateMessenger("ClientSC", &clientMessenger));
+    CHECK_OK(createMessenger("ClientSC", &clientMessenger));
     Proxy p(
         clientMessenger,
         serverAddr,
         serverAddr.host(),
         GenericCalculatorService::staticServiceName());
-    *result = DoTestSyncCall(p, methodName);
+    *result = doTestSyncCall(p, methodName);
     latch->countDown();
   }
 
@@ -83,7 +83,7 @@ class MultiThreadedRpcTest : public RpcTestBase {
       const char* methodName,
       Status* lastResult) {
     shared_ptr<Messenger> clientMessenger;
-    CHECK_OK(CreateMessenger("ClientHS", &clientMessenger));
+    CHECK_OK(createMessenger("ClientHS", &clientMessenger));
     hammerServerWithMessenger(
         serverAddr, methodName, lastResult, clientMessenger);
   }
@@ -103,7 +103,7 @@ class MultiThreadedRpcTest : public RpcTestBase {
     int i = 0;
     while (true) {
       i++;
-      Status s = DoTestSyncCall(p, methodName);
+      Status s = doTestSyncCall(p, methodName);
       if (!s.ok()) {
         // Return on first failure.
         LOG(INFO) << "Call failed. Shutting down client thread. Ran " << i
@@ -129,7 +129,7 @@ static void assertShutdown(kudu::Thread* thread, const Status* status) {
 TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   // Set up server.
   Sockaddr serverAddr;
-  ASSERT_OK(StartTestServer(&serverAddr));
+  ASSERT_OK(startTestServer(&serverAddr));
 
   const int kNumThreads = 4;
   std::shared_ptr<kudu::Thread> threads[kNumThreads];
@@ -164,10 +164,10 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
 TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   // Set up server.
   Sockaddr serverAddr;
-  ASSERT_OK(StartTestServer(&serverAddr));
+  ASSERT_OK(startTestServer(&serverAddr));
 
   shared_ptr<Messenger> clientMessenger;
-  ASSERT_OK(CreateMessenger("Client", &clientMessenger));
+  ASSERT_OK(createMessenger("Client", &clientMessenger));
 
   std::shared_ptr<kudu::Thread> thread;
   Status status;
@@ -323,7 +323,7 @@ static void hammerServerWithTcpConns(const Sockaddr& addr) {
 TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   // Set up server.
   Sockaddr serverAddr;
-  ASSERT_OK(StartTestServer(&serverAddr));
+  ASSERT_OK(startTestServer(&serverAddr));
 
   // Start a number of threads which just hammer the server with TCP
   // connections.
