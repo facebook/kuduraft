@@ -98,7 +98,7 @@ int getThreadPoolThreadLimit(Env* env) {
     uint64_t bufVal;
     for (const auto& procFile :
          {"/proc/sys/kernel/pid_max", "/proc/sys/kernel/threads-max"}) {
-      if (ReadFileToString(env, procFile, &buf).ok() &&
+      if (readFileToString(env, procFile, &buf).ok() &&
           safe_strtou64(buf.toString(), &bufVal)) {
         rlimit = std::min(rlimit, bufVal);
       }

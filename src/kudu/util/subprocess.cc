@@ -534,7 +534,7 @@ Status Subprocess::waitNoBlock(int* waitStatus) {
 Status Subprocess::getProcfsState(int pid, ProcfsState* state) {
   faststring data;
   string filename = fmt::format("/proc/{}/stat", pid);
-  RETURN_NOT_OK(ReadFileToString(Env::Default(), filename, &data));
+  RETURN_NOT_OK(readFileToString(Env::Default(), filename, &data));
 
   // The part of /proc/<pid>/stat that's relevant for us looks like this:
   //

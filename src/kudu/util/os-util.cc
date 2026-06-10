@@ -160,7 +160,7 @@ bool isBeingDebugged() {
   // If this is non-zero, we are being ptraced, which is indicative of gdb or
   // strace being attached.
   faststring buf;
-  Status s = ReadFileToString(Env::Default(), "/proc/self/status", &buf);
+  Status s = readFileToString(Env::Default(), "/proc/self/status", &buf);
   if (!s.ok()) {
     KLOG_FIRST_N(WARNING, 1)
         << "could not read /proc/self/status: " << s.ToString();

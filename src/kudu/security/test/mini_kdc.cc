@@ -199,7 +199,7 @@ kdc_tcp_ports = ""
   )";
   string fileContents = fmt::format(
       kFileTemplate, options_.dataRoot, options_.realm, options_.port);
-  return WriteStringToFile(
+  return writeStringToFile(
       Env::Default(),
       fileContents,
       JoinPathSegments(options_.dataRoot, "kdc.conf"));
@@ -254,7 +254,7 @@ Status MiniKdc::createKrb5Conf() const {
       options_.realm,
       options_.renewLifetime,
       options_.ticketLifetime);
-  return WriteStringToFile(
+  return writeStringToFile(
       Env::Default(),
       fileContents,
       JoinPathSegments(options_.dataRoot, "krb5.conf"));

@@ -30,7 +30,7 @@ Status createTestHtPasswd(const string& dir, string* passwdFile) {
   // user/password pair in kTestAuthString
   const char* kHtPasswd = "test:mydomain.com:8b6f595afb3c037b7bd79b89d9576d06";
   *passwdFile = JoinPathSegments(dir, "test.passwd");
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kHtPasswd, *passwdFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kHtPasswd, *passwdFile));
   return Status::OK();
 }
 

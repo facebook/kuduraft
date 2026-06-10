@@ -66,7 +66,7 @@ TEST_F(FlagsTest, TestNonDefaultFlags) {
       "--test_nondefault_ff=nondefault\n"
       "--test_default_ff=default";
 
-  CHECK_OK(WriteStringToFile(
+  CHECK_OK(writeStringToFile(
       Env::Default(),
       Slice(flagfileContents.data(), flagfileContents.size()),
       flagfilePath));

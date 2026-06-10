@@ -87,7 +87,7 @@ TEST(TestPstackWatcher, TestPstackWatcherRunning) {
   PCHECK(stdout = fdopen(STDOUT_FILENO, "w"));
 
   faststring contents;
-  CHECK_OK(ReadFileToString(Env::Default(), stdoutFile, &contents));
+  CHECK_OK(readFileToString(Env::Default(), stdoutFile, &contents));
   ASSERT_STR_CONTAINS(contents.toString(), "BEGIN STACKS");
   CHECK_ERR(unlink(stdoutFile.c_str()));
   ASSERT_GE(fprintf(stdout, "%s\n", contents.toString().c_str()), 0)

@@ -260,7 +260,7 @@ string GetTestDataDirectory() {
       strAppend(&metadata, fmt::format("BUILD_ID={}\n", jenkinsBuildId));
     }
 
-    CHECK_OK(WriteStringToFile(
+    CHECK_OK(writeStringToFile(
         Env::Default(), metadata, fmt::format("{}/test_metadata", dir)));
   }
   return dir;

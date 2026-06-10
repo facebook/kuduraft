@@ -385,8 +385,8 @@ dc+JVPKL8Fe4a8fmsI6ndcZQ9qpOdZM5WOD0ldKRc+SsrYKkTmOOJQ==
   *certFile = JoinPathSegments(dir, "test.cert");
   *keyFile = JoinPathSegments(dir, "test.key");
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kKey, *keyFile));
   return Status::OK();
 }
 
@@ -492,8 +492,8 @@ TOQYXv+dMtOkYg==
   *keyFile = JoinPathSegments(dir, "test.key");
   *keyPassword = kKeyPassword;
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kKey, *keyFile));
   return Status::OK();
 }
 
@@ -748,9 +748,9 @@ Wd40Cr+wAdHKN6t/oransoxu0EZ3HcSOI1umFg==
   *keyFile = JoinPathSegments(dir, "test.key");
   *caCertFile = JoinPathSegments(dir, "testchainca.cert");
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCaChainCert, *caCertFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kKey, *keyFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kCaChainCert, *caCertFile));
   return Status::OK();
 }
 
@@ -962,9 +962,9 @@ KH5H1VGmllMdZDHOamHHKA8mEDI4eAKY3HoOS4rfioT8Tks=
   *keyFile = JoinPathSegments(dir, "test.key");
   *caCertFile = JoinPathSegments(dir, "testchainca.cert");
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kRootCaCert, *caCertFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kKey, *keyFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kRootCaCert, *caCertFile));
   return Status::OK();
 }
 
@@ -1140,12 +1140,12 @@ BopMze8ABOCXS0KA0MepXjMKKFXAJqJlIieZIW0+bFenkNX6QPExS28WHbZeT6Fp
   *caCertFile = JoinPathSegments(dir, "chainca.pem");
 
   RETURN_NOT_OK(
-      WriteStringToFile(Env::Default(), kClientCert, *clientCertFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kClientKey, *clientKeyFile));
+      writeStringToFile(Env::Default(), kClientCert, *clientCertFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kClientKey, *clientKeyFile));
   RETURN_NOT_OK(
-      WriteStringToFile(Env::Default(), kServerCert, *serverCertFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kServerKey, *serverKeyFile));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCaChainCert, *caCertFile));
+      writeStringToFile(Env::Default(), kServerCert, *serverCertFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kServerKey, *serverKeyFile));
+  RETURN_NOT_OK(writeStringToFile(Env::Default(), kCaChainCert, *caCertFile));
   return Status::OK();
 }
 

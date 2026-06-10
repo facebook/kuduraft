@@ -689,11 +689,11 @@ class FileLock {
 
 // A utility routine: write "data" to the named file.
 extern Status
-WriteStringToFile(Env* env, const Slice& data, const std::string& fname);
+writeStringToFile(Env* env, const Slice& data, const std::string& fname);
 
 // A utility routine: read contents of named file into *data
 extern Status
-ReadFileToString(Env* env, const std::string& fname, faststring* data);
+readFileToString(Env* env, const std::string& fname, faststring* data);
 
 // Overloaded operator for printing Env::ResourceLimitType.
 std::ostream& operator<<(std::ostream& o, Env::ResourceLimitType t);

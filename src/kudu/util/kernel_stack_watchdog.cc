@@ -127,7 +127,7 @@ Status getKernelStack(pid_t p, string* ret) {
   MAYBE_INJECT_FIXED_LATENCY(FLAGS_inject_latency_on_kernel_stack_lookup_ms);
   faststring buf;
   RETURN_NOT_OK(
-      ReadFileToString(Env::Default(), fmt::format("/proc/{}/stack", p), &buf));
+      readFileToString(Env::Default(), fmt::format("/proc/{}/stack", p), &buf));
   *ret = buf.toString();
   return Status::OK();
 }

@@ -115,7 +115,7 @@ inline Status corruptLogFile(
     int corruptionOffset) {
   faststring buf;
   RETURN_NOT_OK_PREPEND(
-      ReadFileToString(env, logPath, &buf), "Couldn't read log");
+      readFileToString(env, logPath, &buf), "Couldn't read log");
 
   switch (type) {
     case kTruncateFile:
@@ -129,7 +129,7 @@ inline Status corruptLogFile(
 
   // Rewrite the file with the corrupt log.
   RETURN_NOT_OK_PREPEND(
-      WriteStringToFile(env, Slice(buf), logPath),
+      writeStringToFile(env, Slice(buf), logPath),
       "Couldn't rewrite corrupt log file");
 
   return Status::OK();

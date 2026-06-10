@@ -476,7 +476,7 @@ Status ServerBase::DumpServerInfo(const string& path, const string& format)
 
   if (boost::iequals(format, "json")) {
     string json = JsonWriter::toJson(status, JsonWriter::kPretty);
-    RETURN_NOT_OK(WriteStringToFile(options_.env, Slice(json), path));
+    RETURN_NOT_OK(writeStringToFile(options_.env, Slice(json), path));
   } else if (boost::iequals(format, "pb")) {
     // TODO: Use PB container format?
     RETURN_NOT_OK(

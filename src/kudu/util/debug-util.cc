@@ -728,7 +728,7 @@ Status StackTraceSnapshot::snapshotAllStacks() {
       // the Kudu ThreadMgr to get the thread names for the cases where we are
       // using the kudu::Thread wrapper at least.
       faststring buf;
-      Status s = ReadFileToString(
+      Status s = readFileToString(
           Env::Default(),
           fmt::format("/proc/self/task/{}/comm", info.tid),
           &buf);

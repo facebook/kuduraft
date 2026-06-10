@@ -55,11 +55,11 @@ static Status doWriteStringToFile(
 
 // TODO: move these utils into env_util
 Status
-WriteStringToFile(Env* env, const Slice& data, const std::string& fname) {
+writeStringToFile(Env* env, const Slice& data, const std::string& fname) {
   return doWriteStringToFile(env, data, fname, false);
 }
 
-Status ReadFileToString(Env* env, const std::string& fname, faststring* data) {
+Status readFileToString(Env* env, const std::string& fname, faststring* data) {
   data->clear();
   unique_ptr<SequentialFile> file;
   Status s = env->NewSequentialFile(fname, &file);
