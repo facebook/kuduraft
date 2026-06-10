@@ -101,7 +101,7 @@ class ConsensusMetadataManagerStressTest : public KuduTest {
 // operations for simultaneous access to the cmeta manager by different threads
 // on different tablet ids. For a given tablet id, a lock table is used as
 // external synchronization to ensure exclusive access by a single thread.
-TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
+TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTsanTest) {
   static const int kNumTablets = 26;
   static const int kNumThreads = 8;
   static const int kNumOpsPerThread = 1000;
