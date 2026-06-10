@@ -387,7 +387,7 @@ RaftConsensus::RaftConsensus(
 
 Status RaftConsensus::Init() {
   DCHECK_EQ(kNew, state_) << stateName(state_);
-  RETURN_NOT_OK(cmetaManager_->loadCMeta(options_.tablet_id, &cmeta_));
+  RETURN_NOT_OK(cmetaManager_->loadCmeta(options_.tablet_id, &cmeta_));
 
   RETURN_NOT_OK(persistentVarsManager_->loadPersistentVars(
       options_.tablet_id, &persistentVars_));

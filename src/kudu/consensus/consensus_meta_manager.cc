@@ -37,7 +37,7 @@ using std::string;
 ConsensusMetadataManager::ConsensusMetadataManager(FsManager* fsManager)
     : fsManager_(DCHECK_NOTNULL(fsManager)) {}
 
-Status ConsensusMetadataManager::createCMeta(
+Status ConsensusMetadataManager::createCmeta(
     const string& tabletId,
     const RaftConfigPB& config,
     int64_t initialTerm,
@@ -69,7 +69,7 @@ Status ConsensusMetadataManager::createCMeta(
   return Status::OK();
 }
 
-Status ConsensusMetadataManager::loadCMeta(
+Status ConsensusMetadataManager::loadCmeta(
     const string& tabletId,
     std::shared_ptr<ConsensusMetadata>* cmetaOut) {
   {
@@ -107,20 +107,20 @@ Status ConsensusMetadataManager::loadCMeta(
   return Status::OK();
 }
 
-Status ConsensusMetadataManager::loadOrCreateCMeta(
+Status ConsensusMetadataManager::loadOrCreateCmeta(
     const string& tabletId,
     const RaftConfigPB& config,
     int64_t initialTerm,
     ConsensusMetadataCreateMode createMode,
     std::shared_ptr<ConsensusMetadata>* cmetaOut) {
-  Status s = loadCMeta(tabletId, cmetaOut);
+  Status s = loadCmeta(tabletId, cmetaOut);
   if (s.IsNotFound()) {
-    return createCMeta(tabletId, config, initialTerm, createMode, cmetaOut);
+    return createCmeta(tabletId, config, initialTerm, createMode, cmetaOut);
   }
   return s;
 }
 
-Status ConsensusMetadataManager::deleteCMeta(const string& tabletId) {
+Status ConsensusMetadataManager::deleteCmeta(const string& tabletId) {
   {
     lock_guard<Mutex> l(cmetaLock_);
     cmetaCache_.erase(

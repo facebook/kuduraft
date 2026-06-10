@@ -164,7 +164,7 @@ Status TsTabletManager::load(FsManager* /* fsManager */) {
     LOG(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
-        cmetaManager_->loadCMeta(kSysCatalogTabletId, &cmeta),
+        cmetaManager_->loadCmeta(kSysCatalogTabletId, &cmeta),
         "Unable to load consensus metadata for tablet " + kSysCatalogTabletId);
     ConsensusStatePB cstate = cmeta->toConsensusStatePB();
     RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
@@ -226,7 +226,7 @@ Status TsTabletManager::createNew(FsManager* fsManager) {
   }
 
   RETURN_NOT_OK_PREPEND(
-      cmetaManager_->createCMeta(
+      cmetaManager_->createCmeta(
           kSysCatalogTabletId, config, consensus::kMinimumTerm),
       "Unable to persist consensus metadata for tablet " + kSysCatalogTabletId);
   // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation
@@ -389,7 +389,7 @@ Status TsTabletManager::start(bool isFirstRun) {
   // SetStatusMessage("Initialized. Waiting to start...");
 
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmetaManager_->loadCMeta(kSysCatalogTabletId, &cmeta);
+  Status s = cmetaManager_->loadCmeta(kSysCatalogTabletId, &cmeta);
 
   std::shared_ptr<PersistentVars> persistentVars;
   s = persistentVarsManager_->loadPersistentVars(
@@ -516,7 +516,7 @@ Status TsTabletManager::setupRaft() {
 
   // Not sure these 2 lines are required
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmetaManager_->loadCMeta(kSysCatalogTabletId, &cmeta);
+  Status s = cmetaManager_->loadCmeta(kSysCatalogTabletId, &cmeta);
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.

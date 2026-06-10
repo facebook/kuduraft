@@ -69,11 +69,11 @@ class ConsensusMetadataManagerTest : public KuduTest {
 TEST_F(ConsensusMetadataManagerTest, TestCreateLoad) {
   // Try to load a nonexistent instance.
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmetaManager_->loadCMeta(kTabletId, &cmeta);
+  Status s = cmetaManager_->loadCmeta(kTabletId, &cmeta);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
   // Create a new ConsensusMetadata instance.
-  ASSERT_OK(cmetaManager_->createCMeta(
+  ASSERT_OK(cmetaManager_->createCmeta(
       kTabletId,
       config_,
       kInitialTerm,
@@ -81,7 +81,7 @@ TEST_F(ConsensusMetadataManagerTest, TestCreateLoad) {
       &cmeta));
 
   // Load it back.
-  ASSERT_OK(cmetaManager_->loadCMeta(kTabletId, &cmeta));
+  ASSERT_OK(cmetaManager_->loadCmeta(kTabletId, &cmeta));
 
   // Ensure we got what we expected.
   ASSERT_EQ(kInitialTerm, cmeta->currentTerm());
@@ -89,16 +89,16 @@ TEST_F(ConsensusMetadataManagerTest, TestCreateLoad) {
       << diffRaftConfigs(config_, cmeta->committedConfig());
 }
 
-// Test the loadOrCreateCMeta() API.
+// Test the loadOrCreateCmeta() API.
 TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
   // Initial Load() should fail due to non-existence.
-  Status s = cmetaManager_->loadCMeta(kTabletId);
+  Status s = cmetaManager_->loadCmeta(kTabletId);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
   {
     // Create as needed (this call will perform the creation).
     std::shared_ptr<ConsensusMetadata> cmeta;
-    ASSERT_OK(cmetaManager_->loadOrCreateCMeta(
+    ASSERT_OK(cmetaManager_->loadOrCreateCmeta(
         kTabletId,
         config_,
         kInitialTerm,
@@ -109,7 +109,7 @@ TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
 
   // Load (this should not need to perform the creation).
   std::shared_ptr<ConsensusMetadata> cmeta;
-  ASSERT_OK(cmetaManager_->loadOrCreateCMeta(
+  ASSERT_OK(cmetaManager_->loadOrCreateCmeta(
       kTabletId,
       /*config=*/RaftConfigPB(), // Empty config.
       /*initial_term=*/123, // Different term.
@@ -118,7 +118,7 @@ TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
   ASSERT_TRUE(cmeta); // Ensure that the load path returns a valid cmeta.
 
   // Ensure we got the results of what we requested to create in our first
-  // loadOrCreateCMeta() call, above, not the second call.
+  // loadOrCreateCmeta() call, above, not the second call.
   ASSERT_EQ(kInitialTerm, cmeta->currentTerm());
   ASSERT_TRUE(MessageDifferencer::Equals(config_, cmeta->committedConfig()))
       << diffRaftConfigs(config_, cmeta->committedConfig());
@@ -127,24 +127,24 @@ TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
 // Test Delete.
 TEST_F(ConsensusMetadataManagerTest, TestDelete) {
   // Create a ConsensusMetadata instance.
-  ASSERT_OK(cmetaManager_->createCMeta(kTabletId, config_, kInitialTerm));
+  ASSERT_OK(cmetaManager_->createCmeta(kTabletId, config_, kInitialTerm));
 
   // Now delete it.
-  ASSERT_OK(cmetaManager_->deleteCMeta(kTabletId));
+  ASSERT_OK(cmetaManager_->deleteCmeta(kTabletId));
 
   // Can't load it because it's gone.
-  Status s = cmetaManager_->loadCMeta(kTabletId);
+  Status s = cmetaManager_->loadCmeta(kTabletId);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 }
 
 // Test attempting to create multiple "unflushed" cmeta instances.
 TEST_F(ConsensusMetadataManagerTest, TestCreateMultipleUnFlushedCMetas) {
-  ASSERT_OK(cmetaManager_->createCMeta(
+  ASSERT_OK(cmetaManager_->createCmeta(
       kTabletId,
       config_,
       kInitialTerm,
       ConsensusMetadataCreateMode::NoFlushOnCreate));
-  Status s = cmetaManager_->createCMeta(
+  Status s = cmetaManager_->createCmeta(
       kTabletId,
       config_,
       kInitialTerm,
@@ -156,14 +156,14 @@ TEST_F(ConsensusMetadataManagerTest, TestCreateMultipleUnFlushedCMetas) {
 // Test that we can't clobber (overwrite) an existing cmeta.
 TEST_F(ConsensusMetadataManagerTest, TestNoClobber) {
   // Create a ConsensusMetadata instance.
-  ASSERT_OK(cmetaManager_->createCMeta(kTabletId, config_, kInitialTerm));
+  ASSERT_OK(cmetaManager_->createCmeta(kTabletId, config_, kInitialTerm));
 
   // Creating it again should fail, both in FlushOnCreate and
   // NoFlushOnCreate modes.
   for (auto createMode :
        {ConsensusMetadataCreateMode::FlushOnCreate,
         ConsensusMetadataCreateMode::NoFlushOnCreate}) {
-    Status s = cmetaManager_->createCMeta(
+    Status s = cmetaManager_->createCmeta(
         kTabletId, config_, kInitialTerm, createMode);
     ASSERT_TRUE(s.isAlreadyPresent()) << s.ToString();
     ASSERT_STR_CONTAINS(s.ToString(), "already exists");

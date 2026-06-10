@@ -55,7 +55,7 @@ class ConsensusMetadataManager {
   // Create a ConsensusMetadata instance keyed by 'tabletId'.
   // Returns an error if a ConsensusMetadata instance with that key already
   // exists.
-  Status createCMeta(
+  Status createCmeta(
       const std::string& tabletId,
       const RaftConfigPB& config,
       int64_t initialTerm,
@@ -66,7 +66,7 @@ class ConsensusMetadataManager {
   // Load the ConsensusMetadata instance keyed by 'tabletId'.
   // Returns an error if it cannot be found, either in 'cmetaCache_' or on
   // disk.
-  Status loadCMeta(
+  Status loadCmeta(
       const std::string& tabletId,
       std::shared_ptr<ConsensusMetadata>* cmetaOut = nullptr);
 
@@ -74,7 +74,7 @@ class ConsensusMetadataManager {
   // otherwise create it using the given parameters 'config' and
   // 'initialTerm'. If the instance already exists, those parameters are
   // ignored.
-  Status loadOrCreateCMeta(
+  Status loadOrCreateCmeta(
       const std::string& tabletId,
       const RaftConfigPB& config,
       int64_t initialTerm,
@@ -86,7 +86,7 @@ class ConsensusMetadataManager {
   // Returns Status::NotFound if the instance does not exist on disk.
   // Returns another error if the cmeta instance exists but cannot be deleted
   // for some reason, perhaps due to a permissions or I/O-related issue.
-  Status deleteCMeta(const std::string& tabletId);
+  Status deleteCmeta(const std::string& tabletId);
 
   // Create DurableRoutingTable.
   Status createDrt(

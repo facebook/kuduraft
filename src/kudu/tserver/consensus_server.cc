@@ -258,7 +258,7 @@ Status RaftConsensusInstance::start(bool /*isFirstRun*/) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmetaManager_->loadCMeta(id_, &cmeta);
+  Status s = cmetaManager_->loadCmeta(id_, &cmeta);
 
   std::shared_ptr<PersistentVars> persistentVars;
   s = persistentVarsManager_->loadPersistentVars(id_, &persistentVars);
@@ -387,7 +387,7 @@ Status RaftConsensusInstance::createNew(FsManager* fsManager) {
   }
 
   RETURN_NOT_OK_PREPEND(
-      cmetaManager_->createCMeta(id_, config, consensus::kMinimumTerm),
+      cmetaManager_->createCmeta(id_, config, consensus::kMinimumTerm),
       "Unable to persist consensus metadata for tablet " + id_);
   // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation
   // time. For now, we initialize with an empty proxy graph.
@@ -405,7 +405,7 @@ Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
-        cmetaManager_->loadCMeta(id_, &cmeta),
+        cmetaManager_->loadCmeta(id_, &cmeta),
         "Unable to load consensus metadata for tablet " + id_);
     const ConsensusStatePB& cstate = cmeta->toConsensusStatePB();
     RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
@@ -595,7 +595,7 @@ Status RaftConsensusInstance::setupRaft() {
 
   // Not sure these 2 lines are required
   std::shared_ptr<ConsensusMetadata> cmeta;
-  RETURN_NOT_OK(cmetaManager_->loadCMeta(id_, &cmeta));
+  RETURN_NOT_OK(cmetaManager_->loadCmeta(id_, &cmeta));
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.
