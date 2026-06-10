@@ -109,7 +109,7 @@ class GenericCalculatorService : public ServiceIf {
     // this test doesn't generate metrics, so we ignore the argument.
   }
 
-  void Handle(InboundCall* incoming) override {
+  void handle(InboundCall* incoming) override {
     if (incoming->remoteMethod().methodName() == kAddMethodName) {
       doAdd(incoming);
     } else if (incoming->remoteMethod().methodName() == kSleepMethodName) {

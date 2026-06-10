@@ -58,7 +58,7 @@ namespace rpc {
 
 ServiceIf::~ServiceIf() {}
 
-void ServiceIf::Shutdown() {}
+void ServiceIf::shutdown() {}
 
 bool ServiceIf::supportsFeature(uint32_t feature) const {
   return false;
@@ -104,7 +104,7 @@ void ServiceIf::respondBadMethod(InboundCall* call) {
 
 GeneratedServiceIf::~GeneratedServiceIf() {}
 
-void GeneratedServiceIf::Handle(InboundCall* call) {
+void GeneratedServiceIf::handle(InboundCall* call) {
   const RpcMethodInfo* methodInfo = call->methodInfo();
   if (!methodInfo) {
     respondBadMethod(call);

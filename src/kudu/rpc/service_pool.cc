@@ -127,7 +127,7 @@ void ServicePool::shutdown() {
         ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   }
 
-  service_->Shutdown();
+  service_->shutdown();
 }
 
 void ServicePool::rejectTooBusy(InboundCall* c) {
@@ -260,7 +260,7 @@ void ServicePool::runThread() {
 
     // Release the InboundCall pointer -- when the call is responded to,
     // it will get deleted at that point.
-    service_->Handle(incoming.release());
+    service_->handle(incoming.release());
   }
 }
 

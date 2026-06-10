@@ -80,10 +80,10 @@ struct RpcMethodInfo : public std::enable_shared_from_this<RpcMethodInfo> {
 class ServiceIf {
  public:
   virtual ~ServiceIf();
-  virtual void Handle(InboundCall* incoming) = 0;
+  virtual void handle(InboundCall* incoming) = 0;
   virtual void notifyLongCallLoading(const RemoteMethod& method) = 0;
   virtual void notifyLongCallLoaded(const RemoteMethod& method) = 0;
-  virtual void Shutdown();
+  virtual void shutdown();
   virtual std::string serviceName() const = 0;
 
   // The service should return true if it supports the provided application
@@ -125,7 +125,7 @@ class GeneratedServiceIf : public ServiceIf {
   // it on the current thread.
   //
   // If no such method is found, responds with an error.
-  void Handle(InboundCall* incoming) override;
+  void handle(InboundCall* incoming) override;
 
   void notifyLongCallLoading(const RemoteMethod& method) override;
 
