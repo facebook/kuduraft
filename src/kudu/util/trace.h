@@ -39,7 +39,7 @@ class Trace;
 // scope. The old current Trace is restored when the scope is exited.
 //
 // 't' should be a std::shared_ptr<Trace>.
-#define ADOPT_TRACE(t) kudu::ScopedAdoptTrace _adopt_trace(t);
+#define ADOPT_TRACE(t) kudu::ScopedAdoptTrace _adoptTrace(t);
 
 // Issue a trace message, if tracing is enabled in the current thread.
 // See Trace::substituteAndTrace for arguments.
@@ -66,7 +66,7 @@ class Trace;
 // slightly more structured information makes it easier to aggregate
 // and show information back to operators.
 //
-// NOTE: the 'counter_name' MUST be a string which stays alive forever.
+// NOTE: the 'counterName' MUST be a string which stays alive forever.
 // Typically, this is a compile-time constant. If something other than
 // a constant is required, use TraceMetrics::internName() in order to
 // create a string which will last for the process lifetime. Of course,
@@ -75,12 +75,12 @@ class Trace;
 //
 // If no trace is active, this does nothing and does not evaluate its
 // parameters.
-#define TRACE_COUNTER_INCREMENT(counter_name, val)     \
-  do {                                                 \
-    kudu::Trace* _trace = Trace::currentTrace();       \
-    if (_trace) {                                      \
-      _trace->metrics()->increment(counter_name, val); \
-    }                                                  \
+#define TRACE_COUNTER_INCREMENT(counterName, val)     \
+  do {                                                \
+    kudu::Trace* _trace = Trace::currentTrace();      \
+    if (_trace) {                                     \
+      _trace->metrics()->increment(counterName, val); \
+    }                                                 \
   } while (0);
 
 // Increment a counter for the amount of wall time spent in the current
@@ -93,22 +93,22 @@ class Trace;
 //
 //  will result in a trace metric indicating the number of microseconds spent
 //  in invocations of DoFoo().
-#define TRACE_COUNTER_SCOPE_LATENCY_US(counter_name) \
-  ::kudu::ScopedTraceLatencyCounter _scoped_latency(counter_name)
+#define TRACE_COUNTER_SCOPE_LATENCY_US(counterName) \
+  ::kudu::ScopedTraceLatencyCounter _scopedLatency(counterName)
 
 // Construct a constant C string counter name which acts as a sort of
 // coarse-grained histogram for trace metrics.
-#define BUCKETED_COUNTER_NAME(prefix, duration_us) \
-  [=]() -> const char* {                           \
-    if ((duration_us) >= 100 * 1000) {             \
-      return prefix "_gt_100_ms";                  \
-    } else if ((duration_us) >= 10 * 1000) {       \
-      return prefix "_10-100_ms";                  \
-    } else if ((duration_us) >= 1000) {            \
-      return prefix "_1-10_ms";                    \
-    } else {                                       \
-      return prefix "_lt_1ms";                     \
-    }                                              \
+#define BUCKETED_COUNTER_NAME(prefix, durationUs) \
+  [=]() -> const char* {                          \
+    if ((durationUs) >= 100 * 1000) {             \
+      return prefix "_gt_100_ms";                 \
+    } else if ((durationUs) >= 10 * 1000) {       \
+      return prefix "_10-100_ms";                 \
+    } else if ((durationUs) >= 1000) {            \
+      return prefix "_1-10_ms";                   \
+    } else {                                      \
+      return prefix "_lt_1ms";                    \
+    }                                             \
   }();
 
 namespace kudu {
