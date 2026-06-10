@@ -581,13 +581,13 @@ class PosixRandomAccessFile : public RandomAccessFile {
 // order to further improve Sync() performance.
 class PosixWritableFile : public WritableFile {
  public:
-  PosixWritableFile(string fname, int fd, uint64_t file_size, bool syncOnClose)
+  PosixWritableFile(string fname, int fd, uint64_t fileSize, bool syncOnClose)
       : filename_(std::move(fname)),
         fd_(fd),
         syncOnClose_(syncOnClose),
-        filesize_(file_size),
-        pre_allocated_size_(0),
-        pending_sync_(false),
+        filesize_(fileSize),
+        preAllocatedSize_(0),
+        pendingSync_(false),
         closed_(false) {}
 
   ~PosixWritableFile() {
@@ -602,13 +602,13 @@ class PosixWritableFile : public WritableFile {
     ThreadRestrictions::assertIoAllowed();
     RETURN_NOT_OK(doWriteV(fd_, filename_, filesize_, data));
     // Calculate the amount of data written
-    size_t bytes_written = accumulate(
+    size_t bytesWritten = accumulate(
         data.begin(),
         data.end(),
         static_cast<size_t>(0),
         [&](int sum, const Slice& curr) { return sum + curr.size(); });
-    filesize_ += bytes_written;
-    pending_sync_ = true;
+    filesize_ += bytesWritten;
+    pendingSync_ = true;
     return Status::OK();
   }
 
@@ -617,7 +617,7 @@ class PosixWritableFile : public WritableFile {
 
     TRACE_EVENT1("io", "PosixWritableFile::PreAllocate", "path", filename_);
     ThreadRestrictions::assertIoAllowed();
-    uint64_t offset = std::max(filesize_, pre_allocated_size_);
+    uint64_t offset = std::max(filesize_, preAllocatedSize_);
     int ret;
     RETRY_ON_EINTR(ret, fallocate(fd_, 0, offset, size));
     if (ret != 0) {
@@ -631,7 +631,7 @@ class PosixWritableFile : public WritableFile {
         return ioError(filename_, errno);
       }
     }
-    pre_allocated_size_ = offset + size;
+    preAllocatedSize_ = offset + size;
     return Status::OK();
   }
 
@@ -646,22 +646,22 @@ class PosixWritableFile : public WritableFile {
 
     // If we've allocated more space than we used, truncate to the
     // actual size of the file and perform Sync().
-    if (filesize_ < pre_allocated_size_) {
+    if (filesize_ < preAllocatedSize_) {
       int ret;
       RETRY_ON_EINTR(ret, ftruncate(fd_, filesize_));
       if (ret != 0) {
         s = ioError(filename_, errno);
-        pending_sync_ = true;
+        pendingSync_ = true;
       }
     }
 
     if (syncOnClose_) {
-      Status sync_status = Sync();
-      if (!sync_status.ok()) {
+      Status syncStatus = Sync();
+      if (!syncStatus.ok()) {
         LOG(ERROR) << "Unable to Sync " << filename_ << ": "
-                   << sync_status.ToString();
+                   << syncStatus.ToString();
         if (s.ok()) {
-          s = sync_status;
+          s = syncStatus;
         }
       }
     }
@@ -698,8 +698,8 @@ class PosixWritableFile : public WritableFile {
     ThreadRestrictions::assertIoAllowed();
     LOG_SLOW_EXECUTION(
         WARNING, 1000, fmt::format("sync call for {}", filename_)) {
-      if (pending_sync_) {
-        pending_sync_ = false;
+      if (pendingSync_) {
+        pendingSync_ = false;
         RETURN_NOT_OK(doSync(fd_, filename_));
       }
     }
@@ -720,8 +720,8 @@ class PosixWritableFile : public WritableFile {
   const bool syncOnClose_;
 
   uint64_t filesize_;
-  uint64_t pre_allocated_size_;
-  bool pending_sync_;
+  uint64_t preAllocatedSize_;
+  bool pendingSync_;
   bool closed_;
 };
 
@@ -731,7 +731,7 @@ class PosixRWFile : public RWFile {
       : filename_(std::move(fname)),
         fd_(fd),
         syncOnClose_(syncOnClose),
-        is_on_xfs_(false),
+        isOnXfs_(false),
         closed_(false) {}
 
   ~PosixRWFile() {
@@ -761,12 +761,12 @@ class PosixRWFile : public RWFile {
 
     TRACE_EVENT1("io", "PosixRWFile::PreAllocate", "path", filename_);
     ThreadRestrictions::assertIoAllowed();
-    int falloc_mode = 0;
+    int fallocMode = 0;
     if (mode == kDontChangeFileSize) {
-      falloc_mode = FALLOC_FL_KEEP_SIZE;
+      fallocMode = FALLOC_FL_KEEP_SIZE;
     }
     int ret;
-    RETRY_ON_EINTR(ret, fallocate(fd_, falloc_mode, offset, length));
+    RETRY_ON_EINTR(ret, fallocate(fd_, fallocMode, offset, length));
     if (ret != 0) {
       if (errno == EOPNOTSUPP) {
         KLOG_FIRST_N(WARNING, 1)
@@ -813,14 +813,14 @@ class PosixRWFile : public RWFile {
       bool result;
       Status s = doIsOnXfsFilesystem(filename_, &result);
       if (s.ok()) {
-        is_on_xfs_ = result;
+        isOnXfs_ = result;
       } else {
         KLOG_EVERY_N_SECS(WARNING, 1) << fmt::format(
             "Could not determine whether file is on xfs, assuming not: {}",
             s.ToString());
       }
     });
-    if (is_on_xfs_ && FLAGS_env_use_ioctl_hole_punch_on_xfs) {
+    if (isOnXfs_ && FLAGS_env_use_ioctl_hole_punch_on_xfs) {
       xfs_flock64_t cmd;
       memset(&cmd, 0, sizeof(cmd));
       cmd.l_start = offset;
@@ -973,7 +973,7 @@ class PosixRWFile : public RWFile {
   const bool syncOnClose_;
 
   std::once_flag once_;
-  bool is_on_xfs_;
+  bool isOnXfs_;
   bool closed_;
 };
 
@@ -1191,13 +1191,13 @@ class PosixEnv : public Env {
     if (FLAGS_never_fsync) {
       return Status::OK();
     }
-    int dir_fd;
-    RETRY_ON_EINTR(dir_fd, open(dirname.c_str(), O_DIRECTORY | O_RDONLY));
-    if (dir_fd < 0) {
+    int dirFd;
+    RETRY_ON_EINTR(dirFd, open(dirname.c_str(), O_DIRECTORY | O_RDONLY));
+    if (dirFd < 0) {
       return ioError(dirname, errno);
     }
-    ScopedFdCloser fd_closer(dir_fd);
-    if (fsync(dir_fd) != 0) {
+    ScopedFdCloser fdCloser(dirFd);
+    if (fsync(dirFd) != 0) {
       return ioError(dirname, errno);
     }
     return Status::OK();
@@ -1344,9 +1344,9 @@ class PosixEnv : public Env {
         PLOG(WARNING) << "Failed to close fd " << fd;
       }
     } else {
-      auto my_lock = new PosixFileLock;
-      my_lock->fd_ = fd;
-      *lock = my_lock;
+      auto myLock = new PosixFileLock;
+      myLock->fd_ = fd;
+      *lock = myLock;
     }
     return result;
   }
@@ -1354,15 +1354,15 @@ class PosixEnv : public Env {
   virtual Status UnlockFile(FileLock* lock) override {
     TRACE_EVENT0("io", "PosixEnv::UnlockFile");
     ThreadRestrictions::assertIoAllowed();
-    unique_ptr<PosixFileLock> my_lock(reinterpret_cast<PosixFileLock*>(lock));
+    unique_ptr<PosixFileLock> myLock(reinterpret_cast<PosixFileLock*>(lock));
     Status result;
-    if (lockOrUnlock(my_lock->fd_, false) == -1) {
+    if (lockOrUnlock(myLock->fd_, false) == -1) {
       result = ioError("unlock", errno);
     }
     int err;
-    RETRY_ON_EINTR(err, close(my_lock->fd_));
+    RETRY_ON_EINTR(err, close(myLock->fd_));
     if (PREDICT_FALSE(err != 0)) {
-      PLOG(WARNING) << "Failed to close fd " << my_lock->fd_;
+      PLOG(WARNING) << "Failed to close fd " << myLock->fd_;
     }
     return result;
   }
@@ -1457,8 +1457,8 @@ class PosixEnv : public Env {
 
     // FTS requires a non-const copy of the name. strdup it and free() when
     // we leave scope.
-    unique_ptr<char, FreeDeleter> name_dup(strdup(root.c_str()));
-    char*(paths[]) = {name_dup.get(), nullptr};
+    unique_ptr<char, FreeDeleter> nameDup(strdup(root.c_str()));
+    char*(paths[]) = {nameDup.get(), nullptr};
 
     // FTS_NOCHDIR is important here to make this thread-safe.
     FTS* ret;
@@ -1470,7 +1470,7 @@ class PosixEnv : public Env {
     unique_ptr<FTS, FtsCloser> tree(ret);
 
     FTSENT* ent = nullptr;
-    bool had_errors = false;
+    bool hadErrors = false;
     while ((ent = fts_read(tree.get())) != nullptr) {
       bool doCb = false;
       FileType type = kDirectoryType;
@@ -1498,7 +1498,7 @@ class PosixEnv : public Env {
         case FTS_NS:
           LOG(WARNING) << "Unable to access file " << ent->fts_path
                        << " during walk: " << strerror(ent->fts_errno);
-          had_errors = true;
+          hadErrors = true;
           break;
 
         default:
@@ -1508,12 +1508,12 @@ class PosixEnv : public Env {
       }
       if (doCb) {
         if (!cb.Run(type, dirName(ent->fts_path), ent->fts_name).ok()) {
-          had_errors = true;
+          hadErrors = true;
         }
       }
     }
 
-    if (had_errors) {
+    if (hadErrors) {
       return Status::IOError(root, "One or more errors occurred");
     }
     return Status::OK();
@@ -1586,23 +1586,23 @@ class PosixEnv : public Env {
     //
     // This change is logged because it is process-wide.
 
-    int rlimit_type = resourceLimitTypeToUnixRlimit(t);
+    int rlimitType = resourceLimitTypeToUnixRlimit(t);
     struct rlimit l;
-    PCHECK(getrlimit(rlimit_type, &l) == 0);
-    const char* rlimit_str = resourceLimitTypeToString(t);
+    PCHECK(getrlimit(rlimitType, &l) == 0);
+    const char* rlimitStr = resourceLimitTypeToString(t);
     if (l.rlim_cur < l.rlim_max) {
       LOG(INFO) << fmt::format(
           "Raising this process' {} limit from {} to {}",
-          rlimit_str,
+          rlimitStr,
           l.rlim_cur,
           l.rlim_max);
       l.rlim_cur = l.rlim_max;
-      PCHECK(setrlimit(rlimit_type, &l) == 0);
+      PCHECK(setrlimit(rlimitType, &l) == 0);
     } else {
       LOG(INFO) << fmt::format(
           "Not raising this process' {} limit of {}; it "
           "is already as high as it can go",
-          rlimit_str,
+          rlimitStr,
           l.rlim_cur);
     }
   }
@@ -1644,15 +1644,15 @@ class PosixEnv : public Env {
     }
     CHECK_NE(gParsedUmask, -1);
     if (s.st_mode & gParsedUmask) {
-      uint32_t old_perms = s.st_mode & ACCESSPERMS;
-      uint32_t new_perms = old_perms & ~gParsedUmask;
+      uint32_t oldPerms = s.st_mode & ACCESSPERMS;
+      uint32_t newPerms = oldPerms & ~gParsedUmask;
       LOG(WARNING) << "Path " << path << " has permissions "
-                   << fmt::format("{:03o}", old_perms)
+                   << fmt::format("{:03o}", oldPerms)
                    << " which are less restrictive than current umask value "
                    << fmt::format("{:03o}", gParsedUmask)
                    << ": resetting permissions to "
-                   << fmt::format("{:03o}", new_perms);
-      if (chmod(path.c_str(), new_perms) != 0) {
+                   << fmt::format("{:03o}", newPerms);
+      if (chmod(path.c_str(), newPerms) != 0) {
         return ioError("chmod", errno);
       }
     }
@@ -1692,8 +1692,8 @@ class PosixEnv : public Env {
     ::snprintf(
         fname.get(), nameTemplate.size() + 1, "%s", nameTemplate.c_str());
     MAYBE_RETURN_EIO(fname.get(), ioError(Env::kInjectedFailureStatusMsg, EIO));
-    int created_fd = mkstemp(fname.get());
-    if (created_fd < 0) {
+    int createdFd = mkstemp(fname.get());
+    if (createdFd < 0) {
       return ioError(
           fmt::format(
               "Call to mkstemp() failed on name template {}", nameTemplate),
@@ -1702,11 +1702,11 @@ class PosixEnv : public Env {
     // mkstemp defaults to making files with permissions 0600. But, if the
     // user configured a more permissive umask, then we ensure that the
     // resulting file gets the desired (wider) permissions.
-    uint32_t new_perms = 0666 & ~gParsedUmask;
-    if (new_perms != 0600) {
-      CHECK_ERR(fchmod(created_fd, new_perms));
+    uint32_t newPerms = 0666 & ~gParsedUmask;
+    if (newPerms != 0600) {
+      CHECK_ERR(fchmod(createdFd, newPerms));
     }
-    *fd = created_fd;
+    *fd = createdFd;
     *createdFilename = fname.get();
     return Status::OK();
   }
@@ -1716,12 +1716,11 @@ class PosixEnv : public Env {
       int fd,
       const WritableFileOptions& opts,
       unique_ptr<WritableFile>* result) {
-    uint64_t file_size = 0;
+    uint64_t fileSize = 0;
     if (opts.mode == kOpenExisting) {
-      RETURN_NOT_OK(GetFileSize(fname, &file_size));
+      RETURN_NOT_OK(GetFileSize(fname, &fileSize));
     }
-    result->reset(
-        new PosixWritableFile(fname, fd, file_size, opts.syncOnClose));
+    result->reset(new PosixWritableFile(fname, fd, fileSize, opts.syncOnClose));
     return Status::OK();
   }
 
@@ -1729,15 +1728,15 @@ class PosixEnv : public Env {
       FileType type,
       const string& dirname,
       const string& basename) {
-    string full_path = JoinPathSegments(dirname, basename);
+    string fullPath = JoinPathSegments(dirname, basename);
     Status s;
     switch (type) {
       case kFileType:
-        s = DeleteFile(full_path);
+        s = DeleteFile(fullPath);
         WARN_NOT_OK(s, "Could not delete file");
         return s;
       case kDirectoryType:
-        s = DeleteDir(full_path);
+        s = DeleteDir(fullPath);
         WARN_NOT_OK(s, "Could not delete directory");
         return s;
       default:
