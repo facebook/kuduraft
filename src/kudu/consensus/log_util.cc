@@ -830,10 +830,10 @@ WritableLogSegment::WritableLogSegment(
     string path,
     shared_ptr<WritableFile> writableFile)
     : path_(std::move(path)),
-      writable_file_(std::move(writableFile)),
-      is_header_written_(false),
-      is_footer_written_(false),
-      written_offset_(0) {}
+      writableFile_(std::move(writableFile)),
+      isHeaderWritten_(false),
+      isFooterWritten_(false),
+      writtenOffset_(0) {}
 
 Status WritableLogSegment::writeHeaderAndOpen(
     const LogSegmentHeaderPB& newHeader) {
@@ -853,9 +853,9 @@ Status WritableLogSegment::writeHeaderAndOpen(
   RETURN_NOT_OK(writableFile()->Append(Slice(buf)));
 
   header_.CopyFrom(newHeader);
-  first_entry_offset_ = buf.size();
-  written_offset_ = first_entry_offset_;
-  is_header_written_ = true;
+  firstEntryOffset_ = buf.size();
+  writtenOffset_ = firstEntryOffset_;
+  isHeaderWritten_ = true;
 
   return Status::OK();
 }
@@ -876,11 +876,11 @@ Status WritableLogSegment::writeFooterAndClose(
       writableFile()->Append(Slice(buf)), "Could not write the footer");
 
   footer_.CopyFrom(footer);
-  is_footer_written_ = true;
+  isFooterWritten_ = true;
 
-  RETURN_NOT_OK(writable_file_->Close());
+  RETURN_NOT_OK(writableFile_->Close());
 
-  written_offset_ += buf.size();
+  writtenOffset_ += buf.size();
 
   return Status::OK();
 }
@@ -888,8 +888,8 @@ Status WritableLogSegment::writeFooterAndClose(
 Status WritableLogSegment::writeEntryBatch(
     const Slice& data,
     const std::shared_ptr<CompressionCodec>& codec) {
-  DCHECK(is_header_written_);
-  DCHECK(!is_footer_written_);
+  DCHECK(isHeaderWritten_);
+  DCHECK(!isFooterWritten_);
   uint8_t headerBuf[kEntryHeaderSizeV2];
 
   const uint32_t uncompressedLen = data.size();
@@ -898,11 +898,11 @@ Status WritableLogSegment::writeEntryBatch(
   Slice dataToWrite;
   if (codec) {
     DCHECK_NE(header_.compression_codec(), NO_COMPRESSION);
-    compress_buf_.resize(codec->maxCompressedLength(uncompressedLen));
+    compressBuf_.resize(codec->maxCompressedLength(uncompressedLen));
     size_t compressedLen;
-    RETURN_NOT_OK(codec->compress(data, compress_buf_.data(), &compressedLen));
-    compress_buf_.resize(compressedLen);
-    dataToWrite = Slice(compress_buf_.data(), compress_buf_.size());
+    RETURN_NOT_OK(codec->compress(data, compressBuf_.data(), &compressedLen));
+    compressBuf_.resize(compressedLen);
+    dataToWrite = Slice(compressBuf_.data(), compressBuf_.size());
   } else {
     dataToWrite = data;
   }
@@ -917,8 +917,8 @@ Status WritableLogSegment::writeEntryBatch(
 
   // Write the header to the file, followed by the batch data itself.
   Slice slices[2] = {Slice(headerBuf, arraysize(headerBuf)), dataToWrite};
-  RETURN_NOT_OK(writable_file_->AppendV(slices));
-  written_offset_ += arraysize(headerBuf) + dataToWrite.size();
+  RETURN_NOT_OK(writableFile_->AppendV(slices));
+  writtenOffset_ += arraysize(headerBuf) + dataToWrite.size();
   return Status::OK();
 }
 

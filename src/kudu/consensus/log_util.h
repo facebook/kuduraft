@@ -416,7 +416,7 @@ class WritableLogSegment {
   }
 
   int64_t size() const {
-    return writable_file_->Size();
+    return writableFile_->Size();
   }
 
   // Appends the provided batch of data, including a header
@@ -429,12 +429,12 @@ class WritableLogSegment {
 
   // Makes sure the I/O buffers in the underlying writable file are flushed.
   Status sync() {
-    return writable_file_->Sync();
+    return writableFile_->Sync();
   }
 
   // Returns true if the segment header has already been written to disk.
   bool isHeaderWritten() const {
-    return is_header_written_;
+    return isHeaderWritten_;
   }
 
   const LogSegmentHeaderPB& header() const {
@@ -443,7 +443,7 @@ class WritableLogSegment {
   }
 
   bool isFooterWritten() const {
-    return is_footer_written_;
+    return isFooterWritten_;
   }
 
   const LogSegmentFooterPB& footer() const {
@@ -457,40 +457,40 @@ class WritableLogSegment {
   }
 
   const int64_t firstEntryOffset() const {
-    return first_entry_offset_;
+    return firstEntryOffset_;
   }
 
   const int64_t writtenOffset() const {
-    return written_offset_;
+    return writtenOffset_;
   }
 
  private:
   const std::shared_ptr<WritableFile>& writableFile() const {
-    return writable_file_;
+    return writableFile_;
   }
 
   // The path to the log file.
   const std::string path_;
 
   // The writable file to which this LogSegment will be written.
-  const std::shared_ptr<WritableFile> writable_file_;
+  const std::shared_ptr<WritableFile> writableFile_;
 
-  bool is_header_written_;
+  bool isHeaderWritten_;
 
-  bool is_footer_written_;
+  bool isFooterWritten_;
 
   LogSegmentHeaderPB header_;
 
   LogSegmentFooterPB footer_;
 
   // the offset of the first entry in the log
-  int64_t first_entry_offset_;
+  int64_t firstEntryOffset_;
 
   // The offset where the last written entry ends.
-  int64_t written_offset_;
+  int64_t writtenOffset_;
 
   // Buffer used for output when compressing.
-  faststring compress_buf_;
+  faststring compressBuf_;
 
   DISALLOW_COPY_AND_ASSIGN(WritableLogSegment);
 };
