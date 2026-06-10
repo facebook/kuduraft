@@ -1051,8 +1051,8 @@
 #define INTERNAL_TRACE_EVENT_CATEGORY_GROUP_ENABLED_FOR_RECORDING_MODE() \
   PREDICT_FALSE(                                                         \
       *INTERNAL_TRACE_EVENT_UID(category_group_enabled) &                \
-      (kudu::debug::TraceLog::ENABLED_FOR_RECORDING |                    \
-       kudu::debug::TraceLog::ENABLED_FOR_EVENT_CALLBACK))
+      (kudu::debug::TraceLog::kEnabledForRecording |                     \
+       kudu::debug::TraceLog::kEnabledForEventCallback))
 
 // Macro to efficiently determine if a given category group is enabled.
 #define TRACE_EVENT_CATEGORY_GROUP_ENABLED(category_group, ret)             \

@@ -75,7 +75,7 @@ const size_t kTraceEventRingBufferChunks = kTraceEventVectorBufferChunks / 4;
 const size_t kTraceEventBatchChunks = 1000 / kTraceBufferChunkSize;
 // Can store results for 30 seconds with 1 ms sampling interval.
 const size_t kMonitorTraceEventBufferChunks = 30000 / kTraceBufferChunkSize;
-// ECHO_TO_CONSOLE needs a small buffer to hold the unfinished COMPLETE events.
+// kEchoToConsole needs a small buffer to hold the unfinished COMPLETE events.
 const size_t kEchoToConsoleTraceEventBufferChunks = 256;
 
 const char kSyntheticDelayCategoryFilterPrefix[] = "DELAY(";
@@ -1191,7 +1191,7 @@ TraceLog* TraceLog::getInstance() {
 }
 
 TraceLog::TraceLog()
-    : mode_(DISABLED),
+    : mode_(kDisabled),
       numTracesRecorded_(0),
       eventCallback_(0),
       dispatchingToObserverList_(false),
@@ -1200,7 +1200,7 @@ TraceLog::TraceLog()
       processId_(0),
       timeOffset_(0),
       watchCategory_(0),
-      traceOptions_(RECORD_UNTIL_FULL),
+      traceOptions_(kRecordUntilFull),
       samplingThreadHandle_(nullptr),
       categoryFilter_(CategoryFilter::kDefaultCategoryFilterString),
       eventCallbackCategoryFilter_(
@@ -1223,7 +1223,7 @@ TraceLog::TraceLog()
 
   string filter = FLAGS_trace_to_console;
   if (!filter.empty()) {
-    setEnabled(CategoryFilter(filter), RECORDING_MODE, ECHO_TO_CONSOLE);
+    setEnabled(CategoryFilter(filter), kRecordingMode, kEchoToConsole);
     LOG(ERROR) << "Tracing to console with CategoryFilter '" << filter << "'.";
   }
 
@@ -1259,17 +1259,17 @@ const char* TraceLog::getCategoryGroupName(
 void TraceLog::updateCategoryGroupEnabledFlag(int categoryIndex) {
   unsigned char enabled_flag = 0;
   const char* category_group = gCategoryGroups[categoryIndex];
-  if (mode_ == RECORDING_MODE &&
+  if (mode_ == kRecordingMode &&
       categoryFilter_.isCategoryGroupEnabled(category_group)) {
-    enabled_flag |= ENABLED_FOR_RECORDING;
+    enabled_flag |= kEnabledForRecording;
   } else if (
-      mode_ == MONITORING_MODE &&
+      mode_ == kMonitoringMode &&
       categoryFilter_.isCategoryGroupEnabled(category_group)) {
-    enabled_flag |= ENABLED_FOR_MONITORING;
+    enabled_flag |= kEnabledForMonitoring;
   }
   if (eventCallback_ &&
       eventCallbackCategoryFilter_.isCategoryGroupEnabled(category_group)) {
-    enabled_flag |= ENABLED_FOR_EVENT_CALLBACK;
+    enabled_flag |= kEnabledForEventCallback;
   }
   gCategoryGroupEnabled[categoryIndex] = enabled_flag;
 }
@@ -1419,7 +1419,7 @@ void TraceLog::setEnabled(
     updateCategoryGroupEnabledFlags();
     updateSyntheticDelaysFromCategoryFilter();
 
-    if (options & ENABLE_SAMPLING) {
+    if (options & kEnableSampling) {
       samplingThread_.reset(new TraceSamplingThread);
       samplingThread_->registerSampleBucket(
           &gTraceState[0],
@@ -1483,7 +1483,7 @@ void TraceLog::setDisabledWhileLocked() {
     return;
   }
 
-  mode_ = DISABLED;
+  mode_ = kDisabled;
 
   if (samplingThread_.get()) {
     // Stop the sampling thread.
@@ -1559,11 +1559,11 @@ bool TraceLog::bufferIsFull() const {
 
 TraceBuffer* TraceLog::createTraceBuffer() {
   Options options = traceOptions();
-  if (options & RECORD_CONTINUOUSLY) {
+  if (options & kRecordContinuously) {
     return new TraceBufferRingBuffer(kTraceEventRingBufferChunks);
-  } else if ((options & ENABLE_SAMPLING) && mode_ == MONITORING_MODE) {
+  } else if ((options & kEnableSampling) && mode_ == kMonitoringMode) {
     return new TraceBufferRingBuffer(kMonitorTraceEventBufferChunks);
-  } else if (options & ECHO_TO_CONSOLE) {
+  } else if (options & kEchoToConsole) {
     return new TraceBufferRingBuffer(kEchoToConsoleTraceEventBufferChunks);
   }
   return new TraceBufferVector();
@@ -1769,7 +1769,7 @@ void TraceLog::flushButLeaveBufferIntact(
   unique_ptr<TraceBuffer> previousLoggedEvents;
   {
     SpinLockHolder lock(lock_);
-    if (mode_ == DISABLED || (traceOptions_ & RECORD_CONTINUOUSLY) == 0) {
+    if (mode_ == kDisabled || (traceOptions_ & kRecordContinuously) == 0) {
       std::shared_ptr<RefCountedString> emptyResult =
           std::make_shared<RefCountedString>();
       flush_output_callback.Run(emptyResult, false);
@@ -1907,7 +1907,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   }
 
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
-  // ECHO_TO_CONSOLE is enabled: addTraceEvent -> LOG(ERROR) ->
+  // kEchoToConsole is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
   if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
     return handle;
@@ -1980,7 +1980,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
 
   std::string consoleMessage;
   if (*category_group_enabled &
-      (ENABLED_FOR_RECORDING | ENABLED_FOR_MONITORING)) {
+      (kEnabledForRecording | kEnabledForMonitoring)) {
     TraceEvent* traceEvent = threadLocalEventBuffer->addTraceEvent(&handle);
 
     if (traceEvent) {
@@ -2004,7 +2004,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
 #endif
     }
 
-    if (traceOptions() & ECHO_TO_CONSOLE) {
+    if (traceOptions() & kEchoToConsole) {
       consoleMessage = eventToConsoleMessage(
           phase == TRACE_EVENT_PHASE_COMPLETE ? TRACE_EVENT_PHASE_BEGIN : phase,
           timestamp,
@@ -2033,7 +2033,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
     }
   }
 
-  if (PREDICT_FALSE(*category_group_enabled & ENABLED_FOR_EVENT_CALLBACK)) {
+  if (PREDICT_FALSE(*category_group_enabled & kEnabledForEventCallback)) {
     EventCallback eventCallback = reinterpret_cast<EventCallback>(
         base::subtle::NoBarrier_Load(&eventCallback_));
     if (eventCallback) {
@@ -2155,7 +2155,7 @@ void TraceLog::updateTraceEventDuration(
   }
 
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
-  // ECHO_TO_CONSOLE is enabled: addTraceEvent -> LOG(ERROR) ->
+  // kEchoToConsole is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
   if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
     return;
@@ -2166,7 +2166,7 @@ void TraceLog::updateTraceEventDuration(
   kudu::MicrosecondsInt64 now = offsetNow();
 
   std::string consoleMessage;
-  if (*category_group_enabled & ENABLED_FOR_RECORDING) {
+  if (*category_group_enabled & kEnabledForRecording) {
     OptionalAutoLock lock(lock_);
 
     TraceEvent* traceEvent = getEventByHandleInternal(handle, &lock);
@@ -2178,7 +2178,7 @@ void TraceLog::updateTraceEventDuration(
 #endif
     }
 
-    if (traceOptions() & ECHO_TO_CONSOLE) {
+    if (traceOptions() & kEchoToConsole) {
       consoleMessage =
           eventToConsoleMessage(TRACE_EVENT_PHASE_END, now, traceEvent);
     }
@@ -2188,7 +2188,7 @@ void TraceLog::updateTraceEventDuration(
     LOG(ERROR) << consoleMessage;
   }
 
-  if (*category_group_enabled & ENABLED_FOR_EVENT_CALLBACK) {
+  if (*category_group_enabled & kEnabledForEventCallback) {
     EventCallback eventCallback = reinterpret_cast<EventCallback>(
         base::subtle::NoBarrier_Load(&eventCallback_));
     if (eventCallback) {

@@ -377,25 +377,25 @@ class TraceSamplingThread;
 class BASE_EXPORT TraceLog {
  public:
   enum Mode {
-    DISABLED = 0,
-    RECORDING_MODE,
-    MONITORING_MODE,
+    kDisabled = 0,
+    kRecordingMode,
+    kMonitoringMode,
   };
 
   // Options determines how the trace buffer stores data.
   enum Options {
     // Record until the trace buffer is full.
-    RECORD_UNTIL_FULL = 1 << 0,
+    kRecordUntilFull = 1 << 0,
 
     // Record until the user ends the trace. The trace buffer is a fixed size
     // and we use it as a ring buffer during recording.
-    RECORD_CONTINUOUSLY = 1 << 1,
+    kRecordContinuously = 1 << 1,
 
     // Enable the sampling profiler in the recording mode.
-    ENABLE_SAMPLING = 1 << 2,
+    kEnableSampling = 1 << 2,
 
     // Echo to console. Events are discarded.
-    ECHO_TO_CONSOLE = 1 << 3,
+    kEchoToConsole = 1 << 3,
   };
 
   // The pointer returned from getCategoryGroupEnabledInternal() points to a
@@ -404,11 +404,11 @@ class BASE_EXPORT TraceLog {
   // These values must be in sync with macro values in TraceEvent.h in Blink.
   enum CategoryGroupEnabledFlags {
     // Category group enabled for the recording mode.
-    ENABLED_FOR_RECORDING = 1 << 0,
+    kEnabledForRecording = 1 << 0,
     // Category group enabled for the monitoring mode.
-    ENABLED_FOR_MONITORING = 1 << 1,
+    kEnabledForMonitoring = 1 << 1,
     // Category group enabled by setEventCallbackEnabled().
-    ENABLED_FOR_EVENT_CALLBACK = 1 << 2,
+    kEnabledForEventCallback = 1 << 2,
   };
 
   static TraceLog* getInstance();
@@ -435,7 +435,7 @@ class BASE_EXPORT TraceLog {
   void setDisabled();
 
   bool isEnabled() {
-    return mode_ != DISABLED;
+    return mode_ != kDisabled;
   }
 
   // The number of times we have begun recording traces. If tracing is off,
@@ -718,7 +718,7 @@ class BASE_EXPORT TraceLog {
   std::unordered_map<int, int> threadSortIndices_;
   std::unordered_map<int, std::string> threadNames_;
 
-  // The following two maps are used only when ECHO_TO_CONSOLE.
+  // The following two maps are used only when kEchoToConsole.
   std::unordered_map<int, std::stack<kudu::MicrosecondsInt64>>
       threadEventStartTimes_;
   std::unordered_map<std::string, int> threadColors_;

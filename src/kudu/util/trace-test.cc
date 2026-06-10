@@ -164,8 +164,8 @@ TEST_F(TraceTest, TestChromeTracing) {
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_CONTINUOUSLY);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordContinuously);
 
   vector<std::shared_ptr<Thread>> threads(kNumThreads);
 
@@ -208,8 +208,8 @@ TEST_F(TraceTest, TestTraceFromExitedThread) {
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_CONTINUOUSLY);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordContinuously);
 
   // Generate 10 trace events in a separate thread.
   int kNumEvents = 10;
@@ -240,8 +240,8 @@ TEST_F(TraceTest, TestWideSpan) {
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_CONTINUOUSLY);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordContinuously);
 
   std::shared_ptr<Thread> t;
   CHECK_OK(Thread::create("test", "gen-traces", &generateWideSpan, &t));
@@ -258,8 +258,8 @@ TEST_F(TraceTest, TestJsonEncodingString) {
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_CONTINUOUSLY);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordContinuously);
   {
     TRACE_EVENT1(
         "test",
@@ -309,8 +309,8 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
   for (int i = 0; i < numFlushes; i++) {
     tl->setEnabled(
         CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-        TraceLog::RECORDING_MODE,
-        TraceLog::RECORD_CONTINUOUSLY);
+        TraceLog::kRecordingMode,
+        TraceLog::kRecordContinuously);
 
     const int64_t numEventsBefore = numEventsGenerated.load();
     SleepFor(MonoDelta::FromMilliseconds(10));
@@ -336,9 +336,9 @@ TEST_F(TraceTest, TestChromeSampling) {
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
+      TraceLog::kRecordingMode,
       static_cast<TraceLog::Options>(
-          TraceLog::RECORD_CONTINUOUSLY | TraceLog::ENABLE_SAMPLING));
+          TraceLog::kRecordContinuously | TraceLog::kEnableSampling));
 
   for (int i = 0; i < 100; i++) {
     switch (i % 3) {
@@ -533,8 +533,8 @@ TEST_F(TraceEventCallbackTest, TraceEventCallback) {
 TEST_F(TraceEventCallbackTest, TraceEventCallbackWhileFull) {
   TraceLog::getInstance()->setEnabled(
       CategoryFilter("*"),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_UNTIL_FULL);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordUntilFull);
   do {
     TRACE_EVENT_INSTANT0("all", "badger badger", TRACE_EVENT_SCOPE_GLOBAL);
   } while (!TraceLog::getInstance()->bufferIsFull());
@@ -556,8 +556,8 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording1) {
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEnabled(
       CategoryFilter("recording"),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_UNTIL_FULL);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordUntilFull);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEventCallbackDisabled();
@@ -582,8 +582,8 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording2) {
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEnabled(
       CategoryFilter("recording"),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_UNTIL_FULL);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordUntilFull);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   endTraceAndFlush();
@@ -603,8 +603,8 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording3) {
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEnabled(
       CategoryFilter("recording"),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_UNTIL_FULL);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordUntilFull);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEventCallbackEnabled(
@@ -628,8 +628,8 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording4) {
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEnabled(
       CategoryFilter("recording"),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_UNTIL_FULL);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordUntilFull);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::getInstance()->setEventCallbackEnabled(
@@ -654,8 +654,8 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecordingDuration) {
     TRACE_EVENT0("callback", "duration1");
     TraceLog::getInstance()->setEnabled(
         CategoryFilter("*"),
-        TraceLog::RECORDING_MODE,
-        TraceLog::RECORD_UNTIL_FULL);
+        TraceLog::kRecordingMode,
+        TraceLog::kRecordUntilFull);
     TRACE_EVENT0("callback", "duration2");
     endTraceAndFlush();
     TRACE_EVENT0("callback", "duration3");
@@ -839,8 +839,8 @@ TEST_F(TraceTest, TestVLogTrace) {
     TraceLog* tl = TraceLog::getInstance();
     tl->setEnabled(
         CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-        TraceLog::RECORDING_MODE,
-        TraceLog::RECORD_CONTINUOUSLY);
+        TraceLog::kRecordingMode,
+        TraceLog::kRecordContinuously);
     VLOG_AND_TRACE("test", 1) << "hello world";
     tl->setDisabled();
     string traceJson = TraceResultBuffer::flushTraceLogToString();
@@ -875,8 +875,8 @@ TEST_F(TraceTest, TestVLogAndEchoToConsole) {
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
-      TraceLog::ECHO_TO_CONSOLE);
+      TraceLog::kRecordingMode,
+      TraceLog::kEchoToConsole);
   FLAGS_v = 1;
   VLOG_AND_TRACE("test", 1) << "hello world";
   tl->setDisabled();
@@ -906,8 +906,8 @@ TEST_F(TraceTest, TestTraceMetrics) {
 TEST_F(TraceTest, TestTraceFromVanillaThreads) {
   TraceLog::getInstance()->setEnabled(
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
-      TraceLog::RECORDING_MODE,
-      TraceLog::RECORD_CONTINUOUSLY);
+      TraceLog::kRecordingMode,
+      TraceLog::kRecordContinuously);
   SCOPE_EXIT {
     TraceLog::getInstance()->setDisabled();
   };
