@@ -103,7 +103,7 @@ class LogEntryReader {
 
   // Return the offset at which this reader will stop reading.
   int64_t readUpToOffset() const {
-    return read_up_to_;
+    return readUpTo_;
   }
 
  private:
@@ -124,27 +124,27 @@ class LogEntryReader {
     LogEntryTypePB type;
     consensus::OpId opId;
   };
-  std::deque<RecentEntry> recent_entries_;
+  std::deque<RecentEntry> recentEntries_;
   static const int kNumRecentEntries = 4;
 
   // Entries which have been read from the file and not yet returned to
   // the caller.
-  std::deque<std::unique_ptr<LogEntryPB>> pending_entries_;
+  std::deque<std::unique_ptr<LogEntryPB>> pendingEntries_;
 
   // The total number of log entry batches read from the file.
-  int64_t num_batches_read_;
+  int64_t numBatchesRead_;
 
   // The total number of LogEntryPBs read from the file.
-  int64_t num_entries_read_;
+  int64_t numEntriesRead_;
 
   // The offset of the next entry to be read.
   int64_t offset_;
 
   // The offset at which this reader will stop reading entries.
-  int64_t read_up_to_;
+  int64_t readUpTo_;
 
   // Temporary buffer used for deserialization.
-  faststring tmp_buf_;
+  faststring tmpBuf_;
 
   DISALLOW_COPY_AND_ASSIGN(LogEntryReader);
 };
@@ -203,7 +203,7 @@ class ReadableLogSegment {
   Status rebuildFooterByScanning();
 
   bool isInitialized() const {
-    return is_initialized_;
+    return isInitialized_;
   }
 
   // Returns the parent directory where log segments are stored.
@@ -236,15 +236,15 @@ class ReadableLogSegment {
   }
 
   const std::shared_ptr<RandomAccessFile> readableFile() const {
-    return readable_file_;
+    return readableFile_;
   }
 
   const int64_t fileSize() const {
-    return file_size_.load();
+    return fileSize_.load();
   }
 
   const int64_t firstEntryOffset() const {
-    return first_entry_offset_;
+    return firstEntryOffset_;
   }
 
   // Returns the full size of the file, if the segment is closed and has
@@ -286,7 +286,7 @@ class ReadableLogSegment {
   Status initCompressionCodec();
 
   // Read the log file magic and header protobuf into 'header_'. Sets
-  // 'first_entry_offset_' to indicate the start of the actual log data.
+  // 'firstEntryOffset_' to indicate the start of the actual log data.
   //
   // Returns Uninitialized() if the file appears to be preallocated but never
   // written.
@@ -365,7 +365,7 @@ class ReadableLogSegment {
   // The size of the readable file.
   // This is set by Init(). In the case of a log being written to,
   // this may be increased by UpdateReadableToOffset()
-  AtomicInt<int64_t> file_size_;
+  AtomicInt<int64_t> fileSize_;
 
   // The offset up to which we can read the file.
   // For already written segments this is fixed and equal to the file size
@@ -374,25 +374,25 @@ class ReadableLogSegment {
   // This is atomic because the Log thread might be updating the segment's
   // readable offset while an async reader is reading the segment's entries. is
   // reading it.
-  AtomicInt<int64_t> readable_to_offset_;
+  AtomicInt<int64_t> readableToOffset_;
 
   // a readable file for a log segment (used on replay)
-  const std::shared_ptr<RandomAccessFile> readable_file_;
+  const std::shared_ptr<RandomAccessFile> readableFile_;
 
   // Compression codec used to decompress entries in this file.
   std::shared_ptr<CompressionCodec> codec_;
 
-  bool is_initialized_;
+  bool isInitialized_;
 
   LogSegmentHeaderPB header_;
 
   LogSegmentFooterPB footer_;
 
   // True if the footer was rebuilt, rather than actually found on disk.
-  bool footer_was_rebuilt_;
+  bool footerWasRebuilt_;
 
   // the offset of the first entry in the log
-  int64_t first_entry_offset_;
+  int64_t firstEntryOffset_;
 
   DISALLOW_COPY_AND_ASSIGN(ReadableLogSegment);
 };
