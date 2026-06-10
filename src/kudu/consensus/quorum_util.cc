@@ -62,13 +62,13 @@ bool isRaftConfigMember(const std::string& uuid, const RaftConfigPB& config) {
 bool isRaftConfigMemberWithDetail(
     const std::string& uuid,
     const RaftConfigPB& config,
-    std::string* hostname_port,
-    bool* is_voter,
-    std::string* quorum_id) {
+    std::string* hostnamePort,
+    bool* isVoter,
+    std::string* quorumId) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
       getRaftPeerDetail(
-          peer, hostname_port, is_voter, quorum_id, config.commit_rule());
+          peer, hostnamePort, isVoter, quorumId, config.commit_rule());
       return true;
     }
   }
@@ -77,18 +77,18 @@ bool isRaftConfigMemberWithDetail(
 
 void getRaftPeerDetail(
     const RaftPeerPB& peer,
-    std::string* hostname_port,
-    bool* is_voter,
-    std::string* quorum_id,
-    const CommitRulePB& commit_rule) {
+    std::string* hostnamePort,
+    bool* isVoter,
+    std::string* quorumId,
+    const CommitRulePB& commitRule) {
   const ::kudu::HostPortPB& host_port = peer.last_known_addr();
   if (!peer.hostname().empty()) {
-    *hostname_port = fmt::format("{}:{}", peer.hostname(), host_port.port());
+    *hostnamePort = fmt::format("{}:{}", peer.hostname(), host_port.port());
   } else {
-    *hostname_port = fmt::format("[{}]:{}", host_port.host(), host_port.port());
+    *hostnamePort = fmt::format("[{}]:{}", host_port.host(), host_port.port());
   }
-  *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
-  *quorum_id = getQuorumId(peer, commit_rule);
+  *isVoter = (peer.member_type() == RaftPeerPB::VOTER);
+  *quorumId = getQuorumId(peer, commitRule);
 }
 
 bool isRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {
@@ -103,11 +103,11 @@ bool isRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {
 bool getRaftConfigMemberRegion(
     const std::string& uuid,
     const RaftConfigPB& config,
-    bool* is_voter,
+    bool* isVoter,
     std::string* region) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
-      *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
+      *isVoter = (peer.member_type() == RaftPeerPB::VOTER);
       *region = peer.attrs().region();
       return true;
     }
@@ -130,13 +130,13 @@ std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config) {
 bool getRaftConfigMemberQuorumIdRegardlessQuorumType(
     const std::string& uuid,
     const RaftConfigPB& config,
-    bool* is_voter,
-    std::string* quorum_id) {
+    bool* isVoter,
+    std::string* quorumId) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
-      *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
+      *isVoter = (peer.member_type() == RaftPeerPB::VOTER);
       if (peer.has_attrs() && peer.attrs().has_quorum_id()) {
-        *quorum_id = peer.attrs().quorum_id();
+        *quorumId = peer.attrs().quorum_id();
       }
       return true;
     }
@@ -219,41 +219,41 @@ int countNextConfigVoters(const RaftConfigPB& config) {
   return voters;
 }
 
-int majoritySize(int num_voters) {
-  return (num_voters / 2) + 1;
+int majoritySize(int numVoters) {
+  return (numVoters / 2) + 1;
 }
 
-int resolveCommitRequirement(int total_voters, const std::string& commit_req) {
-  int num_votes_required = parseCommitRequirement(commit_req);
+int resolveCommitRequirement(int totalVoters, const std::string& commitReq) {
+  int num_votes_required = parseCommitRequirement(commitReq);
   // Resolve majority specification.
   if (num_votes_required != -1) {
-    DCHECK_GE(total_voters, num_votes_required);
+    DCHECK_GE(totalVoters, num_votes_required);
     return num_votes_required;
   } else {
-    return majoritySize(total_voters);
+    return majoritySize(totalVoters);
   }
 }
 
-int parseCommitRequirement(const std::string& commit_req) {
-  if (commit_req == "majority") {
+int parseCommitRequirement(const std::string& commitReq) {
+  if (commitReq == "majority") {
     return -1;
   }
-  return std::stoi(commit_req);
+  return std::stoi(commitReq);
 }
 
 RaftPeerPB::Role getConsensusRole(
-    const std::string& peer_uuid,
-    const std::string& leader_uuid,
+    const std::string& peerUuid,
+    const std::string& leaderUuid,
     const RaftConfigPB& config) {
-  if (peer_uuid.empty()) {
+  if (peerUuid.empty()) {
     return RaftPeerPB::NON_PARTICIPANT;
   }
 
   for (const RaftPeerPB& peer : config.peers()) {
-    if (peer.permanent_uuid() == peer_uuid) {
+    if (peer.permanent_uuid() == peerUuid) {
       switch (peer.member_type()) {
         case RaftPeerPB::VOTER:
-          if (peer_uuid == leader_uuid) {
+          if (peerUuid == leaderUuid) {
             return RaftPeerPB::LEADER;
           }
           return RaftPeerPB::FOLLOWER;
@@ -266,14 +266,14 @@ RaftPeerPB::Role getConsensusRole(
 }
 
 RaftPeerPB::Role getConsensusRole(
-    const std::string& peer_uuid,
+    const std::string& peerUuid,
     const ConsensusStatePB& cstate) {
   // The active config is the pending config if there is one, else it's the
   // committed config.
   const RaftConfigPB& config = cstate.has_pending_config()
       ? cstate.pending_config()
       : cstate.committed_config();
-  return getConsensusRole(peer_uuid, cstate.leader_uuid(), config);
+  return getConsensusRole(peerUuid, cstate.leader_uuid(), config);
 }
 
 Status verifyRaftConfig(const RaftConfigPB& config) {
@@ -1107,8 +1107,8 @@ bool isUseQuorumId(const CommitRulePB& commit_rule) {
 }
 
 static const std::string kEmptyStr;
-const std::string& getQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
-  if (!use_quorum_id) {
+const std::string& getQuorumId(const RaftPeerPB& peer, bool useQuorumId) {
+  if (!useQuorumId) {
     CHECK(peer.has_attrs() && peer.attrs().has_region());
     return peer.attrs().region();
   }
@@ -1125,8 +1125,8 @@ const std::string& getQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
 
 const std::string& getQuorumId(
     const RaftPeerPB& peer,
-    const CommitRulePB& commit_rule) {
-  return getQuorumId(peer, isUseQuorumId(commit_rule));
+    const CommitRulePB& commitRule) {
+  return getQuorumId(peer, isUseQuorumId(commitRule));
 }
 
 bool peerHasNonEmptyQuorumId(const RaftPeerPB& peer) {

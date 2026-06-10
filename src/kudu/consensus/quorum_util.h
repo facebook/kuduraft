@@ -50,25 +50,25 @@ bool isRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config);
 bool getRaftConfigMemberRegion(
     const std::string& uuid,
     const RaftConfigPB& config,
-    bool* is_voter,
+    bool* isVoter,
     std::string* region);
 bool getRaftConfigMemberQuorumId(
     const std::string& uuid,
     const RaftConfigPB& config,
-    bool* is_voter,
-    std::string* quorum_id);
+    bool* isVoter,
+    std::string* quorumId);
 bool isRaftConfigMemberWithDetail(
     const std::string& uuid,
     const RaftConfigPB& config,
-    std::string* hostname_port,
-    bool* is_voter,
-    std::string* quorum_id);
+    std::string* hostnamePort,
+    bool* isVoter,
+    std::string* quorumId);
 void getRaftPeerDetail(
     const RaftPeerPB& peer,
-    std::string* hostname_port,
-    bool* is_voter,
-    std::string* quorum_id,
-    const CommitRulePB& commit_rule);
+    std::string* hostnamePort,
+    bool* isVoter,
+    std::string* quorumId,
+    const CommitRulePB& commitRule);
 
 /**
  * Returns a vector of UUIDs of instances that can be elected as stable leaders.
@@ -118,16 +118,16 @@ int countVoters(const RaftConfigPB& config);
 int countNextConfigVoters(const RaftConfigPB& config);
 
 // Calculates size of a configuration majority based on # of voters.
-int majoritySize(int num_voters);
+int majoritySize(int numVoters);
 
 // Based on `commit_req`, this helper computes the commit requirement
 // (number of votes) required from the total number of voters passed in as an
 // argument.
-int resolveCommitRequirement(int total_voters, const std::string& commit_req);
+int resolveCommitRequirement(int totalVoters, const std::string& commitReq);
 
 // Parses a string representation of quorum requirement and returns an integer.
 // -1 is returned if `commit_req` represents "majority".
-int parseCommitRequirement(const std::string& commit_req);
+int parseCommitRequirement(const std::string& commitReq);
 
 // Determines the role that the peer with uuid 'peer_uuid' plays in the
 // cluster. If 'peer_uuid' is empty or is not a member of the configuration,
@@ -137,14 +137,14 @@ int parseCommitRequirement(const std::string& commit_req);
 // whether it is specified as the leader in 'leader_uuid' (although that
 // situation is illegal in practice).
 RaftPeerPB::Role getConsensusRole(
-    const std::string& peer_uuid,
-    const std::string& leader_uuid,
+    const std::string& peerUuid,
+    const std::string& leaderUuid,
     const RaftConfigPB& config);
 
 // Same as above, but uses the leader and active role from the given
 // ConsensusStatePB.
 RaftPeerPB::Role getConsensusRole(
-    const std::string& peer_uuid,
+    const std::string& peerUuid,
     const ConsensusStatePB& cstate);
 
 // Verifies that the provided configuration is well formed.
@@ -222,10 +222,10 @@ bool isUseQuorumId(const CommitRulePB& commit_rule);
 // Return quorum_id or region based on current commit rule's QuorumType
 const std::string& getQuorumId(
     const RaftPeerPB& peer,
-    const CommitRulePB& commit_rule);
+    const CommitRulePB& commitRule);
 
 // Return quorum_id or region based on whether use quorum_id
-const std::string& getQuorumId(const RaftPeerPB& peer, bool use_quorum_id);
+const std::string& getQuorumId(const RaftPeerPB& peer, bool useQuorumId);
 
 // Return true of the peer has a non-empty quorum_id
 bool peerHasNonEmptyQuorumId(const RaftPeerPB& peer);
