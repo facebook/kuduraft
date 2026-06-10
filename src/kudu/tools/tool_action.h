@@ -322,20 +322,20 @@ class Action {
 };
 
 // Returns new nodes for each major mode.
-std::unique_ptr<Mode> BuildClusterMode();
-std::unique_ptr<Mode> BuildDiagnoseMode();
-std::unique_ptr<Mode> BuildFsMode();
-std::unique_ptr<Mode> BuildHmsMode();
-std::unique_ptr<Mode> BuildLocalReplicaMode();
-std::unique_ptr<Mode> BuildMasterMode();
+std::unique_ptr<Mode> buildClusterMode();
+std::unique_ptr<Mode> buildDiagnoseMode();
+std::unique_ptr<Mode> buildFsMode();
+std::unique_ptr<Mode> buildHmsMode();
+std::unique_ptr<Mode> buildLocalReplicaMode();
+std::unique_ptr<Mode> buildMasterMode();
 std::unique_ptr<Mode> buildPbcMode();
-std::unique_ptr<Mode> BuildPerfMode();
-std::unique_ptr<Mode> BuildRemoteReplicaMode();
-std::unique_ptr<Mode> BuildTableMode();
-std::unique_ptr<Mode> BuildTabletMode();
-std::unique_ptr<Mode> BuildTestMode();
-std::unique_ptr<Mode> BuildTServerMode();
-std::unique_ptr<Mode> BuildWalMode();
+std::unique_ptr<Mode> buildPerfMode();
+std::unique_ptr<Mode> buildRemoteReplicaMode();
+std::unique_ptr<Mode> buildTableMode();
+std::unique_ptr<Mode> buildTabletMode();
+std::unique_ptr<Mode> buildTestMode();
+std::unique_ptr<Mode> buildTserverMode();
+std::unique_ptr<Mode> buildWalMode();
 
 } // namespace tools
 } // namespace kudu

@@ -59,20 +59,20 @@ unique_ptr<Mode> rootMode(const string& name) {
   return ModeBuilder(name)
       .description(
           "Kudu Command Line Tools") // root mode description isn't printed
-      //.addMode(BuildClusterMode())
-      //.addMode(BuildDiagnoseMode())
-      //.addMode(BuildFsMode())
-      //.addMode(BuildHmsMode())
-      //.addMode(BuildLocalReplicaMode())
-      //.addMode(BuildMasterMode())
+      //.addMode(buildClusterMode())
+      //.addMode(buildDiagnoseMode())
+      //.addMode(buildFsMode())
+      //.addMode(buildHmsMode())
+      //.addMode(buildLocalReplicaMode())
+      //.addMode(buildMasterMode())
       .addMode(buildPbcMode())
-      //.addMode(BuildPerfMode())
-      //.addMode(BuildRemoteReplicaMode())
-      //.addMode(BuildTableMode())
-      //.addMode(BuildTabletMode())
-      //.addMode(BuildTestMode())
-      //.addMode(BuildTServerMode())
-      //.addMode(BuildWalMode())
+      //.addMode(buildPerfMode())
+      //.addMode(buildRemoteReplicaMode())
+      //.addMode(buildTableMode())
+      //.addMode(buildTabletMode())
+      //.addMode(buildTestMode())
+      //.addMode(buildTserverMode())
+      //.addMode(buildWalMode())
       .build();
 }
 
