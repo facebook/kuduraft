@@ -337,29 +337,29 @@ Status ServerBase::Init() {
   // Create the Messenger.
   rpc::MessengerBuilder builder(name_);
 
-  builder.set_num_reactors(FLAGS_num_reactor_threads)
-      .set_min_negotiation_threads(FLAGS_min_negotiation_threads)
-      .set_max_negotiation_threads(FLAGS_max_negotiation_threads)
-      .set_metric_entity(metricEntity())
-      .set_connection_keep_alive_time(FLAGS_rpc_default_keepalive_time_ms)
-      .set_rpc_negotiation_timeout_ms(FLAGS_rpc_negotiation_timeout_ms)
-      .set_rpc_authentication(FLAGS_rpc_authentication)
-      .set_rpc_encryption(FLAGS_rpc_encryption)
-      .set_rpc_tls_ciphers(FLAGS_rpc_tls_ciphers)
-      .set_rpc_tls_min_protocol(FLAGS_rpc_tls_min_protocol)
-      .set_epki_cert_key_files(
+  builder.setNumReactors(FLAGS_num_reactor_threads)
+      .setMinNegotiationThreads(FLAGS_min_negotiation_threads)
+      .setMaxNegotiationThreads(FLAGS_max_negotiation_threads)
+      .setMetricEntity(metricEntity())
+      .setConnectionKeepAliveTime(FLAGS_rpc_default_keepalive_time_ms)
+      .setRpcNegotiationTimeoutMs(FLAGS_rpc_negotiation_timeout_ms)
+      .setRpcAuthentication(FLAGS_rpc_authentication)
+      .setRpcEncryption(FLAGS_rpc_encryption)
+      .setRpcTlsCiphers(FLAGS_rpc_tls_ciphers)
+      .setRpcTlsMinProtocol(FLAGS_rpc_tls_min_protocol)
+      .setEpkiCertKeyFiles(
           FLAGS_rpc_certificate_file, FLAGS_rpc_private_key_file)
-      .set_epki_certificate_authority_file(FLAGS_rpc_ca_certificate_file)
-      .set_epki_private_password_key_cmd(FLAGS_rpc_private_key_password_cmd)
-      .enable_inbound_tls();
+      .setEpkiCertificateAuthorityFile(FLAGS_rpc_ca_certificate_file)
+      .setEpkiPrivatePasswordKeyCmd(FLAGS_rpc_private_key_password_cmd)
+      .enableInboundTls();
 
   // If rpcOpts explicitly specify the number of reactor threads, then use it
   // to override FLAGS_num_reactor_threads
   if (options_.rpcOpts.numReactorThreads != 0) {
-    builder.set_num_reactors(options_.rpcOpts.numReactorThreads);
+    builder.setNumReactors(options_.rpcOpts.numReactorThreads);
   }
 
-  RETURN_NOT_OK(builder.Build(&messenger_));
+  RETURN_NOT_OK(builder.build(&messenger_));
   rpc_server_->setTooBusyHook(
       std::bind(
           &ServerBase::ServiceQueueOverflowed, this, std::placeholders::_1));

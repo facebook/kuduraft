@@ -549,7 +549,7 @@ class NoOpTestPeerProxyFactory : public PeerProxyFactory {
   NoOpTestPeerProxyFactory() {
     CHECK_OK(
         ThreadPoolBuilder("test-peer-pool").setMaxThreads(3).build(&pool_));
-    CHECK_OK(rpc::MessengerBuilder("test").Build(&messenger_));
+    CHECK_OK(rpc::MessengerBuilder("test").build(&messenger_));
   }
 
   Status newProxy(
@@ -787,7 +787,7 @@ class LocalTestPeerProxyFactory : public PeerProxyFactory {
       : peers_(peers) {
     CHECK_OK(
         ThreadPoolBuilder("test-peer-pool").setMaxThreads(3).build(&pool_));
-    CHECK_OK(rpc::MessengerBuilder("test").Build(&messenger_));
+    CHECK_OK(rpc::MessengerBuilder("test").build(&messenger_));
   }
 
   Status newProxy(

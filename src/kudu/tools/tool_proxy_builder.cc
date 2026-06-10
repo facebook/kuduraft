@@ -45,7 +45,7 @@ Status buildProxy(
   HostPort hp;
   RETURN_NOT_OK(hp.parseString(address, defaultPort));
   shared_ptr<Messenger> messenger;
-  RETURN_NOT_OK(MessengerBuilder("tool").Build(&messenger));
+  RETURN_NOT_OK(MessengerBuilder("tool").build(&messenger));
 
   vector<Sockaddr> resolved;
   RETURN_NOT_OK(hp.resolveAddresses(&resolved));

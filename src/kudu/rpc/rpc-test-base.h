@@ -498,25 +498,25 @@ class RpcTestBase : public KuduTest {
 
     if (enableSsl) {
       FLAGS_rpc_encrypt_loopback_connections = true;
-      bld.set_epki_cert_key_files(rpcCertificateFile, rpcPrivateKeyFile);
-      bld.set_epki_certificate_authority_file(rpcCaCertificateFile);
-      bld.set_epki_private_password_key_cmd(rpcPrivateKeyPasswordCmd);
-      bld.set_rpc_encryption("required");
-      bld.enable_inbound_tls();
+      bld.setEpkiCertKeyFiles(rpcCertificateFile, rpcPrivateKeyFile);
+      bld.setEpkiCertificateAuthorityFile(rpcCaCertificateFile);
+      bld.setEpkiPrivatePasswordKeyCmd(rpcPrivateKeyPasswordCmd);
+      bld.setRpcEncryption("required");
+      bld.enableInboundTls();
     }
 
-    bld.set_num_reactors(nReactors);
-    bld.set_connection_keepalive_time(
+    bld.setNumReactors(nReactors);
+    bld.setConnectionKeepaliveTime(
         MonoDelta::FromMilliseconds(keepaliveTimeMs_));
     if (keepaliveTimeMs_ >= 0) {
       // In order for the keepalive timing to be accurate, we need to scan
       // connections significantly more frequently than the keepalive time. This
       // "coarse timer" granularity determines this.
-      bld.set_coarse_timer_granularity(
+      bld.setCoarseTimerGranularity(
           MonoDelta::FromMilliseconds(std::min(keepaliveTimeMs_ / 5, 100)));
     }
-    bld.set_metric_entity(metricEntity_);
-    return bld.Build(messenger);
+    bld.setMetricEntity(metricEntity_);
+    return bld.build(messenger);
   }
 
   Status doTestSyncCall(

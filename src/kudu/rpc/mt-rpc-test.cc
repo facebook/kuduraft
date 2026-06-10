@@ -238,9 +238,9 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   const size_t kMaxConcurrency = 2;
 
   MessengerBuilder bld("messenger1");
-  bld.set_num_reactors(kMaxConcurrency);
-  bld.set_metric_entity(metricEntity_);
-  CHECK_OK(bld.Build(&serverMessenger_));
+  bld.setNumReactors(kMaxConcurrency);
+  bld.setMetricEntity(metricEntity_);
+  CHECK_OK(bld.build(&serverMessenger_));
 
   shared_ptr<AcceptorPool> pool;
   ASSERT_OK(serverMessenger_->AddAcceptorPool(Sockaddr(), &pool));

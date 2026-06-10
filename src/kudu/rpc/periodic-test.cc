@@ -65,7 +65,7 @@ class JitteredPeriodicTimerTest : public PeriodicTimerTest,
     PeriodicTimerTest::SetUp();
 
     MessengerBuilder builder("test");
-    ASSERT_OK(builder.Build(&messenger_));
+    ASSERT_OK(builder.build(&messenger_));
 
     timer_ = PeriodicTimer::create(
         messenger_,
@@ -162,7 +162,7 @@ TEST_F(PeriodicTimerTest, TestCallbackRestartsTimer) {
   const int64_t kPeriods = 10;
 
   shared_ptr<Messenger> messenger;
-  ASSERT_OK(MessengerBuilder("test").Build(&messenger));
+  ASSERT_OK(MessengerBuilder("test").build(&messenger));
 
   // Create a timer that restarts itself from within its functor.
   PeriodicTimer::Options opts;
@@ -223,7 +223,7 @@ TEST_P(JitteredOneShotPeriodicTimerTest, TestBasics) {
 TEST_F(PeriodicTimerTest, TestCallbackRestartsOneShotTimer) {
   atomic<int64_t> counter(0);
   shared_ptr<Messenger> messenger;
-  ASSERT_OK(MessengerBuilder("test").Build(&messenger));
+  ASSERT_OK(MessengerBuilder("test").build(&messenger));
 
   // Create a timer that restarts itself from within its functor.
   PeriodicTimer::Options opts;
@@ -251,7 +251,7 @@ TEST_F(PeriodicTimerTest, TestCallbackRestartsOneShotTimer) {
 TEST_F(PeriodicTimerTest, TestPerformance) {
   const int kNumTimers = 1000;
   shared_ptr<Messenger> messenger;
-  ASSERT_OK(MessengerBuilder("test").set_num_reactors(1).Build(&messenger));
+  ASSERT_OK(MessengerBuilder("test").setNumReactors(1).build(&messenger));
   SCOPE_EXIT {
     messenger->Shutdown();
   };

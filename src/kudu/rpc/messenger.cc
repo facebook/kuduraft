@@ -77,103 +77,103 @@ MessengerBuilder::MessengerBuilder(std::string name)
           kudu::security::SecurityDefaults::kDefaultTlsMinVersion),
       enableInboundTls_(false) {}
 
-MessengerBuilder& MessengerBuilder::set_connection_keepalive_time(
+MessengerBuilder& MessengerBuilder::setConnectionKeepaliveTime(
     const MonoDelta& keepalive) {
   connectionKeepaliveTime_ = keepalive;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_num_reactors(int num_reactors) {
-  numReactors_ = num_reactors;
+MessengerBuilder& MessengerBuilder::setNumReactors(int numReactors) {
+  numReactors_ = numReactors;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_min_negotiation_threads(
-    int min_negotiation_threads) {
-  minNegotiationThreads_ = min_negotiation_threads;
+MessengerBuilder& MessengerBuilder::setMinNegotiationThreads(
+    int minNegotiationThreads) {
+  minNegotiationThreads_ = minNegotiationThreads;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_max_negotiation_threads(
-    int max_negotiation_threads) {
-  maxNegotiationThreads_ = max_negotiation_threads;
+MessengerBuilder& MessengerBuilder::setMaxNegotiationThreads(
+    int maxNegotiationThreads) {
+  maxNegotiationThreads_ = maxNegotiationThreads;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_coarse_timer_granularity(
+MessengerBuilder& MessengerBuilder::setCoarseTimerGranularity(
     const MonoDelta& granularity) {
   coarseTimerGranularity_ = granularity;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_metric_entity(
-    const std::shared_ptr<MetricEntity>& metric_entity) {
-  metricEntity_ = metric_entity;
+MessengerBuilder& MessengerBuilder::setMetricEntity(
+    const std::shared_ptr<MetricEntity>& metricEntity) {
+  metricEntity_ = metricEntity;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_connection_keep_alive_time(
-    int32_t time_in_ms) {
-  connectionKeepaliveTime_ = MonoDelta::FromMilliseconds(time_in_ms);
+MessengerBuilder& MessengerBuilder::setConnectionKeepAliveTime(
+    int32_t timeInMs) {
+  connectionKeepaliveTime_ = MonoDelta::FromMilliseconds(timeInMs);
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_rpc_negotiation_timeout_ms(
-    int64_t time_in_ms) {
-  rpcNegotiationTimeoutMs_ = time_in_ms;
+MessengerBuilder& MessengerBuilder::setRpcNegotiationTimeoutMs(
+    int64_t timeInMs) {
+  rpcNegotiationTimeoutMs_ = timeInMs;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_rpc_authentication(
-    const std::string& rpc_authentication) {
-  rpcAuthentication_ = rpc_authentication;
+MessengerBuilder& MessengerBuilder::setRpcAuthentication(
+    const std::string& rpcAuthentication) {
+  rpcAuthentication_ = rpcAuthentication;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_rpc_encryption(
-    const std::string& rpc_encryption) {
-  rpcEncryption_ = rpc_encryption;
+MessengerBuilder& MessengerBuilder::setRpcEncryption(
+    const std::string& rpcEncryption) {
+  rpcEncryption_ = rpcEncryption;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_rpc_tls_ciphers(
-    const std::string& rpc_tls_ciphers) {
-  rpcTlsCiphers_ = rpc_tls_ciphers;
+MessengerBuilder& MessengerBuilder::setRpcTlsCiphers(
+    const std::string& rpcTlsCiphers) {
+  rpcTlsCiphers_ = rpcTlsCiphers;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_rpc_tls_min_protocol(
-    const std::string& rpc_tls_min_protocol) {
-  rpcTlsMinProtocol_ = rpc_tls_min_protocol;
+MessengerBuilder& MessengerBuilder::setRpcTlsMinProtocol(
+    const std::string& rpcTlsMinProtocol) {
+  rpcTlsMinProtocol_ = rpcTlsMinProtocol;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_epki_cert_key_files(
+MessengerBuilder& MessengerBuilder::setEpkiCertKeyFiles(
     const std::string& cert,
-    const std::string& private_key) {
+    const std::string& privateKey) {
   rpcCertificateFile_ = cert;
-  rpcPrivateKeyFile_ = private_key;
+  rpcPrivateKeyFile_ = privateKey;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_epki_certificate_authority_file(
+MessengerBuilder& MessengerBuilder::setEpkiCertificateAuthorityFile(
     const std::string& ca) {
   rpcCaCertificateFile_ = ca;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_epki_private_password_key_cmd(
+MessengerBuilder& MessengerBuilder::setEpkiPrivatePasswordKeyCmd(
     const std::string& cmd) {
   rpcPrivateKeyPasswordCmd_ = cmd;
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::enable_inbound_tls() {
+MessengerBuilder& MessengerBuilder::enableInboundTls() {
   enableInboundTls_ = true;
   return *this;
 }
 
-Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
+Status MessengerBuilder::build(shared_ptr<Messenger>* msgr) {
   Messenger* new_msgr(new Messenger(*this));
 
   auto cleanup =

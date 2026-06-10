@@ -131,7 +131,7 @@ class ConsensusPeersTest : public KuduTest {
         MinimumOpId()));
 
     MessengerBuilder bld("test");
-    ASSERT_OK(bld.Build(&messenger_));
+    ASSERT_OK(bld.build(&messenger_));
   }
 
   virtual void TearDown() override {

@@ -91,82 +91,80 @@ class MessengerBuilder {
 
   // Set the length of time we will keep a TCP connection will alive with no
   // traffic.
-  MessengerBuilder& set_connection_keepalive_time(const MonoDelta& keepalive);
+  MessengerBuilder& setConnectionKeepaliveTime(const MonoDelta& keepalive);
 
   // Set the number of reactor threads that will be used for sending and
   // receiving.
-  MessengerBuilder& set_num_reactors(int num_reactors);
+  MessengerBuilder& setNumReactors(int numReactors);
 
   // Set the minimum number of connection-negotiation threads that will be used
   // to handle the blocking connection-negotiation step.
-  MessengerBuilder& set_min_negotiation_threads(int min_negotiation_threads);
+  MessengerBuilder& setMinNegotiationThreads(int minNegotiationThreads);
 
   // Set the maximum number of connection-negotiation threads that will be used
   // to handle the blocking connection-negotiation step.
-  MessengerBuilder& set_max_negotiation_threads(int max_negotiation_threads);
+  MessengerBuilder& setMaxNegotiationThreads(int maxNegotiationThreads);
 
   // Set the granularity with which connections are checked for keepalive.
-  MessengerBuilder& set_coarse_timer_granularity(const MonoDelta& granularity);
+  MessengerBuilder& setCoarseTimerGranularity(const MonoDelta& granularity);
 
   // Set metric entity for use by RPC systems.
-  MessengerBuilder& set_metric_entity(
-      const std::shared_ptr<MetricEntity>& metric_entity);
+  MessengerBuilder& setMetricEntity(
+      const std::shared_ptr<MetricEntity>& metricEntity);
 
   // Set the time in milliseconds after which an idle connection from a client
   // will be disconnected by the server.
-  MessengerBuilder& set_connection_keep_alive_time(int32_t time_in_ms);
+  MessengerBuilder& setConnectionKeepAliveTime(int32_t timeInMs);
 
   // Set the timeout for negotiating an RPC connection.
-  MessengerBuilder& set_rpc_negotiation_timeout_ms(int64_t time_in_ms);
+  MessengerBuilder& setRpcNegotiationTimeoutMs(int64_t timeInMs);
 
   // Set the state of authentication required. If 'optional', authentication
   // will be used when the remote end supports it. If 'required', connections
   // which are not able to authenticate (because the remote end lacks support)
   // are rejected.
-  MessengerBuilder& set_rpc_authentication(
-      const std::string& rpc_authentication);
+  MessengerBuilder& setRpcAuthentication(const std::string& rpcAuthentication);
 
   // Set the state of encryption required. If 'optional', encryption will be
   // used when the remote end supports it. If 'required', connections which are
   // not able to use encryption (because the remote end lacks support) are
   // rejected. If 'disabled', encryption will not be used, and RPC
   // authentication (--rpc_authentication) must also be disabled as well.
-  MessengerBuilder& set_rpc_encryption(const std::string& rpc_encryption);
+  MessengerBuilder& setRpcEncryption(const std::string& rpcEncryption);
 
   // Set the cipher suite preferences to use for TLS-secured RPC connections.
   // Uses the OpenSSL cipher preference list format. See man (1) ciphers for
   // more information.
-  MessengerBuilder& set_rpc_tls_ciphers(const std::string& rpc_tls_ciphers);
+  MessengerBuilder& setRpcTlsCiphers(const std::string& rpcTlsCiphers);
 
   // Set the minimum protocol version to allow when for securing RPC connections
   // with TLS. May be one of 'TLSv1', 'TLSv1.1', or 'TLSv1.2'.
-  MessengerBuilder& set_rpc_tls_min_protocol(
-      const std::string& rpc_tls_min_protocol);
+  MessengerBuilder& setRpcTlsMinProtocol(const std::string& rpcTlsMinProtocol);
 
   // Set the TLS server certificate and private key files paths. If this is set
-  // in conjunction with enable_inbound_tls(), internal PKI will not be used for
+  // in conjunction with enableInboundTls(), internal PKI will not be used for
   // encrypted communication and external PKI will be used instead.
-  MessengerBuilder& set_epki_cert_key_files(
+  MessengerBuilder& setEpkiCertKeyFiles(
       const std::string& cert,
-      const std::string& private_key);
+      const std::string& privateKey);
 
   // Set the TLS Certificate Authority file path. Must always be set with
-  // set_epki_cert_key_files(). If this is set in conjunction with
-  // enable_inbound_tls(), internal PKI will not be used for encrypted
+  // setEpkiCertKeyFiles(). If this is set in conjunction with
+  // enableInboundTls(), internal PKI will not be used for encrypted
   // communication and external PKI will be used instead.
-  MessengerBuilder& set_epki_certificate_authority_file(const std::string& ca);
+  MessengerBuilder& setEpkiCertificateAuthorityFile(const std::string& ca);
 
   // Set a Unix command whose output returns the password used to decrypt the
-  // RPC server's private key file specified via set_epki_cert_key_files(). If
+  // RPC server's private key file specified via setEpkiCertKeyFiles(). If
   // the .PEM key file is not password-protected, this flag does not need to be
   // set. Trailing whitespace will be trimmed before it is used to decrypt the
   // private key.
-  MessengerBuilder& set_epki_private_password_key_cmd(const std::string& cmd);
+  MessengerBuilder& setEpkiPrivatePasswordKeyCmd(const std::string& cmd);
 
   // Configure the messenger to enable TLS encryption on inbound connections.
-  MessengerBuilder& enable_inbound_tls();
+  MessengerBuilder& enableInboundTls();
 
-  Status Build(std::shared_ptr<Messenger>* msgr);
+  Status build(std::shared_ptr<Messenger>* msgr);
 
  private:
   const std::string name_;

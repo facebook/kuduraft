@@ -171,15 +171,14 @@ TEST_P(TestRpc, TestNegotiationDeadlock) {
   // negotiation task must get queued after the client negotiation task if they
   // share the same thread pool.
   MessengerBuilder mb("TestRpc.TestNegotiationDeadlock");
-  mb.set_min_negotiation_threads(1)
-      .set_max_negotiation_threads(1)
-      .set_metric_entity(metricEntity_);
+  mb.setMinNegotiationThreads(1).setMaxNegotiationThreads(1).setMetricEntity(
+      metricEntity_);
   if (enableSsl) {
-    mb.enable_inbound_tls();
+    mb.enableInboundTls();
   }
 
   shared_ptr<Messenger> messenger;
-  CHECK_OK(mb.Build(&messenger));
+  CHECK_OK(mb.build(&messenger));
 
   Sockaddr serverAddr;
   ASSERT_OK(
