@@ -83,7 +83,7 @@ class Buffer {
   }
 
   // Called by a successful realloc.
-  void Update(void* newData, size_t newSize) {
+  void update(void* newData, size_t newSize) {
 #ifndef NDEBUG
     if (newSize > size_) {
       overwriteWithPattern(
@@ -124,7 +124,7 @@ class BufferAllocator {
   //    with a non-NULL data pointer and zero capacity.
   // 2. If minimal == 0, the allocator will always return a non-NULL Buffer
   //    with a non-NULL data pointer, possibly with zero capacity.
-  Buffer* BestEffortAllocate(size_t requested, size_t minimal) {
+  Buffer* bestEffortAllocate(size_t requested, size_t minimal) {
     DCHECK_LE(minimal, requested);
     Buffer* result = allocateInternal(requested, minimal, this);
     logAllocation(requested, minimal, result);
@@ -132,9 +132,9 @@ class BufferAllocator {
   }
 
   // Called by the user when a new block of memory is needed. Equivalent to
-  // BestEffortAllocate(requested, requested).
+  // bestEffortAllocate(requested, requested).
   Buffer* Allocate(size_t requested) {
-    return BestEffortAllocate(requested, requested);
+    return bestEffortAllocate(requested, requested);
   }
 
   // Called by the user when a previously allocated block needs to be resized.
@@ -156,7 +156,7 @@ class BufferAllocator {
   // 2. If minimal == 0, the allocator will always return a non-NULL Buffer
   //    with a non-NULL data pointer, possibly with zero capacity.
   Buffer*
-  BestEffortReallocate(size_t requested, size_t minimal, Buffer* buffer) {
+  bestEffortReallocate(size_t requested, size_t minimal, Buffer* buffer) {
     DCHECK_LE(minimal, requested);
     Buffer* result;
     if (buffer == nullptr) {
@@ -172,9 +172,9 @@ class BufferAllocator {
   }
 
   // Called by the user when a previously allocated block needs to be resized.
-  // Equivalent to BestEffortReallocate(requested, requested, buffer).
-  Buffer* Reallocate(size_t requested, Buffer* buffer) {
-    return BestEffortReallocate(requested, requested, buffer);
+  // Equivalent to bestEffortReallocate(requested, requested, buffer).
+  Buffer* reallocate(size_t requested, Buffer* buffer) {
+    return bestEffortReallocate(requested, requested, buffer);
   }
 
   // Returns the amount of memory (in bytes) still available for this allocator.
@@ -195,9 +195,9 @@ class BufferAllocator {
     return new Buffer(data, size, allocator);
   }
 
-  // Expose Buffer::Update to subclasses of BufferAllocator.
+  // Expose Buffer::update to subclasses of BufferAllocator.
   void updateBuffer(void* newData, size_t newSize, Buffer* buffer) {
-    buffer->Update(newData, newSize);
+    buffer->update(newData, newSize);
   }
 
   // Called by chained buffer allocators.
@@ -257,7 +257,7 @@ class HeapBufferAllocator : public BufferAllocator {
   ~HeapBufferAllocator() override = default;
 
   // Returns a singleton instance of the heap allocator.
-  static HeapBufferAllocator* Get() {
+  static HeapBufferAllocator* get() {
     return Singleton<HeapBufferAllocator>::get();
   }
 
@@ -368,7 +368,7 @@ class Quota : public Mediator {
   // Returns a value in range [minimal, requested] if not exceeding remaining
   // quota or if the quota is not enforced (soft quota), and adjusts the usage
   // value accordingly.  Otherwise, returns zero. The semantics of 'remaining
-  // quota' are defined by subclasses (that must supply GetQuotaInternal()
+  // quota' are defined by subclasses (that must supply getQuotaInternal()
   // method).
   virtual size_t Allocate(size_t requested, size_t minimal) override;
 
@@ -379,16 +379,16 @@ class Quota : public Mediator {
   // quota is 0 (or less than "minimal" param).
   virtual size_t Available() const override {
     LockGuardMaybe<Mutex> lock(Quota<thread_safe>::mutex());
-    const size_t quota = GetQuotaInternal();
+    const size_t quota = getQuotaInternal();
     return (usage_ >= quota) ? 0 : (quota - usage_);
   }
 
   // Returns the current quota value.
-  size_t GetQuota() const;
+  size_t getQuota() const;
 
   // Returns the current usage value, defined as a sum of all the values
   // granted by calls to Allocate, less these released via calls to Free.
-  size_t GetUsage() const;
+  size_t getUsage() const;
 
   bool enforced() const {
     return enforced_;
@@ -397,11 +397,11 @@ class Quota : public Mediator {
  protected:
   // Overridden by specific implementations, to define semantics of
   // the quota, i.e. the total amount of resources that the mediator will
-  // allocate. Called directly from GetQuota that optionally provides
+  // allocate. Called directly from getQuota that optionally provides
   // thread safety. An 'Allocate' request will succeed if
-  // GetUsage() + minimal <= GetQuota() or if the quota is not enforced (soft
+  // getUsage() + minimal <= getQuota() or if the quota is not enforced (soft
   // quota).
-  virtual size_t GetQuotaInternal() const = 0;
+  virtual size_t getQuotaInternal() const = 0;
 
   Mutex* mutex() const {
     return thread_safe ? &mutex_ : nullptr;
@@ -422,18 +422,18 @@ template <bool thread_safe>
 class StaticQuota : public Quota<thread_safe> {
  public:
   explicit StaticQuota(size_t quota) : Quota<thread_safe>(true) {
-    SetQuota(quota);
+    setQuota(quota);
   }
   StaticQuota(size_t quota, bool enforced) : Quota<thread_safe>(enforced) {
-    SetQuota(quota);
+    setQuota(quota);
   }
   ~StaticQuota() override = default;
 
   // Sets quota to the new value.
-  void SetQuota(const size_t quota);
+  void setQuota(const size_t quota);
 
  protected:
-  virtual size_t GetQuotaInternal() const {
+  virtual size_t getQuotaInternal() const {
     return quota_;
   }
 
@@ -502,14 +502,14 @@ class MediatingBufferAllocator : public BufferAllocator {
 class MemoryLimit : public BufferAllocator {
  public:
   // Creates a limiter based on the default, heap allocator. Quota is infinite.
-  // (Can be set using SetQuota).
+  // (Can be set using setQuota).
   MemoryLimit()
       : quota_(std::numeric_limits<size_t>::max()),
-        allocator_(HeapBufferAllocator::Get(), &quota_) {}
+        allocator_(HeapBufferAllocator::get(), &quota_) {}
 
   // Creates a limiter based on the default, heap allocator.
   explicit MemoryLimit(size_t quota)
-      : quota_(quota), allocator_(HeapBufferAllocator::Get(), &quota_) {}
+      : quota_(quota), allocator_(HeapBufferAllocator::get(), &quota_) {}
 
   // Creates a limiter relaying to the specified delegate allocator.
   MemoryLimit(size_t quota, BufferAllocator* const delegate)
@@ -526,14 +526,14 @@ class MemoryLimit : public BufferAllocator {
     return allocator_.Available();
   }
 
-  size_t GetQuota() const {
-    return quota_.GetQuota();
+  size_t getQuota() const {
+    return quota_.getQuota();
   }
-  size_t GetUsage() const {
-    return quota_.GetUsage();
+  size_t getUsage() const {
+    return quota_.getUsage();
   }
-  void SetQuota(const size_t quota) {
-    quota_.SetQuota(quota);
+  void setQuota(const size_t quota) {
+    quota_.setQuota(quota);
   }
 
  private:
@@ -574,7 +574,7 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
         bypassedAmount_(bypassedAmount) {}
 
   virtual size_t Available() const override {
-    const size_t usage = allocator_.GetUsage();
+    const size_t usage = allocator_.getUsage();
     size_t available = allocator_.Available();
     if (bypassedAmount_ > usage) {
       available = std::max(bypassedAmount_ - usage, available);
@@ -588,7 +588,7 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
   // very small allocations when we exceed the soft quota below. The request
   // with increased minimal size is more likely to fail because of exceeding
   // hard quota, so we also fall back to the original minimal size.
-  size_t AdjustMinimal(size_t requested, size_t minimal) const {
+  size_t adjustMinimal(size_t requested, size_t minimal) const {
     return std::min(requested, std::max(minimal, Available()));
   }
   virtual Buffer* allocateInternal(
@@ -598,7 +598,7 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
     // Try increasing the "minimal" parameter to allocate more aggresively
     // within the bypassed amount of soft quota.
     Buffer* result = delegateAllocate(
-        &allocator_, requested, AdjustMinimal(requested, minimal), originator);
+        &allocator_, requested, adjustMinimal(requested, minimal), originator);
     if (result != nullptr) {
       return result;
     } else {
@@ -613,7 +613,7 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
     if (delegateReallocate(
             &allocator_,
             requested,
-            AdjustMinimal(requested, minimal),
+            adjustMinimal(requested, minimal),
             buffer,
             originator)) {
       return true;
@@ -626,7 +626,7 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
     delegateFree(&allocator_, buffer);
   }
 
-  // Using MemoryLimit with "infinite" limit to get GetUsage().
+  // Using MemoryLimit with "infinite" limit to get getUsage().
   MemoryLimit allocator_;
   size_t bypassedAmount_;
 };
@@ -849,17 +849,17 @@ class ThreadSafeMemoryLimit
             new MemoryLimit(quota, enforced, delegate)) {}
   ~ThreadSafeMemoryLimit() override = default;
 
-  size_t GetQuota() const {
+  size_t getQuota() const {
     LockGuardMaybe<Mutex> lock(mutex());
-    return delegate()->GetQuota();
+    return delegate()->getQuota();
   }
-  size_t GetUsage() const {
+  size_t getUsage() const {
     LockGuardMaybe<Mutex> lock(mutex());
-    return delegate()->GetUsage();
+    return delegate()->getUsage();
   }
-  void SetQuota(const size_t quota) {
+  void setQuota(const size_t quota) {
     LockGuardMaybe<Mutex> lock(mutex());
-    delegate()->SetQuota(quota);
+    delegate()->setQuota(quota);
   }
 
  private:
@@ -888,7 +888,7 @@ class OwningBufferAllocator : public BufferAllocator {
 
   // Add to the collection of objects owned by this allocator. The object added
   // last is deleted first.
-  OwningBufferAllocator* Add(OwnedType* p) {
+  OwningBufferAllocator* add(OwnedType* p) {
     owned_.push_back(p);
     return this;
   }
@@ -942,7 +942,7 @@ class GuaranteeMemory : public BufferAllocator {
   ~GuaranteeMemory() override = default;
 
   virtual size_t Available() const override {
-    return memoryGuarantee_ - limit_.GetUsage();
+    return memoryGuarantee_ - limit_.getUsage();
   }
 
  private:
@@ -988,7 +988,7 @@ size_t Quota<thread_safe>::Allocate(
   LockGuardMaybe<Mutex> lock(mutex());
   DCHECK_LE(minimal, requested)
       << "\"minimal\" shouldn't be bigger than \"requested\"";
-  const size_t quota = GetQuotaInternal();
+  const size_t quota = getQuotaInternal();
   size_t allocation;
   if (usage_ > quota || minimal > quota - usage_) {
     // OOQ (Out of quota).
@@ -1028,19 +1028,19 @@ void Quota<thread_safe>::Free(size_t amount) {
 }
 
 template <bool thread_safe>
-size_t Quota<thread_safe>::GetQuota() const {
+size_t Quota<thread_safe>::getQuota() const {
   LockGuardMaybe<Mutex> lock(mutex());
-  return GetQuotaInternal();
+  return getQuotaInternal();
 }
 
 template <bool thread_safe>
-size_t Quota<thread_safe>::GetUsage() const {
+size_t Quota<thread_safe>::getUsage() const {
   LockGuardMaybe<Mutex> lock(mutex());
   return usage_;
 }
 
 template <bool thread_safe>
-void StaticQuota<thread_safe>::SetQuota(const size_t quota) {
+void StaticQuota<thread_safe>::setQuota(const size_t quota) {
   LockGuardMaybe<Mutex> lock(Quota<thread_safe>::mutex());
   quota_ = quota;
 }

@@ -54,7 +54,7 @@ ArenaBase<THREADSAFE>::ArenaBase(
 
 template <bool THREADSAFE>
 ArenaBase<THREADSAFE>::ArenaBase(size_t initialBufferSize)
-    : ArenaBase<THREADSAFE>(HeapBufferAllocator::Get(), initialBufferSize) {}
+    : ArenaBase<THREADSAFE>(HeapBufferAllocator::get(), initialBufferSize) {}
 
 template <bool THREADSAFE>
 void ArenaBase<THREADSAFE>::setMaxBufferSize(size_t size) {
@@ -116,7 +116,7 @@ typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::newComponent(
     size_t requestedSize,
     size_t minimumSize) {
   Buffer* buffer =
-      bufferAllocator_->BestEffortAllocate(requestedSize, minimumSize);
+      bufferAllocator_->bestEffortAllocate(requestedSize, minimumSize);
   if (buffer == nullptr) {
     return nullptr;
   }

@@ -135,7 +135,7 @@ TEST(TestArena, TestMemoryTrackerParentReferences) {
   }
   shared_ptr<MemoryTrackingBufferAllocator> allocator(
       new MemoryTrackingBufferAllocator(
-          HeapBufferAllocator::Get(), child_tracker));
+          HeapBufferAllocator::get(), child_tracker));
   MemoryTrackingArena arena(256, allocator);
 
   // Try some child operations.
@@ -153,7 +153,7 @@ TEST(TestArena, TestMemoryTrackingDontEnforce) {
       MemTracker::createTracker(1024, "arena-test-tracker");
   shared_ptr<MemoryTrackingBufferAllocator> allocator(
       new MemoryTrackingBufferAllocator(
-          HeapBufferAllocator::Get(), mem_tracker));
+          HeapBufferAllocator::get(), mem_tracker));
   MemoryTrackingArena arena(256, allocator);
   ASSERT_EQ(256, mem_tracker->consumption());
   void* allocated = arena.allocateBytes(256);
@@ -184,7 +184,7 @@ TEST(TestArena, TestMemoryTrackingEnforced) {
       MemTracker::createTracker(1024, "arena-test-tracker");
   shared_ptr<MemoryTrackingBufferAllocator> allocator(
       new MemoryTrackingBufferAllocator(
-          HeapBufferAllocator::Get(),
+          HeapBufferAllocator::get(),
           mem_tracker,
           // enforce limit
           true));
