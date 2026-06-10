@@ -35,7 +35,7 @@ namespace crc {
 class CrcTest : public KuduTest {
  protected:
   // Returns pointer to data which must be deleted by caller.
-  static void generateBenchmarkData(const uint8_t** bufptr, size_t* buflen) {
+  static void generateBenchmarkData(const uint8_t** bufPtr, size_t* bufLen) {
     const uint32_t kNumNumbers = 1000000;
     const uint32_t kBytesPerNumber = sizeof(uint32_t);
     const uint32_t kLength = kNumNumbers * kBytesPerNumber;
@@ -43,8 +43,8 @@ class CrcTest : public KuduTest {
     for (uint32_t i = 0; i < kNumNumbers; i++) {
       memcpy(buf + (i * kBytesPerNumber), &i, kBytesPerNumber);
     }
-    *bufptr = buf;
-    *buflen = kLength;
+    *bufPtr = buf;
+    *bufLen = kLength;
   }
 };
 
@@ -82,20 +82,20 @@ TEST_F(CrcTest, TestCrc32c) {
 TEST_F(CrcTest, BenchmarkCrc32c) {
   std::unique_ptr<const uint8_t[]> data;
   const uint8_t* buf;
-  size_t buflen;
-  generateBenchmarkData(&buf, &buflen);
+  size_t bufLen;
+  generateBenchmarkData(&buf, &bufLen);
   data.reset(buf);
   Crc* crcInstance = getCrc32cInstance();
   int numRuns = 1000;
   if (AllowSlowTests()) {
     numRuns = 40000;
   }
-  const uint64_t kNumBytes = numRuns * buflen;
+  const uint64_t kNumBytes = numRuns * bufLen;
   Stopwatch sw;
   sw.start();
   for (int i = 0; i < numRuns; i++) {
     uint64_t cksum;
-    crcInstance->Compute(buf, buflen, &cksum);
+    crcInstance->Compute(buf, bufLen, &cksum);
   }
   sw.stop();
   CpuTimes elapsed = sw.elapsed();
@@ -103,7 +103,7 @@ TEST_F(CrcTest, BenchmarkCrc32c) {
       "{} runs of CRC32C on {} bytes of data (total: {} bytes)"
       " in {} seconds; {} bytes per millisecond, {} bytes per nanosecond!",
       numRuns,
-      buflen,
+      bufLen,
       kNumBytes,
       elapsed.wallSeconds(),
       (kNumBytes / elapsed.wallMillis()),
