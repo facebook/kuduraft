@@ -56,8 +56,8 @@ TEST_F(LogAnchorRegistryTest, TestDuplicateInserts) {
   std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
 
   // Register a bunch of anchors at log index 1.
-  const int numAnchors = 10;
-  LogAnchor anchors[numAnchors];
+  const int kNumAnchors = 10;
+  LogAnchor anchors[kNumAnchors];
   for (auto& anchor : anchors) {
     reg->registerAnchor(1, testName, &anchor);
   }
