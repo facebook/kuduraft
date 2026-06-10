@@ -484,7 +484,7 @@ Status ServerBase::dumpServerInfo(const string& path, const string& format)
             options_.env,
             path,
             status,
-            pb_util::NO_SYNC)); // durability doesn't matter
+            pb_util::kNoSync)); // durability doesn't matter
   } else {
     return Status::InvalidArgument("bad format", format);
   }

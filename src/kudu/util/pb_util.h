@@ -55,9 +55,9 @@ class faststring;
 
 namespace pb_util {
 
-enum SyncMode { SYNC, NO_SYNC };
+enum SyncMode { kSync, kNoSync };
 
-enum CreateMode { OVERWRITE, NO_OVERWRITE };
+enum CreateMode { kOverwrite, kNoOverwrite };
 
 enum class FileState { NotInitialized, Open, Closed };
 
@@ -65,22 +65,22 @@ enum class FileState { NotInitialized, Open, Closed };
 extern const int kPbContainerMinimumValidLength;
 
 // See MessageLite::AppendToString
-void AppendToString(
+void appendToString(
     const google::protobuf::MessageLite& msg,
     faststring* output);
 
 // See MessageLite::AppendPartialToString
-void AppendPartialToString(
+void appendPartialToString(
     const google::protobuf::MessageLite& msg,
     faststring* output);
 
 // See MessageLite::SerializeToString.
-void SerializeToString(
+void serializeToString(
     const google::protobuf::MessageLite& msg,
     faststring* output);
 
 // See MessageLite::ParseFromZeroCopyStream
-Status ParseFromSequentialFile(
+Status parseFromSequentialFile(
     google::protobuf::MessageLite* msg,
     SequentialFile* rfile);
 
@@ -99,7 +99,7 @@ Status ReadPBFromPath(
 
 // Serialize a protobuf to the given path.
 //
-// If SyncMode SYNC is provided, ensures the changes are made durable.
+// If SyncMode kSync is provided, ensures the changes are made durable.
 Status WritePBToPath(
     Env* env,
     const std::string& path,
@@ -108,7 +108,7 @@ Status WritePBToPath(
 
 // Truncate any 'bytes' or 'string' fields of this message to max_len.
 // The text "<truncated>" is appended to any such truncated fields.
-void TruncateFields(google::protobuf::Message* message, int max_len);
+void truncateFields(google::protobuf::Message* message, int max_len);
 
 // Redaction-sensitive variant of Message::DebugString.
 //

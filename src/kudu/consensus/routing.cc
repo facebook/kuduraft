@@ -538,8 +538,8 @@ Status DurableRoutingTable::flush() const {
           fsManager_->env(),
           path,
           proxyTopology_,
-          pb_util::OVERWRITE,
-          pb_util::SYNC),
+          pb_util::kOverwrite,
+          pb_util::kSync),
       fmt::format(
           "Unable to write proxy metadata file for tablet {} to path {}",
           tabletId_,

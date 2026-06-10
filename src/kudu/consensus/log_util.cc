@@ -849,7 +849,7 @@ Status WritableLogSegment::writeHeaderAndOpen(
   // Then Length-prefixed header.
   putFixed32(&buf, newHeader.ByteSize());
   // Then Serialize the PB.
-  pb_util::AppendToString(newHeader, &buf);
+  pb_util::appendToString(newHeader, &buf);
   RETURN_NOT_OK(writableFile()->Append(Slice(buf)));
 
   header_.CopyFrom(newHeader);
@@ -868,7 +868,7 @@ Status WritableLogSegment::writeFooterAndClose(
   DCHECK(footer.IsInitialized()) << footer.InitializationErrorString();
 
   faststring buf;
-  pb_util::AppendToString(footer, &buf);
+  pb_util::appendToString(footer, &buf);
   buf.append(kLogSegmentFooterMagicString);
   putFixed32(&buf, footer.ByteSize());
 

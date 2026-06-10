@@ -542,12 +542,12 @@ Status readSupplementalHeader(
 
 } // anonymous namespace
 
-void AppendToString(const MessageLite& msg, faststring* output) {
+void appendToString(const MessageLite& msg, faststring* output) {
   DCHECK(msg.IsInitialized()) << initializationErrorMessage("serialize", msg);
-  AppendPartialToString(msg, output);
+  appendPartialToString(msg, output);
 }
 
-void AppendPartialToString(const MessageLite& msg, faststring* output) {
+void appendPartialToString(const MessageLite& msg, faststring* output) {
   size_t oldSize = output->size();
   int byteSize = msg.ByteSize();
   // Messages >2G cannot be serialized due to overflow computing ByteSize.
@@ -562,12 +562,12 @@ void AppendPartialToString(const MessageLite& msg, faststring* output) {
   }
 }
 
-void SerializeToString(const MessageLite& msg, faststring* output) {
+void serializeToString(const MessageLite& msg, faststring* output) {
   output->clear();
-  AppendToString(msg, output);
+  appendToString(msg, output);
 }
 
-Status ParseFromSequentialFile(MessageLite* msg, SequentialFile* rfile) {
+Status parseFromSequentialFile(MessageLite* msg, SequentialFile* rfile) {
   SequentialFileFileInputStream input(rfile);
   if (!msg->ParseFromZeroCopyStream(&input)) {
     RETURN_NOT_OK(input.status());
@@ -609,14 +609,14 @@ Status WritePBToPath(
     return Status::IOError("Unable to serialize PB to file");
   }
 
-  if (sync == pb_util::SYNC) {
+  if (sync == pb_util::kSync) {
     RETURN_NOT_OK_PREPEND(file->Sync(), "Failed to Sync() " + tmp_path);
   }
   RETURN_NOT_OK_PREPEND(file->Close(), "Failed to Close() " + tmp_path);
   RETURN_NOT_OK_PREPEND(
       env->RenameFile(tmp_path, path), "Failed to rename tmp file to " + path);
   tmp_deleter.dismiss();
-  if (sync == pb_util::SYNC) {
+  if (sync == pb_util::kSync) {
     RETURN_NOT_OK_PREPEND(
         env->SyncDir(dirName(path)), "Failed to SyncDir() parent of " + path);
   }
@@ -626,7 +626,7 @@ Status WritePBToPath(
 Status ReadPBFromPath(Env* env, const std::string& path, MessageLite* msg) {
   shared_ptr<SequentialFile> rfile;
   RETURN_NOT_OK(env_util::openFileForSequential(env, path, &rfile));
-  RETURN_NOT_OK(ParseFromSequentialFile(msg, rfile.get()));
+  RETURN_NOT_OK(parseFromSequentialFile(msg, rfile.get()));
   return Status::OK();
 }
 
@@ -637,7 +637,7 @@ static void truncateString(string* s, int max_len) {
   }
 }
 
-void TruncateFields(Message* message, int max_len) {
+void truncateFields(Message* message, int max_len) {
   const Reflection* reflection = message->GetReflection();
   vector<const FieldDescriptor*> fields;
   reflection->ListFields(*message, &fields);
@@ -652,7 +652,7 @@ void TruncateFields(Message* message, int max_len) {
             break;
           }
           case FieldDescriptor::CPPTYPE_MESSAGE: {
-            TruncateFields(
+            truncateFields(
                 reflection->MutableRepeatedMessage(message, field, i), max_len);
             break;
           }
@@ -669,7 +669,7 @@ void TruncateFields(Message* message, int max_len) {
           break;
         }
         case FieldDescriptor::CPPTYPE_MESSAGE: {
-          TruncateFields(reflection->MutableMessage(message, field), max_len);
+          truncateFields(reflection->MutableMessage(message, field), max_len);
           break;
         }
         default:
@@ -1148,7 +1148,7 @@ Status WritePBContainerToPath(
       "msg_type",
       std::string(msg.GetTypeName()));
 
-  if (create == NO_OVERWRITE && env->FileExists(path)) {
+  if (create == kNoOverwrite && env->FileExists(path)) {
     return Status::AlreadyPresent(fmt::format("File {} already exists", path));
   }
 
@@ -1165,14 +1165,14 @@ Status WritePBContainerToPath(
   WritablePBContainerFile pb_file(std::move(file));
   RETURN_NOT_OK(pb_file.CreateNew(msg));
   RETURN_NOT_OK(pb_file.Append(msg));
-  if (sync == pb_util::SYNC) {
+  if (sync == pb_util::kSync) {
     RETURN_NOT_OK(pb_file.Sync());
   }
   RETURN_NOT_OK(pb_file.Close());
   RETURN_NOT_OK_PREPEND(
       env->RenameFile(tmp_path, path), "Failed to rename tmp file to " + path);
   tmp_deleter.dismiss();
-  if (sync == pb_util::SYNC) {
+  if (sync == pb_util::kSync) {
     RETURN_NOT_OK_PREPEND(
         env->SyncDir(dirName(path)), "Failed to SyncDir() parent of " + path);
   }
@@ -1189,7 +1189,7 @@ PbTracer::PbTracer(const Message& msg) : msg_(msg.New()) {
 }
 
 void PbTracer::appendAsTraceFormat(std::string* out) const {
-  pb_util::TruncateFields(msg_.get(), kMaxFieldLengthToTrace);
+  pb_util::truncateFields(msg_.get(), kMaxFieldLengthToTrace);
   std::ostringstream ss;
   JsonWriter jw(&ss, JsonWriter::kCompact);
   jw.protobuf(*msg_);

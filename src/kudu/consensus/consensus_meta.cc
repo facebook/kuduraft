@@ -391,8 +391,8 @@ Status ConsensusMetadata::flush(FlushMode flushMode) {
           fsManager_->env(),
           metaFilePath,
           pb_,
-          flushMode == kOverwrite ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
-          pb_util::SYNC),
+          flushMode == kOverwrite ? pb_util::kOverwrite : pb_util::kNoOverwrite,
+          pb_util::kSync),
       fmt::format(
           "Unable to write consensus meta file for tablet {} to path {}",
           tabletId_,

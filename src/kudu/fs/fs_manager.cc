@@ -529,7 +529,7 @@ Status FsManager::writeInstanceMetadata(
   // durability cost is negligible.
   RETURN_NOT_OK(
       pb_util::WritePBContainerToPath(
-          env_, path, metadata, pb_util::NO_OVERWRITE, pb_util::SYNC));
+          env_, path, metadata, pb_util::kNoOverwrite, pb_util::kSync));
   LOG(INFO) << "Generated new instance metadata in path " << path << ":\n"
             << SecureDebugString(metadata);
   return Status::OK();
@@ -731,7 +731,7 @@ void FsManager::createDataDirLayoutForBackwardCompat() {
     pb.set_filesystem_block_size_bytes(blockSize);
 
     s = pb_util::WritePBContainerToPath(
-        env_, instancePath, pb, pb_util::NO_OVERWRITE, pb_util::SYNC);
+        env_, instancePath, pb, pb_util::kNoOverwrite, pb_util::kSync);
     WARN_NOT_OK(
         s,
         fmt::format(

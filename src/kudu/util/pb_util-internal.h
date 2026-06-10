@@ -36,7 +36,7 @@ namespace kudu {
 namespace pb_util {
 namespace internal {
 
-// Input Stream used by ParseFromSequentialFile()
+// Input Stream used by parseFromSequentialFile()
 class SequentialFileFileInputStream
     : public google::protobuf::io::ZeroCopyInputStream {
  public:

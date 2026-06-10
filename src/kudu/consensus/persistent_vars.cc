@@ -100,8 +100,8 @@ Status PersistentVars::flush(FlushMode flushMode) {
           fsManager_->env(),
           persistentVarsFilePath,
           pb_,
-          flushMode == kOverwrite ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
-          pb_util::SYNC),
+          flushMode == kOverwrite ? pb_util::kOverwrite : pb_util::kNoOverwrite,
+          pb_util::kSync),
       fmt::format(
           "Unable to write persistent vars file for tablet {} to path {}",
           tabletId_,
