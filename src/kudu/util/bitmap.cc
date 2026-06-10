@@ -54,8 +54,8 @@ void bitmapChangeBits(
 
   // change the middle bits
   if (endByte > startByte) {
-    const uint8_t pattern8[2] = {0x00, 0xff};
-    memset(bitmap + startByte, pattern8[value], endByte - startByte);
+    const uint8_t kPattern8[2] = {0x00, 0xff};
+    memset(bitmap + startByte, kPattern8[value], endByte - startByte);
   }
 
   // change the first bits of the last byte
@@ -74,8 +74,8 @@ bool bitmapFindFirst(
     size_t bitmapLen,
     bool value,
     size_t* idx) {
-  const uint64_t pattern64[2] = {0xffffffffffffffff, 0x0000000000000000};
-  const uint8_t pattern8[2] = {0xff, 0x00};
+  const uint64_t kPattern64[2] = {0xffffffffffffffff, 0x0000000000000000};
+  const uint8_t kPattern8[2] = {0xff, 0x00};
   size_t bit;
 
   DCHECK_LE(offset, bitmapLen);
@@ -100,14 +100,14 @@ bool bitmapFindFirst(
 
   // check 64bit at the time for a 'value' bit
   const uint64_t* u64 = reinterpret_cast<const uint64_t*>(p);
-  while (numBits >= 64 && *u64 == pattern64[value]) {
+  while (numBits >= 64 && *u64 == kPattern64[value]) {
     numBits -= 64;
     u64++;
   }
 
   // check 8bit at the time for a 'value' bit
   p = reinterpret_cast<const uint8_t*>(u64);
-  while (numBits >= 8 && *p == pattern8[value]) {
+  while (numBits >= 8 && *p == kPattern8[value]) {
     numBits -= 8;
     p++;
   }
