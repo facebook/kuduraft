@@ -147,7 +147,7 @@ TsTabletManager::TsTabletManager(TabletServer* server)
       metricRegistry_(server->metricRegistry()),
       state_(MANAGER_INITIALIZING),
       markDirtyClbk_(
-          Bind(&TsTabletManager::markTabletDirty, Unretained(this))) {}
+          Bind(&TsTabletManager::markTabletDirty, unretained(this))) {}
 
 TsTabletManager::~TsTabletManager() {
   // Close cannot be called from the destructor any more.

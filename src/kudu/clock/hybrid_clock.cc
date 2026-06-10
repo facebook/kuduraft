@@ -446,11 +446,11 @@ void HybridClock::registerMetrics(
     const std::shared_ptr<MetricEntity>& metricEntity) {
   METRIC_hybrid_clock_timestamp
       .instantiateFunctionGauge(
-          metricEntity, Bind(&HybridClock::nowForMetrics, Unretained(this)))
+          metricEntity, Bind(&HybridClock::nowForMetrics, unretained(this)))
       ->autoDetachToLastValue(&metricDetacher_);
   METRIC_hybrid_clock_error
       .instantiateFunctionGauge(
-          metricEntity, Bind(&HybridClock::errorForMetrics, Unretained(this)))
+          metricEntity, Bind(&HybridClock::errorForMetrics, unretained(this)))
       ->autoDetachToLastValue(&metricDetacher_);
 }
 

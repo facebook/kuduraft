@@ -932,9 +932,9 @@ string TraceResultBuffer::doFlush(bool leaveIntact) {
   TraceLog* tl = TraceLog::getInstance();
   if (leaveIntact) {
     tl->flushButLeaveBufferIntact(
-        Bind(&TraceResultBuffer::collect, Unretained(&buf)));
+        Bind(&TraceResultBuffer::collect, unretained(&buf)));
   } else {
-    tl->flush(Bind(&TraceResultBuffer::collect, Unretained(&buf)));
+    tl->flush(Bind(&TraceResultBuffer::collect, unretained(&buf)));
   }
   buf.json_.append("]}\n");
   return buf.json_;

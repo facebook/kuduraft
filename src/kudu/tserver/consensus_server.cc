@@ -308,7 +308,7 @@ Status RaftConsensusInstance::start(bool /*isFirstRun*/) {
       std::move(timeManager),
       roundHandler,
       server_->metricEntity(),
-      Bind(&RaftConsensusInstance::markTabletDirty, Unretained(this))));
+      Bind(&RaftConsensusInstance::markTabletDirty, unretained(this))));
 
   log_->ClearOrphanedReplicates();
 

@@ -1207,7 +1207,7 @@ class PosixEnv : public Env {
     return Walk(
         name,
         kPostOrder,
-        Bind(&PosixEnv::DeleteRecursivelyCb, Unretained(this)));
+        Bind(&PosixEnv::DeleteRecursivelyCb, unretained(this)));
   }
 
   virtual Status GetFileSize(const string& fname, uint64_t* size) override {
@@ -1254,7 +1254,7 @@ class PosixEnv : public Env {
         Env::kPreOrder,
         Bind(
             &PosixEnv::GetFileSizeOnDiskRecursivelyCb,
-            Unretained(this),
+            unretained(this),
             &total)));
     *bytesUsed = total;
     return Status::OK();

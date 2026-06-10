@@ -411,7 +411,7 @@ TEST_F(ThreadPoolTest, TestPromises) {
 
   Promise<int> myPromise;
   ASSERT_OK(pool_->submitClosure(
-      Bind(&Promise<int>::set, Unretained(&myPromise), 5)));
+      Bind(&Promise<int>::set, unretained(&myPromise), 5)));
   ASSERT_EQ(5, myPromise.get());
   pool_->Shutdown();
 }
@@ -512,7 +512,7 @@ TEST_F(ThreadPoolTest, TestDeadlocks) {
       {
         ASSERT_OK(rebuildPoolWithMinMax(1, 1));
         ASSERT_OK(pool_->submitClosure(
-            Bind(&ThreadPool::Shutdown, Unretained(pool_.get()))));
+            Bind(&ThreadPool::Shutdown, unretained(pool_.get()))));
         waitForPool(*pool_);
       },
       deathMsg);

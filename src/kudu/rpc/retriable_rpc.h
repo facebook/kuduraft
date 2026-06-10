@@ -144,7 +144,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpc() {
     CHECK_OK(requestTracker_->newSeqNo(&sequenceNumber_));
   }
   serverPicker_->pickLeader(
-      Bind(&RetriableRpc::replicaFoundCb, Unretained(this)),
+      Bind(&RetriableRpc::replicaFoundCb, unretained(this)),
       retrier().deadline());
 }
 

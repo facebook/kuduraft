@@ -215,9 +215,9 @@ Status ThreadMgr::startInstrumentation(
   // metrics in multiple tservers, even though the ThreadMgr is itself a
   // singleton.
   metrics->neverRetire(METRIC_threads_started.instantiateFunctionGauge(
-      metrics, Bind(&ThreadMgr::readThreadsStarted, Unretained(this))));
+      metrics, Bind(&ThreadMgr::readThreadsStarted, unretained(this))));
   metrics->neverRetire(METRIC_threads_running.instantiateFunctionGauge(
-      metrics, Bind(&ThreadMgr::readThreadsRunning, Unretained(this))));
+      metrics, Bind(&ThreadMgr::readThreadsRunning, unretained(this))));
 
   if (web) {
     WebCallbackRegistry::PrerenderedPathHandlerCallback threadCallback =

@@ -12,12 +12,12 @@
 //
 // ARGUMENT BINDING WRAPPERS
 //
-// The wrapper function is kudu::Unretained().
+// The wrapper function is kudu::unretained().
 //
-// Unretained() allows Bind() to bind a non-refcounted class, and to disable
+// unretained() allows Bind() to bind a non-refcounted class, and to disable
 // refcounting on arguments that are refcounted objects.
 //
-// EXAMPLE OF Unretained():
+// EXAMPLE OF unretained():
 //
 //   class Foo {
 //    public:
@@ -27,10 +27,10 @@
 //   // In some function somewhere.
 //   Foo foo;
 //   Closure foo_callback =
-//       Bind(&Foo::func, Unretained(&foo));
+//       Bind(&Foo::func, unretained(&foo));
 //   foo_callback.Run();  // Prints "Foo:f".
 //
-// Without the Unretained() wrapper on |&foo|, the above call would fail
+// Without the unretained() wrapper on |&foo|, the above call would fail
 // to compile because Foo does not support the AddRef() and Release() methods.
 //
 //
@@ -57,13 +57,13 @@ class HasIsMethodTag {
   using No = char[2];
 
   template <typename U>
-  static Yes& Check(typename U::IsMethod*);
+  static Yes& check(typename U::IsMethod*);
 
   template <typename U>
-  static No& Check(...);
+  static No& check(...);
 
  public:
-  static const bool value = sizeof(Check<T>(0)) == sizeof(Yes);
+  static const bool value = sizeof(check<T>(0)) == sizeof(Yes);
 };
 
 template <typename T>
@@ -163,7 +163,7 @@ struct MaybeRefcount<true, const T*> {
 } // namespace internal
 
 template <typename T>
-static inline internal::UnretainedWrapper<T> Unretained(T* o) {
+static inline internal::UnretainedWrapper<T> unretained(T* o) {
   return internal::UnretainedWrapper<T>(o);
 }
 

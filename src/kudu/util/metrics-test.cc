@@ -114,7 +114,7 @@ TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
   int metricVal = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&myFunction, Unretained(&metricVal)));
+          entity_, Bind(&myFunction, unretained(&metricVal)));
 
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
@@ -133,7 +133,7 @@ TEST_F(MetricsTest, AutoDetachToLastValue) {
   int metricVal = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&myFunction, Unretained(&metricVal)));
+          entity_, Bind(&myFunction, unretained(&metricVal)));
 
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
@@ -152,7 +152,7 @@ TEST_F(MetricsTest, AutoDetachToConstant) {
   int metricVal = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&myFunction, Unretained(&metricVal)));
+          entity_, Bind(&myFunction, unretained(&metricVal)));
 
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
@@ -399,7 +399,7 @@ TEST_F(MetricsTest, TestDontDumpUntouched) {
   std::shared_ptr<Histogram> hist = METRIC_test_hist.instantiate(entity_);
   std::shared_ptr<FunctionGauge<int64_t>> functionGauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
-          entity_, Bind(&myFunction, Unretained(&metricVal)));
+          entity_, Bind(&myFunction, unretained(&metricVal)));
   std::shared_ptr<AtomicGauge<uint64_t>> atomicGauge =
       METRIC_test_gauge.instantiate(entity_, 0);
 

@@ -1079,7 +1079,7 @@ Status RaftConsensus::mockTransferLeadership(
 
   Status status = raftPoolToken_->submitClosure(Bind(
       &RaftConsensus::notifyPeerToStartElection,
-      Unretained(this),
+      unretained(this),
       new_leader_uuid,
       election_ctx.transferContext(),
       promise,

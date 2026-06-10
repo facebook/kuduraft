@@ -315,7 +315,7 @@ Status LogCache::appendOperations(
       msgs,
       Bind(
           &LogCache::logCallback,
-          Unretained(this),
+          unretained(this),
           lastIdxInBatch,
           borrowedMemory,
           callback));
@@ -447,7 +447,7 @@ Status LogCache::appendOperations(
       msgWrappers,
       Bind(
           &LogCache::logCallback,
-          Unretained(this),
+          unretained(this),
           lastIdxInBatch,
           borrowedMemory,
           callback));

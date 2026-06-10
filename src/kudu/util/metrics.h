@@ -966,7 +966,7 @@ class AtomicGauge : public Gauge {
 //  public:
 //   MyClassWithMetrics(const std::shared_ptr<MetricEntity>& entity) {
 //     METRIC_my_metric.instantiateFunctionGauge(entity,
-//       Bind(&MyClassWithMetrics::ComputeMyMetric, Unretained(this)))
+//       Bind(&MyClassWithMetrics::ComputeMyMetric, unretained(this)))
 //       ->autoDetach(&metric_detacher_);
 //   }
 //   ~MyClassWithMetrics() {
