@@ -700,12 +700,12 @@ class LeaderElection : public std::enable_shared_from_this<LeaderElection> {
 
  private:
   struct VoterState {
-    std::string peer_uuid;
+    std::string peerUuid;
     std::shared_ptr<PeerProxy> proxy;
 
     // If constructing the proxy failed (e.g. due to a DNS resolution issue)
-    // then 'proxy' will be NULL, and 'proxy_status' will contain the error.
-    Status proxy_status;
+    // then 'proxy' will be NULL, and 'proxyStatus' will contain the error.
+    Status proxyStatus;
 
     rpc::RpcController rpc;
     VoteRequestPB request;
@@ -753,39 +753,39 @@ class LeaderElection : public std::enable_shared_from_this<LeaderElection> {
   std::unique_ptr<ElectionResult> result_;
 
   // Whether we have responded via the callback yet.
-  bool has_responded_;
+  bool hasResponded_;
 
   // Active Raft configuration at election start time.
   const RaftConfigPB config_;
 
   // Factory used in the creation of new proxies.
-  PeerProxyFactory* proxy_factory_;
+  PeerProxyFactory* proxyFactory_;
 
   // Election request to send to voters.
   const VoteRequestPB request_;
 
   // Object to count the votes.
-  const std::unique_ptr<VoteCounter> vote_counter_;
+  const std::unique_ptr<VoteCounter> voteCounter_;
 
   // Timeout for sending RPCs.
   const MonoDelta timeout_;
 
   // Callback invoked to notify the caller of an election decision.
-  const ElectionDecisionCallback decision_callback_;
+  const ElectionDecisionCallback decisionCallback_;
 
   // Map of UUID -> VoterState.
-  VoterStateMap voter_state_;
+  VoterStateMap voterState_;
 
   // The highest term seen from a voter so far (or 0 if no votes).
-  int64_t highest_voter_term_;
+  int64_t highestVoterTerm_;
 
   // The time when the election started
-  MonoTime start_time_;
+  MonoTime startTime_;
 
-  std::shared_ptr<VoteLoggerInterface> vote_logger_;
+  std::shared_ptr<VoteLoggerInterface> voteLogger_;
 
   // Flag indicating that the election is held in joint-consensus phase.
-  const bool is_joint_consensus_election_;
+  const bool isJointConsensusElection_;
 };
 
 } // namespace kudu::consensus

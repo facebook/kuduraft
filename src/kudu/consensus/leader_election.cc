@@ -1566,7 +1566,7 @@ ElectionResult::ElectionResult(
 ///////////////////////////////////////////////////
 
 std::string LeaderElection::VoterState::PeerInfo() const {
-  std::string info = peer_uuid;
+  std::string info = peerUuid;
   if (proxy) {
     info += fmt::format(" ({})", proxy->peerName());
   }
@@ -1585,21 +1585,21 @@ LeaderElection::LeaderElection(
     MonoDelta timeout,
     ElectionDecisionCallback decision_callback,
     std::shared_ptr<VoteLoggerInterface> vote_logger)
-    : has_responded_(false),
+    : hasResponded_(false),
       config_(std::move(config)),
-      proxy_factory_(proxy_factory),
+      proxyFactory_(proxy_factory),
       request_(std::move(request)),
-      vote_counter_(std::move(vote_counter)),
+      voteCounter_(std::move(vote_counter)),
       timeout_(timeout),
-      decision_callback_(std::move(decision_callback)),
-      highest_voter_term_(0),
-      start_time_(MonoTime::Now()),
-      vote_logger_(std::move(vote_logger)),
-      is_joint_consensus_election_(config_.next_config_peers_size() > 0) {
+      decisionCallback_(std::move(decision_callback)),
+      highestVoterTerm_(0),
+      startTime_(MonoTime::Now()),
+      voteLogger_(std::move(vote_logger)),
+      isJointConsensusElection_(config_.next_config_peers_size() > 0) {
   // Validation for election during joint-consensus phase.
-  if (is_joint_consensus_election_) {
+  if (isJointConsensusElection_) {
     LOG_WITH_PREFIX(INFO) << "Initiate leader election in joint-consensus mode";
-    CHECK(dynamic_cast<JointConsensusVoteCounter*>(vote_counter_.get()))
+    CHECK(dynamic_cast<JointConsensusVoteCounter*>(voteCounter_.get()))
         << "Expecting JointConsensusVoteCounter to be used when "
         << "initiating leader election during joint-consensus phase "
         << "with transitional config (C_old_new).";
@@ -1610,10 +1610,10 @@ LeaderElection::~LeaderElection() {
   std::lock_guard<Lock> guard(lock_);
   // TODO(modernization): Consider using std::map<std::string,
   // std::unique_ptr<VoterState>> to eliminate manual deletion
-  for (auto& entry : voter_state_) {
+  for (auto& entry : voterState_) {
     delete entry.second;
   }
-  voter_state_.clear();
+  voterState_.clear();
 }
 
 void LeaderElection::Run() {
@@ -1621,7 +1621,7 @@ void LeaderElection::Run() {
 
   // Initialize voter state tracking.
   std::unordered_set<std::string> other_voter_uuids;
-  voter_state_.clear();
+  voterState_.clear();
   for (const RaftPeerPB& peer : config_.peers()) {
     if (request_.candidate_uuid() == peer.permanent_uuid()) {
       DCHECK_EQ(peer.member_type(), RaftPeerPB::VOTER) << fmt::format(
@@ -1637,13 +1637,13 @@ void LeaderElection::Run() {
     other_voter_uuids.insert(peer.permanent_uuid());
 
     std::unique_ptr<VoterState> state(new VoterState());
-    state->peer_uuid = peer.permanent_uuid();
-    state->proxy_status = proxy_factory_->newProxy(peer, &state->proxy);
+    state->peerUuid = peer.permanent_uuid();
+    state->proxyStatus = proxyFactory_->newProxy(peer, &state->proxy);
     auto [it, inserted] =
-        voter_state_.insert({peer.permanent_uuid(), state.release()});
+        voterState_.insert({peer.permanent_uuid(), state.release()});
     CHECK(inserted);
   }
-  if (is_joint_consensus_election_) {
+  if (isJointConsensusElection_) {
     // For joint-consensus election, we need to track the state of the
     // non-duplicate voters in the next config as well.
     bool is_candidate_in_next_peers = false;
@@ -1661,13 +1661,13 @@ void LeaderElection::Run() {
         continue;
       }
       other_voter_uuids.insert(peer.permanent_uuid());
-      auto it = voter_state_.find(peer.permanent_uuid());
-      if (it == voter_state_.end()) {
+      auto it = voterState_.find(peer.permanent_uuid());
+      if (it == voterState_.end()) {
         std::unique_ptr<VoterState> state(new VoterState());
-        state->peer_uuid = peer.permanent_uuid();
-        state->proxy_status = proxy_factory_->newProxy(peer, &state->proxy);
+        state->peerUuid = peer.permanent_uuid();
+        state->proxyStatus = proxyFactory_->newProxy(peer, &state->proxy);
         auto [iter, inserted] =
-            voter_state_.insert({peer.permanent_uuid(), state.release()});
+            voterState_.insert({peer.permanent_uuid(), state.release()});
         CHECK(inserted);
       }
     }
@@ -1682,7 +1682,7 @@ void LeaderElection::Run() {
       result_.reset(new ElectionResult(
           request_,
           ElectionVote::VOTE_DENIED,
-          highest_voter_term_,
+          highestVoterTerm_,
           denial_msg,
           /*is_candidate_removed=*/true,
           ElectionDecisionMethod::JOINT_CONSENSUS_LEADER_ELECTION));
@@ -1691,14 +1691,14 @@ void LeaderElection::Run() {
 
   // Ensure that the candidate has already voted for itself.
   K_CHECK(
-      vote_counter_->getTotalVotesCounted() == 1,
+      voteCounter_->getTotalVotesCounted() == 1,
       election_candidate_vote,
       "Candidate must vote for itself first");
 
   // Ensure that existing votes + future votes add up to the expected total.
   K_CHECK(
-      vote_counter_->getTotalVotesCounted() + other_voter_uuids.size() ==
-          vote_counter_->getTotalExpectedVotes(),
+      voteCounter_->getTotalVotesCounted() + other_voter_uuids.size() ==
+          voteCounter_->getTotalExpectedVotes(),
       election_vote_count,
       "Expected different number of voters. Voter UUIDs: [{}]; RaftConfig: {}",
       JoinStringsIterator(
@@ -1717,19 +1717,19 @@ void LeaderElection::Run() {
     VoterState* state = nullptr;
     {
       std::lock_guard<Lock> guard(lock_);
-      auto it = voter_state_.find(voter_uuid);
-      CHECK(it != voter_state_.end()) << "Map key not found: " << voter_uuid;
+      auto it = voterState_.find(voter_uuid);
+      CHECK(it != voterState_.end()) << "Map key not found: " << voter_uuid;
       state = it->second;
-      // Safe to drop the lock because voter_state_ is not mutated outside of
+      // Safe to drop the lock because voterState_ is not mutated outside of
       // the constructor / destructor. We do this to avoid deadlocks below.
     }
 
     // If we failed to construct the proxy, just record a 'NO' vote with the
     // status that indicates why it failed.
-    if (!state->proxy_status.ok()) {
+    if (!state->proxyStatus.ok()) {
       LOG_WITH_PREFIX(WARNING)
           << "Was unable to construct an RPC proxy to peer "
-          << state->PeerInfo() << ": " << state->proxy_status.ToString()
+          << state->PeerInfo() << ": " << state->proxyStatus.ToString()
           << ". Counting it as a 'NO' vote.";
       {
         std::lock_guard<Lock> guard(lock_);
@@ -1744,7 +1744,7 @@ void LeaderElection::Run() {
       msg.append(", ");
     }
     pnum++;
-    msg.append(uuidToHostport(state->peer_uuid, config_));
+    msg.append(uuidToHostport(state->peerUuid, config_));
 
     state->rpc.set_timeout(timeout_);
 
@@ -1764,8 +1764,8 @@ void LeaderElection::Run() {
   // Send the RPC request.
   LOG_WITH_PREFIX(INFO) << "Requesting " << ElectionMode_Name(request_.mode())
                         << "-vote from peers: " << msg;
-  if (vote_logger_) {
-    vote_logger_->logElectionStarted(request_, config_);
+  if (voteLogger_) {
+    voteLogger_->logElectionStarted(request_, config_);
   }
 }
 
@@ -1775,7 +1775,7 @@ void LeaderElection::CheckForDecision() {
     std::lock_guard<Lock> guard(lock_);
     std::optional<ElectionDecisionState> electionState;
     if (!result_) {
-      electionState = vote_counter_->getDecision();
+      electionState = voteCounter_->getDecision();
     }
     // Check if the vote has been newly decided.
     if (!result_ && electionState->decided()) {
@@ -1783,7 +1783,7 @@ void LeaderElection::CheckForDecision() {
           ? VOTE_GRANTED
           : VOTE_DENIED;
       MonoTime end = MonoTime::Now();
-      MonoDelta election_duration = end.GetDeltaSince(start_time_);
+      MonoDelta election_duration = end.GetDeltaSince(startTime_);
 
       LOG_WITH_PREFIX(INFO)
           << "Election decided. Result: candidate "
@@ -1794,7 +1794,7 @@ void LeaderElection::CheckForDecision() {
       LOG_WITH_PREFIX(INFO)
           << "\nVote tally: [[R]elevant|[I]rrelevant] "
           << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal] (Y + N + A == T): \n"
-          << vote_counter_->printableVoteTally(*electionState);
+          << voteCounter_->printableVoteTally(*electionState);
 
       std::string msg = (decision == VOTE_GRANTED)
           ? "achieved majority votes"
@@ -1802,25 +1802,25 @@ void LeaderElection::CheckForDecision() {
 
       bool is_candidate_removed = false;
       if (decision == VOTE_DENIED) {
-        is_candidate_removed = vote_counter_->isCandidateRemoved();
+        is_candidate_removed = voteCounter_->isCandidateRemoved();
       }
 
       result_.reset(new ElectionResult(
           request_,
           decision,
-          highest_voter_term_,
+          highestVoterTerm_,
           msg,
           is_candidate_removed,
           electionState->decisionMechanism));
-      if (vote_logger_) {
-        vote_logger_->logElectionDecided(*result_);
+      if (voteLogger_) {
+        voteLogger_->logElectionDecided(*result_);
       }
     }
     // Check whether to respond. This can happen as a result of either getting
     // a majority vote or of something invalidating the election, like
     // observing a higher term.
-    if (result_ && !has_responded_) {
-      has_responded_ = true;
+    if (result_ && !hasResponded_) {
+      hasResponded_ = true;
       to_respond = true;
     }
   }
@@ -1828,15 +1828,15 @@ void LeaderElection::CheckForDecision() {
   // Respond outside of the lock.
   if (to_respond) {
     // This is thread-safe since result_ is write-once.
-    decision_callback_(*result_);
+    decisionCallback_(*result_);
   }
 }
 
 void LeaderElection::VoteResponseRpcCallback(const std::string& voter_uuid) {
   {
     std::lock_guard<Lock> guard(lock_);
-    auto it = voter_state_.find(voter_uuid);
-    CHECK(it != voter_state_.end()) << "Map key not found: " << voter_uuid;
+    auto it = voterState_.find(voter_uuid);
+    CHECK(it != voterState_.end()) << "Map key not found: " << voter_uuid;
     VoterState* state = it->second;
 
     // Check for RPC errors.
@@ -1861,16 +1861,16 @@ void LeaderElection::VoteResponseRpcCallback(const std::string& voter_uuid) {
 
     } else {
       // No error: count actual votes.
-      highest_voter_term_ =
-          std::max(highest_voter_term_, state->response.responder_term());
+      highestVoterTerm_ =
+          std::max(highestVoterTerm_, state->response.responder_term());
       if (state->response.vote_granted()) {
         HandleVoteGrantedUnlocked(*state);
       } else {
         HandleVoteDeniedUnlocked(*state);
       }
     }
-    if (vote_logger_) {
-      vote_logger_->logVoteReceived(state->response);
+    if (voteLogger_) {
+      voteLogger_->logVoteReceived(state->response);
     }
   }
 
@@ -1909,8 +1909,7 @@ void LeaderElection::RecordVoteUnlocked(
 
   // Record the vote.
   bool duplicate;
-  Status s =
-      vote_counter_->registerVote(state.peer_uuid, vote_info, &duplicate);
+  Status s = voteCounter_->registerVote(state.peerUuid, vote_info, &duplicate);
   if (!s.ok()) {
     LOG_WITH_PREFIX(WARNING) << "Error registering vote for peer "
                              << state.PeerInfo() << ": " << s.ToString();
@@ -1963,7 +1962,7 @@ void LeaderElection::HandleVoteGrantedUnlocked(const VoterState& state) {
   DCHECK(state.response.vote_granted());
 
   LOG_WITH_PREFIX(INFO) << "Vote granted by peer "
-                        << uuidToHostport(state.peer_uuid, config_);
+                        << uuidToHostport(state.peerUuid, config_);
   RecordVoteUnlocked(state, VOTE_GRANTED);
 }
 
@@ -1978,7 +1977,7 @@ void LeaderElection::HandleVoteDeniedUnlocked(const VoterState& state) {
   }
 
   LOG_WITH_PREFIX(INFO)
-      << "Vote denied by peer " << uuidToHostport(state.peer_uuid, config_)
+      << "Vote denied by peer " << uuidToHostport(state.peerUuid, config_)
       << ". Message: "
       << statusFromPb(state.response.consensus_error().status()).ToString();
   RecordVoteUnlocked(state, VOTE_DENIED);
