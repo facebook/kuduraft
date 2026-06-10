@@ -291,7 +291,7 @@ static void runAndAssign(
   threadsExiting->countDown();
 }
 
-TEST_F(ThreadLocalTest, TestTLSMember) {
+TEST_F(ThreadLocalTest, TestTlsMember) {
   const int numThreads = 8;
 
   vector<CountDownLatch*> writersReady;
@@ -351,14 +351,14 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
 }
 
 TEST_F(ThreadLocalTest, TestThreadLocalCache) {
-  using TLC = ThreadLocalCache<int, string>;
-  TLC* tlc = TLC::getInstance();
+  using Tlc = ThreadLocalCache<int, string>;
+  Tlc* tlc = Tlc::getInstance();
 
   // Lookup in an empty cache should return nullptr.
   ASSERT_EQ(nullptr, tlc->lookup(0));
 
   // Insert more items than the cache capacity.
-  const int kLastItem = TLC::kItemCapacity * 2;
+  const int kLastItem = Tlc::kItemCapacity * 2;
   for (int i = 1; i <= kLastItem; i++) {
     auto* item = tlc->emplaceNew(i);
     ASSERT_NE(nullptr, item);
