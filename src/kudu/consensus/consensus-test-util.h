@@ -475,8 +475,8 @@ class MockedPeerProxy : public TestPeerProxy {
 // that the messages were received/replicated/committed.
 class NoOpTestPeerProxy : public TestPeerProxy {
  public:
-  explicit NoOpTestPeerProxy(ThreadPool* pool, consensus::RaftPeerPB peer_pb)
-      : TestPeerProxy(pool), peerPb_(std::move(peer_pb)) {
+  explicit NoOpTestPeerProxy(ThreadPool* pool, consensus::RaftPeerPB peerPb)
+      : TestPeerProxy(pool), peerPb_(std::move(peerPb)) {
     lastReceived_.CopyFrom(MinimumOpId());
   }
 
@@ -553,9 +553,9 @@ class NoOpTestPeerProxyFactory : public PeerProxyFactory {
   }
 
   Status newProxy(
-      const consensus::RaftPeerPB& peer_pb,
+      const consensus::RaftPeerPB& peerPb,
       std::shared_ptr<PeerProxy>* proxy) override {
-    proxy->reset(new NoOpTestPeerProxy(pool_.get(), peer_pb));
+    proxy->reset(new NoOpTestPeerProxy(pool_.get(), peerPb));
     return Status::OK();
   }
 
@@ -578,31 +578,31 @@ class TestPeerMapManager {
       : config_(std::move(config)) {}
 
   void addPeer(
-      const std::string& peer_uuid,
+      const std::string& peerUuid,
       const std::shared_ptr<RaftConsensus>& peer) {
     std::lock_guard<SimpleSpinlock> lock(lock_);
-    auto [it, inserted] = peers_.insert({peer_uuid, peer});
+    auto [it, inserted] = peers_.insert({peerUuid, peer});
     CHECK(inserted);
   }
 
-  Status getPeerByIdx(int idx, std::shared_ptr<RaftConsensus>* peer_out) const {
+  Status getPeerByIdx(int idx, std::shared_ptr<RaftConsensus>* peerOut) const {
     CHECK_LT(idx, config_.peers_size());
-    return getPeerByUuid(config_.peers(idx).permanent_uuid(), peer_out);
+    return getPeerByUuid(config_.peers(idx).permanent_uuid(), peerOut);
   }
 
   Status getPeerByUuid(
-      const std::string& peer_uuid,
-      std::shared_ptr<RaftConsensus>* peer_out) const {
+      const std::string& peerUuid,
+      std::shared_ptr<RaftConsensus>* peerOut) const {
     std::lock_guard<SimpleSpinlock> lock(lock_);
-    if (!findCopy(peers_, peer_uuid, peer_out)) {
+    if (!findCopy(peers_, peerUuid, peerOut)) {
       return Status::NotFound("Other consensus instance was destroyed");
     }
     return Status::OK();
   }
 
-  void removePeer(const std::string& peer_uuid) {
+  void removePeer(const std::string& peerUuid) {
     std::lock_guard<SimpleSpinlock> lock(lock_);
-    peers_.erase(peer_uuid);
+    peers_.erase(peerUuid);
   }
 
   TestPeerMap getPeerMapCopy() const {
@@ -634,11 +634,11 @@ class TestPeerMapManager {
 class LocalTestPeerProxy : public TestPeerProxy {
  public:
   LocalTestPeerProxy(
-      std::string peer_uuid,
+      std::string peerUuid,
       ThreadPool* pool,
       TestPeerMapManager* peers)
       : TestPeerProxy(pool),
-        peerUuid_(std::move(peer_uuid)),
+        peerUuid_(std::move(peerUuid)),
         peers_(peers),
         missComm_(false) {}
 
@@ -681,8 +681,8 @@ class LocalTestPeerProxy : public TestPeerProxy {
   template <class Request, class Response>
   void respondOrMissResponse(
       Request* request,
-      const Response& response_temp,
-      Response* final_response,
+      const Response& responseTemp,
+      Response* finalResponse,
       Method method) {
     bool missCommCopy;
     {
@@ -697,9 +697,9 @@ class LocalTestPeerProxy : public TestPeerProxy {
           Status::IOError(
               "Artificial error caused by communication "
               "failure injection."),
-          final_response);
+          finalResponse);
     } else {
-      final_response->CopyFrom(response_temp);
+      finalResponse->CopyFrom(responseTemp);
     }
     respond(method);
   }
@@ -709,60 +709,60 @@ class LocalTestPeerProxy : public TestPeerProxy {
       ConsensusResponsePB* response) {
     // Copy the request and the response for the other peer so that ownership
     // remains as close to the dist. impl. as possible.
-    ConsensusRequestPB other_peer_req;
-    other_peer_req.CopyFrom(*request);
+    ConsensusRequestPB otherPeerReq;
+    otherPeerReq.CopyFrom(*request);
 
     // Give the other peer a clean response object to write to.
-    ConsensusResponsePB other_peer_resp;
+    ConsensusResponsePB otherPeerResp;
     std::shared_ptr<RaftConsensus> peer;
     Status s = peers_->getPeerByUuid(peerUuid_, &peer);
 
     if (s.ok()) {
-      s = peer->update(&other_peer_req, &other_peer_resp);
-      if (s.ok() && !other_peer_resp.has_error()) {
-        CHECK(other_peer_resp.has_status());
-        CHECK(other_peer_resp.status().IsInitialized());
+      s = peer->update(&otherPeerReq, &otherPeerResp);
+      if (s.ok() && !otherPeerResp.has_error()) {
+        CHECK(otherPeerResp.has_status());
+        CHECK(otherPeerResp.status().IsInitialized());
       }
     }
     if (!s.ok()) {
       LOG(WARNING) << "Could not Update replica with request: "
-                   << pb_util::SecureShortDebugString(other_peer_req)
+                   << pb_util::SecureShortDebugString(otherPeerReq)
                    << " Status: " << s.ToString();
-      setResponseError(s, &other_peer_resp);
+      setResponseError(s, &otherPeerResp);
     }
 
-    response->CopyFrom(other_peer_resp);
-    respondOrMissResponse(request, other_peer_resp, response, kUpdate);
+    response->CopyFrom(otherPeerResp);
+    respondOrMissResponse(request, otherPeerResp, response, kUpdate);
   }
 
   void sendVoteRequest(const VoteRequestPB* request, VoteResponsePB* response) {
     // Copy the request and the response for the other peer so that ownership
     // remains as close to the dist. impl. as possible.
-    VoteRequestPB other_peer_req;
-    other_peer_req.CopyFrom(*request);
-    VoteResponsePB other_peer_resp;
-    other_peer_resp.CopyFrom(*response);
+    VoteRequestPB otherPeerReq;
+    otherPeerReq.CopyFrom(*request);
+    VoteResponsePB otherPeerResp;
+    otherPeerResp.CopyFrom(*response);
 
     std::shared_ptr<RaftConsensus> peer;
     Status s = peers_->getPeerByUuid(peerUuid_, &peer);
 
     if (s.ok()) {
       s = peer->requestVote(
-          &other_peer_req,
+          &otherPeerReq,
           TabletVotingState({}),
           // anirban-fb
           // TabletVotingState({}, tablet::TABLET_DATA_READY),
-          &other_peer_resp);
+          &otherPeerResp);
     }
     if (!s.ok()) {
       LOG(WARNING) << "Could not RequestVote from replica with request: "
-                   << pb_util::SecureShortDebugString(other_peer_req)
+                   << pb_util::SecureShortDebugString(otherPeerReq)
                    << " Status: " << s.ToString();
-      setResponseError(s, &other_peer_resp);
+      setResponseError(s, &otherPeerResp);
     }
 
-    response->CopyFrom(other_peer_resp);
-    respondOrMissResponse(request, other_peer_resp, response, kRequestVote);
+    response->CopyFrom(otherPeerResp);
+    respondOrMissResponse(request, otherPeerResp, response, kRequestVote);
   }
 
   void injectCommFaultLeaderSide() {
@@ -791,12 +791,12 @@ class LocalTestPeerProxyFactory : public PeerProxyFactory {
   }
 
   Status newProxy(
-      const consensus::RaftPeerPB& peer_pb,
+      const consensus::RaftPeerPB& peerPb,
       std::shared_ptr<PeerProxy>* proxy) override {
-    LocalTestPeerProxy* new_proxy =
-        new LocalTestPeerProxy(peer_pb.permanent_uuid(), pool_.get(), peers_);
-    proxy->reset(new_proxy);
-    proxies_.push_back(new_proxy);
+    LocalTestPeerProxy* newProxy =
+        new LocalTestPeerProxy(peerPb.permanent_uuid(), pool_.get(), peers_);
+    proxy->reset(newProxy);
+    proxies_.push_back(newProxy);
     return Status::OK();
   }
 
