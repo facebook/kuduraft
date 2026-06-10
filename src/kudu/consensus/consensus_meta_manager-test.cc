@@ -149,7 +149,7 @@ TEST_F(ConsensusMetadataManagerTest, TestCreateMultipleUnFlushedCMetas) {
       config_,
       kInitialTerm,
       ConsensusMetadataCreateMode::NoFlushOnCreate);
-  ASSERT_TRUE(s.IsAlreadyPresent()) << s.ToString();
+  ASSERT_TRUE(s.isAlreadyPresent()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "exists");
 }
 
@@ -165,7 +165,7 @@ TEST_F(ConsensusMetadataManagerTest, TestNoClobber) {
         ConsensusMetadataCreateMode::NoFlushOnCreate}) {
     Status s = cmetaManager_->createCMeta(
         kTabletId, config_, kInitialTerm, createMode);
-    ASSERT_TRUE(s.IsAlreadyPresent()) << s.ToString();
+    ASSERT_TRUE(s.isAlreadyPresent()) << s.ToString();
     ASSERT_STR_CONTAINS(s.ToString(), "already exists");
   }
 }

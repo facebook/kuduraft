@@ -318,7 +318,7 @@ Status ServerBase::Init() {
       uuid = options_.appProvidedInstanceUuid;
     }
     s = fs_manager_->CreateInitialFileSystemLayout(uuid);
-    if (s.IsAlreadyPresent()) {
+    if (s.isAlreadyPresent()) {
       // The operator is likely trying to start up with an extra entry in their
       // `fs_data_dirs` configuration.
       LOG(INFO) << "To start Kudu with a different FS layout, the `kudu fs "

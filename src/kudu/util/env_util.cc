@@ -195,7 +195,7 @@ Status createDirIfMissing(Env* env, const string& path, bool* created) {
   if (created != nullptr) {
     *created = s.ok();
   }
-  return s.IsAlreadyPresent() ? Status::OK() : s;
+  return s.isAlreadyPresent() ? Status::OK() : s;
 }
 
 Status createDirsRecursively(Env* env, const string& path) {

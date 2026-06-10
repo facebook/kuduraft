@@ -192,7 +192,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   clientMessenger.reset();
 
   ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).join());
-  ASSERT_TRUE(status.IsAborted() || status.IsServiceUnavailable());
+  ASSERT_TRUE(status.IsAborted() || status.isServiceUnavailable());
   string msg = status.ToString();
   SCOPED_TRACE(msg);
   ASSERT_TRUE(

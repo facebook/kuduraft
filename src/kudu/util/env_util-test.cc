@@ -126,7 +126,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_TRUE(env_->FileExists(filePath));
   // Fail.
   Status s = createDirsRecursively(env_, path);
-  ASSERT_TRUE(s.IsAlreadyPresent()) << s.ToString();
+  ASSERT_TRUE(s.isAlreadyPresent()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "File exists");
 
   // We should be able to create a directory tree even when a symlink exists as

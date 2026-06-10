@@ -64,7 +64,7 @@ void statusToPb(const Status& status, AppStatusPB* pb) {
     pb->set_code(AppStatusPB::INVALID_ARGUMENT);
   } else if (status.IsIOError()) {
     pb->set_code(AppStatusPB::IO_ERROR);
-  } else if (status.IsAlreadyPresent()) {
+  } else if (status.isAlreadyPresent()) {
     pb->set_code(AppStatusPB::ALREADY_PRESENT);
   } else if (status.IsRuntimeError()) {
     pb->set_code(AppStatusPB::RUNTIME_ERROR);
@@ -78,7 +78,7 @@ void statusToPb(const Status& status, AppStatusPB* pb) {
     pb->set_code(AppStatusPB::ABORTED);
   } else if (status.IsRemoteError()) {
     pb->set_code(AppStatusPB::REMOTE_ERROR);
-  } else if (status.IsServiceUnavailable()) {
+  } else if (status.isServiceUnavailable()) {
     pb->set_code(AppStatusPB::SERVICE_UNAVAILABLE);
   } else if (status.IsTimedOut()) {
     pb->set_code(AppStatusPB::TIMED_OUT);

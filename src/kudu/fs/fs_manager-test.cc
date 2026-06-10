@@ -205,7 +205,7 @@ TEST_F(FsManagerTestBase, TestCannotUseNonEmptyFsRoot) {
 
   // Try to create the FS layout. It should fail.
   reinitFsManagerWithPaths(path, {path});
-  ASSERT_TRUE(fsManager()->CreateInitialFileSystemLayout().IsAlreadyPresent());
+  ASSERT_TRUE(fsManager()->CreateInitialFileSystemLayout().isAlreadyPresent());
 }
 
 TEST_F(FsManagerTestBase, TestEmptyWalPath) {

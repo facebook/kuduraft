@@ -86,7 +86,7 @@ TEST_F(FollyThreadPoolTest, TestSimpleTasks) {
 TEST_F(FollyThreadPoolTest, TestSubmitAfterShutdown) {
   pool_->Shutdown();
   Status s = pool_->SubmitFunc([]() {});
-  ASSERT_TRUE(s.IsServiceUnavailable()) << s.ToString();
+  ASSERT_TRUE(s.isServiceUnavailable()) << s.ToString();
   ASSERT_THAT(s.ToString(), ::testing::HasSubstr("shut down"));
 }
 
@@ -207,7 +207,7 @@ TEST_F(FollyThreadPoolTest, TestTokenShutdown) {
 
   // Submissions should fail after shutdown.
   Status s = token->SubmitFunc([&counter]() { counter++; });
-  ASSERT_TRUE(s.IsServiceUnavailable()) << s.ToString();
+  ASSERT_TRUE(s.isServiceUnavailable()) << s.ToString();
   ASSERT_THAT(s.ToString(), ::testing::HasSubstr("shut down"));
 
   pool_->Shutdown();
@@ -227,7 +227,7 @@ TEST_F(FollyThreadPoolTest, TestPoolShutdownAffectsTokens) {
 
   // Now any attempt to submit directly to the pool should fail.
   Status s = pool_->SubmitFunc([]() {});
-  ASSERT_TRUE(s.IsServiceUnavailable()) << s.ToString();
+  ASSERT_TRUE(s.isServiceUnavailable()) << s.ToString();
 }
 
 // Test that tasks can be submitted from multiple threads safely.
@@ -245,7 +245,7 @@ TEST_F(FollyThreadPoolTest, TestConcurrentSubmissions) {
       startLatch.wait();
       for (int j = 0; j < kSubmissionsPerThread; j++) {
         Status s = pool_->SubmitFunc([&counter]() { counter++; });
-        CHECK(s.ok() || s.IsServiceUnavailable());
+        CHECK(s.ok() || s.isServiceUnavailable());
       }
       doneLatch.count_down();
     });

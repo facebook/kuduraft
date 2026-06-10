@@ -626,7 +626,7 @@ TEST_F(TestEnv, TestOverwrite) {
   WritableFileOptions opts;
   opts.mode = Env::kCreateNonExisting;
   Status s = env_util::openFileForWrite(opts, env_, testPath, &writer);
-  ASSERT_TRUE(s.IsAlreadyPresent());
+  ASSERT_TRUE(s.isAlreadyPresent());
 }
 
 TEST_F(TestEnv, TestReopen) {
@@ -953,7 +953,7 @@ TEST_F(TestEnv, TestRWFile) {
   RWFileOptions opts;
   opts.mode = Env::kCreateNonExisting;
   ASSERT_TRUE(
-      env_->NewRWFile(opts, GetTestPath("foo"), &file).IsAlreadyPresent());
+      env_->NewRWFile(opts, GetTestPath("foo"), &file).isAlreadyPresent());
 
   // Reopen it without truncating the existing data.
   opts.mode = Env::kOpenExisting;

@@ -100,7 +100,7 @@ static void setupErrorAndRespond(
     rpc::RpcContext* context) {
   // Generic "service unavailable" errors will cause the client to retry later.
   if ((code == ServerErrorPB::UNKNOWN_ERROR /*||
-       code == TabletServerErrorPB::THROTTLED */) && s.IsServiceUnavailable()) {
+       code == TabletServerErrorPB::THROTTLED */) && s.isServiceUnavailable()) {
     context->respondRpcFailure(rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY, s);
     return;
   }

@@ -153,7 +153,7 @@ TEST_F(ConsensusMetadataTest, TestCreateNoOverwrite) {
   // Try to create it again.
   Status s = ConsensusMetadata::create(
       &fs_manager_, kTabletId, fs_manager_.uuid(), config_, kInitialTerm);
-  ASSERT_TRUE(s.IsAlreadyPresent()) << s.ToString();
+  ASSERT_TRUE(s.isAlreadyPresent()) << s.ToString();
   ASSERT_STR_MATCHES(
       s.ToString(), "Unable to write consensus meta file.*already exists");
 }

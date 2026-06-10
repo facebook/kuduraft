@@ -1783,7 +1783,7 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
     latch.wait();
     CHECK(
         controller.status().IsAborted() ||
-        controller.status().IsServiceUnavailable() || controller.status().ok())
+        controller.status().isServiceUnavailable() || controller.status().ok())
         << controller.status().ToString();
   }
 }

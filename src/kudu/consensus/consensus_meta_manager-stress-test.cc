@@ -158,7 +158,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
             Status s =
                 cmetaManager_->createCMeta(tabletId, config_, kInitialTerm);
             if (tabletCmetaExists[tabletId]) {
-              CHECK(s.IsAlreadyPresent()) << s.ToString();
+              CHECK(s.isAlreadyPresent()) << s.ToString();
             } else {
               CHECK(s.ok()) << s.ToString();
               opsPerformed.fetch_add(1, std::memory_order_relaxed);

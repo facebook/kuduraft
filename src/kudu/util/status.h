@@ -396,7 +396,7 @@ class KUDU_EXPORT Status {
   }
 
   /// @return @c true iff the status indicates an AlreadyPresent error.
-  bool IsAlreadyPresent() const {
+  bool isAlreadyPresent() const {
     return code() == kAlreadyPresent;
   }
 
@@ -431,7 +431,7 @@ class KUDU_EXPORT Status {
   }
 
   /// @return @c true iff the status indicates ServiceUnavailable.
-  bool IsServiceUnavailable() const {
+  bool isServiceUnavailable() const {
     return code() == kServiceUnavailable;
   }
 

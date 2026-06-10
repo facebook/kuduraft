@@ -203,7 +203,7 @@ void SystemNtp::dumpDiagnostics(vector<string>* log) const {
 Status SystemNtp::init() {
   timex timex;
   Status s = callAdjTime(&timex);
-  if (s.IsServiceUnavailable()) {
+  if (s.isServiceUnavailable()) {
     s = waitForNtp().andThen([&timex]() { return callAdjTime(&timex); });
   }
   if (!s.ok()) {

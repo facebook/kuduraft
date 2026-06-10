@@ -82,7 +82,7 @@ bool isFatalError(const Status& error) {
   // another RPC to fail, since there is no way to check the status of the
   // connection before sending an RPC.
   return !(
-      error.IsAlreadyPresent() || error.IsNotFound() ||
+      error.isAlreadyPresent() || error.IsNotFound() ||
       error.IsInvalidArgument() || error.IsIllegalState() ||
       error.IsRemoteError());
 }

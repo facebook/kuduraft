@@ -659,7 +659,7 @@ TEST_P(TestPbContainerVersions, TestDumpPbContainer) {
 
 TEST_F(TestPbUtil, TestOverwriteExistingPb) {
   ASSERT_OK(createKnownGoodContainerFile(NO_OVERWRITE));
-  ASSERT_TRUE(createKnownGoodContainerFile(NO_OVERWRITE).IsAlreadyPresent());
+  ASSERT_TRUE(createKnownGoodContainerFile(NO_OVERWRITE).isAlreadyPresent());
   ASSERT_OK(createKnownGoodContainerFile(OVERWRITE));
   ASSERT_OK(createKnownGoodContainerFile(OVERWRITE));
 }

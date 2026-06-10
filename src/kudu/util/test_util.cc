@@ -246,7 +246,7 @@ string GetTestDataDirectory() {
       kTestBeganAtMicros,
       getpid());
   Status s = Env::Default()->CreateDir(dir);
-  CHECK(s.IsAlreadyPresent() || s.ok())
+  CHECK(s.isAlreadyPresent() || s.ok())
       << "Could not create directory " << dir << ": " << s.ToString();
   if (s.ok()) {
     string metadata;

@@ -315,7 +315,7 @@ TEST_F(ThreadPoolTest, TestMaxQueueSize) {
   ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   Status s = pool_->Submit(SlowTask::newSlowTask(&latch));
-  CHECK(s.IsServiceUnavailable())
+  CHECK(s.isServiceUnavailable())
       << "Expected failure due to queue blowout:" << s.ToString();
   latch.countDown();
   // Shutdown waits for all tasks to complete.
@@ -336,7 +336,7 @@ TEST_F(ThreadPoolTest, TestZeroQueueSize) {
     ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   }
   Status s = pool_->Submit(SlowTask::newSlowTask(&latch));
-  ASSERT_TRUE(s.IsServiceUnavailable()) << s.ToString();
+  ASSERT_TRUE(s.isServiceUnavailable()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "Thread pool is at capacity");
   latch.countDown();
   // Shutdown waits for all tasks to complete.
@@ -649,7 +649,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
   t1->Shutdown();
 
   // We can no longer submit to t1 but we can still submit to t2.
-  ASSERT_TRUE(t1->SubmitFunc([]() {}).IsServiceUnavailable());
+  ASSERT_TRUE(t1->SubmitFunc([]() {}).isServiceUnavailable());
   ASSERT_OK(t2->SubmitFunc([]() {}));
 
   // Unblock t2's tasks.
@@ -691,7 +691,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
         // Sleep a little first to increase task overlap.
         SleepFor(MonoDelta::FromMilliseconds(sleepMs));
       });
-      ASSERT_TRUE(s.ok() || s.IsServiceUnavailable());
+      ASSERT_TRUE(s.ok() || s.isServiceUnavailable());
     } else if (op < 95) {
       // Allocate a token with a randomly selected policy.
       ThreadPool::ExecutionMode mode = r.next() % 2
@@ -743,7 +743,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
   ASSERT_OK(t->Submit(SlowTask::newSlowTask(&latch)));
   ASSERT_OK(t->Submit(SlowTask::newSlowTask(&latch)));
   Status s = t->Submit(SlowTask::newSlowTask(&latch));
-  ASSERT_TRUE(s.IsServiceUnavailable());
+  ASSERT_TRUE(s.isServiceUnavailable());
 }
 
 TEST_F(ThreadPoolTest, TestTokenConcurrency) {
@@ -836,7 +836,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
           // Sleep a little first so that tasks are running during other events.
           SleepFor(MonoDelta::FromMilliseconds(sleepMs));
         });
-        CHECK(s.ok() || s.IsServiceUnavailable());
+        CHECK(s.ok() || s.isServiceUnavailable());
         numTokensSubmitted++;
       }
       totalNumTokensSubmitted += numTokensSubmitted;
