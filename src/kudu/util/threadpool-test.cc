@@ -863,7 +863,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
       totalNumTokensSubmitted.load());
 }
 
-TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
+TEST_F(ThreadPoolTest, TestLifoThreadWakeUps) {
   FLAGS_use_folly_threadpool = false;
   const int kNumThreads = 10;
 
