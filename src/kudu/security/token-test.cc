@@ -515,7 +515,7 @@ TEST_F(TokenTest, TestExportKeys) {
 
 // Test that the TokenVerifier can import keys exported by the TokenSigner
 // and then verify tokens signed by it.
-TEST_F(TokenTest, TestEndToEnd_Valid) {
+TEST_F(TokenTest, TestEndToEndValid) {
   TokenSigner signer(10, 10);
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
@@ -539,7 +539,7 @@ TEST_F(TokenTest, TestEndToEnd_Valid) {
 
 // Test all of the possible cases covered by token verification.
 // See VerificationResult.
-TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
+TEST_F(TokenTest, TestEndToEndInvalidCases) {
   // Key rotation interval 0 allows adding 2 keys in a row with no delay.
   TokenSigner signer(10, 0);
   {

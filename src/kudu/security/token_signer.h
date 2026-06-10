@@ -281,7 +281,7 @@ class TokenSigner {
   bool isCurrentKeyValid() const;
 
  private:
-  FRIEND_TEST(TokenTest, TestEndToEnd_InvalidCases);
+  FRIEND_TEST(TokenTest, TestEndToEndInvalidCases);
 
   static Status generateSigningKey(
       int64_t keySeqNum,
