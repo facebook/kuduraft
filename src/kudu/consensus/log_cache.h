@@ -83,9 +83,9 @@ class LogCache {
   struct ReadOpsStatus {
     /* implicit */ ReadOpsStatus(Status s) : status(std::move(s)) {}
 
-    ReadOpsStatus(Status s, OpId opid, bool stopped, int64_t read)
+    ReadOpsStatus(Status s, OpId opId, bool stopped, int64_t read)
         : status(std::move(s)),
-          precedingOp(std::move(opid)),
+          precedingOp(std::move(opId)),
           stoppedEarly(stopped),
           bytesRead(read) {}
 

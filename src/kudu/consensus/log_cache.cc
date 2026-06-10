@@ -631,25 +631,25 @@ LogCache::ReadOpsStatus LogCache::readOps(
     MessageCache::const_iterator iter =
         context.skipLogCache ? cache_.end() : cache_.lower_bound(nextIndex);
     if (iter == cache_.end() || iter->first != nextIndex) {
-      int64_t up_to;
+      int64_t upTo;
       if (iter == cache_.end()) {
         // Read all the way to the current op
-        up_to = minPinnedOpIndex_ - 1;
+        upTo = minPinnedOpIndex_ - 1;
       } else {
         // Read up to the next entry that's in the cache
-        up_to = iter->first - 1;
+        upTo = iter->first - 1;
       }
 
       // If limit is set, then we need to read only up to the limit
       if (limit > 0) {
-        up_to = std::min(up_to, afterOpIndex + limit);
+        upTo = std::min(upTo, afterOpIndex + limit);
       }
 
       l.unlock();
 
       vector<ReplicateRefPtr> replicatePtrs;
       auto readStatus = log_->readReplicatesInRange(
-          nextIndex, up_to, remainingSpace, context, &replicatePtrs);
+          nextIndex, upTo, remainingSpace, context, &replicatePtrs);
 
       if (readStatus.isUninitialized() && !replicatePtrs.empty()) {
         // When a Warm Storage stream ends, opening a new stream may result in
@@ -666,7 +666,7 @@ LogCache::ReadOpsStatus LogCache::readOps(
 
       RETURN_NOT_OK_PREPEND(
           readStatus,
-          fmt::format("Failed to read ops {}..{}", nextIndex, up_to));
+          fmt::format("Failed to read ops {}..{}", nextIndex, upTo));
 
       // Compress messages read from the log if:
       // (1) the feature is enabled through
