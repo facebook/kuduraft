@@ -259,7 +259,7 @@ string unescapeCEscapeString(const string& src) {
 //    Unescapes C escape sequences and is the reverse of cEscape().
 //
 //    If 'source' is valid, stores the unescaped string and its size in
-//    'dest' and 'dest_len' respectively, and returns true. Otherwise
+//    'dest' and 'destLen' respectively, and returns true. Otherwise
 //    returns false and optionally stores the error description in
 //    'error'. Set 'error' to NULL to disable error reporting.
 //

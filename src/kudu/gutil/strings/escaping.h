@@ -117,7 +117,7 @@ std::string unescapeCEscapeString(const std::string& src);
 //    are never longer than the original escaped sequences).  It's
 //    safe for source and dest to be the same.  RETURNS true if
 //    conversion was successful, false otherwise. Stores the size of
-//    the result in 'dest_len'.
+//    the result in 'destLen'.
 //
 //    It allows hex sequences \xhh, or generally \xhhhhh with an
 //    arbitrary number of hex digits, but all of them together must
