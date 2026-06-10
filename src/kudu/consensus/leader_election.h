@@ -166,7 +166,7 @@ struct ElectionDecisionState {
 class VoteCounter {
  public:
   // Create new VoteCounter with the given majority size.
-  VoteCounter(int num_voters, int majority_size);
+  VoteCounter(int numVoters, int majoritySize);
   virtual ~VoteCounter() = default;
 
   // Register a peer's vote.
@@ -174,13 +174,13 @@ class VoteCounter {
   // If the voter already has a vote recorded, but it has a different value than
   // the vote specified, returns Status::IllegalArgument.
   //
-  // If the same vote is duplicated, 'is_duplicate' is set to true.
+  // If the same vote is duplicated, 'isDuplicate' is set to true.
   // Otherwise, it is set to false.
-  // If an OK status is not returned, the value in 'is_duplicate' is undefined.
+  // If an OK status is not returned, the value in 'isDuplicate' is undefined.
   virtual Status registerVote(
-      const std::string& voter_uuid,
-      const VoteInfo& vote_info,
-      bool* is_duplicate);
+      const std::string& voterUuid,
+      const VoteInfo& voteInfo,
+      bool* isDuplicate);
 
   /**
    * Returns the state of decision of the current election.
@@ -252,9 +252,9 @@ class FlexibleVoteCounter : public VoteCounter {
   // class doesn't need to take care of thread safety of its book-keeping
   // variables.
   Status registerVote(
-      const std::string& voter_uuid,
+      const std::string& voterUuid,
       const VoteInfo& vote,
-      bool* is_duplicate) override;
+      bool* isDuplicate) override;
 
   /**
    * Returns the state of decision of the current election.
@@ -526,18 +526,18 @@ class JointConsensusVoteCounter : public VoteCounter {
    * Registers a peer's vote, either in the old config or the new config.
    * Registering vote from unknown peer will return an error.
    *
-   * @param voter_uuid UUID of the voter, either old or new config's peer.
-   * @param vote_info The vote info, either VOTE_GRANTED or VOTE_DENIED.
-   * @param is_duplicate Pointer to a bool, which will be set to true iff the
+   * @param voterUuid UUID of the voter, either old or new config's peer.
+   * @param voteInfo The vote info, either VOTE_GRANTED or VOTE_DENIED.
+   * @param isDuplicate Pointer to a bool, which will be set to true iff the
    *        vote is a duplicate. It is undefined if the return status is error.
    *
    * @return Status::OK if the vote is registered successfully internally for
    *         the old config's counter, new config's counter, or both.
    */
   Status registerVote(
-      const std::string& voter_uuid,
-      const VoteInfo& vote_info,
-      bool* is_duplicate) override;
+      const std::string& voterUuid,
+      const VoteInfo& voteInfo,
+      bool* isDuplicate) override;
 
   /**
    * Returns the decision's state given the current votes so far.

@@ -200,38 +200,38 @@ bool ElectionDecisionState::decided() const {
 // VoteCounter & FlexibleVoteCounter
 ///////////////////////////////////////////////////
 
-VoteCounter::VoteCounter(int num_voters, int majority_size)
-    : numVoters_(num_voters),
+VoteCounter::VoteCounter(int numVoters, int majoritySize)
+    : numVoters_(numVoters),
       isCandidateRemoved_(false),
-      majoritySize_(majority_size),
+      majoritySize_(majoritySize),
       yesVotes_(0),
       noVotes_(0) {
-  CHECK_LE(majority_size, num_voters);
+  CHECK_LE(majoritySize, numVoters);
   CHECK_GT(numVoters_, 0);
   CHECK_GT(majoritySize_, 0);
 }
 
 Status VoteCounter::registerVote(
-    const std::string& voter_uuid,
-    const VoteInfo& vote_info,
-    bool* is_duplicate) {
+    const std::string& voterUuid,
+    const VoteInfo& voteInfo,
+    bool* isDuplicate) {
   // Handle repeated votes.
-  if (PREDICT_FALSE(votes_.contains(voter_uuid))) {
+  if (PREDICT_FALSE(votes_.contains(voterUuid))) {
     // Detect changed votes.
-    const VoteInfo& prior_vote_info = votes_.at(voter_uuid);
-    if (PREDICT_FALSE(prior_vote_info.vote != vote_info.vote)) {
+    const VoteInfo& priorVoteInfo = votes_.at(voterUuid);
+    if (PREDICT_FALSE(priorVoteInfo.vote != voteInfo.vote)) {
       std::string msg = fmt::format(
           "Peer {} voted a different way twice in the same election. "
           "First vote: {}, second vote: {}.",
-          voter_uuid,
-          prior_vote_info.vote,
-          vote_info.vote);
+          voterUuid,
+          priorVoteInfo.vote,
+          voteInfo.vote);
       return Status::InvalidArgument(msg);
     }
 
     // This was just a duplicate. Allow the caller to log it but don't change
     // the voting record.
-    *is_duplicate = true;
+    *isDuplicate = true;
     return Status::OK();
   }
 
@@ -242,24 +242,24 @@ Status VoteCounter::registerVote(
         fmt::format(
             "Vote from peer {} would cause the number of votes to exceed the expected number of "
             "voters, which is {}. Votes already received from the following peers: {{{}}}",
-            voter_uuid,
+            voterUuid,
             numVoters_,
             joinKeysIterator(votes_.begin(), votes_.end(), ", ")));
   }
 
   // This is a valid vote, so store it.
-  auto [it, inserted] = votes_.insert({voter_uuid, vote_info});
+  auto [it, inserted] = votes_.insert({voterUuid, voteInfo});
   CHECK(inserted);
-  switch (vote_info.vote) {
+  switch (voteInfo.vote) {
     case VOTE_GRANTED:
       ++yesVotes_;
       break;
     case VOTE_DENIED:
-      isCandidateRemoved_ = isCandidateRemoved_ || vote_info.isCandidateRemoved;
+      isCandidateRemoved_ = isCandidateRemoved_ || voteInfo.isCandidateRemoved;
       ++noVotes_;
       break;
   }
-  *is_duplicate = false;
+  *isDuplicate = false;
   return Status::OK();
 }
 
@@ -412,32 +412,32 @@ FlexibleVoteCounter::FlexibleVoteCounter(
 }
 
 Status FlexibleVoteCounter::registerVote(
-    const std::string& voter_uuid,
-    const VoteInfo& vote_info,
-    bool* is_duplicate) {
+    const std::string& voterUuid,
+    const VoteInfo& voteInfo,
+    bool* isDuplicate) {
   // The base function returns error if a voter has changed his
   // mind. We return error in that case and return early
   // in case this vote is a duplicate
-  Status s = VoteCounter::registerVote(voter_uuid, vote_info, is_duplicate);
+  Status s = VoteCounter::registerVote(voterUuid, voteInfo, isDuplicate);
   RETURN_NOT_OK(s);
 
   // No book-keeping required for duplicate votes.
-  if (*is_duplicate) {
+  if (*isDuplicate) {
     return s;
   }
 
   // In Flexi-Raft all voters are expected to have region tag
-  if (!uuid_to_quorum_id_.contains(voter_uuid)) {
+  if (!uuid_to_quorum_id_.contains(voterUuid)) {
     // This is never expected to happen
     return Status::InvalidArgument(
-        fmt::format("UUID {{{}}} not present in config.", voter_uuid));
+        fmt::format("UUID {{{}}} not present in config.", voterUuid));
   }
 
   // In Flexi-Raft we never allow voters without voter distribution
   // to be in Ring. Hence yes_vote_count_ and no_vote_count_ will
   // have the same number of voting regions as voter_distribution_
-  const std::string& quorum_id = uuid_to_quorum_id_.at(voter_uuid);
-  switch (vote_info.vote) {
+  const std::string& quorum_id = uuid_to_quorum_id_.at(voterUuid);
+  switch (voteInfo.vote) {
     case VOTE_GRANTED:
       yes_vote_count_.try_emplace(quorum_id, 0);
       yes_vote_count_[quorum_id]++;
@@ -450,7 +450,7 @@ Status FlexibleVoteCounter::registerVote(
 
   // TODO - explain this more
   uuid_to_last_term_pruned_.insert_or_assign(
-      voter_uuid, vote_info.lastPrunedTerm);
+      voterUuid, voteInfo.lastPrunedTerm);
   return s;
 }
 
@@ -1421,65 +1421,65 @@ JointConsensusVoteCounter::PopulateVoterConfigMapping(
 }
 
 Status JointConsensusVoteCounter::registerVote(
-    const std::string& voter_uuid,
-    const VoteInfo& vote_info,
-    bool* is_duplicate) {
-  CHECK(is_duplicate);
+    const std::string& voterUuid,
+    const VoteInfo& voteInfo,
+    bool* isDuplicate) {
+  CHECK(isDuplicate);
 
   // The base function returns error if a voter has changed his
   // mind. We return error in that case and return early
   // in case this vote is a duplicate
-  Status s = VoteCounter::registerVote(voter_uuid, vote_info, is_duplicate);
+  Status s = VoteCounter::registerVote(voterUuid, voteInfo, isDuplicate);
   RETURN_NOT_OK(s);
 
   // No book-keeping required for duplicate votes.
-  if (*is_duplicate) {
+  if (*isDuplicate) {
     return s;
   }
 
-  auto it = voter_map_.find(voter_uuid);
+  auto it = voter_map_.find(voterUuid);
   if (it == voter_map_.end()) {
-    std::string err_msg = fmt::format(
+    std::string errMsg = fmt::format(
         "Registering vote from an unnknown voter: {}, "
         "ensure to register all the voter uuids when creating "
         "this JointConsensusVoteCounter.",
-        voter_uuid);
-    return Status::InvalidArgument(err_msg);
+        voterUuid);
+    return Status::InvalidArgument(errMsg);
   };
 
   // Decide the appropriate vote counter because it is possible for a voter to
   // be in the old config, new config, and even both.
-  VoterConfigMembership voter_config_membership = it->second;
-  switch (voter_config_membership) {
+  VoterConfigMembership voterConfigMembership = it->second;
+  switch (voterConfigMembership) {
     case VoterConfigMembership::OLD_CONFIG_ONLY:
       return old_conf_vote_counter_->registerVote(
-          voter_uuid, vote_info, is_duplicate);
+          voterUuid, voteInfo, isDuplicate);
     case VoterConfigMembership::NEW_CONFIG_ONLY:
       return new_conf_vote_counter_->registerVote(
-          voter_uuid, vote_info, is_duplicate);
+          voterUuid, voteInfo, isDuplicate);
     case VoterConfigMembership::OLD_AND_NEW_CONFIG: {
       // Register the vote in both the old and new config vote counters.
-      bool is_duplicate_old_conf = false;
-      bool is_duplicate_new_conf = false;
-      Status old_conf_stat = old_conf_vote_counter_->registerVote(
-          voter_uuid, vote_info, &is_duplicate_old_conf);
-      Status new_conf_stat = new_conf_vote_counter_->registerVote(
-          voter_uuid, vote_info, &is_duplicate_new_conf);
-      CHECK_EQ(old_conf_stat.ok(), new_conf_stat.ok())
+      bool isDuplicateOldConf = false;
+      bool isDuplicateNewConf = false;
+      Status oldConfStat = old_conf_vote_counter_->registerVote(
+          voterUuid, voteInfo, &isDuplicateOldConf);
+      Status newConfStat = new_conf_vote_counter_->registerVote(
+          voterUuid, voteInfo, &isDuplicateNewConf);
+      CHECK_EQ(oldConfStat.ok(), newConfStat.ok())
           << "Failed to register the vote in both of the underlying"
           << "counters, resulting in a risk of diverging voter state.";
-      CHECK_EQ(is_duplicate_old_conf, is_duplicate_new_conf)
+      CHECK_EQ(isDuplicateOldConf, isDuplicateNewConf)
           << "Diverging `is_duplicate` result for a voter peer who "
           << "exists in both the old and new config.";
-      *is_duplicate = is_duplicate_new_conf;
+      *isDuplicate = isDuplicateNewConf;
       break;
     }
     default:
-      std::string err_msg = fmt::format(
+      std::string errMsg = fmt::format(
           "Invalid config membership in joint-consensus election"
           "for uuid={}.",
-          voter_uuid);
-      return Status::InvalidArgument(err_msg);
+          voterUuid);
+      return Status::InvalidArgument(errMsg);
   }
 
   return Status::OK();
