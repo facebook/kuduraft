@@ -49,7 +49,7 @@ class CrcTest : public KuduTest {
 };
 
 // Basic functionality test.
-TEST_F(CrcTest, TestCRC32C) {
+TEST_F(CrcTest, TestCrc32c) {
   const std::string testData("abcdefgh");
   const uint64_t kExpectedCrc =
       0xa9421b7; // Known value from crcutil usage test program.
@@ -79,7 +79,7 @@ TEST_F(CrcTest, TestCRC32C) {
 
 // Simple benchmark of CRC32C throughput.
 // We should expect about 8 bytes per cycle in throughput on a single core.
-TEST_F(CrcTest, BenchmarkCRC32C) {
+TEST_F(CrcTest, BenchmarkCrc32c) {
   std::unique_ptr<const uint8_t[]> data;
   const uint8_t* buf;
   size_t buflen;
