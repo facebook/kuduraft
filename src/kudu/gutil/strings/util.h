@@ -187,12 +187,12 @@ bool matchPattern(const StringPiece& str, const StringPiece& pattern);
 
 // Returns where suffix begins in str, or NULL if str doesn't end with suffix.
 inline char* strsuffix(char* str, const char* suffix) {
-  const int lenstr = strlen(str);
-  const int lensuffix = strlen(suffix);
-  char* strbeginningoftheend = str + lenstr - lensuffix;
+  const int lenStr = strlen(str);
+  const int lenSuffix = strlen(suffix);
+  char* strBeginningOfTheEnd = str + lenStr - lenSuffix;
 
-  if (lenstr >= lensuffix && 0 == strcmp(strbeginningoftheend, suffix)) {
-    return (strbeginningoftheend);
+  if (lenStr >= lenSuffix && 0 == strcmp(strBeginningOfTheEnd, suffix)) {
+    return (strBeginningOfTheEnd);
   }
   return nullptr;
 }

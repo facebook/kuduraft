@@ -100,12 +100,12 @@ const char* strncaseprefix(
 }
 
 char* strcasesuffix(char* str, const char* suffix) {
-  const int lenstr = strlen(str);
-  const int lensuffix = strlen(suffix);
-  char* strbeginningoftheend = str + lenstr - lensuffix;
+  const int lenStr = strlen(str);
+  const int lenSuffix = strlen(suffix);
+  char* strBeginningOfTheEnd = str + lenStr - lenSuffix;
 
-  if (lenstr >= lensuffix && 0 == strcasecmp(strbeginningoftheend, suffix)) {
-    return (strbeginningoftheend);
+  if (lenStr >= lenSuffix && 0 == strcasecmp(strBeginningOfTheEnd, suffix)) {
+    return (strBeginningOfTheEnd);
   } else {
     return (nullptr);
   }
@@ -377,17 +377,17 @@ char* gstrncasestrSplit(
     char nonAlpha,
     const char* suffix,
     size_t n) {
-  int prelen = prefix == nullptr ? 0 : strlen(prefix);
-  int suflen = suffix == nullptr ? 0 : strlen(suffix);
+  int preLen = prefix == nullptr ? 0 : strlen(prefix);
+  int sufLen = suffix == nullptr ? 0 : strlen(suffix);
 
   // adjust the string and its length to avoid unnessary searching.
   // an added benefit is to avoid unnecessary range checks in the if
   // statement in the inner loop.
-  if (suflen + prelen >= n)
+  if (sufLen + preLen >= n)
     return nullptr;
-  str += prelen;
-  n -= prelen;
-  n -= suflen;
+  str += preLen;
+  n -= preLen;
+  n -= sufLen;
 
   const char* where = nullptr;
 
@@ -395,9 +395,9 @@ char* gstrncasestrSplit(
   while ((where = static_cast<const char*>(memchr(str, nonAlpha, n))) !=
          nullptr) {
     // ... test whether it is followed by suffix and preceded by prefix
-    if ((!suflen || strncasecmp(where + 1, suffix, suflen) == 0) &&
-        (!prelen || strncasecmp(where - prelen, prefix, prelen) == 0)) {
-      return const_cast<char*>(where - prelen);
+    if ((!sufLen || strncasecmp(where + 1, suffix, sufLen) == 0) &&
+        (!preLen || strncasecmp(where - preLen, prefix, preLen) == 0)) {
+      return const_cast<char*>(where - preLen);
     }
     // if not, advance the pointer, and adjust the length according
     n -= (where + 1) - str;
