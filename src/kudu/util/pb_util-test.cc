@@ -137,7 +137,7 @@ Status TestPbUtil::newPbcWriter(
   RETURN_NOT_OK(env_->NewRWFile(opts, path_, &writer));
   pbWriter->reset(new WritablePBContainerFile(std::move(writer)));
   if (version != kUseDefaultVersion) {
-    (*pbWriter)->SetVersionForTests(version);
+    (*pbWriter)->setVersionForTests(version);
   }
   return Status::OK();
 }
@@ -556,7 +556,7 @@ TEST_F(TestPbUtil, TestPopulateDescriptorSet) {
     // No dependencies --> just one proto.
     ProtoContainerTestPB pb;
     FileDescriptorSet protos;
-    WritablePBContainerFile::PopulateDescriptorSet(
+    WritablePBContainerFile::populateDescriptorSet(
         pb.GetDescriptor()->file(), &protos);
     ASSERT_EQ(1, protos.file_size());
   }
@@ -564,7 +564,7 @@ TEST_F(TestPbUtil, TestPopulateDescriptorSet) {
     // One direct dependency --> two protos.
     ProtoContainerTest2PB pb;
     FileDescriptorSet protos;
-    WritablePBContainerFile::PopulateDescriptorSet(
+    WritablePBContainerFile::populateDescriptorSet(
         pb.GetDescriptor()->file(), &protos);
     ASSERT_EQ(2, protos.file_size());
   }
@@ -572,7 +572,7 @@ TEST_F(TestPbUtil, TestPopulateDescriptorSet) {
     // One direct and one indirect dependency --> three protos.
     ProtoContainerTest3PB pb;
     FileDescriptorSet protos;
-    WritablePBContainerFile::PopulateDescriptorSet(
+    WritablePBContainerFile::populateDescriptorSet(
         pb.GetDescriptor()->file(), &protos);
     ASSERT_EQ(3, protos.file_size());
   }

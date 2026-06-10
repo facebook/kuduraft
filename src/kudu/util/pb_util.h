@@ -342,25 +342,25 @@ class WritablePBContainerFile {
 
   // Set the file format version. Only used for testing.
   // Must be called before CreateNew().
-  Status SetVersionForTests(int version);
+  Status setVersionForTests(int version);
 
   // Write the protobuf schemas belonging to 'desc' and all of its
   // dependencies to 'output'.
   //
   // Schemas are written in dependency order (i.e. if A depends on B which
   // depends on C, the order is C, B, A).
-  static void PopulateDescriptorSet(
+  static void populateDescriptorSet(
       const google::protobuf::FileDescriptor* desc,
       google::protobuf::FileDescriptorSet* output);
 
   // Serialize the contents of 'msg' into 'buf' along with additional metadata
   // to aid in deserialization.
-  Status AppendMsgToBuffer(
+  Status appendMsgToBuffer(
       const google::protobuf::Message& msg,
       faststring* buf);
 
   // Append bytes to the file.
-  Status AppendBytes(const Slice& data);
+  Status appendBytes(const Slice& data);
 
   // State of the file.
   FileState state_;

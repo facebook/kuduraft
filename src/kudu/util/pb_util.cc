@@ -746,7 +746,7 @@ WritablePBContainerFile::~WritablePBContainerFile() {
   WARN_NOT_OK(Close(), "Could not Close() when destroying file");
 }
 
-Status WritablePBContainerFile::SetVersionForTests(int version) {
+Status WritablePBContainerFile::setVersionForTests(int version) {
   DCHECK_EQ(FileState::NotInitialized, state_);
   if (!isSupportedContainerVersion(version)) {
     return Status::NotSupported(
@@ -786,15 +786,15 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
 
   // Serialize the supplemental header.
   ContainerSupHeaderPB supHeader;
-  PopulateDescriptorSet(
+  populateDescriptorSet(
       msg.GetDescriptor()->file(), supHeader.mutable_protos());
   supHeader.set_pb_type(msg.GetTypeName());
   RETURN_NOT_OK_PREPEND(
-      AppendMsgToBuffer(supHeader, &buf),
+      appendMsgToBuffer(supHeader, &buf),
       "Failed to prepare supplemental header for writing");
 
   // Write the serialized buffer to the file.
-  RETURN_NOT_OK_PREPEND(AppendBytes(buf), "Failed to append header to file");
+  RETURN_NOT_OK_PREPEND(appendBytes(buf), "Failed to append header to file");
   state_ = FileState::Open;
   return Status::OK();
 }
@@ -811,7 +811,7 @@ Status WritablePBContainerFile::OpenExisting() {
   return Status::OK();
 }
 
-Status WritablePBContainerFile::AppendBytes(const Slice& data) {
+Status WritablePBContainerFile::appendBytes(const Slice& data) {
   std::lock_guard<Mutex> l(offsetLock_);
   RETURN_NOT_OK(writer_->Write(offset_, data));
   offset_ += data.size();
@@ -823,8 +823,8 @@ Status WritablePBContainerFile::Append(const Message& msg) {
 
   faststring buf;
   RETURN_NOT_OK_PREPEND(
-      AppendMsgToBuffer(msg, &buf), "Failed to prepare buffer for writing");
-  RETURN_NOT_OK_PREPEND(AppendBytes(buf), "Failed to append data to file");
+      appendMsgToBuffer(msg, &buf), "Failed to prepare buffer for writing");
+  RETURN_NOT_OK_PREPEND(appendBytes(buf), "Failed to append data to file");
 
   return Status::OK();
 }
@@ -861,7 +861,7 @@ const string& WritablePBContainerFile::filename() const {
   return writer_->filename();
 }
 
-Status WritablePBContainerFile::AppendMsgToBuffer(
+Status WritablePBContainerFile::appendMsgToBuffer(
     const Message& msg,
     faststring* buf) {
   DCHECK(msg.IsInitialized()) << initializationErrorMessage("serialize", msg);
@@ -915,7 +915,7 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
   return Status::OK();
 }
 
-void WritablePBContainerFile::PopulateDescriptorSet(
+void WritablePBContainerFile::populateDescriptorSet(
     const FileDescriptor* desc,
     FileDescriptorSet* output) {
   // Because we don't compile protobuf with TSAN enabled, copying the
