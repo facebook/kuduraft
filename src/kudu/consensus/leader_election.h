@@ -304,7 +304,7 @@ class FlexibleVoteCounter : public VoteCounter {
 
   // Fetches the number of votes that still haven't arrived in this election
   // cycle from the given `region`.
-  // If use_vd is true, we consider total votes based on voter_distribution_
+  // If use_vd is true, we consider total votes based on voterDistribution_
   // instead of the config
   int FetchVotesRemainingInRegion(const std::string& region, bool use_vd) const;
 
@@ -466,40 +466,40 @@ class FlexibleVoteCounter : public VoteCounter {
   // Generic log prefix.
   std::string logPrefix() const;
 
-  const std::string candidate_uuid_;
+  const std::string candidateUuid_;
 
   // Term of this election.
-  const int64_t election_term_;
+  const int64_t electionTerm_;
 
   // Mapping from each region to number of active voters.
-  std::map<std::string, int> voter_distribution_;
+  std::map<std::string, int> voterDistribution_;
 
   // Should we adjust voter distribution based on current config?
-  const bool adjust_voter_distribution_;
+  const bool adjustVoterDistribution_;
 
   // Vote count per region.
-  std::map<std::string, int> yes_vote_count_, no_vote_count_;
+  std::map<std::string, int> yesVoteCount_, noVoteCount_;
 
   // Last known leader properties.
-  const LastKnownLeaderPB last_known_leader_;
+  const LastKnownLeaderPB lastKnownLeader_;
 
   // Config at the beginning of the leader election.
   const RaftConfigPB config_;
 
   // Number of voters in each quorum
-  std::unordered_map<std::string, size_t> num_voters_per_quorum_id_;
+  std::unordered_map<std::string, size_t> numVotersPerQuorumId_;
 
   // UUID to quorum_id map derived from RaftConfigPB.
-  std::map<std::string, std::string> uuid_to_quorum_id_;
+  std::map<std::string, std::string> uuidToQuorumId_;
 
   // UUID to last term pruned mapping.
-  std::map<std::string, int64_t> uuid_to_last_term_pruned_;
+  std::map<std::string, int64_t> uuidToLastTermPruned_;
 
   // Time when vote counter object was created
-  std::chrono::time_point<std::chrono::system_clock> creation_time_;
+  std::chrono::time_point<std::chrono::system_clock> creationTime_;
 
   // The quorum ids considered by the last voter history run
-  std::unordered_set<std::string> voter_history_quorum_ids_;
+  std::unordered_set<std::string> voterHistoryQuorumIds_;
 
   DISALLOW_COPY_AND_ASSIGN(FlexibleVoteCounter);
 };
