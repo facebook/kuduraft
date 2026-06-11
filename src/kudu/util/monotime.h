@@ -210,7 +210,7 @@ class KUDU_EXPORT MonoTime {
   ///   The other MonoTime object to compare with.
   /// @return @c true iff the point in time represented by this MonoTime object
   ///   is earlier then the point in time represented by the parameter.
-  bool ComesBefore(const MonoTime& rhs) const;
+  bool comesBefore(const MonoTime& rhs) const;
 
   /// @return String representation of the object (in seconds).
   std::string ToString() const;

@@ -205,7 +205,7 @@ void MonoTime::AddDelta(const MonoDelta& delta) {
   nanos_ += delta.nanoDelta_;
 }
 
-bool MonoTime::ComesBefore(const MonoTime& rhs) const {
+bool MonoTime::comesBefore(const MonoTime& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
   return nanos_ < rhs.nanos_;
@@ -290,19 +290,19 @@ bool operator!=(const MonoTime& lhs, const MonoTime& rhs) {
 }
 
 bool operator<(const MonoTime& lhs, const MonoTime& rhs) {
-  return lhs.ComesBefore(rhs);
+  return lhs.comesBefore(rhs);
 }
 
 bool operator<=(const MonoTime& lhs, const MonoTime& rhs) {
-  return lhs.ComesBefore(rhs) || lhs.Equals(rhs);
+  return lhs.comesBefore(rhs) || lhs.Equals(rhs);
 }
 
 bool operator>(const MonoTime& lhs, const MonoTime& rhs) {
-  return rhs.ComesBefore(lhs);
+  return rhs.comesBefore(lhs);
 }
 
 bool operator>=(const MonoTime& lhs, const MonoTime& rhs) {
-  return rhs.ComesBefore(lhs) || rhs.Equals(lhs);
+  return rhs.comesBefore(lhs) || rhs.Equals(lhs);
 }
 
 MonoTime operator+(const MonoTime& t, const MonoDelta& delta) {

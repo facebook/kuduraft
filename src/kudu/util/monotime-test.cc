@@ -40,8 +40,8 @@ TEST(TestMonoTime, TestMonotonicity) {
   do {
     next = MonoTime::Now();
     // LOG(INFO) << " next = " << next.ToString();
-  } while (!prev.ComesBefore(next));
-  ASSERT_FALSE(next.ComesBefore(prev));
+  } while (!prev.comesBefore(next));
+  ASSERT_FALSE(next.comesBefore(prev));
   alarm(0);
 }
 
@@ -305,8 +305,8 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoTime t0 = MonoTime::Now();
     MonoTime t1(t0 + MonoDelta::FromMilliseconds(100));
-    ASSERT_TRUE(t0.ComesBefore(t1));
-    ASSERT_FALSE(t1.ComesBefore(t0));
+    ASSERT_TRUE(t0.comesBefore(t1));
+    ASSERT_FALSE(t1.comesBefore(t0));
     EXPECT_TRUE(t0 < t1);
     EXPECT_FALSE(t1 < t0);
   }
@@ -325,10 +325,10 @@ TEST(TestMonoTime, TestOperators) {
     EXPECT_TRUE(t01 <= t01);
 
     MonoTime t1(t00 + MonoDelta::FromMilliseconds(100));
-    ASSERT_TRUE(t00.ComesBefore(t1));
-    ASSERT_TRUE(t01.ComesBefore(t1));
-    ASSERT_FALSE(t1.ComesBefore(t00));
-    ASSERT_FALSE(t1.ComesBefore(t01));
+    ASSERT_TRUE(t00.comesBefore(t1));
+    ASSERT_TRUE(t01.comesBefore(t1));
+    ASSERT_FALSE(t1.comesBefore(t00));
+    ASSERT_FALSE(t1.comesBefore(t01));
     EXPECT_TRUE(t00 <= t1);
     EXPECT_TRUE(t01 <= t1);
     EXPECT_FALSE(t1 <= t00);
@@ -339,8 +339,8 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoTime t0 = MonoTime::Now();
     MonoTime t1(t0 + MonoDelta::FromMilliseconds(100));
-    ASSERT_TRUE(t0.ComesBefore(t1));
-    ASSERT_FALSE(t1.ComesBefore(t0));
+    ASSERT_TRUE(t0.comesBefore(t1));
+    ASSERT_FALSE(t1.comesBefore(t0));
     EXPECT_TRUE(t0 < t1);
     EXPECT_FALSE(t1 < t0);
   }
@@ -359,10 +359,10 @@ TEST(TestMonoTime, TestOperators) {
     EXPECT_TRUE(t01 >= t01);
 
     MonoTime t1(t00 + MonoDelta::FromMilliseconds(100));
-    ASSERT_TRUE(t00.ComesBefore(t1));
-    ASSERT_TRUE(t01.ComesBefore(t1));
-    ASSERT_FALSE(t1.ComesBefore(t00));
-    ASSERT_FALSE(t1.ComesBefore(t01));
+    ASSERT_TRUE(t00.comesBefore(t1));
+    ASSERT_TRUE(t01.comesBefore(t1));
+    ASSERT_FALSE(t1.comesBefore(t00));
+    ASSERT_FALSE(t1.comesBefore(t01));
     EXPECT_FALSE(t00 >= t1);
     EXPECT_FALSE(t01 >= t1);
     EXPECT_TRUE(t1 >= t00);
