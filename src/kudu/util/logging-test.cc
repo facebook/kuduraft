@@ -120,7 +120,7 @@ class CountingLogger : public google::base::Logger {
       bool forceFlush,
       time_t /*timestamp*/,
       const char* /*message*/,
-      int /*message_len*/) override {
+      int /*messageLen*/) override {
     messageCount++;
     if (forceFlush) {
       Flush();
