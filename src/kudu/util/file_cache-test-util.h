@@ -35,10 +35,10 @@ namespace kudu {
 // process, crashing if it exceeds some upper bound.
 class PeriodicOpenFdChecker {
  public:
-  // path_pattern: a glob-style pattern of which paths should be included while
-  //               counting file descriptors
-  // upper_bound:  the maximum number of file descriptors that should be open
-  //               at any point in time
+  // pathPattern: a glob-style pattern of which paths should be included while
+  //              counting file descriptors
+  // upperBound:  the maximum number of file descriptors that should be open
+  //              at any point in time
   PeriodicOpenFdChecker(Env* env, std::string pathPattern, int upperBound)
       : env_(env),
         pathPattern_(std::move(pathPattern)),
