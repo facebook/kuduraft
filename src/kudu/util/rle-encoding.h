@@ -82,7 +82,7 @@ template <typename T>
 class RleDecoder {
  public:
   // Create a decoder object. buffer/bufferLen is the decoded data.
-  // bit_width is the width of each value (before encoding).
+  // bitWidth is the width of each value (before encoding).
   RleDecoder(const uint8_t* buffer, int bufferLen, int bitWidth)
       : bitReader_(buffer, bufferLen),
         bitWidth_(bitWidth),
@@ -132,10 +132,10 @@ template <typename T>
 class RleEncoder {
  public:
   // buffer: buffer to write bits to.
-  // bit_width: max number of bits for value.
+  // bitWidth: max number of bits for value.
   // TODO: consider adding a min_repeated_run_length so the caller can control
   // when values should be encoded as repeated runs.  Currently this is derived
-  // based on the bit_width, which can determine a storage optimal choice.
+  // based on the bitWidth, which can determine a storage optimal choice.
   explicit RleEncoder(faststring* buffer, int bitWidth)
       : bitWidth_(bitWidth), bitWriter_(buffer) {
     DCHECK_GE(bitWidth_, 1);
@@ -180,7 +180,7 @@ class RleEncoder {
   BitWriter bitWriter_;
 
   // We need to buffer at most 8 values for literals.  This happens when the
-  // bit_width is 1 (so 8 values fit in one byte).
+  // bitWidth is 1 (so 8 values fit in one byte).
   // TODO: generalize this to other bit widths
   uint64_t bufferedValues_[8];
 
