@@ -141,7 +141,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_TRUE(isDir);
 }
 
-// Ensure that DeleteExcessFilesByPattern() works.
+// Ensure that deleteExcessFilesByPattern() works.
 // We ensure that the number of files remaining after running it is the number
 // expected, and we manually set the modification times on the relevant files
 // to allow us to test that files are deleted oldest-first.
