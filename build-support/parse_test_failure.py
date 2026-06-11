@@ -25,7 +25,6 @@ import os
 import re
 import sys
 import unittest
-from builtins import object
 from xml.sax.saxutils import quoteattr
 
 # Read at most 100MB of a test log.
