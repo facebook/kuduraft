@@ -104,7 +104,7 @@ class SimpleSink : public google::LogSink {
       const char* fullFilename,
       const char* /* base_filename */,
       int line,
-      const struct ::tm* tm_time,
+      const struct ::tm* tmTime,
       const char* message,
       size_t messageLen) override {
     LogSeverity kuduSeverity;
@@ -124,7 +124,7 @@ class SimpleSink : public google::LogSink {
       default:
         LOG(FATAL) << "Unknown glog severity: " << severity;
     }
-    cb_.Run(kuduSeverity, fullFilename, line, tm_time, message, messageLen);
+    cb_.Run(kuduSeverity, fullFilename, line, tmTime, message, messageLen);
   }
 
  private:
@@ -371,16 +371,16 @@ void getFullLogFilename(google::LogSeverity severity, string* filename) {
 std::string formatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch) {
   time_t secsSinceEpoch = microsSinceEpoch / 1000000;
   int usecs = microsSinceEpoch % 1000000;
-  struct tm tm_time;
-  localtime_r(&secsSinceEpoch, &tm_time);
+  struct tm tmTime;
+  localtime_r(&secsSinceEpoch, &tmTime);
 
   return fmt::format(
       "{:02d}{:02d} {:02d}:{:02d}:{:02d}.{:06d}",
-      1 + tm_time.tm_mon,
-      tm_time.tm_mday,
-      tm_time.tm_hour,
-      tm_time.tm_min,
-      tm_time.tm_sec,
+      1 + tmTime.tm_mon,
+      tmTime.tm_mday,
+      tmTime.tm_hour,
+      tmTime.tm_min,
+      tmTime.tm_sec,
       usecs);
 }
 

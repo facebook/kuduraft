@@ -116,7 +116,7 @@ class ScopedDisableRedaction {
 // Throttled logging support
 ////////////////////////////////////////////////////////////////////////////////
 
-// Logs a message throttled to appear at most once every 'n_secs' seconds to
+// Logs a message throttled to appear at most once every 'nSecs' seconds to
 // the given severity.
 //
 // The log message may include the special token 'kThrottleMsg' which expands
@@ -152,20 +152,20 @@ class ScopedDisableRedaction {
 // between the "coffee" message and the "wine" message, then each such
 // alternation will yield a message.
 
-#define KLOG_EVERY_N_SECS_THROTTLER(severity, n_secs, throttler, tag)       \
-  int VARNAME_LINENUM(num_suppressed) = 0;                                  \
-  if ((throttler).shouldLog(n_secs, tag, &VARNAME_LINENUM(num_suppressed))) \
-  google::LogMessage(                                                       \
-      __FILE__,                                                             \
-      __LINE__,                                                             \
-      google::GLOG_##severity,                                              \
-      VARNAME_LINENUM(num_suppressed),                                      \
-      &google::LogMessage::SendToLog)                                       \
+#define KLOG_EVERY_N_SECS_THROTTLER(severity, nSecs, throttler, tag)      \
+  int VARNAME_LINENUM(numSuppressed) = 0;                                 \
+  if ((throttler).shouldLog(nSecs, tag, &VARNAME_LINENUM(numSuppressed))) \
+  google::LogMessage(                                                     \
+      __FILE__,                                                           \
+      __LINE__,                                                           \
+      google::GLOG_##severity,                                            \
+      VARNAME_LINENUM(numSuppressed),                                     \
+      &google::LogMessage::SendToLog)                                     \
       .stream()
 
-#define KLOG_EVERY_N_SECS(severity, n_secs)   \
+#define KLOG_EVERY_N_SECS(severity, nSecs)    \
   static logging::LogThrottler LOG_THROTTLER; \
-  KLOG_EVERY_N_SECS_THROTTLER(severity, n_secs, LOG_THROTTLER, "no-tag")
+  KLOG_EVERY_N_SECS_THROTTLER(severity, nSecs, LOG_THROTTLER, "no-tag")
 
 namespace kudu {
 enum PrivateThrottleMsg { kThrottleMsg };
@@ -290,27 +290,26 @@ class LogThrottler {
         this, sizeof(*this), "OK to be sloppy with log throttling");
   }
 
-  bool shouldLog(int n_secs, const char* tag, int* num_suppressed) {
+  bool shouldLog(int nSecs, const char* tag, int* numSuppressed) {
     kudu::MicrosecondsInt64 ts = getMonoTimeMicros();
 
     // When we switch tags, we should not show the "suppressed" messages,
     // because in fact it's a different message that we skipped. So, reset it to
     // zero, and always log the new message.
     if (tag != lastTag_) {
-      *num_suppressed = numSuppressed_ = 0;
+      *numSuppressed = numSuppressed_ = 0;
       lastTag_ = tag;
       lastTs_ = ts;
       return true;
     }
 
-    if (ts - lastTs_ < n_secs * 1000000) {
-      *num_suppressed =
+    if (ts - lastTs_ < nSecs * 1000000) {
+      *numSuppressed =
           base::subtle::NoBarrier_AtomicIncrement(&numSuppressed_, 1);
       return false;
     }
     lastTs_ = ts;
-    *num_suppressed =
-        base::subtle::NoBarrier_AtomicExchange(&numSuppressed_, 0);
+    *numSuppressed = base::subtle::NoBarrier_AtomicExchange(&numSuppressed_, 0);
     return true;
   }
 
