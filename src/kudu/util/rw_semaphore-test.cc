@@ -67,7 +67,7 @@ void reader(SharedState* state) {
 
 // Test which verifies basic functionality of the semaphore.
 // When run under TSAN this also verifies the barriers.
-TEST(RWSemaphoreTest, TestBasicOperation) {
+TEST(RwSemaphoreTest, TestBasicOperation) {
   SharedState s;
   vector<thread*> threads;
   // Start 5 readers and writers.
