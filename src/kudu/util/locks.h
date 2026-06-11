@@ -78,12 +78,12 @@ using simple_spinlock = SimpleSpinlock;
 // it.
 //
 // See rw_semaphore.h for documentation on the individual methods where unclear.
-class rw_spinlock {
+class RwSpinlock {
  public:
-  rw_spinlock() {
+  RwSpinlock() {
     KUDU_ANNONTATE_RWLOCK_CREATE(this);
   }
-  ~rw_spinlock() {
+  ~RwSpinlock() {
     KUDU_ANNONTATE_RWLOCK_DESTROY(this);
   }
 

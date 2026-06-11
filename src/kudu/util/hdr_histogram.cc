@@ -160,7 +160,7 @@ void HdrHistogram::increment(int64_t value) {
 }
 
 void HdrHistogram::incrementBy(int64_t value, int64_t count) {
-  shared_lock<rw_spinlock> lock(histogramMutex_);
+  shared_lock<RwSpinlock> lock(histogramMutex_);
   DCHECK_GE(value, 0);
   DCHECK_GE(count, 0);
 
@@ -354,7 +354,7 @@ uint64_t HdrHistogram::valueAtPercentile(double percentile) const {
 }
 
 void HdrHistogram::resetHistogram() {
-  std::lock_guard<rw_spinlock> lock(histogramMutex_);
+  std::lock_guard<RwSpinlock> lock(histogramMutex_);
   totalCount_ = 0;
   totalSum_ = 0;
   minValue_ = std::numeric_limits<Atomic64>::max();

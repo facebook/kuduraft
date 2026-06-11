@@ -196,7 +196,7 @@ class HdrHistogram {
   int countsArrayLength_;
   int bucketCount_;
   int subBucketCount_;
-  rw_spinlock histogramMutex_;
+  RwSpinlock histogramMutex_;
 
   // "Hot" fields in the write path.
   uint8_t subBucketHalfCountMagnitude_;

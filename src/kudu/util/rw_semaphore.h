@@ -53,7 +53,7 @@ namespace kudu {
 // time intervals.
 //
 // If the semaphore is expected to always be released from the same thread
-// that acquired it, use rw_spinlock instead.
+// that acquired it, use RwSpinlock instead.
 //
 // In order to support easier debugging of leaked locks, this class can track
 // the stack trace of the last thread to lock it in write mode. To do so,
