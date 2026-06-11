@@ -157,67 +157,67 @@ Status verifyConsensusState(const ConsensusStatePB& cstate);
 // Provide a textual description of the difference between two consensus states,
 // suitable for logging.
 std::string diffConsensusStates(
-    const ConsensusStatePB& old_state,
-    const ConsensusStatePB& new_state,
-    std::vector<std::string>* evicted_peers = nullptr);
+    const ConsensusStatePB& oldState,
+    const ConsensusStatePB& newState,
+    std::vector<std::string>* evictedPeers = nullptr);
 
 // Same as the above, but just the RaftConfigPB portion of the configuration.
-// If some peers are evicted in the new_config, then returns the evicted peer
-// uuids in 'evicted_peers'
+// If some peers are evicted in the newConfig, then returns the evicted peer
+// uuids in 'evictedPeers'
 std::string diffRaftConfigs(
-    const RaftConfigPB& old_config,
-    const RaftConfigPB& new_config,
-    std::vector<std::string>* evicted_peers = nullptr);
+    const RaftConfigPB& oldConfig,
+    const RaftConfigPB& newConfig,
+    std::vector<std::string>* evictedPeers = nullptr);
 
 // Return 'true' iff the specified tablet configuration is under-replicated
-// given the 'replication_factor' and should add a replica. The decision is
+// given the 'replicationFactor' and should add a replica. The decision is
 // based on the health information provided by the Raft configuration
 // in the 'config' parameter and the policy specified by the 'policy' parameter.
 bool shouldAddReplica(
     const RaftConfigPB& config,
-    int replication_factor,
+    int replicationFactor,
     MajorityHealthPolicy policy);
 
 // Check if the given Raft configuration contains at least one extra replica
 // which should (and can) be removed in accordance with the specified
 // replication factor, current Raft leader, and the given policy. If so,
 // then return 'true' and set the UUID of the best candidate for eviction
-// into the 'uuid_to_evict' out parameter. Otherwise, return 'false'.
+// into the 'uuidToEvict' out parameter. Otherwise, return 'false'.
 bool shouldEvictReplica(
     const RaftConfigPB& config,
-    const std::string& leader_uuid,
-    int replication_factor,
+    const std::string& leaderUuid,
+    int replicationFactor,
     MajorityHealthPolicy policy,
-    std::string* uuid_to_evict = nullptr);
+    std::string* uuidToEvict = nullptr);
 
 // Helper function to compute the actual voter count from the config. If the
-// leader_uuid is present, it also figures out the quorum_id of the leader.
+// leaderUuid is present, it also figures out the quorum_id of the leader.
 void getActualVoterCountsFromConfig(
     const RaftConfigPB& config,
-    const std::string& leader_uuid,
-    std::map<std::string, int>* actual_voter_counts,
-    std::string* leader_quorum_id = nullptr,
-    bool backed_by_db_only = false);
+    const std::string& leaderUuid,
+    std::map<std::string, int>* actualVoterCounts,
+    std::string* leaderQuorumId = nullptr,
+    bool backedByDbOnly = false);
 
 // Make each regions voter count, the max of voter distribution and current
 // voters
 void adjustVoterDistributionWithCurrentVoters(
     const RaftConfigPB& config,
-    std::map<std::string, int>* voter_distribution);
+    std::map<std::string, int>* voterDistribution);
 
 // For QuorumType = Region, it returns the current VD. For QuorumType =
 // QuorumID, it returns default quorum size with current voter quorums, and
 // overrided by current VD.
 void getVoterDistributionForQuorumId(
     const RaftConfigPB& config,
-    std::map<std::string, int>* quorum_id_vd);
+    std::map<std::string, int>* quorumIdVd);
 
 std::optional<int> getTotalVotersFromVoterDistribution(
     const RaftConfigPB& config,
-    const std::string& quorum_id);
+    const std::string& quorumId);
 
 // Use quorum_id instead of region for flexiraft?
-bool isUseQuorumId(const CommitRulePB& commit_rule);
+bool isUseQuorumId(const CommitRulePB& commitRule);
 
 // Return quorum_id or region based on current commit rule's QuorumType
 const std::string& getQuorumId(
@@ -247,6 +247,6 @@ bool isPeersEqual(
 
 // Return true iff the active config is a transitional config (C_old_new)
 // with a non-empty `next_config_peers`.
-bool isJointConsensusPhase(const RaftConfigPB& active_config);
+bool isJointConsensusPhase(const RaftConfigPB& activeConfig);
 
 } // namespace kudu::consensus
