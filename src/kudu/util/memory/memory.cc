@@ -223,7 +223,7 @@ Buffer* MediatingBufferAllocator::allocateInternal(
   // Allow the mediator to trim the request.
   size_t granted;
   if (requested > 0) {
-    granted = mediator_->Allocate(requested, minimal);
+    granted = mediator_->allocate(requested, minimal);
     if (granted < minimal) {
       return nullptr;
     }
@@ -232,9 +232,9 @@ Buffer* MediatingBufferAllocator::allocateInternal(
   }
   Buffer* buffer = delegateAllocate(delegate_, granted, minimal, originator);
   if (buffer == nullptr) {
-    mediator_->Free(granted);
+    mediator_->free(granted);
   } else if (buffer->size() < granted) {
-    mediator_->Free(granted - buffer->size());
+    mediator_->free(granted - buffer->size());
   }
   return buffer;
 }
@@ -248,7 +248,7 @@ bool MediatingBufferAllocator::reallocateInternal(
   // realloc may degenerate to malloc-memcpy-free.
   size_t granted;
   if (requested > 0) {
-    granted = mediator_->Allocate(requested, minimal);
+    granted = mediator_->allocate(requested, minimal);
     if (granted < minimal) {
       return false;
     }
@@ -257,16 +257,16 @@ bool MediatingBufferAllocator::reallocateInternal(
   }
   size_t oldSize = buffer->size();
   if (delegateReallocate(delegate_, granted, minimal, buffer, originator)) {
-    mediator_->Free(granted - buffer->size() + oldSize);
+    mediator_->free(granted - buffer->size() + oldSize);
     return true;
   } else {
-    mediator_->Free(granted);
+    mediator_->free(granted);
     return false;
   }
 }
 
 void MediatingBufferAllocator::freeInternal(Buffer* buffer) {
-  mediator_->Free(buffer->size());
+  mediator_->free(buffer->size());
   delegateFree(delegate_, buffer);
 }
 
@@ -276,9 +276,9 @@ Buffer* MemoryStatisticsCollectingBufferAllocator::allocateInternal(
     BufferAllocator* const originator) {
   Buffer* buffer = delegateAllocate(delegate_, requested, minimal, originator);
   if (buffer != nullptr) {
-    memoryStatsCollector_->AllocatedMemoryBytes(buffer->size());
+    memoryStatsCollector_->allocatedMemoryBytes(buffer->size());
   } else {
-    memoryStatsCollector_->RefusedMemoryBytes(minimal);
+    memoryStatsCollector_->refusedMemoryBytes(minimal);
   }
   return buffer;
 }
@@ -292,21 +292,21 @@ bool MemoryStatisticsCollectingBufferAllocator::reallocateInternal(
   bool outcome =
       delegateReallocate(delegate_, requested, minimal, buffer, originator);
   if (buffer->size() > oldSize) {
-    memoryStatsCollector_->AllocatedMemoryBytes(buffer->size() - oldSize);
+    memoryStatsCollector_->allocatedMemoryBytes(buffer->size() - oldSize);
   } else if (buffer->size() < oldSize) {
-    memoryStatsCollector_->FreedMemoryBytes(oldSize - buffer->size());
+    memoryStatsCollector_->freedMemoryBytes(oldSize - buffer->size());
   } else if (!outcome && (minimal > buffer->size())) {
-    memoryStatsCollector_->RefusedMemoryBytes(minimal - buffer->size());
+    memoryStatsCollector_->refusedMemoryBytes(minimal - buffer->size());
   }
   return outcome;
 }
 
 void MemoryStatisticsCollectingBufferAllocator::freeInternal(Buffer* buffer) {
   delegateFree(delegate_, buffer);
-  memoryStatsCollector_->FreedMemoryBytes(buffer->size());
+  memoryStatsCollector_->freedMemoryBytes(buffer->size());
 }
 
-size_t MemoryTrackingBufferAllocator::Available() const {
+size_t MemoryTrackingBufferAllocator::available() const {
   return enforceLimit_ ? memTracker_->spareCapacity()
                        : std::numeric_limits<int64_t>::max();
 }
