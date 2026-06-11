@@ -66,12 +66,12 @@ class TestJsonWriter : public KuduTest {
   }
 };
 
-TEST_F(TestJsonWriter, TestPBEmpty) {
+TEST_F(TestJsonWriter, TestPbEmpty) {
   TestAllTypes pb;
   ASSERT_EQ("{}", JsonWriter::toJson(pb, JsonWriter::kPretty));
 }
 
-TEST_F(TestJsonWriter, TestPBAllFieldTypes) {
+TEST_F(TestJsonWriter, TestPbAllFieldTypes) {
   ASSERT_NE("", gflags::SetCommandLineOption("redact", "log"));
   TestAllTypes pb = makeAllTypesPb();
 
@@ -117,7 +117,7 @@ TEST_F(TestJsonWriter, TestPBAllFieldTypes) {
       JsonWriter::toJson(pb, JsonWriter::kCompact));
 }
 
-TEST_F(TestJsonWriter, TestPBRepeatedPrimitives) {
+TEST_F(TestJsonWriter, TestPbRepeatedPrimitives) {
   ASSERT_NE("", gflags::SetCommandLineOption("redact", "log"));
   TestAllTypes pb;
   for (int i = 0; i <= 3; i++) {
@@ -164,7 +164,7 @@ TEST_F(TestJsonWriter, TestPBRepeatedPrimitives) {
       JsonWriter::toJson(pb, JsonWriter::kCompact));
 }
 
-TEST_F(TestJsonWriter, TestPBNestedMessage) {
+TEST_F(TestJsonWriter, TestPbNestedMessage) {
   TestAllTypes pb;
   pb.add_repeated_nested_message()->set_int_field(12345);
   pb.mutable_optional_nested_message()->set_int_field(54321);
