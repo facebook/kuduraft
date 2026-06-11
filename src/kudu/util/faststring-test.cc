@@ -29,7 +29,7 @@
 namespace kudu {
 class FaststringTest : public KuduTest {};
 
-TEST_F(FaststringTest, TestShrinkToFit_Empty) {
+TEST_F(FaststringTest, TestShrinkToFitEmpty) {
   faststring s;
   s.shrinkToFit();
   ASSERT_EQ(faststring::kInitialCapacity, s.capacity());
@@ -38,14 +38,14 @@ TEST_F(FaststringTest, TestShrinkToFit_Empty) {
 // Test that, if the string contents is shorter than the initial capacity
 // of the faststring, shrinkToFit() leaves the string in the built-in
 // array.
-TEST_F(FaststringTest, TestShrinkToFit_SmallerThanInitialCapacity) {
+TEST_F(FaststringTest, TestShrinkToFitSmallerThanInitialCapacity) {
   faststring s;
   s.append("hello");
   s.shrinkToFit();
   ASSERT_EQ(faststring::kInitialCapacity, s.capacity());
 }
 
-TEST_F(FaststringTest, TestShrinkToFit_Random) {
+TEST_F(FaststringTest, TestShrinkToFitRandom) {
   Random r(getRandomSeed32());
   int maxSize = faststring::kInitialCapacity * 2;
   std::unique_ptr<char[]> randomBytes(new char[maxSize]);
