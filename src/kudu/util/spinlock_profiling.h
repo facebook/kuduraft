@@ -59,7 +59,7 @@ void startSynchronizationProfiling();
 // This may be called while synchronization profiling is enabled or after it has
 // been disabled.
 //
-// *dropped_samples will be incremented by the number of samples which were
+// *dropCount will be incremented by the number of samples which were
 // dropped due to the contention buffer overflowing. If profiling is enabled
 // during this call, then the 'dropCount' may be slightly out-of-date with
 // respect to the returned samples.
