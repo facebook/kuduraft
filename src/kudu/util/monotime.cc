@@ -66,13 +66,13 @@ bool MonoDelta::Initialized() const {
   return nanoDelta_ != kUninitialized;
 }
 
-bool MonoDelta::LessThan(const MonoDelta& rhs) const {
+bool MonoDelta::lessThan(const MonoDelta& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
   return nanoDelta_ < rhs.nanoDelta_;
 }
 
-bool MonoDelta::MoreThan(const MonoDelta& rhs) const {
+bool MonoDelta::moreThan(const MonoDelta& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
   return nanoDelta_ > rhs.nanoDelta_;
@@ -140,7 +140,7 @@ void MonoDelta::ToTimeVal(struct timeval* tv) const {
   }
 }
 
-void MonoDelta::NanosToTimeSpec(int64_t nanos, struct timespec* ts) {
+void MonoDelta::nanosToTimeSpec(int64_t nanos, struct timespec* ts) {
   ts->tv_sec = nanos / MonoTime::kNanosecondsPerSecond;
   ts->tv_nsec = nanos - (ts->tv_sec * MonoTime::kNanosecondsPerSecond);
 
@@ -154,7 +154,7 @@ void MonoDelta::NanosToTimeSpec(int64_t nanos, struct timespec* ts) {
 
 void MonoDelta::ToTimeSpec(struct timespec* ts) const {
   DCHECK(Initialized());
-  NanosToTimeSpec(nanoDelta_, ts);
+  nanosToTimeSpec(nanoDelta_, ts);
 }
 
 ///
@@ -179,7 +179,7 @@ MonoTime MonoTime::Min() {
   return MonoTime(1);
 }
 
-const MonoTime& MonoTime::Earliest(const MonoTime& a, const MonoTime& b) {
+const MonoTime& MonoTime::earliest(const MonoTime& a, const MonoTime& b) {
   if (b.nanos_ < a.nanos_) {
     return b;
   }
@@ -217,7 +217,7 @@ std::string MonoTime::ToString() const {
 
 void MonoTime::ToTimeSpec(struct timespec* ts) const {
   DCHECK(Initialized());
-  MonoDelta::NanosToTimeSpec(nanos_, ts);
+  MonoDelta::nanosToTimeSpec(nanos_, ts);
 }
 
 bool MonoTime::Equals(const MonoTime& other) const {
@@ -266,19 +266,19 @@ bool operator!=(const MonoDelta& lhs, const MonoDelta& rhs) {
 }
 
 bool operator<(const MonoDelta& lhs, const MonoDelta& rhs) {
-  return lhs.LessThan(rhs);
+  return lhs.lessThan(rhs);
 }
 
 bool operator<=(const MonoDelta& lhs, const MonoDelta& rhs) {
-  return lhs.LessThan(rhs) || lhs.Equals(rhs);
+  return lhs.lessThan(rhs) || lhs.Equals(rhs);
 }
 
 bool operator>(const MonoDelta& lhs, const MonoDelta& rhs) {
-  return lhs.MoreThan(rhs);
+  return lhs.moreThan(rhs);
 }
 
 bool operator>=(const MonoDelta& lhs, const MonoDelta& rhs) {
-  return lhs.MoreThan(rhs) || lhs.Equals(rhs);
+  return lhs.moreThan(rhs) || lhs.Equals(rhs);
 }
 
 bool operator==(const MonoTime& lhs, const MonoTime& rhs) {

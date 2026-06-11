@@ -74,7 +74,7 @@ bool Semaphore::timedAcquire(const MonoDelta& timeout) {
   microtime += timeout.ToMicroseconds();
 
   struct timespec absTimeout;
-  MonoDelta::NanosToTimeSpec(
+  MonoDelta::nanosToTimeSpec(
       microtime * MonoTime::kNanosecondsPerMicrosecond, &absTimeout);
 
   while (true) {

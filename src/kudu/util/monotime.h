@@ -74,7 +74,7 @@ class KUDU_EXPORT MonoDelta {
   ///   A time interval for comparison.
   /// @return @c true iff this time interval is strictly shorter
   ///   than the specified one.
-  bool LessThan(const MonoDelta& rhs) const;
+  bool lessThan(const MonoDelta& rhs) const;
 
   /// Check whether this time interval is longer than the specified one.
   ///
@@ -82,7 +82,7 @@ class KUDU_EXPORT MonoDelta {
   ///   A time interval for comparison.
   /// @return @c true iff this time interval is strictly longer
   ///   than the specified one.
-  bool MoreThan(const MonoDelta& rhs) const;
+  bool moreThan(const MonoDelta& rhs) const;
 
   /// Check whether this time interval has the same duration
   ///  as the specified one.
@@ -127,7 +127,7 @@ class KUDU_EXPORT MonoDelta {
   ///   Representation of a relative point in time in nanoseconds.
   /// @param [out] ts
   ///   Placeholder for the resulting timespec representation.
-  static void NanosToTimeSpec(int64_t nanos, struct timespec* ts);
+  static void nanosToTimeSpec(int64_t nanos, struct timespec* ts);
 
   // Sentinel value for uninitialized MonoDelta. Public to allow external
   // components to use the same sentinel for atomic timeout storage.
@@ -178,7 +178,7 @@ class KUDU_EXPORT MonoTime {
   /// @param [in] b
   ///   The second MonoTime object to select from.
   /// @return The earliest (minimum) of the two monotimes.
-  static const MonoTime& Earliest(const MonoTime& a, const MonoTime& b)
+  static const MonoTime& earliest(const MonoTime& a, const MonoTime& b)
       ATTRIBUTE_DEPRECATED("use std::min() instead");
 
   /// Build a MonoTime object. The resulting object is not initialized

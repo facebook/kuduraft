@@ -58,10 +58,10 @@ TEST(TestMonoTime, TestComparison) {
   MonoDelta mil(MonoDelta::FromMilliseconds(1L));
   MonoDelta sec(MonoDelta::FromSeconds(1.0));
 
-  ASSERT_TRUE(nano.LessThan(mil));
-  ASSERT_TRUE(mil.LessThan(sec));
-  ASSERT_TRUE(mil.MoreThan(nano));
-  ASSERT_TRUE(sec.MoreThan(mil));
+  ASSERT_TRUE(nano.lessThan(mil));
+  ASSERT_TRUE(mil.lessThan(sec));
+  ASSERT_TRUE(mil.moreThan(nano));
+  ASSERT_TRUE(sec.moreThan(mil));
 }
 
 TEST(TestMonoTime, TestTimeVal) {
@@ -133,7 +133,7 @@ TEST(TestMonoTime, TestDeltas) {
   do {
     next = MonoTime::Now();
     curDelta = next.GetDeltaSince(prev);
-  } while (curDelta.LessThan(maxDelta));
+  } while (curDelta.lessThan(maxDelta));
   alarm(0);
 }
 
@@ -161,7 +161,7 @@ static void doTestMonoTimePerf() {
     next = MonoTime::Now();
     curDelta = next.GetDeltaSince(prev);
     numCalls++;
-  } while (curDelta.LessThan(maxDelta));
+  } while (curDelta.lessThan(maxDelta));
   LOG(INFO) << "doTestMonoTimePerf():" << numCalls << " in "
             << maxDelta.ToString() << " seconds.";
 }
@@ -243,7 +243,7 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoDelta d0 = MonoDelta::FromNanoseconds(0);
     MonoDelta d1 = MonoDelta::FromNanoseconds(1);
-    ASSERT_TRUE(d0.LessThan(d1));
+    ASSERT_TRUE(d0.lessThan(d1));
     EXPECT_TRUE(d0 < d1);
   }
 
@@ -251,7 +251,7 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoDelta d0 = MonoDelta::FromNanoseconds(0);
     MonoDelta d1 = MonoDelta::FromNanoseconds(1);
-    ASSERT_TRUE(d0.LessThan(d1));
+    ASSERT_TRUE(d0.lessThan(d1));
     EXPECT_TRUE(d0 <= d1);
 
     MonoDelta d20 = MonoDelta::FromNanoseconds(2);
@@ -264,7 +264,7 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoDelta d0 = MonoDelta::FromNanoseconds(0);
     MonoDelta d1 = MonoDelta::FromNanoseconds(1);
-    ASSERT_TRUE(d1.MoreThan(d0));
+    ASSERT_TRUE(d1.moreThan(d0));
     EXPECT_TRUE(d1 > d0);
   }
 
@@ -272,7 +272,7 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoDelta d0 = MonoDelta::FromNanoseconds(0);
     MonoDelta d1 = MonoDelta::FromNanoseconds(1);
-    ASSERT_TRUE(d1.MoreThan(d0));
+    ASSERT_TRUE(d1.moreThan(d0));
     EXPECT_TRUE(d1 >= d1);
 
     MonoDelta d20 = MonoDelta::FromNanoseconds(2);
