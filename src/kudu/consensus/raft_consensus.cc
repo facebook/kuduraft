@@ -894,12 +894,12 @@ Status RaftConsensus::startElection(
 
     if (context.mockElectionSnapshotOpId) {
       *request.mutable_candidate_status()->mutable_last_received() = minOpId(
-          *context.mockElectionSnapshotOpId, queue_->GetLastOpIdInLog());
+          *context.mockElectionSnapshotOpId, queue_->getLastOpIdInLog());
       *request.mutable_mock_election_snapshot_op_id() =
           *context.mockElectionSnapshotOpId;
     } else {
       *request.mutable_candidate_status()->mutable_last_received() =
-          queue_->GetLastOpIdInLog();
+          queue_->getLastOpIdInLog();
     }
 
     // activeConfig is cached into the LeaderElection, i.e.
@@ -1034,7 +1034,7 @@ Status RaftConsensus::transferLeadership(
 
   if (FLAGS_enable_raft_leader_lease) {
     // Set lease expire time to now so that we can revoke the lease immediately.
-    queue_->SetLeaderLeaseUntil(MonoTime::Now());
+    queue_->setLeaderLeaseUntil(MonoTime::Now());
     setLeaseRenewStateUnlocked(LeaderLeaseState::kRevoke);
   }
 
@@ -1121,11 +1121,11 @@ Status RaftConsensus::cancelTransferLeadership() {
 }
 
 MonoTime RaftConsensus::getLeaderLeaseUntil() {
-  return queue_->GetLeaderLeaseUntil();
+  return queue_->getLeaderLeaseUntil();
 }
 
 MonoTime RaftConsensus::getBoundedDataLossWindowUntil() {
-  return queue_->GetBoundedDataLossWindowUntil();
+  return queue_->getBoundedDataLossWindowUntil();
 }
 
 Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
@@ -1350,15 +1350,15 @@ Status RaftConsensus::appendNewRoundToQueueUnlocked(
   if (PREDICT_TRUE(round->replicate_msg()->id().index() != 0)) {
     if (PREDICT_FALSE(
             round->replicate_msg()->id().index() !=
-            queue_->GetNextOpId().index())) {
+            queue_->getNextOpId().index())) {
       return Status::Aborted(
           fmt::format(
               "Transaction submitted with index {} mismatches with queue index {}",
               round->replicate_msg()->id().index(),
-              queue_->GetNextOpId().index()));
+              queue_->getNextOpId().index()));
     }
   } else {
-    *round->replicate_msg()->mutable_id() = queue_->GetNextOpId();
+    *round->replicate_msg()->mutable_id() = queue_->getNextOpId();
   }
   RETURN_NOT_OK(addPendingOperationUnlocked(round));
 
@@ -1833,7 +1833,7 @@ void RaftConsensus::deduplicateLeaderRequestUnlocked(
   // The leader's preceding id.
   deduplicatedReq->precedingOpId = rpcReq->preceding_id();
 
-  int64_t dedupUpToIndex = queue_->GetLastOpIdInLog().index();
+  int64_t dedupUpToIndex = queue_->getLastOpIdInLog().index();
 
   deduplicatedReq->firstMessageIdx = -1;
 
@@ -1945,7 +1945,7 @@ Status RaftConsensus::enforceLogMatchingPropertyMatchesUnlocked(
   string errorMsg = fmt::format(
       "Log matching property violated."
       " Preceding OpId in replica: {}. Preceding OpId from leader: {}. ({} mismatch)",
-      SecureShortDebugString(queue_->GetLastOpIdInLog()),
+      SecureShortDebugString(queue_->getLastOpIdInLog()),
       SecureShortDebugString(req.precedingOpId),
       termMismatch ? "term" : "index");
 
@@ -2266,15 +2266,15 @@ Status RaftConsensus::updateReplica(
            request->ops(0).op_type() == NO_OP) /* No-op */
           || leaderLeaseTerm_ == -1) {
         leaderLeaseTerm_ = request->caller_term();
-        queue_->SetLeaderLeaseUntil(
+        queue_->setLeaderLeaseUntil(
             MonoTime::Now() +
             MonoDelta::FromMilliseconds(request->requested_lease_duration()));
         response->set_lease_granted(true);
       } else if (leaderLeaseTerm_ == request->caller_term()) {
         if (request->requested_lease_duration() == 0 /* Revoke Lease */) {
-          queue_->SetLeaderLeaseUntil(MonoTime::Now());
+          queue_->setLeaderLeaseUntil(MonoTime::Now());
         } else /* Extend Lease */ {
-          queue_->SetLeaderLeaseUntil(
+          queue_->setLeaderLeaseUntil(
               MonoTime::Now() +
               MonoDelta::FromMilliseconds(request->requested_lease_duration()));
         }
@@ -2548,11 +2548,11 @@ void RaftConsensus::fillConsensusResponseOkUnlocked(
   // update queue_state_.last_appended.
   // So in COMMON case both the first and second OpId's should be the same.
   response->mutable_status()->mutable_last_received()->CopyFrom(
-      queue_->GetLastOpIdInLog());
+      queue_->getLastOpIdInLog());
   response->mutable_status()->mutable_last_received_current_leader()->CopyFrom(
       lastReceivedCurLeader_);
   response->mutable_status()->set_last_committed_idx(
-      queue_->GetCommittedIndex());
+      queue_->getCommittedIndex());
 }
 
 void RaftConsensus::fillConsensusResponseError(
@@ -2620,7 +2620,7 @@ Status RaftConsensus::requestVote(
       // That may occur when a vote request comes in at the end of a tablet
       // copy and then tablet bootstrap completes quickly. In that case, we
       // ignore the passed-in value and use the latest OpId from our queue.
-      localLastLoggedOpId = queue_->GetLastOpIdInLog();
+      localLastLoggedOpId = queue_->getLastOpIdInLog();
       break;
     default:
       if (!tabletVotingState.tombstoneLastLoggedOpId) {
@@ -2720,7 +2720,7 @@ Status RaftConsensus::requestVote(
       (FLAGS_enable_raft_leader_lease
            ? MonoTime::Now() <
                std::max<MonoTime>(
-                   withholdVotesUntil_, queue_->GetLeaderLeaseUntil())
+                   withholdVotesUntil_, queue_->getLeaderLeaseUntil())
            : MonoTime::Now() < withholdVotesUntil_)) {
     return requestVoteRespondLeaderIsAlive(request, hostnamePort, response);
   }
@@ -3027,7 +3027,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
     // We are required by Raft to reject config change operations until we have
     // committed at least one operation in our current term as leader.
     // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
-    if (!queue_->IsCommittedIndexInCurrentTerm()) {
+    if (!queue_->isCommittedIndexInCurrentTerm()) {
       return Status::IllegalState(
           "Leader has not yet committed an operation in its own term");
     }
@@ -3379,9 +3379,9 @@ Status RaftConsensus::unsafeChangeConfig(
           << "Currently pending config on the node: "
           << SecureShortDebugString(cmeta_->pendingConfig());
     }
-    allReplicatedIndex = queue_->GetAllReplicatedIndex();
-    lastCommittedIndex = queue_->GetCommittedIndex();
-    precedingOpId = queue_->GetLastOpIdInLog();
+    allReplicatedIndex = queue_->getAllReplicatedIndex();
+    lastCommittedIndex = queue_->getCommittedIndex();
+    precedingOpId = queue_->getLastOpIdInLog();
     msgTimestamp = timeManager_->getSerialTimestamp().value();
   }
 
@@ -4339,7 +4339,7 @@ std::optional<OpId> RaftConsensus::getNextOpId() const {
   if (!queue_) {
     return {};
   }
-  return queue_->GetNextOpId();
+  return queue_->getNextOpId();
 }
 
 std::optional<OpId> RaftConsensus::getLastOpId(OpIdType type) {
@@ -4358,7 +4358,7 @@ std::optional<OpId> RaftConsensus::getLastOpIdUnlocked(OpIdType type) {
 
   switch (type) {
     case RECEIVED_OPID:
-      return queue_->GetLastOpIdInLog();
+      return queue_->getLastOpIdInLog();
     case COMMITTED_OPID:
       return MakeOpId(
           pending_->getTermWithLastCommittedOp(),
@@ -4375,9 +4375,9 @@ log::RetentionIndexes RaftConsensus::getRetentionIndexes() {
   // watermark which just means we'll retain slightly more than necessary in
   // this invocation of log GC.
   return log::RetentionIndexes(
-      queue_->GetCommittedIndex(), // for durability
-      queue_->GetAllReplicatedIndex(), // for peers
-      queue_->GetRegionDurableIndex()); // for region based durability
+      queue_->getCommittedIndex(), // for durability
+      queue_->getAllReplicatedIndex(), // for peers
+      queue_->getRegionDurableIndex()); // for region based durability
 }
 
 void RaftConsensus::markDirty(const std::string& reason) {

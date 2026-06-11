@@ -434,7 +434,7 @@ void Peer::processResponse() {
         rtt = MonoDelta::FromMicroseconds(
             rtt.ToMicroseconds() - response_.server_process_time_us());
       }
-      queue_->UpdatePeerRtt(peerPb_.permanent_uuid(), rtt);
+      queue_->updatePeerRtt(peerPb_.permanent_uuid(), rtt);
       lastRttUpdate_ = MonoTime::Now();
     }
   }
@@ -499,7 +499,7 @@ void Peer::doProcessResponse() {
       << SecureShortDebugString(response_);
 
   if (FLAGS_enable_raft_leader_lease || FLAGS_enable_bounded_dataloss_window) {
-    queue_->SetPeerRpcStartTime(peerPb().permanent_uuid(), rpcStart_);
+    queue_->setPeerRpcStartTime(peerPb().permanent_uuid(), rpcStart_);
   }
   bool sendMoreImmediately =
       queue_->ResponseFromPeer(peerPb_.permanent_uuid(), response_);

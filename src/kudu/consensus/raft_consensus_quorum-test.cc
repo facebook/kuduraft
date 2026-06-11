@@ -331,7 +331,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     shared_ptr<RaftConsensus> peer;
     CHECK_OK(peers_->getPeerByIdx(peerIdx, &peer));
     while (true) {
-      if (opIdCompare(peer->queue_->GetLastOpIdInLog(), toWaitFor) >= 0) {
+      if (opIdCompare(peer->queue_->getLastOpIdInLog(), toWaitFor) >= 0) {
         return;
       }
       SleepFor(MonoDelta::FromMilliseconds(1));

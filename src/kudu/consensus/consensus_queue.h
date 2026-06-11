@@ -424,10 +424,10 @@ class PeerMessageQueue {
 
   // Return the last OpId in the log.
   // Note that this can move backwards after a truncation (truncateOpsAfter).
-  OpId GetLastOpIdInLog() const;
+  OpId getLastOpIdInLog() const;
 
   // Return the next OpId to be appended to the queue in the current term.
-  OpId GetNextOpId() const;
+  OpId getNextOpId() const;
 
   // Get the TrackedPeer corresponding to uuid. The tracked-peer is returned in
   // 'peer'
@@ -507,18 +507,18 @@ class PeerMessageQueue {
   int64_t getQueuedOperationsSizeBytesForTests() const;
 
   // Returns the last message replicated by all peers.
-  int64_t GetAllReplicatedIndex() const;
+  int64_t getAllReplicatedIndex() const;
 
   // Returns the committed index. All operations with index less than or equal
   // to this index have been committed.
-  int64_t GetCommittedIndex() const;
+  int64_t getCommittedIndex() const;
 
   // Returns the index that is deemed to be 'region-durable'
   // Check region_durable_index
-  int64_t GetRegionDurableIndex() const;
+  int64_t getRegionDurableIndex() const;
 
   // Return true if the committed index falls within the current term.
-  bool IsCommittedIndexInCurrentTerm() const;
+  bool isCommittedIndexInCurrentTerm() const;
 
   // Whether the queue run in the leader mode.
   bool isInLeaderMode() const;
@@ -661,26 +661,26 @@ class PeerMessageQueue {
   Status getAllStateMachineMetrics(AllStateMachineMetrics* health);
 
   // Gets the Leader Lease timestamp
-  MonoTime GetLeaderLeaseUntil();
+  MonoTime getLeaderLeaseUntil();
 
   // Get the bounded data loss window expiry timestamp
-  MonoTime GetBoundedDataLossWindowUntil();
+  MonoTime getBoundedDataLossWindowUntil();
 
   // Sets the Leader lease until timestamp
-  void SetLeaderLeaseUntil(MonoTime update) {
+  void setLeaderLeaseUntil(MonoTime update) {
     leaderLeaseUntil_ = update;
   }
 
   // Return the Leader Lease timeout.
-  static MonoDelta LeaderLeaseTimeout();
+  static MonoDelta leaderLeaseTimeout();
 
   // Return the default window size for the bounded data loss tracker.
-  static MonoDelta BoundedDataLossDefaultWindowInMsec();
+  static MonoDelta boundedDataLossDefaultWindowInMsec();
 
   // Sets the UpdateConsensus rpc start time for peer
-  void SetPeerRpcStartTime(const std::string& peer_uuid, MonoTime rpcStart);
+  void setPeerRpcStartTime(const std::string& peer_uuid, MonoTime rpcStart);
 
-  void UpdatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
+  void updatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
 
   static bool IsStateMachineHealthyForElectionUnlock(
       const StateMachineMetricsPB& metrics,

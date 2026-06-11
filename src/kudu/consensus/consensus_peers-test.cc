@@ -182,7 +182,7 @@ class ConsensusPeersTest : public KuduTest {
   // This must be called _before_ the operation is committed.
   void waitForCommitIndex(int index) {
     ASSERT_EVENTUALLY(
-        [&]() { ASSERT_GE(messageQueue_->GetCommittedIndex(), index); });
+        [&]() { ASSERT_GE(messageQueue_->getCommittedIndex(), index); });
   }
 
  protected:
@@ -266,14 +266,14 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   // of remote-peer1 and the local log.
   waitForCommitIndex(first.index());
 
-  ASSERT_OPID_EQ(first, messageQueue_->GetLastOpIdInLog());
+  ASSERT_OPID_EQ(first, messageQueue_->getLastOpIdInLog());
   checkLastRemoteEntry(remotePeer1Proxy, first.term(), first.index());
 
   remotePeer2Proxy->respond(TestPeerProxy::kUpdate);
   // Wait until all peers have replicated the message, otherwise
   // when we add the next one remote_peer2 might find the next message
   // in the queue and will replicate it, which is not what we want.
-  while (messageQueue_->GetAllReplicatedIndex() != first.index()) {
+  while (messageQueue_->getAllReplicatedIndex() != first.index()) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
 
@@ -283,7 +283,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   // We should not see it committed, even after 10ms,
   // since only the local peer replicates the message.
   SleepFor(MonoDelta::FromMilliseconds(10));
-  ASSERT_LT(messageQueue_->GetCommittedIndex(), 2);
+  ASSERT_LT(messageQueue_->getCommittedIndex(), 2);
 
   // Signal one of the two remote peers.
   remotePeer1->signalRequest();

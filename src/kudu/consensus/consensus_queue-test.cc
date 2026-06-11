@@ -453,7 +453,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
   // Since we're tracking a single peer still this should have moved the all
   // replicated watermark to the last op appended to the local log.
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 100);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 100);
 
   // Start to track the peer after the queue has some messages in it
   // at a point that is halfway through the current messages in the queue.
@@ -470,7 +470,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
 
   // Tracking a peer a new peer should have moved the all replicated watermark
   // back.
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
 
   vector<ReplicateRefPtr> refs;
@@ -497,7 +497,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
       << "Queue didn't have anymore requests pending";
 
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 100);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 100);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 100);
 
   // if we ask for a new request, it should come back with the rest of the
   // messages
@@ -523,7 +523,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   waitForLocalPeerToAckIndex(expected.index());
 
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), expected.index());
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), expected.index());
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), expected.index());
 
   // extract the ops from the request to avoid double free
   request.mutable_ops()->UnsafeArenaExtractSubrange(
@@ -546,7 +546,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
 
   // Since only the local log has ACKed at this point,
   // the committed_index should be MinimumOpId().
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
 
   // NOTE: We don't need to get operations from the queue. The queue
   // only cares about what the peer reported as received, not what was sent.
@@ -565,7 +565,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   ASSERT_TRUE(sendMoreImmediately);
 
   // Committed index should be the same
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
 
   // Ack the first five operations for peer-2.
   response.set_responder_uuid("peer-2");
@@ -577,10 +577,10 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
   // However, this leader has appended operations in term 1, so we can't
   // advance the committed index yet.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   // Moreover, 'peer-3' and 'peer-4' have not acked yet, so the "all-replicated"
   // index also cannot advance.
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Ack all operations for peer-3.
   response.set_responder_uuid("peer-3");
@@ -596,8 +596,8 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   // majority-replicated anything in the current term, so committed index cannot
   // advance.
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Ack the remaining operations for peer-4.
   response.set_responder_uuid("peer-4");
@@ -608,8 +608,8 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   // Now that a majority of peers have replicated an operation in the queue's
   // term the committed index should advance.
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 10);
-  ASSERT_EQ(queue_->GetCommittedIndex(), 10);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 10);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 5);
 }
 
 // Ensure that the acks for a non-voter don't count toward the majority.
@@ -644,7 +644,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   // Since only the local log has acked at this point, the committed_index
   // should be 0.
   const int64_t kNoneCommittedIndex = 0;
-  ASSERT_EQ(kNoneCommittedIndex, queue_->GetCommittedIndex());
+  ASSERT_EQ(kNoneCommittedIndex, queue_->getCommittedIndex());
 
   // 3. Ack the operations from the NON_VOTER peer. The writes will not have
   // been committed yet, because the 2nd VOTER has not yet acked them.
@@ -662,7 +662,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   ASSERT_FALSE(sendMoreImmediately);
 
   // Committed index should be the same.
-  ASSERT_EQ(kNoneCommittedIndex, queue_->GetCommittedIndex());
+  ASSERT_EQ(kNoneCommittedIndex, queue_->getCommittedIndex());
 
   // 4. Send an identical ack from the 2nd VOTER peer. This should cause the
   // operation to be committed.
@@ -672,7 +672,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   ASSERT_TRUE(sendMoreImmediately); // The committed index has increased.
 
   // The committed index should include the full set of ops now.
-  ASSERT_EQ(kNumMessages, queue_->GetCommittedIndex());
+  ASSERT_EQ(kNumMessages, queue_->getCommittedIndex());
 
   setLastReceivedAndLastCommitted(
       &response,
@@ -840,7 +840,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
 
   // We're waiting for a two nodes. The all committed watermark should be
   // 0.0 since we haven't had a successful exchange with the 'remote' peer.
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Test even when a correct peer responds (meaning we actually get to execute
   // watermark advancement) we sill have the same all-replicated watermark.
@@ -849,7 +849,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
           createDummyReplicate(2, 21, clock_->now(), 0), Source::Memory)));
   waitForLocalPeerToAckIndex(21);
 
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Generate another request for the remote peer, which should include
   // all of the ops since the peer's last-known committed index.
@@ -872,7 +872,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   ASSERT_TRUE(sendMoreImmediately);
 
   // Now the watermark should have advanced.
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 21);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 21);
 
   // The messages still belong to the queue so we have to release them.
   request.mutable_ops()->UnsafeArenaExtractSubrange(
@@ -918,7 +918,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
 
   // The replication watermark on a follower should not advance by virtue of
   // appending entries to the log.
-  ASSERT_EQ(0, queue_->GetAllReplicatedIndex());
+  ASSERT_EQ(0, queue_->getAllReplicatedIndex());
 }
 
 // Test for watermark advancement during joint-consensus phase with
@@ -946,9 +946,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
   waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from a majority in C_old: {peer-0, peer-1},
   // note that peer-0 is ourself so its already local-peer ACK'ed.
@@ -966,9 +966,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
 
   // Before receiving non-local ACKs from a mojority in new config, the
   // watermark should stay constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from a majority in C_new: : {peer-0, peer-1, peer-4}
   response.set_responder_uuid("peer-4");
@@ -978,9 +978,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
 
   // After receiving a majority ACKs from peers in old *and* new config,
   // the commit and majority watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from all the other remaining peers
   response.set_responder_uuid("peer-2");
@@ -994,9 +994,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
 
   // After receiving ACKs from *all* peers in the old *and* new config,
   // the commit, majority, and all_replicated watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 5);
 }
 
 // Test for watermark advancement during joint-consensus phase with
@@ -1027,9 +1027,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
   waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from a voter majority in C_old: {peer-0, peer-1},
   // note that peer-0 is ourself so its already local-peer ACK'ed.
@@ -1045,9 +1045,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 
   // Before receiving non-local ACKs from a mojority in new config, the
   // watermark should stay constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from a voter majority in C_new: : {peer-0, peer-1, peer-4}
   response.set_responder_uuid("peer-4");
@@ -1057,9 +1057,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 
   // After receiving a majority ACKs from peers in old *and* new config,
   // the commit and majority watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from all the other remaining peers
   response.set_responder_uuid("peer-2");
@@ -1073,9 +1073,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 
   // After receiving ACKs from *all* peers in the old *and* new config,
   // the commit, majority, and all_replicated watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 5);
 }
 
 // Test for watermark advancement during joint-consensus phase with
@@ -1103,9 +1103,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
   waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from a voter majority in C_old: {peer-0, peer-1, peer-4},
   // note that peer-0 is ourself so its already local-peer ACK'ed.
@@ -1126,9 +1126,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
   // In this case, a subset of {peer-0, peer-1, peer-4} is a voter majority in
   // the new config. Thus, the watermarks should be advanced as majority in both
   // old and new config is already satisfied.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from all the other remaining peers
   response.set_responder_uuid("peer-2");
@@ -1142,9 +1142,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
 
   // After receiving ACKs from *all* peers in the old *and* new config,
   // the commit, majority, and all_replicated watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 5);
 }
 
 // Similar as the TestQueueAdvancesUnderTransitionalConfigToNonVoter, having
@@ -1175,9 +1175,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
   waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from a voter majority in C_old: {peer-0, peer-3, peer-4},
   // note that peer-0 is ourself so its already local-peer ACK'ed.
@@ -1197,9 +1197,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
 
   // In this case, there is no subset of {peer-0, peer-3, peer-4} that can form
   // a voter majority for C_new, so the watermarks should stay the same.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from peer-2, forming a majority in C_new.
   response.set_responder_uuid("peer-2");
@@ -1208,9 +1208,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
   EXPECT_TRUE(sendMoreImmediately);
 
   // {peer-0, peer-2} is a voter majority in C_new, the watermarks advance
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from all the other remaining peers
   response.set_responder_uuid("peer-1");
@@ -1220,9 +1220,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
 
   // After receiving ACKs from *all* peers in the old *and* new config,
   // the commit, majority, and all_replicated watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 5);
 }
 
 // Using transitional config with even number of voters.
@@ -1248,9 +1248,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
   waitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACK from peer-1
   OpId lastSent = MakeOpId(0, 5);
@@ -1265,9 +1265,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
 
   // Majority out of 4 voters is 3, thus having 2 peers are not enough to
   // advance the watermarks for C_old
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACK from peer-2, creating a majority (3 out of 4) of C_old
   response.set_responder_uuid("peer-2");
@@ -1277,9 +1277,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
 
   // Eventhough we have majority in C_old, we still dont have majority of C_new,
   // making watermarks stay constant.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 0);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACK from peer-3, creating a majority (4 out of 6) of C_new
   response.set_responder_uuid("peer-3");
@@ -1288,9 +1288,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
   EXPECT_TRUE(sendMoreImmediately);
 
   // Since we achieve majority *both* in C_old and C_new, the watermaks advance
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 0);
 
   // Receive ACKs from all the other remaining peers
   response.set_responder_uuid("peer-4");
@@ -1304,9 +1304,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
 
   // After receiving ACKs from *all* peers in the old *and* new config,
   // the commit, majority, and all_replicated watermarks should be advanced.
-  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->getCommittedIndex(), 5);
   ASSERT_EQ(queue_->getMajorityReplicatedIndexForTests(), 5);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), 5);
 }
 
 // Tests that we're advancing the watermarks properly and only when the peer
@@ -1362,7 +1362,7 @@ TEST_F(
 
   ASSERT_EQ(
       queue_->getMajorityReplicatedIndexForTests(), expectedMajorityReplicated);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), expectedAllReplicated);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), expectedAllReplicated);
 
   updatePeerWatermarkToOp(
       &request,
@@ -1415,7 +1415,7 @@ TEST_F(
 
   ASSERT_EQ(
       queue_->getMajorityReplicatedIndexForTests(), expectedMajorityReplicated);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), expectedAllReplicated);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), expectedAllReplicated);
 
   // Another request for this peer should get another page of messages. Still
   // not on the queue's term (and thus without advancing watermarks).
@@ -1442,7 +1442,7 @@ TEST_F(
 
   ASSERT_EQ(
       queue_->getMajorityReplicatedIndexForTests(), expectedMajorityReplicated);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), expectedAllReplicated);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), expectedAllReplicated);
 
   // The last page of request should overwrite the peer's operations and the
   // response should finally advance the watermarks.
@@ -1468,7 +1468,7 @@ TEST_F(
 
   ASSERT_EQ(
       queue_->getMajorityReplicatedIndexForTests(), expectedMajorityReplicated);
-  ASSERT_EQ(queue_->GetAllReplicatedIndex(), expectedAllReplicated);
+  ASSERT_EQ(queue_->getAllReplicatedIndex(), expectedAllReplicated);
 
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops().size(), nullptr);
@@ -1484,7 +1484,7 @@ TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
 
   // The committed_index should be MinimumOpId() since
   // UpdateFollowerCommittedIndex has not been called.
-  ASSERT_EQ(0, queue_->GetCommittedIndex());
+  ASSERT_EQ(0, queue_->getCommittedIndex());
 
   // Update the committed index. In real life, this would be done by the
   // consensus implementation when it receives an updated committed index from
@@ -1493,7 +1493,7 @@ TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
       /*committed_index=*/10,
       /*all_replicated_index=*/10,
       /*region_durable_index=*/-1);
-  ASSERT_EQ(10, queue_->GetCommittedIndex());
+  ASSERT_EQ(10, queue_->getCommittedIndex());
 
   // Check the metrics have the right values based on the updated committed
   // index.

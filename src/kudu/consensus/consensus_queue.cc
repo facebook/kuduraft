@@ -950,27 +950,27 @@ void PeerMessageQueue::truncateOpsAfter(int64_t index) {
   log_cache_->truncateOpsAfter(op.index());
 }
 
-OpId PeerMessageQueue::GetLastOpIdInLog() const {
+OpId PeerMessageQueue::getLastOpIdInLog() const {
   std::unique_lock<simple_mutexlock> lock(queueLock_);
   DCHECK(queueState_.last_appended.IsInitialized());
   return queueState_.last_appended;
 }
 
-OpId PeerMessageQueue::GetNextOpId() const {
+OpId PeerMessageQueue::getNextOpId() const {
   std::unique_lock<simple_mutexlock> lock(queueLock_);
   DCHECK(queueState_.last_appended.IsInitialized());
   return MakeOpId(
       queueState_.current_term, queueState_.last_appended.index() + 1);
 }
 
-MonoTime PeerMessageQueue::GetLeaderLeaseUntil() {
+MonoTime PeerMessageQueue::getLeaderLeaseUntil() {
   if (queueState_.mode != LEADER) {
     return MonoTime().Min();
   }
   return leaderLeaseUntil_;
 }
 
-MonoTime PeerMessageQueue::GetBoundedDataLossWindowUntil() {
+MonoTime PeerMessageQueue::getBoundedDataLossWindowUntil() {
   if (queueState_.mode != LEADER) {
     return MonoTime().Min();
   }
@@ -2183,18 +2183,18 @@ bool PeerMessageQueue::PeerTransferLeadershipImmediatelyUnlocked(
   return peer_caught_up;
 }
 
-MonoDelta PeerMessageQueue::LeaderLeaseTimeout() {
+MonoDelta PeerMessageQueue::leaderLeaseTimeout() {
   int32_t const lease_timeout = FLAGS_raft_leader_lease_interval_ms;
   return MonoDelta::FromMilliseconds(lease_timeout);
 }
 
-MonoDelta PeerMessageQueue::BoundedDataLossDefaultWindowInMsec() {
+MonoDelta PeerMessageQueue::boundedDataLossDefaultWindowInMsec() {
   int32_t const bounded_data_loss_window_ms =
       FLAGS_bounded_dataloss_window_interval_ms;
   return MonoDelta::FromMilliseconds(bounded_data_loss_window_ms);
 }
 
-void PeerMessageQueue::SetPeerRpcStartTime(
+void PeerMessageQueue::setPeerRpcStartTime(
     const std::string& peer_uuid,
     MonoTime rpc_start) {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
@@ -2209,7 +2209,7 @@ void PeerMessageQueue::SetPeerRpcStartTime(
   peer->rpcStart = rpc_start;
 }
 
-void PeerMessageQueue::UpdatePeerRtt(
+void PeerMessageQueue::updatePeerRtt(
     const std::string& peer_uuid,
     MonoDelta rtt) {
   routingTableContainer_->updateRtt(
@@ -2577,7 +2577,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
                 std::max(
                     leaderLeaseUntil_.load(),
                     GetQuorumMajorityOfPeerRpcStarts(qresults) +
-                        LeaderLeaseTimeout()));
+                        leaderLeaseTimeout()));
           }
         }
 
@@ -2589,7 +2589,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
                 std::max(
                     boundedDatalossWindowUntil_.load(),
                     GetMaximumOfPeerRpcStarts(qresults) +
-                        BoundedDataLossDefaultWindowInMsec()));
+                        boundedDataLossDefaultWindowInMsec()));
           }
         }
       } else {
@@ -2762,22 +2762,22 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
   return true;
 }
 
-int64_t PeerMessageQueue::GetAllReplicatedIndex() const {
+int64_t PeerMessageQueue::getAllReplicatedIndex() const {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.all_replicated_index;
 }
 
-int64_t PeerMessageQueue::GetCommittedIndex() const {
+int64_t PeerMessageQueue::getCommittedIndex() const {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.committed_index;
 }
 
-int64_t PeerMessageQueue::GetRegionDurableIndex() const {
+int64_t PeerMessageQueue::getRegionDurableIndex() const {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.region_durable_index;
 }
 
-bool PeerMessageQueue::IsCommittedIndexInCurrentTerm() const {
+bool PeerMessageQueue::isCommittedIndexInCurrentTerm() const {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
   return queueState_.first_index_in_current_term.has_value() &&
       queueState_.committed_index >= *queueState_.first_index_in_current_term;
