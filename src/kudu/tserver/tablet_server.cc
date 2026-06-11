@@ -45,7 +45,7 @@ namespace tserver {
 const uint16_t TabletServer::kDefaultPort;
 
 std::string RaftConsensusServerIf::consensusServiceRpcQueueToString() const {
-  const kudu::rpc::ServicePool* pool = rpc_server_->servicePool(
+  const kudu::rpc::ServicePool* pool = rpcServer_->servicePool(
       kudu::consensus::ConsensusServiceIf::staticServiceName());
   if (pool) {
     return pool->rpcServiceQueueToString();
@@ -125,7 +125,7 @@ Status TabletServer::Init() {
     return Status::IllegalState("Catalog manager is already initialized");
   }
   RETURN_NOT_OK_PREPEND(
-      tabletManager_->init(is_first_run_),
+      tabletManager_->init(isFirstRun_),
       "Unable to initialize catalog manager");
 
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
@@ -141,7 +141,7 @@ Status TabletServer::Start() {
   }
 
   RETURN_NOT_OK_PREPEND(
-      tabletManager_->start(is_first_run_),
+      tabletManager_->start(isFirstRun_),
       "Unable to start raft in tablet manager");
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   return Status::OK();

@@ -135,7 +135,7 @@ Status KuduServer::Init() {
 
   // These pools are shared by all replicas hosted by this server, and thus
   // are capped at a portion of the overall per-euid thread resource limit.
-  int serverWidePoolLimit = getThreadPoolThreadLimit(fs_manager_->env());
+  int serverWidePoolLimit = getThreadPoolThreadLimit(fsManager_->env());
   RETURN_NOT_OK(ThreadPoolBuilder("raft")
                     .setTraceMetricPrefix("raft")
                     .setMinThreads(FLAGS_raft_thread_pool_min_size)

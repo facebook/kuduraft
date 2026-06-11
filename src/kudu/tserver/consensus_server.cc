@@ -151,7 +151,7 @@ Status RaftConsensusServer::Init() {
   }
 
   RETURN_NOT_OK_PREPEND(
-      consensusManager_->init(is_first_run_),
+      consensusManager_->init(isFirstRun_),
       "Unable to initialize consensus manager");
 
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
@@ -174,7 +174,7 @@ Status RaftConsensusServer::Start() {
   }
 
   RETURN_NOT_OK_PREPEND(
-      consensusManager_->start(is_first_run_),
+      consensusManager_->start(isFirstRun_),
       "Unable to start consensus manager");
   if (opts_.afterConsensusStartBeforeRpcStart) {
     RETURN_NOT_OK_PREPEND(
@@ -628,7 +628,7 @@ Status RaftConsensusInstance::setupRaft() {
   // In the MySQL first_run case, MySQL is expected to pass in
   // logBootstrapOnFirstRun in options.
   if (opts.logFactory &&
-      (!server_->is_first_run_ || opts.logBootstrapOnFirstRun)) {
+      (!server_->isFirstRun_ || opts.logBootstrapOnFirstRun)) {
     auto bootstrapInfo = log_->getRecoveryInfo();
     if (bootstrapInfo &&
         bootstrapInfo->last_id.term() > consensus_->currentTerm()) {

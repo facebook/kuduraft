@@ -558,7 +558,7 @@ Status TsTabletManager::setupRaft() {
   // In the MySQL first_run case, MySQL is expected to pass in
   // logBootstrapOnFirstRun in options.
   if (server_->opts().logFactory &&
-      (!server_->is_first_run_ || server_->opts().logBootstrapOnFirstRun)) {
+      (!server_->isFirstRun_ || server_->opts().logBootstrapOnFirstRun)) {
     std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrapInfo =
         log_->getRecoveryInfo();
     if (bootstrapInfo &&

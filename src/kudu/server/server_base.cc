@@ -231,23 +231,23 @@ ServerBase::ServerBase(
     const ServerBaseOptions& options,
     const string& metric_namespace)
     : name_(std::move(name)),
-      mem_tracker_(CreateMemTrackerForServer()),
-      metric_registry_(new MetricRegistry()),
-      metric_entity_(METRIC_ENTITY_server.instantiate(
-          metric_registry_.get(),
+      memTracker_(CreateMemTrackerForServer()),
+      metricRegistry_(new MetricRegistry()),
+      metricEntity_(METRIC_ENTITY_server.instantiate(
+          metricRegistry_.get(),
           metric_namespace)),
-      rpc_server_(new RpcServer(options.rpcOpts)),
-      result_tracker_(new rpc::ResultTracker(
+      rpcServer_(new RpcServer(options.rpcOpts)),
+      resultTracker_(new rpc::ResultTracker(
           shared_ptr<MemTracker>(
-              MemTracker::createTracker(-1, "result-tracker", mem_tracker_)))),
-      is_first_run_(false),
+              MemTracker::createTracker(-1, "result-tracker", memTracker_)))),
+      isFirstRun_(false),
       options_(options),
-      stop_background_threads_latch_(1) {
+      stopBackgroundThreadsLatch_(1) {
   FsManagerOpts fs_opts;
-  fs_opts.metricEntity = metric_entity_;
-  fs_opts.parentMemTracker = mem_tracker_;
+  fs_opts.metricEntity = metricEntity_;
+  fs_opts.parentMemTracker = memTracker_;
   fs_opts.walRoot = options.fsOpts.walRoot;
-  fs_manager_.reset(new FsManager(options.env, std::move(fs_opts)));
+  fsManager_.reset(new FsManager(options.env, std::move(fs_opts)));
 
   if (FLAGS_use_hybrid_clock) {
     clock_ = std::make_shared<clock::HybridClock>();
@@ -264,7 +264,7 @@ ServerBase::~ServerBase() {
 Sockaddr ServerBase::firstRpcAddress() const {
   vector<Sockaddr> addrs;
   WARN_NOT_OK(
-      rpc_server_->getBoundAddresses(&addrs), "Couldn't get bound RPC address");
+      rpcServer_->getBoundAddresses(&addrs), "Couldn't get bound RPC address");
   CHECK(!addrs.empty()) << "Not bound";
   return addrs[0];
 }
@@ -286,19 +286,19 @@ security::TokenVerifier* ServerBase::mutableTokenVerifier() {
 }
 
 const NodeInstancePB& ServerBase::instancePb() const {
-  return *DCHECK_NOTNULL(instance_pb_.get());
+  return *DCHECK_NOTNULL(instancePb_.get());
 }
 
 void ServerBase::generateInstanceId() {
-  instance_pb_.reset(new NodeInstancePB);
-  instance_pb_->set_permanent_uuid(fs_manager_->uuid());
+  instancePb_.reset(new NodeInstancePB);
+  instancePb_->set_permanent_uuid(fsManager_->uuid());
   // TODO: maybe actually bump a sequence number on local disk instead of
   // using time.
-  instance_pb_->set_instance_seqno(Env::Default()->nowMicros());
+  instancePb_->set_instance_seqno(Env::Default()->nowMicros());
 }
 
 Status ServerBase::Init() {
-  registerSpinLockContentionMetrics(metric_entity_);
+  registerSpinLockContentionMetrics(metricEntity_);
 
   initSpinLockContentionProfiling();
 
@@ -308,16 +308,16 @@ Status ServerBase::Init() {
   RETURN_NOT_OK_PREPEND(clock_->init(), "Cannot initialize clock");
 
   fs::FsReport report;
-  Status s = fs_manager_->Open(&report);
+  Status s = fsManager_->Open(&report);
   if (s.IsNotFound()) {
     LOG(INFO) << "Could not load existing FS layout: " << s.ToString();
     LOG(INFO) << "Attempting to create new FS layout instead";
-    is_first_run_ = true;
+    isFirstRun_ = true;
     std::optional<std::string> uuid;
     if (!options_.appProvidedInstanceUuid.empty()) {
       uuid = options_.appProvidedInstanceUuid;
     }
-    s = fs_manager_->CreateInitialFileSystemLayout(uuid);
+    s = fsManager_->CreateInitialFileSystemLayout(uuid);
     if (s.isAlreadyPresent()) {
       // The operator is likely trying to start up with an extra entry in their
       // `fs_data_dirs` configuration.
@@ -327,7 +327,7 @@ Status ServerBase::Init() {
           "FS layout already exists; not overwriting existing layout");
     }
     RETURN_NOT_OK_PREPEND(s, "Could not create new FS layout");
-    s = fs_manager_->Open(&report);
+    s = fsManager_->Open(&report);
   }
   RETURN_NOT_OK_PREPEND(s, "Failed to load FS layout");
   RETURN_NOT_OK(report.logAndCheckForFatalErrors());
@@ -360,21 +360,21 @@ Status ServerBase::Init() {
   }
 
   RETURN_NOT_OK(builder.build(&messenger_));
-  rpc_server_->setTooBusyHook(
+  rpcServer_->setTooBusyHook(
       std::bind(
           &ServerBase::serviceQueueOverflowed, this, std::placeholders::_1));
 
-  RETURN_NOT_OK(rpc_server_->init(messenger_));
+  RETURN_NOT_OK(rpcServer_->init(messenger_));
 
   // Bind the RPC server so that the
   // local raft peer can be initialized
-  RETURN_NOT_OK(rpc_server_->bind());
-  clock_->registerMetrics(metric_entity_);
+  RETURN_NOT_OK(rpcServer_->bind());
+  clock_->registerMetrics(metricEntity_);
 
   RETURN_NOT_OK_PREPEND(
       startMetricsLogging(), "Could not enable metrics logging");
 
-  result_tracker_->startGcThread();
+  resultTracker_->startGcThread();
   RETURN_NOT_OK(startExcessLogFileDeleterThread());
 
   return Status::OK();
@@ -398,32 +398,32 @@ Status ServerBase::initAcls() {
   // that the same user running the service acts as superuser.
   if (!FLAGS_superuser_acl.empty()) {
     RETURN_NOT_OK_PREPEND(
-        superuser_acl_.parseFlag(FLAGS_superuser_acl),
+        superuserAcl_.parseFlag(FLAGS_superuser_acl),
         "could not parse --superuser_acl flag");
   } else {
-    superuser_acl_.reset({service_user});
+    superuserAcl_.reset({service_user});
   }
 
   RETURN_NOT_OK_PREPEND(
-      user_acl_.parseFlag(FLAGS_user_acl), "could not parse --user_acl flag");
+      userAcl_.parseFlag(FLAGS_user_acl), "could not parse --user_acl flag");
 
   // For the "service" ACL, we currently don't allow it to be user-configured,
   // but instead assume that all of the services will be running the same
   // way.
-  service_acl_.reset({service_user});
+  serviceAcl_.reset({service_user});
 
   return Status::OK();
 }
 
 Status ServerBase::getStatusPb(ServerStatusPB* status) const {
   // Node instance
-  status->mutable_node_instance()->CopyFrom(*instance_pb_);
+  status->mutable_node_instance()->CopyFrom(*instancePb_);
 
   // RPC ports
   {
     vector<Sockaddr> addrs;
     RETURN_NOT_OK_PREPEND(
-        rpc_server_->getBoundAddresses(&addrs),
+        rpcServer_->getBoundAddresses(&addrs),
         "could not get bound RPC addresses");
     for (const Sockaddr& addr : addrs) {
       HostPort hp;
@@ -448,17 +448,17 @@ void ServerBase::logUnauthorizedAccess(rpc::RpcContext* rpc) const {
 
 bool ServerBase::authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
   if ((allowed_roles & kSuperUser) &&
-      superuser_acl_.userAllowed(rpc->remoteUser().username())) {
+      superuserAcl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
   if ((allowed_roles & kUser) &&
-      user_acl_.userAllowed(rpc->remoteUser().username())) {
+      userAcl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
   if ((allowed_roles & kServiceUser) &&
-      service_acl_.userAllowed(rpc->remoteUser().username())) {
+      serviceAcl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
@@ -494,7 +494,7 @@ Status ServerBase::dumpServerInfo(const string& path, const string& format)
 }
 
 Status ServerBase::registerService(unique_ptr<rpc::ServiceIf> rpc_impl) {
-  return rpc_server_->registerService(std::move(rpc_impl));
+  return rpcServer_->registerService(std::move(rpc_impl));
 }
 
 Status ServerBase::startMetricsLogging() {
@@ -515,7 +515,7 @@ Status ServerBase::startMetricsLogging() {
     return Status::OK();
   }
   unique_ptr<DiagnosticsLog> l(
-      new DiagnosticsLog(std::move(log_dir), metric_registry_.get()));
+      new DiagnosticsLog(std::move(log_dir), metricRegistry_.get()));
   l->setMetricsLogInterval(
       MonoDelta::FromMilliseconds(options_.metricsLogIntervalMs));
   RETURN_NOT_OK(l->start());
@@ -537,13 +537,13 @@ Status ServerBase::startExcessLogFileDeleterThread() {
       "excess-log-deleter",
       &ServerBase::excessLogFileDeleterThread,
       this,
-      &excess_log_deleter_thread_);
+      &excessLogDeleterThread_);
 }
 
 void ServerBase::excessLogFileDeleterThread() {
   // How often to attempt to clean up excess glog and minidump files.
   const MonoDelta kWait = MonoDelta::FromSeconds(60);
-  while (!stop_background_threads_latch_.waitUntil(MonoTime::Now() + kWait)) {
+  while (!stopBackgroundThreadsLatch_.waitUntil(MonoTime::Now() + kWait)) {
     WARN_NOT_OK(
         deleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
@@ -553,7 +553,7 @@ void ServerBase::excessLogFileDeleterThread() {
 Status ServerBase::Start() {
   generateInstanceId();
 
-  RETURN_NOT_OK(rpc_server_->start());
+  RETURN_NOT_OK(rpcServer_->start());
 
   if (!options_.dumpInfoPath.empty()) {
     RETURN_NOT_OK_PREPEND(
@@ -571,19 +571,19 @@ void ServerBase::Shutdown() {
   // Note: prior to Messenger::Shutdown, it is assumed that any incoming RPCs
   // deferred from reactor threads have already been cleaned up.
 
-  rpc_server_->shutdown();
+  rpcServer_->shutdown();
   if (messenger_) {
     messenger_->Shutdown();
   }
 
   // Next, shut down remaining server components.
-  stop_background_threads_latch_.countDown();
+  stopBackgroundThreadsLatch_.countDown();
   if (diagLog_) {
     diagLog_->stop();
   }
 
-  if (excess_log_deleter_thread_) {
-    excess_log_deleter_thread_->join();
+  if (excessLogDeleterThread_) {
+    excessLogDeleterThread_->join();
   }
 }
 

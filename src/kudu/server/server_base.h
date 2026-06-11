@@ -66,7 +66,7 @@ class ServerStatusPB;
 class ServerBase {
  public:
   const RpcServer* rpcServer() const {
-    return rpc_server_.get();
+    return rpcServer_.get();
   }
 
   const std::shared_ptr<rpc::Messenger>& messenger() const {
@@ -78,7 +78,7 @@ class ServerBase {
   Sockaddr firstRpcAddress() const;
 
   FsManager* fsManager() {
-    return fs_manager_.get();
+    return fsManager_.get();
   }
 
   const security::TlsContext& tlsContext() const;
@@ -92,19 +92,19 @@ class ServerBase {
   const NodeInstancePB& instancePb() const;
 
   const std::shared_ptr<MemTracker>& memTracker() const {
-    return mem_tracker_;
+    return memTracker_;
   }
 
   const std::shared_ptr<MetricEntity>& metricEntity() const {
-    return metric_entity_;
+    return metricEntity_;
   }
 
   MetricRegistry* metricRegistry() {
-    return metric_registry_.get();
+    return metricRegistry_.get();
   }
 
   const std::shared_ptr<rpc::ResultTracker>& resultTracker() const {
-    return result_tracker_;
+    return resultTracker_;
   }
 
   // Returns this server's clock.
@@ -169,29 +169,29 @@ class ServerBase {
 
   const std::string name_;
 
-  std::shared_ptr<MemTracker> mem_tracker_;
-  std::unique_ptr<MetricRegistry> metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
-  std::unique_ptr<FsManager> fs_manager_;
-  std::unique_ptr<RpcServer> rpc_server_;
+  std::shared_ptr<MemTracker> memTracker_;
+  std::unique_ptr<MetricRegistry> metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
+  std::unique_ptr<FsManager> fsManager_;
+  std::unique_ptr<RpcServer> rpcServer_;
 
   std::shared_ptr<rpc::Messenger> messenger_;
-  std::shared_ptr<rpc::ResultTracker> result_tracker_;
-  bool is_first_run_;
+  std::shared_ptr<rpc::ResultTracker> resultTracker_;
+  bool isFirstRun_;
 
   std::shared_ptr<clock::Clock> clock_;
 
   // The instance identifier of this server.
-  std::unique_ptr<NodeInstancePB> instance_pb_;
+  std::unique_ptr<NodeInstancePB> instancePb_;
 
   // The ACL of users who are allowed to act as superusers.
-  security::SimpleAcl superuser_acl_;
+  security::SimpleAcl superuserAcl_;
 
   // The ACL of users who are allowed to access the cluster.
-  security::SimpleAcl user_acl_;
+  security::SimpleAcl userAcl_;
 
   // The ACL of users who may act as part of the Kudu service.
-  security::SimpleAcl service_acl_;
+  security::SimpleAcl serviceAcl_;
 
  private:
   Status initAcls();
@@ -211,8 +211,8 @@ class ServerBase {
   ServerBaseOptions options_;
 
   std::unique_ptr<DiagnosticsLog> diagLog_;
-  std::shared_ptr<Thread> excess_log_deleter_thread_;
-  CountDownLatch stop_background_threads_latch_;
+  std::shared_ptr<Thread> excessLogDeleterThread_;
+  CountDownLatch stopBackgroundThreadsLatch_;
 
   DISALLOW_COPY_AND_ASSIGN(ServerBase);
 };
