@@ -102,7 +102,7 @@ class RpcContext {
   // Respond with an error to the client. This sends back an error with the code
   // ERROR_APPLICATION. Because there is no more specific error code passed back
   // to the client, most applications should create a custom error PB extension
-  // and use RespondApplicationError(...) below. This method should only be used
+  // and use respondApplicationError(...) below. This method should only be used
   // for unexpected errors where the server doesn't expect the client to do any
   // more advanced handling.
   //
