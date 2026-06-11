@@ -47,10 +47,10 @@ class KnapsackSolver {
 
   // Solve a knapsack problem in one shot. Finds the set of
   // items in 'items' such that their weights add up to no
-  // more than 'knapsack_capacity' and maximizes the sum
+  // more than 'knapsackCapacity' and maximizes the sum
   // of their values.
-  // The indexes of the chosen items are stored in 'chosen_items',
-  // and the maximal value is stored in 'optimal_value'.
+  // The indexes of the chosen items are stored in 'chosenItems',
+  // and the maximal value is stored in 'optimalValue'.
   void solve(
       std::vector<ItemType>& items,
       int knapsackCapacity,
@@ -60,7 +60,7 @@ class KnapsackSolver {
   // The following functions are a more advanced API for solving
   // knapsack problems, allowing the caller to obtain incremental
   // results as each item is considered. See the implementation of
-  // Solve() for usage.
+  // solve() for usage.
 
   // Prepare to solve a knapsack problem with the given capacity and
   // item set. The vector of items must remain valid and unchanged
