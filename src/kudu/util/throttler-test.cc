@@ -42,7 +42,7 @@ TEST_F(ThrottlerTest, TestOpThrottle) {
   }
 }
 
-TEST_F(ThrottlerTest, TestIOThrottle) {
+TEST_F(ThrottlerTest, TestIoThrottle) {
   // Check operation rate throttling
   MonoTime now = MonoTime::Now();
   Throttler t0(now, 50000, 1000 * 1000, 1);
