@@ -85,13 +85,6 @@ struct IgnoreResultHelper {
   T functor_;
 };
 
-template <typename T>
-struct IgnoreResultHelper<Callback<T>> {
-  explicit IgnoreResultHelper(const Callback<T>& functor) : functor_(functor) {}
-
-  const Callback<T>& functor_;
-};
-
 // Unwrap the stored parameters for the wrappers above.
 template <typename T>
 struct UnwrapTraits {
