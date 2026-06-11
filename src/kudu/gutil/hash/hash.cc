@@ -49,12 +49,12 @@ uint64_t fingerprintReferenceImplementation(const char* s, uint32_t len) {
 // hash32StringWithSeed().
 uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
   uint32_t a, b, c = kFingerprintSeed0, d, e, f = kFingerprintSeed1;
-  uint32_t keylen;
+  uint32_t keyLen;
 
   a = b = d = e = 0x9e3779b9UL; // the golden ratio; an arbitrary value
 
-  keylen = len;
-  if (keylen >= 4 * sizeof(a)) {
+  keyLen = len;
+  if (keyLen >= 4 * sizeof(a)) {
     uint32_t word32AtOffset0 = google1At(s);
     do {
       a += word32AtOffset0;
@@ -67,9 +67,9 @@ uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
       word32AtOffset0 = google1At(s);
       mix(a, b, c);
       mix(d, e, f);
-      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
-    } while (keylen >= 4 * sizeof(a));
-    if (keylen >= 3 * sizeof(a)) {
+      keyLen -= 3 * static_cast<uint32_t>(sizeof(a));
+    } while (keyLen >= 4 * sizeof(a));
+    if (keyLen >= 3 * sizeof(a)) {
       a += word32AtOffset0;
       d += word32AtOffset0;
       b += google1At(s + sizeof(a));
@@ -79,11 +79,11 @@ uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
       s += 3 * sizeof(a);
       mix(a, b, c);
       mix(d, e, f);
-      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
-      DCHECK_LT(keylen, sizeof(a));
+      keyLen -= 3 * static_cast<uint32_t>(sizeof(a));
+      DCHECK_LT(keyLen, sizeof(a));
       c += len;
       f += len;
-      switch (keylen) { // deal with rest.
+      switch (keyLen) { // deal with rest.
         case 3:
           a += char2Unsigned(s[2]) << 16;
           d += char2Unsigned(s[2]) << 16;
@@ -98,10 +98,10 @@ uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
           break;
       }
     } else {
-      DCHECK(sizeof(a) <= keylen && keylen < 3 * sizeof(a));
+      DCHECK(sizeof(a) <= keyLen && keyLen < 3 * sizeof(a));
       c += len;
       f += len;
-      switch (keylen) { // deal with rest.
+      switch (keyLen) { // deal with rest.
         case 11:
           c += char2Unsigned(s[10]) << 24;
           f += char2Unsigned(s[10]) << 24;
@@ -139,7 +139,7 @@ uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
       }
     }
   } else {
-    if (keylen >= 3 * sizeof(a)) {
+    if (keyLen >= 3 * sizeof(a)) {
       a += google1At(s);
       d += google1At(s);
       b += google1At(s + sizeof(a));
@@ -149,11 +149,11 @@ uint64_t fingerprintInterleavedImplementation(const char* s, uint32_t len) {
       s += 3 * sizeof(a);
       mix(a, b, c);
       mix(d, e, f);
-      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
+      keyLen -= 3 * static_cast<uint32_t>(sizeof(a));
     }
     c += len;
     f += len;
-    switch (keylen) { // deal with rest.  Cases fall through
+    switch (keyLen) { // deal with rest.  Cases fall through
       case 11:
         c += char2Unsigned(s[10]) << 24;
         f += char2Unsigned(s[10]) << 24;
