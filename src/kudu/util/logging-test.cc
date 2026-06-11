@@ -70,11 +70,11 @@ TEST(LoggingTest, TestAdvancedThrottling) {
   StringVectorSink sink;
   ScopedRegisterSink srs(&sink);
 
-  logging::LogThrottler throttle_a;
+  logging::LogThrottler throttleA;
 
   // First, log only using a single tag and throttler.
   for (int i = 0; i < 100000; i++) {
-    KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_a")
+    KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttleA, "tag_a")
         << "test" << kThrottleMsg;
     SleepFor(MonoDelta::FromMilliseconds(1));
     if (sink.loggedMsgs().size() >= 2)
@@ -94,13 +94,13 @@ TEST(LoggingTest, TestAdvancedThrottling) {
 
   // Now, try logging using two different tags in rapid succession. This should
   // not throttle, because the tag is switching.
-  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_b")
+  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttleA, "tag_b")
       << "test b" << kThrottleMsg;
-  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_b")
+  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttleA, "tag_b")
       << "test b" << kThrottleMsg;
-  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_c")
+  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttleA, "tag_c")
       << "test c" << kThrottleMsg;
-  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_b")
+  KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttleA, "tag_b")
       << "test b" << kThrottleMsg;
   ASSERT_EQ(msgs.size(), 3);
   EXPECT_THAT(msgs[0], testing::ContainsRegex("test b$"));
@@ -150,11 +150,11 @@ TEST(LoggingTest, TestAsyncLogger) {
   async.start();
 
   vector<std::thread> threads;
-  Barrier go_barrier(kNumThreads + 1);
+  Barrier goBarrier(kNumThreads + 1);
   // Start some threads writing log messages.
   for (int i = 0; i < kNumThreads; i++) {
     threads.emplace_back([&]() {
-      go_barrier.wait();
+      goBarrier.wait();
       for (int m = 0; m < kNumMessages; m++) {
         async.Write(true, m, "x", 1);
       }
@@ -163,7 +163,7 @@ TEST(LoggingTest, TestAsyncLogger) {
 
   // And a thread calling Flush().
   threads.emplace_back([&]() {
-    go_barrier.wait();
+    goBarrier.wait();
     for (int i = 0; i < 10; i++) {
       async.Flush();
       SleepFor(MonoDelta::FromMilliseconds(3));
@@ -219,27 +219,27 @@ TEST(LoggingTest, TestRedactionBasic) {
 // are not. This shows an example of a such a function, which will behave
 // differently based on whether the calling scope has explicitly disabled
 // redaction.
-string SomeComplexStringify(
-    const string& public_data,
-    const string& private_data) {
+string someComplexStringify(
+    const string& publicData,
+    const string& privateData) {
   return fmt::format(
-      "public={}, private={}", public_data, KUDU_REDACT(private_data));
+      "public={}, private={}", publicData, KUDU_REDACT(privateData));
 }
 
 TEST(LoggingTest, TestRedactionIllustrateUsage) {
   // By default, the private data will be redacted.
   ASSERT_EQ(
-      "public=abc, private=<redacted>", SomeComplexStringify("abc", "def"));
+      "public=abc, private=<redacted>", someComplexStringify("abc", "def"));
 
   // We can wrap the expression in KUDU_DISABLE_REDACTION(...) to evaluate it
   // with redaction temporarily disabled.
   ASSERT_EQ(
       "public=abc, private=def",
-      KUDU_DISABLE_REDACTION(SomeComplexStringify("abc", "def")));
+      KUDU_DISABLE_REDACTION(someComplexStringify("abc", "def")));
 
   // Or we can execute an entire scope with redaction disabled.
   KUDU_DISABLE_REDACTION({
-    ASSERT_EQ("public=abc, private=def", SomeComplexStringify("abc", "def"));
+    ASSERT_EQ("public=abc, private=def", someComplexStringify("abc", "def"));
   });
 }
 
