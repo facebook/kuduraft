@@ -302,7 +302,7 @@ TEST_F(TestIntervalTree, TestBasic) {
 }
 
 TEST_F(TestIntervalTree, TestRandomized) {
-  SeedRandom();
+  seedRandom();
 
   // Generate 100 random intervals spanning 0-200 and build an interval tree
   // from them.
@@ -335,7 +335,7 @@ TEST_F(TestIntervalTree, TestBigO) {
   LOG(WARNING) << "big-O results are not valid if DCHECK is enabled";
   return;
 #endif
-  SeedRandom();
+  seedRandom();
 
   LOG(INFO) << "num_int\tnum_q\tresults\tsimple\tbatch";
   for (int numIntervals = 1; numIntervals < 2000; numIntervals *= 2) {
@@ -387,7 +387,7 @@ TEST_F(TestIntervalTree, TestBigO) {
 }
 
 TEST_F(TestIntervalTree, TestMultiQuery) {
-  SeedRandom();
+  seedRandom();
   const int kNumQueries = 1;
   vector<IntInterval> intervals = createRandomIntervals(10);
   IntervalTree<IntTraits> t(intervals);

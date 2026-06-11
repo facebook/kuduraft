@@ -389,7 +389,7 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
     LOG(INFO) << "hole punching not supported, skipping test";
     return;
   }
-  Random r(SeedRandom());
+  Random r(seedRandom());
 
   string testPath = GetTestPath("test");
   unique_ptr<RWFile> file;
@@ -479,7 +479,7 @@ static void writeTestFile(Env* env, const string& path, size_t size) {
 }
 
 TEST_F(TestEnv, TestReadFully) {
-  SeedRandom();
+  seedRandom();
   const string kTestPath = GetTestPath("test");
   const int kFileSize = 64 * 1024;
   Env* env = Env::Default();
@@ -1050,7 +1050,7 @@ TEST_F(TestEnv, DISABLED_TestGetSpaceInfoFreeBytes) {
 
 // Basic sanity check for GetSpaceInfo().
 TEST_F(TestEnv, TestGetSpaceInfoBasicInvariants) {
-  string path = GetTestDataDirectory();
+  string path = getTestDataDirectory();
   SpaceInfo spaceInfo;
   ASSERT_OK(env_->GetSpaceInfo(path, &spaceInfo));
   ASSERT_GT(spaceInfo.capacityBytes, 0);

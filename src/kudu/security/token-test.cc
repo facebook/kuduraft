@@ -394,7 +394,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeys) {
     ASSERT_EQ(nullptr, key.get());
   }
 
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     // Special configuration for TokenSigner: short interval for key rotation.
     // It should not need next key right away, but should need next key after
     // the rotation interval.

@@ -63,7 +63,7 @@ using LockTable = unordered_map<string, string>;
 class ConsensusMetadataManagerStressTest : public KuduTest {
  public:
   ConsensusMetadataManagerStressTest()
-      : rng_(SeedRandom()),
+      : rng_(seedRandom()),
         fsManager_(env_, GetTestPath("fs_root")),
         cmetaManager_(std::make_shared<ConsensusMetadataManager>(&fsManager_)) {
   }

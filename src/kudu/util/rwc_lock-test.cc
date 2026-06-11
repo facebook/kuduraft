@@ -127,7 +127,7 @@ TEST_F(RwcLockTest, TestCorrectBehavior) {
     threads.emplace_back(readerThread, &state);
   }
 
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     SleepFor(MonoDelta::FromSeconds(1));
   } else {
     SleepFor(MonoDelta::FromMilliseconds(100));

@@ -317,7 +317,7 @@ TEST_F(BitRle, Flush) {
 // Test some random bool sequences.
 TEST_F(BitRle, RandomBools) {
   int iters = 0;
-  const int nIters = AllowSlowTests() ? 1000 : 20;
+  const int nIters = allowSlowTests() ? 1000 : 20;
   while (iters < nIters) {
     srand(iters++);
     if (iters % 10000 == 0) {
@@ -342,7 +342,7 @@ TEST_F(BitRle, RandomBools) {
 // Test some random 64-bit sequences.
 TEST_F(BitRle, Random64Bit) {
   int iters = 0;
-  const int nIters = AllowSlowTests() ? 1000 : 20;
+  const int nIters = allowSlowTests() ? 1000 : 20;
   while (iters < nIters) {
     srand(iters++);
     if (iters % 10000 == 0) {
@@ -470,7 +470,7 @@ generateRandomBitString(int numRuns, faststring* encBuf, string* stringRep) {
 }
 
 TEST_F(TestRle, TestRoundTripRandomSequencesWithRuns) {
-  SeedRandom();
+  seedRandom();
 
   // Test the limiting function of GetNextRun.
   const int kMaxToReadAtOnce = (random() % 20) + 1;

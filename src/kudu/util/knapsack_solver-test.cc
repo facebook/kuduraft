@@ -117,10 +117,10 @@ TEST_F(TestKnapsack, Basics) {
 // Test which generates random knapsack instances and verifies
 // that the result satisfies the constraints.
 TEST_F(TestKnapsack, Randomized) {
-  SeedRandom();
+  seedRandom();
   KnapsackSolver<TestItemTraits> solver;
 
-  const int kNumTrials = AllowSlowTests() ? 200 : 1;
+  const int kNumTrials = allowSlowTests() ? 200 : 1;
   const int kMaxWeight = 1000;
   const int kNumItems = 1000;
 

@@ -107,7 +107,7 @@ TEST(TestServiceQueue, LifoServiceQueuePerf) {
     consumers.emplace_back(&consumerThread<LifoServiceQueue>, &queue);
   }
 
-  int seconds = AllowSlowTests() ? 10 : 1;
+  int seconds = allowSlowTests() ? 10 : 1;
   uint64_t totalSample = 0;
   uint64_t totalQueueLen = 0;
   uint64_t totalIdleWorkers = 0;

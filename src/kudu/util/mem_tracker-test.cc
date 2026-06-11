@@ -237,7 +237,7 @@ TEST(MemTrackerTest, TestMultiThreadedRegisterAndDestroy) {
     });
   }
 
-  SleepFor(MonoDelta::FromSeconds(AllowSlowTests() ? 5 : 1));
+  SleepFor(MonoDelta::FromSeconds(allowSlowTests() ? 5 : 1));
   done.store(true);
   for (auto& t : threads) {
     t.join();

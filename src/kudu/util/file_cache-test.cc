@@ -54,7 +54,7 @@ namespace kudu {
 template <class FileType>
 class FileCacheTest : public KuduTest {
  public:
-  FileCacheTest() : rand_(SeedRandom()) {
+  FileCacheTest() : rand_(seedRandom()) {
     // Simplify testing of the actual cache capacity.
     FLAGS_cache_force_single_shard = true;
 

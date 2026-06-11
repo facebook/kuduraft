@@ -121,7 +121,7 @@ class CustomLatchCallback
 
 class MultiThreadedLogTest : public LogTestBase {
  public:
-  MultiThreadedLogTest() : random_(SeedRandom()) {}
+  MultiThreadedLogTest() : random_(seedRandom()) {}
 
   virtual void SetUp() override {
     LogTestBase::SetUp();

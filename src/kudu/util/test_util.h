@@ -79,7 +79,7 @@ class KuduTest : public ::testing::Test {
 };
 
 // Returns true if slow tests are runtime-enabled.
-bool AllowSlowTests();
+bool allowSlowTests();
 
 // Override the given gflag to the new value, only in the case that
 // slow tests are enabled and the user hasn't otherwise overridden
@@ -98,14 +98,14 @@ void overrideFlagForSlowTests(
 // that seed to the logs. The time-based seed may be overridden by passing
 // --test_random_seed= from the CLI in order to reproduce a failed randomized
 // test. Returns the seed.
-int SeedRandom();
+int seedRandom();
 
 // Return a per-test directory in which to store test data. Guaranteed to
 // return the same directory every time for a given unit test.
 //
 // May only be called from within a gtest unit test. Prefer KuduTest::testDir_
 // if a KuduTest instance is available.
-std::string GetTestDataDirectory();
+std::string getTestDataDirectory();
 
 // Return the directory which contains the test's executable.
 std::string getTestExecutableDirectory();

@@ -159,7 +159,7 @@ int parseAndReturnEventCount(const string& traceJson) {
 
 TEST_F(TraceTest, TestChromeTracing) {
   const int kNumThreads = 4;
-  const int kEventsPerThread = AllowSlowTests() ? 1000000 : 10000;
+  const int kEventsPerThread = allowSlowTests() ? 1000000 : 10000;
 
   TraceLog* tl = TraceLog::getInstance();
   tl->setEnabled(
@@ -305,7 +305,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
           &latch,
           &t));
 
-  const int numFlushes = AllowSlowTests() ? 50 : 3;
+  const int numFlushes = allowSlowTests() ? 50 : 3;
   for (int i = 0; i < numFlushes; i++) {
     tl->setEnabled(
         CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),

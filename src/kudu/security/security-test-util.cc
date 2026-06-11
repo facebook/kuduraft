@@ -105,7 +105,7 @@ Status configureTlsContext(
       std::string certPath, keyPath;
       // Write certificate and private key to file.
       RETURN_NOT_OK(createTestSslCertWithPlainKey(
-          GetTestDataDirectory(), &certPath, &keyPath));
+          getTestDataDirectory(), &certPath, &keyPath));
       RETURN_NOT_OK(tlsContext->loadCertificateAndKey(certPath, keyPath));
       RETURN_NOT_OK(tlsContext->loadCertificateAuthority(certPath));
     };

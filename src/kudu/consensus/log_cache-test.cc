@@ -414,7 +414,7 @@ TEST_F(LogCacheTest, TestMTReadAndWrite) {
     }
   });
 
-  SleepFor(MonoDelta::FromSeconds(AllowSlowTests() ? 10 : 2));
+  SleepFor(MonoDelta::FromSeconds(allowSlowTests() ? 10 : 2));
 }
 
 TEST_F(LogCacheTest, TestReadOpsWithLimit) {

@@ -93,7 +93,7 @@ class FileCacheStressTest : public KuduTest {
  public:
   using MetricMap = unordered_map<string, unordered_map<string, int>>;
 
-  FileCacheStressTest() : rand_(SeedRandom()), running_(1) {
+  FileCacheStressTest() : rand_(seedRandom()), running_(1) {
     // Use a single shard. Otherwise, the cache can be a little bit "sloppy"
     // depending on the number of CPUs on the system.
     FLAGS_cache_force_single_shard = true;

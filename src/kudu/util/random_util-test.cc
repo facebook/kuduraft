@@ -30,7 +30,7 @@ namespace kudu {
 
 class RandomUtilTest : public KuduTest {
  protected:
-  RandomUtilTest() : rng_(SeedRandom()) {}
+  RandomUtilTest() : rng_(seedRandom()) {}
 
   Random rng_;
 

@@ -87,7 +87,7 @@ TEST_F(CrcTest, BenchmarkCrc32c) {
   data.reset(buf);
   Crc* crcInstance = getCrc32cInstance();
   int numRuns = 1000;
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     numRuns = 40000;
   }
   const uint64_t kNumBytes = numRuns * bufLen;

@@ -210,7 +210,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
  public:
   void SetUp() override {
     RpcTestBase::SetUp();
-    SeedRandom();
+    seedRandom();
   }
 
   Status StartServer() {
@@ -493,7 +493,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsWithReplicatedRpc) {
   int kNumIterations = 10;
   int kNumRpcs = 10;
 
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     kNumIterations = 100;
     kNumRpcs = 100;
   }
@@ -524,7 +524,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsWithConcurrentUpdaters) {
   int kNumIterations = 10;
   int kNumThreads = 10;
 
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     kNumIterations = 100;
     kNumThreads = 100;
   }
@@ -632,7 +632,7 @@ TEST_F(
   // chance to run.
   MonoDelta writes_run_for = MonoDelta::FromSeconds(2);
   MonoDelta stubborn_run_for = MonoDelta::FromSeconds(3);
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     writes_run_for = MonoDelta::FromSeconds(10);
     stubborn_run_for = MonoDelta::FromSeconds(11);
   }

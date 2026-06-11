@@ -44,7 +44,7 @@ class ThreadTest : public KuduTest {};
 // Join with a thread and emit warnings while waiting to join.
 // This has to be manually verified.
 TEST_F(ThreadTest, TestJoinAndWarn) {
-  if (!AllowSlowTests()) {
+  if (!allowSlowTests()) {
     LOG(INFO) << "Skipping test in quick test mode, since this sleeps";
     return;
   }
@@ -56,7 +56,7 @@ TEST_F(ThreadTest, TestJoinAndWarn) {
 }
 
 TEST_F(ThreadTest, TestFailedJoin) {
-  if (!AllowSlowTests()) {
+  if (!allowSlowTests()) {
     LOG(INFO) << "Skipping test in quick test mode, since this sleeps";
     return;
   }

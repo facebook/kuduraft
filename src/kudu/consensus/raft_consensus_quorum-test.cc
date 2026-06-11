@@ -686,7 +686,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
   const int kFollower1Idx = 1;
   const int kLeaderIdx = 2;
 
-  int seqSize = AllowSlowTests() ? 1000 : 100;
+  int seqSize = allowSlowTests() ? 1000 : 100;
 
   ASSERT_OK(buildAndStartConfig(3));
 

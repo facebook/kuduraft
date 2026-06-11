@@ -766,7 +766,7 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
 // Helper to measure the performance of the log.
 TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
   uint64_t numBatches = 10;
-  if (AllowSlowTests()) {
+  if (allowSlowTests()) {
     numBatches = FLAGS_num_batches;
   }
   ASSERT_OK(buildLog());
@@ -972,9 +972,9 @@ static int randInRange(Random* r, int minInclusive, int maxInclusive) {
 // always see the correct term for each REPLICATE message (i.e whichever term
 // was the last to append it).
 TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
-  const int kSequenceLength = AllowSlowTests() ? 1000 : 50;
+  const int kSequenceLength = allowSlowTests() ? 1000 : 50;
 
-  Random rng(SeedRandom());
+  Random rng(seedRandom());
   vector<int64_t> termsByIndex;
   vector<TestLogSequenceElem> seq;
   generateTestSequence(&rng, kSequenceLength, &seq, &termsByIndex);

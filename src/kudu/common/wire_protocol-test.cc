@@ -343,7 +343,7 @@ TEST_F(WireProtocolTest, TestColumnarRowBlockToPBWithPadding) {
 #ifdef NDEBUG
 TEST_F(WireProtocolTest, TestColumnarRowBlockToPBBenchmark) {
   Arena arena(1024);
-  const int kNumTrials = AllowSlowTests() ? 100 : 10;
+  const int kNumTrials = allowSlowTests() ? 100 : 10;
   RowBlock block(schema_, 10000 * kNumTrials, &arena);
   fillRowBlockWithTestRows(&block);
 

@@ -130,7 +130,7 @@ TEST_P(TestRpc, TestMessengerCreateDestroy) {
 // in which shutting down the acceptor would trigger an assert,
 // making our tests flaky.
 TEST_P(TestRpc, TestAcceptorPoolStartStop) {
-  int nIters = AllowSlowTests() ? 100 : 5;
+  int nIters = allowSlowTests() ? 100 : 5;
   for (int i = 0; i < nIters; i++) {
     shared_ptr<Messenger> messenger;
     ASSERT_OK(createMessenger(
@@ -234,7 +234,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
   string rpcCaCertificateFile;
   ASSERT_OK(
       security::createTestSslCertSignedByChain(
-          GetTestDataDirectory(),
+          getTestDataDirectory(),
           &rpcCertificateFile,
           &rpcPrivateKeyFile,
           &rpcCaCertificateFile));
@@ -283,7 +283,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
   string rpcCaCertificateFile;
   ASSERT_OK(
       security::createTestSslCertWithChainSignedByRoot(
-          GetTestDataDirectory(),
+          getTestDataDirectory(),
           &rpcCertificateFile,
           &rpcPrivateKeyFile,
           &rpcCaCertificateFile));
@@ -335,7 +335,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
   string passwd;
   ASSERT_OK(
       security::createTestSslCertWithEncryptedKey(
-          GetTestDataDirectory(),
+          getTestDataDirectory(),
           &rpcCertificateFile,
           &rpcPrivateKeyFile,
           &passwd));
@@ -389,7 +389,7 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
   string passwd;
   ASSERT_OK(
       security::createTestSslCertWithEncryptedKey(
-          GetTestDataDirectory(),
+          getTestDataDirectory(),
           &rpcCertificateFile,
           &rpcPrivateKeyFile,
           &passwd));
@@ -1704,7 +1704,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
 
   // Used to generate sleep time between invoking RPC and requesting
   // cancellation.
-  Random rand(SeedRandom());
+  Random rand(seedRandom());
 
   for (int i = 0; i < 10; ++i) {
     SleepWithSidecarRequestPB req;
@@ -1749,10 +1749,10 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
 
   // Used to generate sleep time between invoking RPC and requesting
   // cancellation.
-  Random rand(SeedRandom());
+  Random rand(seedRandom());
 
   auto endTime =
-      MonoTime::Now() + MonoDelta::FromSeconds(AllowSlowTests() ? 15 : 3);
+      MonoTime::Now() + MonoDelta::FromSeconds(allowSlowTests() ? 15 : 3);
 
   int i = 0;
   while (MonoTime::Now() < endTime) {
@@ -1836,7 +1836,7 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
 
   ASSERT_OK(
       security::createTestSslCertForClientAndServer(
-          GetTestDataDirectory(),
+          getTestDataDirectory(),
           &clientCertificateFile,
           &clientPrivateKeyFile,
           &serverCertificateFile,

@@ -85,7 +85,7 @@ bool g_is_gtest = true;
 KuduTest::KuduTest()
     : env_(Env::Default()),
       flagSaver_(new gflags::FlagSaver()),
-      testDir_(GetTestDataDirectory()) {
+      testDir_(getTestDataDirectory()) {
   std::map<const char*, const char*> flagsForTests = {
       // Disabling fsync() speeds up tests dramatically, and it's safe to do as
       // no
@@ -115,7 +115,7 @@ KuduTest::KuduTest()
   // If the TEST_TMPDIR variable has been set, then glog will automatically use
   // that as its default log directory. We would prefer that the default log
   // directory instead be the test-case-specific subdirectory.
-  FLAGS_log_dir = GetTestDataDirectory();
+  FLAGS_log_dir = getTestDataDirectory();
 
   // Ignore SIGPIPE for all tests so that threads writing to TLS
   // sockets do not crash when writing to a closed socket. See KUDU-1910.
@@ -175,7 +175,7 @@ void KuduTest::overrideKrb5Environment() {
 // Test utility functions
 ///////////////////////////////////////////////////
 
-bool AllowSlowTests() {
+bool allowSlowTests() {
   char* e = getenv(kSlowTestsEnvVariable);
   if ((e == nullptr) || (strlen(e) == 0) || (strcasecmp(e, "false") == 0) ||
       (strcasecmp(e, "0") == 0) || (strcasecmp(e, "no") == 0)) {
@@ -195,14 +195,14 @@ void overrideFlagForSlowTests(
   gflags::GetCommandLineFlagInfoOrDie(flagName.c_str());
 
   // If we're not running slow tests, don't override it.
-  if (!AllowSlowTests()) {
+  if (!allowSlowTests()) {
     return;
   }
   gflags::SetCommandLineOptionWithMode(
       flagName.c_str(), newValue.c_str(), gflags::SET_FLAG_IF_DEFAULT);
 }
 
-int SeedRandom() {
+int seedRandom() {
   int seed;
   // Initialize random seed
   if (FLAGS_test_random_seed == 0) {
@@ -216,7 +216,7 @@ int SeedRandom() {
   return seed;
 }
 
-string GetTestDataDirectory() {
+string getTestDataDirectory() {
   const ::testing::TestInfo* const testInfo =
       ::testing::UnitTest::GetInstance()->current_test_info();
   CHECK(testInfo)

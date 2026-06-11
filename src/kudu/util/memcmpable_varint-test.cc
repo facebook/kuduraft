@@ -49,7 +49,7 @@ namespace kudu {
 
 class TestMemcmpableVarint : public KuduTest {
  protected:
-  TestMemcmpableVarint() : random_(SeedRandom()) {}
+  TestMemcmpableVarint() : random_(seedRandom()) {}
 
   // Random number generator that generates different length integers
   // with equal probability -- i.e it is equally as likely to generate

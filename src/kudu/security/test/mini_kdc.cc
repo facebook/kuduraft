@@ -63,7 +63,7 @@ MiniKdc::MiniKdc(MiniKdcOptions options) : options_(std::move(options)) {
     options_.realm = "KRBTEST.COM";
   }
   if (options_.dataRoot.empty()) {
-    options_.dataRoot = JoinPathSegments(GetTestDataDirectory(), "krb5kdc");
+    options_.dataRoot = JoinPathSegments(getTestDataDirectory(), "krb5kdc");
   }
   if (options_.ticketLifetime.empty()) {
     options_.ticketLifetime = "24h";

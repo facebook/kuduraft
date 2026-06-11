@@ -412,7 +412,7 @@ TEST_F(DebugUtilTest, TestThreadBlockingSignals) {
 // Test stack traces which time out despite the destination thread not blocking
 // signals.
 TEST_F(DebugUtilTest, TestTimeouts) {
-  const int kRunTimeSecs = AllowSlowTests() ? 5 : 1;
+  const int kRunTimeSecs = allowSlowTests() ? 5 : 1;
 
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;

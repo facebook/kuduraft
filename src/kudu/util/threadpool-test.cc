@@ -557,7 +557,7 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsProcessedSerially) {
   unique_ptr<ThreadPoolToken> t =
       pool_->NewToken(ThreadPool::ExecutionMode::Serial);
 
-  Random r(SeedRandom());
+  Random r(seedRandom());
   string result;
   CountDownLatch done(5); // 'a' through 'e' is 5 chars
   for (char c = 'a'; c < 'f'; c++) {
@@ -661,7 +661,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
   FLAGS_use_folly_threadpool = false;
   ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).build(&pool_));
   const int kNumOperations = 1000;
-  Random r(SeedRandom());
+  Random r(seedRandom());
   vector<unique_ptr<ThreadPoolToken>> tokens;
 
   for (int i = 0; i < kNumOperations; i++) {
@@ -756,7 +756,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
   const int kSubmitThreads = 10;
 
   vector<shared_ptr<ThreadPoolToken>> tokens;
-  Random rng(SeedRandom());
+  Random rng(seedRandom());
 
   // Protects 'tokens' and 'rng'.
   simple_spinlock lock;
@@ -829,7 +829,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
     // Pick a token at random and submit a task to it.
     threads.emplace_back([&]() {
       int numTokensSubmitted = 0;
-      Random localRng(SeedRandom());
+      Random localRng(seedRandom());
       while (latch.count()) {
         int sleepMs = localRng.next() % 5;
         Status s = getRandomToken()->SubmitFunc([sleepMs]() {

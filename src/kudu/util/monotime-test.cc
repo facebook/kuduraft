@@ -176,7 +176,7 @@ TEST(TestMonoTime, TestSleepFor) {
 }
 
 TEST(TestMonoTime, TestSleepForOverflow) {
-  if (!AllowSlowTests()) {
+  if (!allowSlowTests()) {
     LOG(INFO) << "Skipping test because it sleeps for ~4s";
     return;
   }
