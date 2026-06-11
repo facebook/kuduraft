@@ -276,31 +276,31 @@ class AbstractHistogramIterator {
   virtual bool reachedIterationLevel() const = 0;
 
   const HdrHistogram* histogram_;
-  HistogramIterationValue cur_iter_val_;
+  HistogramIterationValue curIterVal_;
 
-  uint64_t histogram_total_count_;
+  uint64_t histogramTotalCount_;
 
-  int current_bucket_index_;
-  int current_sub_bucket_index_;
-  uint64_t current_value_at_index_;
+  int currentBucketIndex_;
+  int currentSubBucketIndex_;
+  uint64_t currentValueAtIndex_;
 
-  int next_bucket_index_;
-  int next_sub_bucket_index_;
-  uint64_t next_value_at_index_;
+  int nextBucketIndex_;
+  int nextSubBucketIndex_;
+  uint64_t nextValueAtIndex_;
 
-  uint64_t prev_value_iterated_to_;
-  uint64_t total_count_to_prev_index_;
+  uint64_t prevValueIteratedTo_;
+  uint64_t totalCountToPrevIndex_;
 
-  uint64_t total_count_to_current_index_;
-  uint64_t total_value_to_current_index_;
+  uint64_t totalCountToCurrentIndex_;
+  uint64_t totalValueToCurrentIndex_;
 
-  uint64_t count_at_this_value_;
+  uint64_t countAtThisValue_;
 
  private:
   bool exhaustedSubBuckets() const;
   void incrementSubBucket();
 
-  bool fresh_sub_bucket_;
+  bool freshSubBucket_;
 
   DISALLOW_COPY_AND_ASSIGN(AbstractHistogramIterator);
 };
