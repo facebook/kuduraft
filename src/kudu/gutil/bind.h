@@ -104,7 +104,7 @@ Bind(Functor functor, const P1& p1) {
       p1_is_refcounted_type_and_needs_scoped_refptr);
   KUDU_COMPILE_ASSERT(
       !internal::HasIsMethodTag<RunnableType>::value ||
-          !base::is_array<P1>::value,
+          !base::IsArray<P1>::value,
       first_bound_argument_to_method_cannot_be_array);
   using BindState = internal::BindState<
       RunnableType,
@@ -156,7 +156,7 @@ Bind(Functor functor, const P1& p1, const P2& p2) {
       p1_is_refcounted_type_and_needs_scoped_refptr);
   KUDU_COMPILE_ASSERT(
       !internal::HasIsMethodTag<RunnableType>::value ||
-          !base::is_array<P1>::value,
+          !base::IsArray<P1>::value,
       first_bound_argument_to_method_cannot_be_array);
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
@@ -216,7 +216,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3) {
       p1_is_refcounted_type_and_needs_scoped_refptr);
   KUDU_COMPILE_ASSERT(
       !internal::HasIsMethodTag<RunnableType>::value ||
-          !base::is_array<P1>::value,
+          !base::IsArray<P1>::value,
       first_bound_argument_to_method_cannot_be_array);
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
@@ -283,7 +283,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4) {
       p1_is_refcounted_type_and_needs_scoped_refptr);
   KUDU_COMPILE_ASSERT(
       !internal::HasIsMethodTag<RunnableType>::value ||
-          !base::is_array<P1>::value,
+          !base::IsArray<P1>::value,
       first_bound_argument_to_method_cannot_be_array);
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
@@ -369,7 +369,7 @@ Bind(
       p1_is_refcounted_type_and_needs_scoped_refptr);
   KUDU_COMPILE_ASSERT(
       !internal::HasIsMethodTag<RunnableType>::value ||
-          !base::is_array<P1>::value,
+          !base::IsArray<P1>::value,
       first_bound_argument_to_method_cannot_be_array);
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,

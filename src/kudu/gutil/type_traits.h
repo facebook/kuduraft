@@ -34,10 +34,10 @@
 // any changes here, make sure that you're not breaking any platforms.
 //
 // Define a small subset of tr1 type traits. The traits we define are:
-//   enable_if
-//   is_array
-//   is_reference
-//   remove_reference
+//   EnableIf
+//   IsArray
+//   IsReference
+//   RemoveReference
 // We can add more type traits as required.
 
 // THESE #defines collide with spareshash
@@ -48,45 +48,45 @@
 namespace base {
 
 template <bool cond, class T>
-struct enable_if;
+struct EnableIf;
 template <class T>
-struct is_array;
+struct IsArray;
 template <class T>
-struct is_reference;
+struct IsReference;
 template <class T>
-struct remove_reference;
+struct RemoveReference;
 
-// enable_if, equivalent semantics to c++11 std::enable_if, specifically:
+// EnableIf, equivalent semantics to c++11 std::enable_if, specifically:
 //   "If B is true, the member typedef type shall equal T; otherwise, there
 //    shall be no member typedef type."
 // Specified by 20.9.7.6 [Other transformations]
 template <bool cond, class T = void>
-struct enable_if {
+struct EnableIf {
   using type = T;
 };
 template <class T>
-struct enable_if<false, T> {};
+struct EnableIf<false, T> {};
 
 template <class>
-struct is_array : public false_type {};
+struct IsArray : public false_type {};
 template <class T, size_t n>
-struct is_array<T[n]> : public true_type {};
+struct IsArray<T[n]> : public true_type {};
 template <class T>
-struct is_array<T[]> : public true_type {};
+struct IsArray<T[]> : public true_type {};
 
-// is_reference is false except for reference types.
+// IsReference is false except for reference types.
 template <typename T>
-struct is_reference : false_type {};
+struct IsReference : false_type {};
 template <typename T>
-struct is_reference<T&> : true_type {};
+struct IsReference<T&> : true_type {};
 
 // Specified by TR1 [4.7.2] Reference modifications.
 template <typename T>
-struct remove_reference {
+struct RemoveReference {
   using type = T;
 };
 template <typename T>
-struct remove_reference<T&> {
+struct RemoveReference<T&> {
   using type = T;
 };
 
@@ -97,6 +97,6 @@ struct remove_reference<T&> {
 // later.  The typedef is just to make it legal to put a semicolon after
 // these macros.
 #define KDECLARE_POD(TypeName) \
-  typedef int Dummy_Type_For_DECLARE_POD ATTRIBUTE_UNUSED
+  typedef int DummyTypeForDeclarePod ATTRIBUTE_UNUSED
 #define KENFORCE_POD(TypeName) \
-  typedef int Dummy_Type_For_ENFORCE_POD ATTRIBUTE_UNUSED
+  typedef int DummyTypeForEnforcePod ATTRIBUTE_UNUSED
