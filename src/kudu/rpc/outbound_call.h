@@ -229,12 +229,12 @@ class OutboundCall {
   // caller.
   void setCancelled();
 
-  void setState(State new_state);
+  void setState(State newState);
   State state() const;
 
   // Same as setState, but requires that the caller already holds
   // lock_
-  void setStateUnlocked(State new_state);
+  void setStateUnlocked(State newState);
 
   // return current status
   Status status() const;
@@ -289,7 +289,7 @@ class OutboundCall {
   std::vector<std::unique_ptr<RpcSidecar>> sidecars_;
 
   // Total size in bytes of all sidecars in 'sidecars_'. Set in
-  // SetRequestPayload(). This cannot exceed
+  // setRequestPayload(). This cannot exceed
   // TransferLimits::kMaxTotalSidecarBytes.
   int32_t sidecarByteSize_ = -1;
 
@@ -333,13 +333,13 @@ class CallResponse {
   // Return the serialized response data. This is just the response "body" --
   // either a serialized ErrorStatusPB, or the serialized user response
   // protobuf.
-  const Slice& serialized_response() const {
+  const Slice& serializedResponse() const {
     DCHECK(parsed_);
-    return serialized_response_;
+    return serializedResponse_;
   }
 
   // See RpcController::GetSidecar()
-  Status GetSidecar(int idx, Slice* sidecar) const;
+  Status getSidecar(int idx, Slice* sidecar) const;
 
  private:
   // True once parseFrom() is called.
@@ -350,13 +350,13 @@ class CallResponse {
 
   // The slice of data for the encoded protobuf response.
   // This slice refers to memory allocated by transfer_
-  Slice serialized_response_;
+  Slice serializedResponse_;
 
   // Slices of data for rpc sidecars. They point into memory owned by transfer_.
-  Slice sidecar_slices_[TransferLimits::kMaxSidecars];
+  Slice sidecarSlices_[TransferLimits::kMaxSidecars];
 
-  // The incoming transfer data - retained because serialized_response_
-  // and sidecar_slices_ refer into its data.
+  // The incoming transfer data - retained because serializedResponse_
+  // and sidecarSlices_ refer into its data.
   std::unique_ptr<InboundTransfer> transfer_;
 
   DISALLOW_COPY_AND_ASSIGN(CallResponse);

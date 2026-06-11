@@ -314,7 +314,7 @@ void OutboundCall::callCallback() {
 
 void OutboundCall::setResponse(unique_ptr<CallResponse> resp) {
   callResponse_ = std::move(resp);
-  Slice r(callResponse_->serialized_response());
+  Slice r(callResponse_->serializedResponse());
 
   if (callResponse_->isSuccess()) {
     // TODO: here we're deserializing the call response within the reactor
@@ -532,13 +532,13 @@ void OutboundCall::dumpPb(
 
 CallResponse::CallResponse() : parsed_(false) {}
 
-Status CallResponse::GetSidecar(int idx, Slice* sidecar) const {
+Status CallResponse::getSidecar(int idx, Slice* sidecar) const {
   DCHECK(parsed_);
   if (idx < 0 || idx >= header_.sidecar_offsets_size()) {
     return Status::InvalidArgument(
         fmt::format("Index {} does not reference a valid sidecar", idx));
   }
-  *sidecar = sidecar_slices_[idx];
+  *sidecar = sidecarSlices_[idx];
   return Status::OK();
 }
 
@@ -546,16 +546,16 @@ Status CallResponse::parseFrom(unique_ptr<InboundTransfer> transfer) {
   CHECK(!parsed_);
   RETURN_NOT_OK(
       serialization::parseMessage(
-          transfer->data(), &header_, &serialized_response_));
+          transfer->data(), &header_, &serializedResponse_));
 
   // Use information from header to extract the payload slices.
   RETURN_NOT_OK(
       RpcSidecar::parseSidecars(
-          header_.sidecar_offsets(), serialized_response_, sidecar_slices_));
+          header_.sidecar_offsets(), serializedResponse_, sidecarSlices_));
 
   if (header_.sidecar_offsets_size() > 0) {
-    serialized_response_ =
-        Slice(serialized_response_.data(), header_.sidecar_offsets(0));
+    serializedResponse_ =
+        Slice(serializedResponse_.data(), header_.sidecar_offsets(0));
   }
 
   transfer_.swap(transfer);
