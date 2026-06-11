@@ -28,8 +28,8 @@ using std::unique_ptr;
 
 namespace kudu {
 
-template <bool THREADSAFE>
-const size_t ArenaBase<THREADSAFE>::kMinimumChunkSize = 16;
+template <bool ThreadSafe>
+const size_t ArenaBase<ThreadSafe>::kMinimumChunkSize = 16;
 
 // The max size of our allocations is set to this magic number
 // corresponding to 127 tcmalloc pages (each being 8KB). tcmalloc
@@ -42,8 +42,8 @@ const size_t ArenaBase<THREADSAFE>::kMinimumChunkSize = 16;
 // for a description of the performance issue.
 constexpr int kMaxTcmallocFastAllocation = 8192 * 127;
 
-template <bool THREADSAFE>
-ArenaBase<THREADSAFE>::ArenaBase(
+template <bool ThreadSafe>
+ArenaBase<ThreadSafe>::ArenaBase(
     BufferAllocator* bufferAllocator,
     size_t initialBufferSize)
     : bufferAllocator_(bufferAllocator),
@@ -52,21 +52,21 @@ ArenaBase<THREADSAFE>::ArenaBase(
   addComponent(CHECK_NOTNULL(newComponent(initialBufferSize, 0)));
 }
 
-template <bool THREADSAFE>
-ArenaBase<THREADSAFE>::ArenaBase(size_t initialBufferSize)
-    : ArenaBase<THREADSAFE>(HeapBufferAllocator::get(), initialBufferSize) {}
+template <bool ThreadSafe>
+ArenaBase<ThreadSafe>::ArenaBase(size_t initialBufferSize)
+    : ArenaBase<ThreadSafe>(HeapBufferAllocator::get(), initialBufferSize) {}
 
-template <bool THREADSAFE>
-void ArenaBase<THREADSAFE>::setMaxBufferSize(size_t size) {
+template <bool ThreadSafe>
+void ArenaBase<ThreadSafe>::setMaxBufferSize(size_t size) {
   DCHECK_LE(size, kMaxTcmallocFastAllocation);
   maxBufferSize_ = size;
 }
 
-template <bool THREADSAFE>
-void* ArenaBase<THREADSAFE>::allocateBytesFallback(
+template <bool ThreadSafe>
+void* ArenaBase<ThreadSafe>::allocateBytesFallback(
     const size_t size,
     const size_t align) {
-  std::lock_guard<mutex_type> lock(componentLock_);
+  std::lock_guard<MutexType> lock(componentLock_);
 
   // It's possible another thread raced with us and already allocated
   // a new component, in which case we should try the "fast path" again
@@ -111,8 +111,8 @@ void* ArenaBase<THREADSAFE>::allocateBytesFallback(
   return result;
 }
 
-template <bool THREADSAFE>
-typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::newComponent(
+template <bool ThreadSafe>
+typename ArenaBase<ThreadSafe>::Component* ArenaBase<ThreadSafe>::newComponent(
     size_t requestedSize,
     size_t minimumSize) {
   Buffer* buffer =
@@ -130,16 +130,16 @@ typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::newComponent(
 }
 
 // LOCKING: componentLock_ must be held by the current thread.
-template <bool THREADSAFE>
-void ArenaBase<THREADSAFE>::addComponent(ArenaBase::Component* component) {
+template <bool ThreadSafe>
+void ArenaBase<ThreadSafe>::addComponent(ArenaBase::Component* component) {
   releaseStoreCurrent(component);
   arena_.push_back(unique_ptr<Component>(component));
   arenaFootprint_ += component->size();
 }
 
-template <bool THREADSAFE>
-void ArenaBase<THREADSAFE>::reset() {
-  std::lock_guard<mutex_type> lock(componentLock_);
+template <bool ThreadSafe>
+void ArenaBase<ThreadSafe>::reset() {
+  std::lock_guard<MutexType> lock(componentLock_);
 
   if (PREDICT_FALSE(arena_.size() > 1)) {
     unique_ptr<Component> last = std::move(arena_.back());
@@ -160,9 +160,9 @@ void ArenaBase<THREADSAFE>::reset() {
 #endif
 }
 
-template <bool THREADSAFE>
-size_t ArenaBase<THREADSAFE>::memoryFootprint() const {
-  std::lock_guard<mutex_type> lock(componentLock_);
+template <bool ThreadSafe>
+size_t ArenaBase<ThreadSafe>::memoryFootprint() const {
+  std::lock_guard<MutexType> lock(componentLock_);
   return arenaFootprint_;
 }
 

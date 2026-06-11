@@ -47,22 +47,22 @@
 
 namespace kudu {
 
-template <bool THREADSAFE>
+template <bool ThreadSafe>
 struct ArenaTraits;
 
 template <>
 struct ArenaTraits<true> {
-  using offset_type = Atomic32;
-  using mutex_type = Mutex;
-  using spinlock_type = SimpleSpinlock;
+  using OffsetType = Atomic32;
+  using MutexType = Mutex;
+  using SpinlockType = SimpleSpinlock;
 };
 
 template <>
 struct ArenaTraits<false> {
-  using offset_type = uint32_t;
+  using OffsetType = uint32_t;
   // For non-threadsafe, we don't need any real locking.
-  using mutex_type = boost::signals2::dummy_mutex;
-  using spinlock_type = boost::signals2::dummy_mutex;
+  using MutexType = boost::signals2::dummy_mutex;
+  using SpinlockType = boost::signals2::dummy_mutex;
 };
 
 // A helper class for storing variable-length blobs (e.g. strings). Once a blob
@@ -73,7 +73,7 @@ struct ArenaTraits<false> {
 // The buffers are furnished by a designated allocator.
 //
 // This class is thread-safe with the fast path lock-free.
-template <bool THREADSAFE>
+template <bool ThreadSafe>
 class ArenaBase {
  public:
   // Arenas are required to have a minimum size of at least this amount.
@@ -182,7 +182,7 @@ class ArenaBase {
   size_t memoryFootprint() const;
 
  private:
-  using mutex_type = typename ArenaTraits<THREADSAFE>::mutex_type;
+  using MutexType = typename ArenaTraits<ThreadSafe>::MutexType;
   // Encapsulates a single buffer in the arena.
   class Component;
 
@@ -195,7 +195,7 @@ class ArenaBase {
   // Load the current component, with "Acquire" semantics (see atomicops.h)
   // if the arena is meant to be thread-safe.
   inline Component* acquireLoadCurrent() {
-    if (THREADSAFE) {
+    if (ThreadSafe) {
       return reinterpret_cast<Component*>(
           base::subtle::Acquire_Load(reinterpret_cast<AtomicWord*>(&current_)));
     } else {
@@ -206,7 +206,7 @@ class ArenaBase {
   // Store the current component, with "Release" semantics (see atomicops.h)
   // if the arena is meant to be thread-safe.
   inline void releaseStoreCurrent(Component* c) {
-    if (THREADSAFE) {
+    if (ThreadSafe) {
       base::subtle::Release_Store(
           reinterpret_cast<AtomicWord*>(&current_),
           reinterpret_cast<AtomicWord>(c));
@@ -227,7 +227,7 @@ class ArenaBase {
   // Lock covering 'slow path' allocation, when new components are
   // allocated and added to the arena's list. Also covers any other
   // mutation of the component data structure (eg reset).
-  mutable mutex_type componentLock_;
+  mutable MutexType componentLock_;
 
   DISALLOW_COPY_AND_ASSIGN(ArenaBase);
 };
@@ -235,7 +235,7 @@ class ArenaBase {
 // STL-compliant allocator, for use with hash_maps and other structures
 // which share lifetime with an Arena. Enables memory control and improves
 // performance.
-template <class T, bool THREADSAFE>
+template <class T, bool ThreadSafe>
 class ArenaAllocator {
  public:
   using value_type = T;
@@ -256,7 +256,7 @@ class ArenaAllocator {
     return size_t(-1) / sizeof(T);
   }
 
-  explicit ArenaAllocator(ArenaBase<THREADSAFE>* arena) : arena_(arena) {
+  explicit ArenaAllocator(ArenaBase<ThreadSafe>* arena) : arena_(arena) {
     CHECK_NOTNULL(arena_);
   }
 
@@ -281,7 +281,7 @@ class ArenaAllocator {
 
   template <class U>
   struct rebind {
-    using other = ArenaAllocator<U, THREADSAFE>;
+    using other = ArenaAllocator<U, ThreadSafe>;
   };
 
   template <class U, bool TS>
@@ -298,12 +298,12 @@ class ArenaAllocator {
     return arena_ != other.arena();
   }
 
-  ArenaBase<THREADSAFE>* arena() const {
+  ArenaBase<ThreadSafe>* arena() const {
     return arena_;
   }
 
  private:
-  ArenaBase<THREADSAFE>* arena_;
+  ArenaBase<ThreadSafe>* arena_;
 };
 
 class Arena : public ArenaBase<false> {
@@ -355,8 +355,8 @@ class ThreadSafeMemoryTrackingArena : public ArenaBase<true> {
 
 // Implementation of inline and template methods
 
-template <bool THREADSAFE>
-class ArenaBase<THREADSAFE>::Component {
+template <bool ThreadSafe>
+class ArenaBase<ThreadSafe>::Component {
  public:
   explicit Component(Buffer* buffer)
       : buffer_(buffer),
@@ -387,15 +387,15 @@ class ArenaBase<THREADSAFE>::Component {
 
   std::unique_ptr<Buffer> buffer_;
   uint8_t* const data_;
-  typename ArenaTraits<THREADSAFE>::offset_type offset_;
+  typename ArenaTraits<ThreadSafe>::OffsetType offset_;
   const size_t size_;
 
 #ifdef ADDRESS_SANITIZER
   // Lock used around unpoisoning memory when ASAN is enabled.
   // ASAN does not support concurrent unpoison calls that may overlap a
   // particular memory word (8 bytes).
-  typedef typename ArenaTraits<THREADSAFE>::spinlock_type spinlock_type;
-  spinlock_type asanLock_;
+  typedef typename ArenaTraits<ThreadSafe>::SpinlockType SpinlockType;
+  SpinlockType asanLock_;
 #endif
   DISALLOW_COPY_AND_ASSIGN(Component);
 };
@@ -455,20 +455,20 @@ inline uint8_t* ArenaBase<false>::Component::allocateBytesAligned(
   }
 }
 
-template <bool THREADSAFE>
-inline void ArenaBase<THREADSAFE>::Component::asanUnpoison(
+template <bool ThreadSafe>
+inline void ArenaBase<ThreadSafe>::Component::asanUnpoison(
     const void* addr,
     size_t size) {
 #ifdef ADDRESS_SANITIZER
-  std::lock_guard<spinlock_type> l(asanLock_);
+  std::lock_guard<SpinlockType> l(asanLock_);
   KUDU_ASAN_UNPOISON_MEMORY_REGION(addr, size);
 #endif
 }
 
 // Fast-path allocation should get inlined, and fall-back
 // to non-inline function call for allocation failure
-template <bool THREADSAFE>
-inline void* ArenaBase<THREADSAFE>::allocateBytesAligned(
+template <bool ThreadSafe>
+inline void* ArenaBase<ThreadSafe>::allocateBytesAligned(
     const size_t size,
     const size_t align) {
   void* result = acquireLoadCurrent()->allocateBytesAligned(size, align);
@@ -478,13 +478,13 @@ inline void* ArenaBase<THREADSAFE>::allocateBytesAligned(
   return allocateBytesFallback(size, align);
 }
 
-template <bool THREADSAFE>
-inline uint8_t* ArenaBase<THREADSAFE>::addSlice(const Slice& value) {
+template <bool ThreadSafe>
+inline uint8_t* ArenaBase<ThreadSafe>::addSlice(const Slice& value) {
   return reinterpret_cast<uint8_t*>(addBytes(value.data(), value.size()));
 }
 
-template <bool THREADSAFE>
-inline void* ArenaBase<THREADSAFE>::addBytes(const void* data, size_t len) {
+template <bool ThreadSafe>
+inline void* ArenaBase<ThreadSafe>::addBytes(const void* data, size_t len) {
   void* destination = allocateBytes(len);
   if (destination == nullptr) {
     return nullptr;
@@ -493,8 +493,8 @@ inline void* ArenaBase<THREADSAFE>::addBytes(const void* data, size_t len) {
   return destination;
 }
 
-template <bool THREADSAFE>
-inline bool ArenaBase<THREADSAFE>::relocateSlice(const Slice& src, Slice* dst) {
+template <bool ThreadSafe>
+inline bool ArenaBase<ThreadSafe>::relocateSlice(const Slice& src, Slice* dst) {
   void* destination = allocateBytes(src.size());
   if (destination == nullptr) {
     return false;
@@ -504,8 +504,8 @@ inline bool ArenaBase<THREADSAFE>::relocateSlice(const Slice& src, Slice* dst) {
   return true;
 }
 
-template <bool THREADSAFE>
-inline bool ArenaBase<THREADSAFE>::relocateStringPiece(
+template <bool ThreadSafe>
+inline bool ArenaBase<ThreadSafe>::relocateStringPiece(
     const StringPiece& src,
     StringPiece* sp) {
   Slice slice(src.data(), src.size());
@@ -516,9 +516,9 @@ inline bool ArenaBase<THREADSAFE>::relocateStringPiece(
   return true;
 }
 
-template <bool THREADSAFE>
+template <bool ThreadSafe>
 template <class T, class... Args>
-inline T* ArenaBase<THREADSAFE>::newObject(Args&&... args) {
+inline T* ArenaBase<ThreadSafe>::newObject(Args&&... args) {
   void* mem = allocateBytesAligned(sizeof(T), alignof(T));
   if (mem == nullptr) {
     throw std::bad_alloc();
