@@ -1298,16 +1298,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // to disk. Resets the pending configuration to null.
   Status setCommittedConfigUnlocked(const RaftConfigPB& config_to_commit);
 
-  void ScheduleTermAdvancementCallback(int64_t term);
-  void DoTermAdvancmentCallback(int64_t term);
+  void scheduleTermAdvancementCallback(int64_t term);
+  void doTermAdvancmentCallback(int64_t term);
 
-  void ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg);
-  void DoNoOpReceivedCallback(
+  void scheduleNoOpReceivedCallback(const ReplicateRefPtr& msg);
+  void doNoOpReceivedCallback(
       const OpId& opid,
       const RaftPeerPB& leader_details);
 
-  void ScheduleLeaderDetectedCallback(int64_t term);
-  void DoLeaderDetectedCallback(int64_t term, const RaftPeerPB& leader_details);
+  void scheduleLeaderDetectedCallback(int64_t term);
+  void doLeaderDetectedCallback(int64_t term, const RaftPeerPB& leader_details);
 
   // Checks if the term change is legal. If so, sets 'current_term'
   // to 'new_term' and sets 'has voted' to no for the current term.
@@ -1322,20 +1322,20 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Accessors for the leader of the current term.
   std::string getLeaderUuidUnlocked() const;
-  bool HasLeaderUnlocked() const;
-  void ClearLeaderUnlocked();
+  bool hasLeaderUnlocked() const;
+  void clearLeaderUnlocked();
 
   // Return whether this peer has voted in the current term.
-  const bool HasVotedCurrentTermUnlocked() const;
+  const bool hasVotedCurrentTermUnlocked() const;
 
   // Record replica's vote for the current term, then flush the consensus
   // metadata to disk.
-  Status SetVotedForCurrentTermUnlocked(const std::string& uuid)
+  Status setVotedForCurrentTermUnlocked(const std::string& uuid)
       WARN_UNUSED_RESULT;
 
   // Return replica's vote for the current term.
-  // The vote must be set; use HasVotedCurrentTermUnlocked() to check.
-  const std::string& GetVotedForCurrentTermUnlocked() const;
+  // The vote must be set; use hasVotedCurrentTermUnlocked() to check.
+  const std::string& getVotedForCurrentTermUnlocked() const;
 
   const ConsensusOptions& GetOptions() const;
 

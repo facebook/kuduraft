@@ -586,7 +586,7 @@ Status RaftConsensus::start(
       queue_->SetCompressionDictionary(compression_dict);
     }
 
-    ClearLeaderUnlocked();
+    clearLeaderUnlocked();
 
     // Our last persisted term can be higher than the last persisted operation
     // (i.e. if we called an election) but reverse should never happen.
@@ -811,7 +811,7 @@ Status RaftConsensus::startElection(
       // also flushes to disk, and the double fsync doesn't buy us anything.
       RETURN_NOT_OK(handleTermAdvanceUnlocked(
           currentTermUnlocked() + 1, kSkipFlushToDisk));
-      RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(peer_uuid()));
+      RETURN_NOT_OK(setVotedForCurrentTermUnlocked(peer_uuid()));
     }
 
     RaftConfigPB activeConfig = cmeta_->activeConfig();
@@ -1276,7 +1276,7 @@ Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Becoming Follower/Learner. State: " << ToStringUnlocked();
-  ClearLeaderUnlocked();
+  clearLeaderUnlocked();
 
   // Enable/disable leader failure detection if becoming VOTER/NON_VOTER replica
   // correspondingly.
@@ -2074,13 +2074,13 @@ Status RaftConsensus::checkLeaderRequestUnlocked(
   // as the leader locally, mark them as leader now.
   const string& callerUuid = request->caller_uuid();
   if (PREDICT_FALSE(
-          HasLeaderUnlocked() && getLeaderUuidUnlocked() != callerUuid)) {
+          hasLeaderUnlocked() && getLeaderUuidUnlocked() != callerUuid)) {
     LOG_WITH_PREFIX_UNLOCKED(FATAL)
         << "Unexpected new leader in same term! "
         << "Existing leader UUID: " << getLeaderUuidUnlocked() << ", "
         << "new leader UUID: " << callerUuid;
   }
-  if (PREDICT_FALSE(!HasLeaderUnlocked())) {
+  if (PREDICT_FALSE(!hasLeaderUnlocked())) {
     RETURN_NOT_OK(setLeaderUuidUnlocked(request->caller_uuid()));
   }
 
@@ -2499,7 +2499,7 @@ Status RaftConsensus::updateReplica(
     // messages to be durable.
     fillConsensusResponseOkUnlocked(response);
     if (!haveQueuedLdcbOrNorcb_) {
-      ScheduleLeaderDetectedCallback(currentTermUnlocked());
+      scheduleLeaderDetectedCallback(currentTermUnlocked());
     }
   }
   // Release the lock while we wait for the log append to finish so that commits
@@ -2732,9 +2732,9 @@ Status RaftConsensus::requestVote(
 
   // We already voted this term.
   if (request->candidate_term() == currentTermUnlocked() &&
-      HasVotedCurrentTermUnlocked()) {
+      hasVotedCurrentTermUnlocked()) {
     // Already voted for the same candidate in the current term.
-    if (GetVotedForCurrentTermUnlocked() == request->candidate_uuid()) {
+    if (getVotedForCurrentTermUnlocked() == request->candidate_uuid()) {
       return requestVoteRespondVoteAlreadyGranted(
           request, hostnamePort, response);
     }
@@ -3561,7 +3561,7 @@ void RaftConsensus::stop() {
     // we don't do this, the log messages still show this node as the leader.
     // No need to sync it since it's not persistent state.
     if (cmeta_) {
-      ClearLeaderUnlocked();
+      clearLeaderUnlocked();
     }
 
     // If we were the leader, stop withholding votes.
@@ -3607,7 +3607,7 @@ Status RaftConsensus::startConsensusOnlyRoundUnlocked(
       << OperationType_Name(op_type) << ": "
       << SecureShortDebugString(*msg->get());
   if (op_type == NO_OP) {
-    ScheduleNoOpReceivedCallback(msg);
+    scheduleNoOpReceivedCallback(msg);
   }
   VLOG_WITH_PREFIX_UNLOCKED(1) << "Starting consensus round: "
                                << SecureShortDebugString(msg->get()->id());
@@ -3745,7 +3745,7 @@ Status RaftConsensus::requestVoteRespondAlreadyVotedForOther(
       hostnamePort,
       request->candidate_uuid(),
       currentTermUnlocked(),
-      GetVotedForCurrentTermUnlocked(),
+      getVotedForCurrentTermUnlocked(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
   statusToPb(
@@ -3860,7 +3860,7 @@ Status RaftConsensus::requestVoteRespondVoteGranted(
   if (mode != ElectionMode::PRE_ELECTION &&
       mode != ElectionMode::MOCK_ELECTION) {
     // Persist our vote to disk.
-    RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(request->candidate_uuid()));
+    RETURN_NOT_OK(setVotedForCurrentTermUnlocked(request->candidate_uuid()));
   }
 
   fillVoteResponseVoteGranted(response);
@@ -4941,24 +4941,24 @@ Status RaftConsensus::setCommittedConfigUnlocked(
   return Status::OK();
 }
 
-void RaftConsensus::ScheduleTermAdvancementCallback(int64_t new_term) {
+void RaftConsensus::scheduleTermAdvancementCallback(int64_t new_term) {
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
-              &RaftConsensus::DoTermAdvancmentCallback,
+              &RaftConsensus::doTermAdvancmentCallback,
               shared_from_this(),
               new_term)),
       LogPrefixThreadSafe() + "Unable to run term advancement callback");
 }
 
-void RaftConsensus::DoTermAdvancmentCallback(int64_t new_term) {
+void RaftConsensus::doTermAdvancmentCallback(int64_t new_term) {
   // Simply execute the registered callback for term advancement.
   if (tacb_) {
     tacb_(new_term);
   }
 }
 
-void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
+void RaftConsensus::scheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
   DCHECK(lock_.is_locked());
 
   RaftPeerPB current_leader;
@@ -4974,7 +4974,7 @@ void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
 
   s_ok = raftPoolToken_->SubmitFunc(
       std::bind(
-          &RaftConsensus::DoNoOpReceivedCallback,
+          &RaftConsensus::doNoOpReceivedCallback,
           shared_from_this(),
           msg->get()->id(),
           std::move(current_leader)));
@@ -4986,7 +4986,7 @@ void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
   haveQueuedLdcbOrNorcb_ = s_ok.ok();
 }
 
-void RaftConsensus::DoNoOpReceivedCallback(
+void RaftConsensus::doNoOpReceivedCallback(
     const OpId& id,
     const RaftPeerPB& leader_details) {
   if (norcb_) {
@@ -4994,7 +4994,7 @@ void RaftConsensus::DoNoOpReceivedCallback(
   }
 }
 
-void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
+void RaftConsensus::scheduleLeaderDetectedCallback(int64_t term) {
   DCHECK(lock_.is_locked());
   RaftPeerPB current_leader;
   Status s_ok =
@@ -5009,7 +5009,7 @@ void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
 
   s_ok = raftPoolToken_->SubmitFunc(
       std::bind(
-          &RaftConsensus::DoLeaderDetectedCallback,
+          &RaftConsensus::doLeaderDetectedCallback,
           shared_from_this(),
           term,
           std::move(current_leader)));
@@ -5021,7 +5021,7 @@ void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
   haveQueuedLdcbOrNorcb_ = s_ok.ok();
 }
 
-void RaftConsensus::DoLeaderDetectedCallback(
+void RaftConsensus::doLeaderDetectedCallback(
     int64_t term,
     const RaftPeerPB& leader_details) {
   if (ldcb_) {
@@ -5067,13 +5067,13 @@ Status RaftConsensus::SetCurrentTermUnlocked(
     CHECK_OK(cmeta_->flush());
   }
 
-  ClearLeaderUnlocked();
+  clearLeaderUnlocked();
   if (voteLogger_) {
     voteLogger_->advanceEpoch(new_term);
   }
 
   // Trigger term advancement callback
-  ScheduleTermAdvancementCallback(new_term);
+  scheduleTermAdvancementCallback(new_term);
 
   return Status::OK();
 }
@@ -5088,25 +5088,25 @@ string RaftConsensus::getLeaderUuidUnlocked() const {
   return cmeta_->leaderUuid();
 }
 
-bool RaftConsensus::HasLeaderUnlocked() const {
+bool RaftConsensus::hasLeaderUnlocked() const {
   DCHECK(lock_.is_locked());
   return !getLeaderUuidUnlocked().empty();
 }
 
-void RaftConsensus::ClearLeaderUnlocked() {
+void RaftConsensus::clearLeaderUnlocked() {
   DCHECK(lock_.is_locked());
   cmeta_->setLeaderUuid("");
 }
 
-const bool RaftConsensus::HasVotedCurrentTermUnlocked() const {
+const bool RaftConsensus::hasVotedCurrentTermUnlocked() const {
   DCHECK(lock_.is_locked());
   return cmeta_->hasVotedFor();
 }
 
-Status RaftConsensus::SetVotedForCurrentTermUnlocked(const std::string& uuid) {
+Status RaftConsensus::setVotedForCurrentTermUnlocked(const std::string& uuid) {
   TRACE_EVENT1(
       "consensus",
-      "RaftConsensus::SetVotedForCurrentTermUnlocked",
+      "RaftConsensus::setVotedForCurrentTermUnlocked",
       "uuid",
       uuid);
   DCHECK(lock_.is_locked());
@@ -5115,7 +5115,7 @@ Status RaftConsensus::SetVotedForCurrentTermUnlocked(const std::string& uuid) {
   return Status::OK();
 }
 
-const std::string& RaftConsensus::GetVotedForCurrentTermUnlocked() const {
+const std::string& RaftConsensus::getVotedForCurrentTermUnlocked() const {
   DCHECK(lock_.is_locked());
   DCHECK(cmeta_->hasVotedFor());
   return cmeta_->votedFor();
