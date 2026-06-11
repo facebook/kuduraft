@@ -39,52 +39,52 @@ template <typename T>
 class AtomicIntTest : public KuduTest {
  public:
   AtomicIntTest()
-      : max_(numeric_limits<T>::max()), min_(numeric_limits<T>::min()) {
-    acquireRelease_ = {kMemOrderNoBarrier, kMemOrderAcquire, kMemOrderRelease};
-    barrier_ = {kMemOrderNoBarrier, kMemOrderBarrier};
+      : max(numeric_limits<T>::max()), min(numeric_limits<T>::min()) {
+    acquireRelease = {kMemOrderNoBarrier, kMemOrderAcquire, kMemOrderRelease};
+    barrier = {kMemOrderNoBarrier, kMemOrderBarrier};
   }
 
-  vector<MemoryOrder> acquireRelease_;
-  vector<MemoryOrder> barrier_;
+  vector<MemoryOrder> acquireRelease;
+  vector<MemoryOrder> barrier;
 
-  T max_;
-  T min_;
+  T max;
+  T min;
 };
 
 using IntTypes = ::testing::Types<int32_t, int64_t, uint32_t, uint64_t>;
 TYPED_TEST_CASE(AtomicIntTest, IntTypes);
 
 TYPED_TEST(AtomicIntTest, LoadStore) {
-  for (const MemoryOrder memOrder : this->acquireRelease_) {
+  for (const MemoryOrder memOrder : this->acquireRelease) {
     AtomicInt<TypeParam> i(0);
     EXPECT_EQ(0, i.load(memOrder));
     i.store(42, memOrder);
     EXPECT_EQ(42, i.load(memOrder));
-    i.store(this->min_, memOrder);
-    EXPECT_EQ(this->min_, i.load(memOrder));
-    i.store(this->max_, memOrder);
-    EXPECT_EQ(this->max_, i.load(memOrder));
+    i.store(this->min, memOrder);
+    EXPECT_EQ(this->min, i.load(memOrder));
+    i.store(this->max, memOrder);
+    EXPECT_EQ(this->max, i.load(memOrder));
   }
 }
 
 TYPED_TEST(AtomicIntTest, SetSwapExchange) {
-  for (const MemoryOrder memOrder : this->acquireRelease_) {
+  for (const MemoryOrder memOrder : this->acquireRelease) {
     AtomicInt<TypeParam> i(0);
     EXPECT_TRUE(i.compareAndSet(0, 5, memOrder));
     EXPECT_EQ(5, i.load(memOrder));
     EXPECT_FALSE(i.compareAndSet(0, 10, memOrder));
 
-    EXPECT_EQ(5, i.compareAndSwap(5, this->max_, memOrder));
-    EXPECT_EQ(this->max_, i.compareAndSwap(42, 42, memOrder));
-    EXPECT_EQ(this->max_, i.compareAndSwap(this->max_, this->min_, memOrder));
+    EXPECT_EQ(5, i.compareAndSwap(5, this->max, memOrder));
+    EXPECT_EQ(this->max, i.compareAndSwap(42, 42, memOrder));
+    EXPECT_EQ(this->max, i.compareAndSwap(this->max, this->min, memOrder));
 
-    EXPECT_EQ(this->min_, i.exchange(this->max_, memOrder));
-    EXPECT_EQ(this->max_, i.load(memOrder));
+    EXPECT_EQ(this->min, i.exchange(this->max, memOrder));
+    EXPECT_EQ(this->max, i.load(memOrder));
   }
 }
 
 TYPED_TEST(AtomicIntTest, MinMax) {
-  for (const MemoryOrder memOrder : this->acquireRelease_) {
+  for (const MemoryOrder memOrder : this->acquireRelease) {
     AtomicInt<TypeParam> i(0);
 
     i.storeMax(100, memOrder);
@@ -97,15 +97,15 @@ TYPED_TEST(AtomicIntTest, MinMax) {
     i.storeMin(75, memOrder);
     EXPECT_EQ(50, i.load(memOrder));
 
-    i.storeMax(this->max_, memOrder);
-    EXPECT_EQ(this->max_, i.load(memOrder));
-    i.storeMin(this->min_, memOrder);
-    EXPECT_EQ(this->min_, i.load(memOrder));
+    i.storeMax(this->max, memOrder);
+    EXPECT_EQ(this->max, i.load(memOrder));
+    i.storeMin(this->min, memOrder);
+    EXPECT_EQ(this->min, i.load(memOrder));
   }
 }
 
 TYPED_TEST(AtomicIntTest, Increment) {
-  for (const MemoryOrder memOrder : this->barrier_) {
+  for (const MemoryOrder memOrder : this->barrier) {
     AtomicInt<TypeParam> i(0);
     EXPECT_EQ(1, i.increment(memOrder));
     EXPECT_EQ(3, i.incrementBy(2, memOrder));
