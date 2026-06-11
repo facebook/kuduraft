@@ -65,7 +65,7 @@ void StripString(std::string* s, StringPiece remove, char replacewith);
 //       StripDupCharacters("a//b/c//d", '/', 0) => "a/b/c/d"
 //    Return the number of characters removed
 // ----------------------------------------------------------------------
-int StripDupCharacters(std::string* s, char dup_char, int start_pos);
+int StripDupCharacters(std::string* s, char dupChar, int startPos);
 
 // ----------------------------------------------------------------------
 // StripWhiteSpace

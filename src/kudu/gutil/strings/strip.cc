@@ -27,11 +27,11 @@ bool TryStripPrefixString(
     StringPiece str,
     const StringPiece& prefix,
     string* result) {
-  const bool has_prefix = str.startsWith(prefix);
-  if (has_prefix)
+  const bool hasPrefix = str.startsWith(prefix);
+  if (hasPrefix)
     str.removePrefix(prefix.length());
   str.asString().swap(*result);
-  return has_prefix;
+  return hasPrefix;
 }
 
 string StripSuffixString(StringPiece str, const StringPiece& suffix) {
@@ -44,11 +44,11 @@ bool TryStripSuffixString(
     StringPiece str,
     const StringPiece& suffix,
     string* result) {
-  const bool has_suffix = str.endsWith(suffix);
-  if (has_suffix)
+  const bool hasSuffix = str.endsWith(suffix);
+  if (hasSuffix)
     str.removeSuffix(suffix.length());
   str.asString().swap(*result);
-  return has_suffix;
+  return hasSuffix;
 }
 
 // ----------------------------------------------------------------------
@@ -109,29 +109,29 @@ bool StripTrailingNewline(string* s) {
 }
 
 void StripWhiteSpace(string* str) {
-  int str_length = str->length();
+  int strLength = str->length();
 
   // Strip off leading whitespace.
   int first = 0;
-  while (first < str_length && asciiIsSpace(str->at(first))) {
+  while (first < strLength && asciiIsSpace(str->at(first))) {
     ++first;
   }
   // If entire string is white space.
-  if (first == str_length) {
+  if (first == strLength) {
     str->clear();
     return;
   }
   if (first > 0) {
     str->erase(0, first);
-    str_length -= first;
+    strLength -= first;
   }
 
   // Strip off trailing whitespace.
-  int last = str_length - 1;
+  int last = strLength - 1;
   while (last >= 0 && asciiIsSpace(str->at(last))) {
     --last;
   }
-  if (last != (str_length - 1) && last >= 0) {
+  if (last != (strLength - 1) && last >= 0) {
     str->erase(last + 1, string::npos);
   }
 }
@@ -144,27 +144,27 @@ void StripCurlyBraces(string* s) {
 }
 
 void StripBrackets(char left, char right, string* s) {
-  string::iterator opencurly = find(s->begin(), s->end(), left);
-  while (opencurly != s->end()) {
-    string::iterator closecurly = find(opencurly, s->end(), right);
-    if (closecurly == s->end())
+  string::iterator openCurly = find(s->begin(), s->end(), left);
+  while (openCurly != s->end()) {
+    string::iterator closeCurly = find(openCurly, s->end(), right);
+    if (closeCurly == s->end())
       return;
-    opencurly = s->erase(opencurly, closecurly + 1);
-    opencurly = find(opencurly, s->end(), left);
+    openCurly = s->erase(openCurly, closeCurly + 1);
+    openCurly = find(openCurly, s->end(), left);
   }
 }
 
 void StripMarkupTags(string* s) {
-  string::iterator openbracket = find(s->begin(), s->end(), '<');
-  while (openbracket != s->end()) {
-    string::iterator closebracket = find(openbracket, s->end(), '>');
-    if (closebracket == s->end()) {
-      s->erase(openbracket, closebracket);
+  string::iterator openBracket = find(s->begin(), s->end(), '<');
+  while (openBracket != s->end()) {
+    string::iterator closeBracket = find(openBracket, s->end(), '>');
+    if (closeBracket == s->end()) {
+      s->erase(openBracket, closeBracket);
       return;
     }
 
-    openbracket = s->erase(openbracket, closebracket + 1);
-    openbracket = find(openbracket, s->end(), '<');
+    openBracket = s->erase(openBracket, closeBracket + 1);
+    openBracket = find(openBracket, s->end(), '<');
   }
 }
 
@@ -234,21 +234,21 @@ int strrmm(char* str, const char* chars) {
 }
 
 int strrmm(string* str, const string& chars) {
-  size_t str_len = str->length();
-  size_t in_index = str->find_first_of(chars);
-  if (in_index == string::npos)
-    return str_len;
+  size_t strLen = str->length();
+  size_t inIndex = str->find_first_of(chars);
+  if (inIndex == string::npos)
+    return strLen;
 
-  size_t out_index = in_index++;
+  size_t outIndex = inIndex++;
 
-  while (in_index < str_len) {
-    char c = (*str)[in_index++];
+  while (inIndex < strLen) {
+    char c = (*str)[inIndex++];
     if (chars.find(c) == string::npos)
-      (*str)[out_index++] = c;
+      (*str)[outIndex++] = c;
   }
 
-  str->resize(out_index);
-  return out_index;
+  str->resize(outIndex);
+  return outIndex;
 }
 
 // ----------------------------------------------------------------------
@@ -258,30 +258,30 @@ int strrmm(string* str, const string& chars) {
 //       StripDupCharacters("a//b/c//d", '/', 0) => "a/b/c/d"
 //    Return the number of characters removed
 // ----------------------------------------------------------------------
-int StripDupCharacters(string* s, char dup_char, int start_pos) {
-  if (start_pos < 0)
-    start_pos = 0;
+int StripDupCharacters(string* s, char dupChar, int startPos) {
+  if (startPos < 0)
+    startPos = 0;
 
   // remove dups by compaction in-place
-  int input_pos = start_pos; // current reader position
-  int output_pos = start_pos; // current writer position
-  const int input_end = s->size();
-  while (input_pos < input_end) {
+  int inputPos = startPos; // current reader position
+  int outputPos = startPos; // current writer position
+  const int inputEnd = s->size();
+  while (inputPos < inputEnd) {
     // keep current character
-    const char curr_char = (*s)[input_pos];
-    if (output_pos != input_pos) // must copy
-      (*s)[output_pos] = curr_char;
-    ++input_pos;
-    ++output_pos;
+    const char currChar = (*s)[inputPos];
+    if (outputPos != inputPos) // must copy
+      (*s)[outputPos] = currChar;
+    ++inputPos;
+    ++outputPos;
 
-    if (curr_char == dup_char) { // skip subsequent dups
-      while ((input_pos < input_end) && ((*s)[input_pos] == dup_char))
-        ++input_pos;
+    if (currChar == dupChar) { // skip subsequent dups
+      while ((inputPos < inputEnd) && ((*s)[inputPos] == dupChar))
+        ++inputPos;
     }
   }
-  const int num_deleted = input_pos - output_pos;
-  s->resize(s->size() - num_deleted);
-  return num_deleted;
+  const int numDeleted = inputPos - outputPos;
+  s->resize(s->size() - numDeleted);
+  return numDeleted;
 }
 
 // ----------------------------------------------------------------------
@@ -295,32 +295,32 @@ void RemoveExtraWhitespace(string* s) {
   if (s->empty())
     return;
 
-  int input_pos = 0; // current reader position
-  int output_pos = 0; // current writer position
-  const int input_end = s->size();
+  int inputPos = 0; // current reader position
+  int outputPos = 0; // current writer position
+  const int inputEnd = s->size();
   // Strip off leading space
-  while (input_pos < input_end && asciiIsSpace((*s)[input_pos]))
-    input_pos++;
+  while (inputPos < inputEnd && asciiIsSpace((*s)[inputPos]))
+    inputPos++;
 
-  while (input_pos < input_end - 1) {
-    char c = (*s)[input_pos];
-    char next = (*s)[input_pos + 1];
+  while (inputPos < inputEnd - 1) {
+    char c = (*s)[inputPos];
+    char next = (*s)[inputPos + 1];
     // Copy each non-whitespace character to the right position.
     // For a block of whitespace, print the last one.
     if (!asciiIsSpace(c) || !asciiIsSpace(next)) {
-      if (output_pos != input_pos) { // only copy if needed
-        (*s)[output_pos] = c;
+      if (outputPos != inputPos) { // only copy if needed
+        (*s)[outputPos] = c;
       }
-      output_pos++;
+      outputPos++;
     }
-    input_pos++;
+    inputPos++;
   }
   // Pick up the last character if needed.
-  char c = (*s)[input_end - 1];
+  char c = (*s)[inputEnd - 1];
   if (!asciiIsSpace(c))
-    (*s)[output_pos++] = c;
+    (*s)[outputPos++] = c;
 
-  s->resize(output_pos);
+  s->resize(outputPos);
 }
 
 //------------------------------------------------------------------------
@@ -359,13 +359,13 @@ void StripTrailingWhitespace(string* const s) {
 // ----------------------------------------------------------------------
 void TrimRunsInString(string* s, StringPiece remove) {
   string::iterator dest = s->begin();
-  string::iterator src_end = s->end();
-  for (string::iterator src = s->begin(); src != src_end;) {
+  string::iterator srcEnd = s->end();
+  for (string::iterator src = s->begin(); src != srcEnd;) {
     if (remove.find(*src) == StringPiece::kNpos) {
       *(dest++) = *(src++);
     } else {
       // Skip to the end of this run of chars that are in 'remove'.
-      for (++src; src != src_end; ++src) {
+      for (++src; src != srcEnd; ++src) {
         if (remove.find(*src) == StringPiece::kNpos) {
           if (dest != s->begin()) {
             // This is an internal run; collapse it.
@@ -377,7 +377,7 @@ void TrimRunsInString(string* s, StringPiece remove) {
       }
     }
   }
-  s->erase(dest, src_end);
+  s->erase(dest, srcEnd);
 }
 
 // ----------------------------------------------------------------------
