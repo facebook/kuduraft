@@ -651,15 +651,15 @@ Status ReadableLogSegment::scanForValidEntryHeaders(
     }
 
     // Check if this chunk has a valid entry header.
-    for (int off_in_chunk = 0; off_in_chunk < chunk.size() - entryHeaderSize();
-         off_in_chunk++) {
-      Slice potential_header = Slice(&chunk[off_in_chunk], entryHeaderSize());
+    for (int offInChunk = 0; offInChunk < chunk.size() - entryHeaderSize();
+         offInChunk++) {
+      Slice potentialHeader = Slice(&chunk[offInChunk], entryHeaderSize());
 
       EntryHeader header;
-      if (decodeEntryHeader(potential_header, &header) ==
+      if (decodeEntryHeader(potentialHeader, &header) ==
           EntryHeaderStatus::Ok) {
         VLOG(1) << "Found a valid entry header at offset "
-                << (offset + off_in_chunk);
+                << (offset + offInChunk);
         *hasValidEntries = true;
         return Status::OK();
       }
