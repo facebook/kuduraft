@@ -55,10 +55,10 @@ class WireProtocolTest : public KuduTest {
              ColumnSchema("col2", STRING),
              ColumnSchema("col3", UINT32, true /* nullable */)},
             1),
-        test_data_arena_(4096) {}
+        testDataArena_(4096) {}
 
   void fillRowBlockWithTestRows(RowBlock* block) {
-    test_data_arena_.reset();
+    testDataArena_.reset();
     block->selection_vector()->SetAllTrue();
 
     for (int i = 0; i < block->nrows(); i++) {
@@ -69,8 +69,8 @@ class WireProtocolTest : public KuduTest {
       // for each row, the memory accesses fit entirely into a smaller number of
       // cache lines and we may micro-optimize for the wrong thing.
       Slice col1, col2;
-      CHECK(test_data_arena_.relocateSlice("hello world col1", &col1));
-      CHECK(test_data_arena_.relocateSlice("hello world col2", &col2));
+      CHECK(testDataArena_.relocateSlice("hello world col1", &col1));
+      CHECK(testDataArena_.relocateSlice("hello world col2", &col2));
       *reinterpret_cast<Slice*>(row.mutable_cell_ptr(0)) = col1;
       *reinterpret_cast<Slice*>(row.mutable_cell_ptr(1)) = col2;
       *reinterpret_cast<uint32_t*>(row.mutable_cell_ptr(2)) = i;
@@ -80,7 +80,7 @@ class WireProtocolTest : public KuduTest {
 
  protected:
   Schema schema_;
-  Arena test_data_arena_;
+  Arena testDataArena_;
 };
 
 TEST_F(WireProtocolTest, TestOKStatus) {
@@ -264,8 +264,8 @@ TEST_F(WireProtocolTest, TestColumnarRowBlockToPBWithPadding) {
     *reinterpret_cast<int64_t*>(row.mutable_cell_ptr(0)) = i;
     Slice col1;
     // See: fillRowBlockWithTestRows() for the reason why we relocate these
-    // to 'test_data_arena_'.
-    CHECK(test_data_arena_.relocateSlice("hello world col1", &col1));
+    // to 'testDataArena_'.
+    CHECK(testDataArena_.relocateSlice("hello world col1", &col1));
     *reinterpret_cast<Slice*>(row.mutable_cell_ptr(1)) = col1;
     *reinterpret_cast<int64_t*>(row.mutable_cell_ptr(2)) = i;
     *reinterpret_cast<int32_t*>(row.mutable_cell_ptr(3)) = i;
