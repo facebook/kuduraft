@@ -413,14 +413,13 @@ inline uint8_t* ArenaBase<true>::Component::allocateBytesAligned(
       alignment == 16)
       << "bad alignment: " << alignment;
 retry:
-  Atomic32 offset = Acquire_Load(&offset_);
+  Atomic32 offset = acquireLoad(&offset_);
 
   Atomic32 aligned = KUDU_ALIGN_UP(offset, alignment);
   Atomic32 newOffset = aligned + size;
 
   if (PREDICT_TRUE(newOffset <= size_)) {
-    bool success =
-        Acquire_CompareAndSwap(&offset_, offset, newOffset) == offset;
+    bool success = acquireCompareAndSwap(&offset_, offset, newOffset) == offset;
     if (PREDICT_TRUE(success)) {
       asanUnpoison(data_ + aligned, size);
       return data_ + aligned;

@@ -158,7 +158,7 @@ class RwSemaphore {
 
     resetLockHolderStack();
     // Reset: no writers & no readers.
-    Release_Store(&state_, 0);
+    releaseStore(&state_, 0);
   }
 
   // Return true if the lock is currently held for write by any thread.

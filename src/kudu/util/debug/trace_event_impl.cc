@@ -434,8 +434,8 @@ class MarkFlagInScope {
  public:
   explicit MarkFlagInScope(Atomic32* dst) : dst_(dst) {
     // We currently use acquireAtomicExchange here because it appears
-    // to be the cheapest way of getting an "Acquire_Store" barrier. Actually
-    // using Acquire_Store generates more assembly instructions and benchmarks
+    // to be the cheapest way of getting an "acquireStore" barrier. Actually
+    // using acquireStore generates more assembly instructions and benchmarks
     // slightly slower.
     //
     // TODO: it would be even faster to avoid the memory barrier here entirely,

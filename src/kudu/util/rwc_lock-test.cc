@@ -33,7 +33,6 @@
 namespace kudu {
 
 using base::subtle::NoBarrier_Load;
-using base::subtle::Release_Store;
 using std::string;
 using std::thread;
 using std::vector;
@@ -113,7 +112,7 @@ void writerThread(SharedState* state) {
 
 TEST_F(RwcLockTest, TestCorrectBehavior) {
   SharedState state;
-  Release_Store(&state.stop, 0);
+  releaseStore(&state.stop, 0);
 
   vector<thread> threads;
 
@@ -133,7 +132,7 @@ TEST_F(RwcLockTest, TestCorrectBehavior) {
     SleepFor(MonoDelta::FromMilliseconds(100));
   }
 
-  Release_Store(&state.stop, 1);
+  releaseStore(&state.stop, 1);
 
   for (thread& t : threads) {
     t.join();

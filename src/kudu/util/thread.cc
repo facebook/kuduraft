@@ -568,7 +568,7 @@ void* Thread::superviseThread(void* arg) {
   // IMPORTANT: This MUST be done before posting to the baton, otherwise the
   // parent could wake from baton.wait() and call tid() before it's been
   // initialized.
-  Release_Store(&t->tid_, systemTid);
+  releaseStore(&t->tid_, systemTid);
 
   // Signal the parent thread that we've successfully taken ownership of the
   // Thread shared_ptr and initialized. It's now safe for the parent to return

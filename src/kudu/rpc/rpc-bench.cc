@@ -175,7 +175,7 @@ class ClientThread {
 
     AddRequestPB req;
     AddResponsePB resp;
-    while (Acquire_Load(&bench_->shouldRun_)) {
+    while (acquireLoad(&bench_->shouldRun_)) {
       req.set_x(requestCount);
       req.set_y(requestCount);
       RpcController controller;
@@ -203,7 +203,7 @@ TEST_F(RpcBench, BenchmarkCalls) {
   }
 
   SleepFor(MonoDelta::FromSeconds(FLAGS_run_seconds));
-  Release_Store(&shouldRun_, false);
+  releaseStore(&shouldRun_, false);
 
   int totalReqs = 0;
 
@@ -230,7 +230,7 @@ class ClientAsyncWorkload {
       CHECK_OK(controller_.status());
       CHECK_EQ(req_.x() + req_.y(), resp_.result());
     }
-    if (!Acquire_Load(&bench_->shouldRun_)) {
+    if (!acquireLoad(&bench_->shouldRun_)) {
       bench_->stop_.countDown();
       return;
     }
@@ -286,7 +286,7 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
   }
 
   SleepFor(MonoDelta::FromSeconds(FLAGS_run_seconds));
-  Release_Store(&shouldRun_, false);
+  releaseStore(&shouldRun_, false);
 
   sw.stop();
 

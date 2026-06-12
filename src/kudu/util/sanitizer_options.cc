@@ -104,7 +104,7 @@ SANITIZER_HOOK_ATTRIBUTE const char* __tsan_default_suppressions() {
       // error.
       // 3. g_now_entering in stacktrace_libunwind-inl.h is reset to false
       // without
-      //    a Release_Store.
+      //    a releaseStore.
       // 4. glog's KUDU_ANNONTATE_BENIGN_RACE macro doesn't do anything.
       // 5. Mutex::is_safe_ is accessed in an unsafe way.
       // 6. vlocal__ is access in an unsafe way at every VLOG() or VLOG_IS_ON()

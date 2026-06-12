@@ -291,93 +291,93 @@ void pauseCpu();
 
 #ifdef AtomicWordCastType
 // AtomicWord versions to be deprecated
-inline AtomicWord Acquire_CompareAndSwap(
+inline AtomicWord acquireCompareAndSwap(
     volatile AtomicWord* ptr,
     AtomicWord oldValue,
     AtomicWord newValue) {
   return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
 
-inline AtomicWord Release_CompareAndSwap(
+inline AtomicWord releaseCompareAndSwap(
     volatile AtomicWord* ptr,
     AtomicWord oldValue,
     AtomicWord newValue) {
   return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
 }
 
-inline void Acquire_Store(volatile AtomicWord* ptr, AtomicWord value) {
+inline void acquireStore(volatile AtomicWord* ptr, AtomicWord value) {
   return base::subtle::Acquire_Store(ptr, value);
 }
 
-inline void Release_Store(volatile AtomicWord* ptr, AtomicWord value) {
+inline void releaseStore(volatile AtomicWord* ptr, AtomicWord value) {
   return base::subtle::Release_Store(ptr, value);
 }
 
-inline AtomicWord Acquire_Load(volatile const AtomicWord* ptr) {
+inline AtomicWord acquireLoad(volatile const AtomicWord* ptr) {
   return base::subtle::Acquire_Load(ptr);
 }
 
-inline AtomicWord Release_Load(volatile const AtomicWord* ptr) {
+inline AtomicWord releaseLoad(volatile const AtomicWord* ptr) {
   return base::subtle::Release_Load(ptr);
 }
 #endif // AtomicWordCastType
 
 // 32-bit Acquire/Release operations to be deprecated.
 
-inline Atomic32 Acquire_CompareAndSwap(
+inline Atomic32 acquireCompareAndSwap(
     volatile Atomic32* ptr,
     Atomic32 oldValue,
     Atomic32 newValue) {
   return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
-inline Atomic32 Release_CompareAndSwap(
+inline Atomic32 releaseCompareAndSwap(
     volatile Atomic32* ptr,
     Atomic32 oldValue,
     Atomic32 newValue) {
   return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
 }
-inline void Acquire_Store(volatile Atomic32* ptr, Atomic32 value) {
+inline void acquireStore(volatile Atomic32* ptr, Atomic32 value) {
   base::subtle::Acquire_Store(ptr, value);
 }
-inline void Release_Store(volatile Atomic32* ptr, Atomic32 value) {
+inline void releaseStore(volatile Atomic32* ptr, Atomic32 value) {
   return base::subtle::Release_Store(ptr, value);
 }
-inline Atomic32 Acquire_Load(volatile const Atomic32* ptr) {
+inline Atomic32 acquireLoad(volatile const Atomic32* ptr) {
   return base::subtle::Acquire_Load(ptr);
 }
-inline Atomic32 Release_Load(volatile const Atomic32* ptr) {
+inline Atomic32 releaseLoad(volatile const Atomic32* ptr) {
   return base::subtle::Release_Load(ptr);
 }
 
 // 64-bit Acquire/Release operations to be deprecated.
 
-inline base::subtle::Atomic64 Acquire_CompareAndSwap(
+inline base::subtle::Atomic64 acquireCompareAndSwap(
     volatile base::subtle::Atomic64* ptr,
     base::subtle::Atomic64 oldValue,
     base::subtle::Atomic64 newValue) {
   return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
-inline base::subtle::Atomic64 Release_CompareAndSwap(
+inline base::subtle::Atomic64 releaseCompareAndSwap(
     volatile base::subtle::Atomic64* ptr,
     base::subtle::Atomic64 oldValue,
     base::subtle::Atomic64 newValue) {
   return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
 }
-inline void Acquire_Store(
+inline void acquireStore(
     volatile base::subtle::Atomic64* ptr,
     base::subtle::Atomic64 value) {
   base::subtle::Acquire_Store(ptr, value);
 }
-inline void Release_Store(
+inline void releaseStore(
     volatile base::subtle::Atomic64* ptr,
     base::subtle::Atomic64 value) {
   return base::subtle::Release_Store(ptr, value);
 }
-inline base::subtle::Atomic64 Acquire_Load(
+inline base::subtle::Atomic64 acquireLoad(
     volatile const base::subtle::Atomic64* ptr) {
   return base::subtle::Acquire_Load(ptr);
 }
-inline base::subtle::Atomic64 Release_Load(
+inline base::subtle::Atomic64 releaseLoad(
     volatile const base::subtle::Atomic64* ptr) {
   return base::subtle::Release_Load(ptr);
 }

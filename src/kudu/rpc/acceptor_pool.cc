@@ -100,7 +100,7 @@ Status AcceptorPool::start(int numThreads) {
 }
 
 void AcceptorPool::shutdown() {
-  if (Acquire_CompareAndSwap(&closing_, false, true) != false) {
+  if (acquireCompareAndSwap(&closing_, false, true) != false) {
     VLOG(2) << "Acceptor Pool on " << bindAddress_.ToString()
             << " already shut down";
     return;
@@ -159,7 +159,7 @@ void AcceptorPool::runThread() {
             << " listening on " << bindAddress_.ToString();
     Status s = socket_.accept(&newSock, &remote, Socket::kFlagNonblocking);
     if (!s.ok()) {
-      if (Release_Load(&closing_)) {
+      if (releaseLoad(&closing_)) {
         break;
       }
       KLOG_EVERY_N_SECS(WARNING, 1)
