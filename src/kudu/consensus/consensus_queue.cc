@@ -1851,7 +1851,13 @@ void PeerMessageQueue::updateFollowerWatermarks(
     int64_t region_durable_index) {
   std::lock_guard<simple_mutexlock> l(queueLock_);
   DCHECK_EQ(queueState_.mode, NON_LEADER);
-  queueState_.committed_index = committed_index;
+  // A follower's committed index is monotonic: committed entries are durable
+  // and are never un-committed (Leader Completeness). A leader can legitimately
+  // advertise a lower committed index than what we already have (e.g. a new
+  // leader that has not yet re-committed in its term, or an empty heartbeat
+  // whose preceding id is below our committed index), so never roll back here.
+  queueState_.committed_index =
+      std::max(queueState_.committed_index, committed_index);
   queueState_.all_replicated_index = all_replicated_index;
 
   if (region_durable_index > queueState_.region_durable_index) {

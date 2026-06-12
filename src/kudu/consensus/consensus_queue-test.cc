@@ -921,6 +921,28 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   ASSERT_EQ(0, queue_->getAllReplicatedIndex());
 }
 
+// A follower's committed index must never roll back. A leader can legitimately
+// advertise a lower committed index than the follower already has -- e.g. a new
+// leader that has not yet re-committed in its term, or an empty heartbeat whose
+// preceding id is below our committed index -- and updateFollowerWatermarks
+// must keep the higher value.
+TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexDoesNotRewind) {
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+
+  queue_->updateFollowerWatermarks(
+      /*committed_index=*/100,
+      /*all_replicated_index=*/100,
+      /*region_durable_index=*/100);
+  ASSERT_EQ(100, queue_->getCommittedIndex());
+
+  // A lower committed index from the leader must not roll us back.
+  queue_->updateFollowerWatermarks(
+      /*committed_index=*/0,
+      /*all_replicated_index=*/100,
+      /*region_durable_index=*/100);
+  ASSERT_EQ(100, queue_->getCommittedIndex());
+}
+
 // Test for watermark advancement during joint-consensus phase with
 // transitional config. The transitional config is below:
 //   C_old      = {peer-0, peer-1, peer-2}
