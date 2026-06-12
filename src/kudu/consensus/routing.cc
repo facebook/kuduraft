@@ -516,7 +516,7 @@ DurableRoutingTable::DurableRoutingTable(
 
 Status DurableRoutingTable::flush() const {
   // TODO(mpercy): This entire method is copy / pasted from
-  // ConsensusMetadata::Flush(). Factor out?
+  // ConsensusMetadata::flush(). Factor out?
 
   // Create directories if needed.
   string dir = fsManager_->GetConsensusMetadataDir();
