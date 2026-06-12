@@ -81,11 +81,11 @@ void getRaftPeerDetail(
     bool* isVoter,
     std::string* quorumId,
     const CommitRulePB& commitRule) {
-  const ::kudu::HostPortPB& host_port = peer.last_known_addr();
+  const ::kudu::HostPortPB& hostPort = peer.last_known_addr();
   if (!peer.hostname().empty()) {
-    *hostnamePort = fmt::format("{}:{}", peer.hostname(), host_port.port());
+    *hostnamePort = fmt::format("{}:{}", peer.hostname(), hostPort.port());
   } else {
-    *hostnamePort = fmt::format("[{}]:{}", host_port.host(), host_port.port());
+    *hostnamePort = fmt::format("[{}]:{}", hostPort.host(), hostPort.port());
   }
   *isVoter = (peer.member_type() == RaftPeerPB::VOTER);
   *quorumId = getQuorumId(peer, commitRule);
@@ -224,11 +224,11 @@ int majoritySize(int numVoters) {
 }
 
 int resolveCommitRequirement(int totalVoters, const std::string& commitReq) {
-  int num_votes_required = parseCommitRequirement(commitReq);
+  int numVotesRequired = parseCommitRequirement(commitReq);
   // Resolve majority specification.
-  if (num_votes_required != -1) {
-    DCHECK_GE(totalVoters, num_votes_required);
-    return num_votes_required;
+  if (numVotesRequired != -1) {
+    DCHECK_GE(totalVoters, numVotesRequired);
+    return numVotesRequired;
   } else {
     return majoritySize(totalVoters);
   }
@@ -366,12 +366,12 @@ std::string diffRaftConfigs(
     std::vector<std::string>* evictedPeers) {
   // Create dummy ConsensusState objects so we can reuse the code
   // from the below function.
-  ConsensusStatePB old_state;
-  old_state.mutable_committed_config()->CopyFrom(oldConfig);
-  ConsensusStatePB new_state;
-  new_state.mutable_committed_config()->CopyFrom(newConfig);
+  ConsensusStatePB oldState;
+  oldState.mutable_committed_config()->CopyFrom(oldConfig);
+  ConsensusStatePB newState;
+  newState.mutable_committed_config()->CopyFrom(newConfig);
 
-  return diffConsensusStates(old_state, new_state, evictedPeers);
+  return diffConsensusStates(oldState, newState, evictedPeers);
 }
 
 namespace {
@@ -380,49 +380,48 @@ namespace {
 using PeerInfoMap = map<string, pair<RaftPeerPB, RaftPeerPB>>;
 
 bool diffPeers(
-    const PeerInfoMap& peer_infos,
-    vector<string>* change_strs,
-    vector<string>* evicted_peers) {
+    const PeerInfoMap& peerInfos,
+    vector<string>* changeStrs,
+    vector<string>* evictedPeers) {
   bool changes = false;
-  for (const auto& e : peer_infos) {
-    const auto& old_peer = e.second.first;
-    const auto& new_peer = e.second.second;
-    if (old_peer.has_permanent_uuid() && !new_peer.has_permanent_uuid()) {
+  for (const auto& e : peerInfos) {
+    const auto& oldPeer = e.second.first;
+    const auto& newPeer = e.second.second;
+    if (oldPeer.has_permanent_uuid() && !newPeer.has_permanent_uuid()) {
       changes = true;
-      if (evicted_peers) {
+      if (evictedPeers) {
         auto it = std::find(
-            evicted_peers->begin(),
-            evicted_peers->end(),
-            old_peer.permanent_uuid());
-        if (it == evicted_peers->end()) {
-          evicted_peers->emplace_back(old_peer.permanent_uuid());
+            evictedPeers->begin(),
+            evictedPeers->end(),
+            oldPeer.permanent_uuid());
+        if (it == evictedPeers->end()) {
+          evictedPeers->emplace_back(oldPeer.permanent_uuid());
         }
       }
-      change_strs->push_back(
+      changeStrs->push_back(
           fmt::format(
               "{} {} ({}) evicted",
-              RaftPeerPB_MemberType_Name(old_peer.member_type()),
-              old_peer.permanent_uuid(),
-              old_peer.last_known_addr().host()));
-    } else if (
-        !old_peer.has_permanent_uuid() && new_peer.has_permanent_uuid()) {
+              RaftPeerPB_MemberType_Name(oldPeer.member_type()),
+              oldPeer.permanent_uuid(),
+              oldPeer.last_known_addr().host()));
+    } else if (!oldPeer.has_permanent_uuid() && newPeer.has_permanent_uuid()) {
       changes = true;
-      change_strs->push_back(
+      changeStrs->push_back(
           fmt::format(
               "{} {} ({}) added",
-              RaftPeerPB_MemberType_Name(new_peer.member_type()),
-              new_peer.permanent_uuid(),
-              new_peer.last_known_addr().host()));
-    } else if (old_peer.has_permanent_uuid() && new_peer.has_permanent_uuid()) {
-      if (old_peer.member_type() != new_peer.member_type()) {
+              RaftPeerPB_MemberType_Name(newPeer.member_type()),
+              newPeer.permanent_uuid(),
+              newPeer.last_known_addr().host()));
+    } else if (oldPeer.has_permanent_uuid() && newPeer.has_permanent_uuid()) {
+      if (oldPeer.member_type() != newPeer.member_type()) {
         changes = true;
-        change_strs->push_back(
+        changeStrs->push_back(
             fmt::format(
                 "{} ({}) changed from {} to {}",
-                old_peer.permanent_uuid(),
-                old_peer.last_known_addr().host(),
-                RaftPeerPB_MemberType_Name(old_peer.member_type()),
-                RaftPeerPB_MemberType_Name(new_peer.member_type())));
+                oldPeer.permanent_uuid(),
+                oldPeer.last_known_addr().host(),
+                RaftPeerPB_MemberType_Name(oldPeer.member_type()),
+                RaftPeerPB_MemberType_Name(newPeer.member_type())));
       }
     }
   }
