@@ -397,14 +397,6 @@ inline LimitImpl<Literal> limit(const char* s, int maxCount) {
   return LimitImpl<Literal>(Literal(s), maxCount);
 }
 
-inline LimitImpl<Literal> limit(const std::string& s, int maxCount) {
-  return LimitImpl<Literal>(Literal(s), maxCount);
-}
-
-inline LimitImpl<Literal> limit(StringPiece s, int maxCount) {
-  return LimitImpl<Literal>(Literal(s), maxCount);
-}
-
 } // namespace delimiter
 
 //
@@ -456,38 +448,10 @@ inline internal::Splitter<delimiter::Literal> split(
       text, delimiter::Literal(delimiter));
 }
 
-inline internal::Splitter<delimiter::Literal> split(
-    StringPiece text,
-    const std::string& delimiter) {
-  return internal::Splitter<delimiter::Literal>(
-      text, delimiter::Literal(delimiter));
-}
-
-inline internal::Splitter<delimiter::Literal> split(
-    StringPiece text,
-    StringPiece delimiter) {
-  return internal::Splitter<delimiter::Literal>(
-      text, delimiter::Literal(delimiter));
-}
-
 // Same overloads as above, but also including a Predicate argument.
 template <typename Predicate>
 inline internal::Splitter<delimiter::Literal, Predicate>
 split(StringPiece text, const char* delimiter, Predicate p) {
-  return internal::Splitter<delimiter::Literal, Predicate>(
-      text, delimiter::Literal(delimiter), p);
-}
-
-template <typename Predicate>
-inline internal::Splitter<delimiter::Literal, Predicate>
-split(StringPiece text, const std::string& delimiter, Predicate p) {
-  return internal::Splitter<delimiter::Literal, Predicate>(
-      text, delimiter::Literal(delimiter), p);
-}
-
-template <typename Predicate>
-inline internal::Splitter<delimiter::Literal, Predicate>
-split(StringPiece text, StringPiece delimiter, Predicate p) {
   return internal::Splitter<delimiter::Literal, Predicate>(
       text, delimiter::Literal(delimiter), p);
 }
