@@ -52,43 +52,37 @@ using std::vector;
 
 Status Log::Open(
     const LogOptions& options,
-    FsManager* fs_manager,
-    const std::string& tablet_id,
-    const std::shared_ptr<MetricEntity>& metric_entity,
+    FsManager* fsManager,
+    const std::string& tabletId,
+    const std::shared_ptr<MetricEntity>& metricEntity,
     std::shared_ptr<Log>* log) {
-  string tablet_wal_path = fs_manager->GetTabletWalDir(tablet_id);
-  RETURN_NOT_OK(
-      env_util::createDirIfMissing(fs_manager->env(), tablet_wal_path));
+  string tabletWalPath = fsManager->GetTabletWalDir(tabletId);
+  RETURN_NOT_OK(env_util::createDirIfMissing(fsManager->env(), tabletWalPath));
 
-  std::shared_ptr<Log> new_log;
+  std::shared_ptr<Log> newLog;
   if (options.logFactory) {
     RETURN_NOT_OK(options.logFactory->createLog(
-        options,
-        fs_manager,
-        tablet_wal_path,
-        tablet_id,
-        metric_entity,
-        &new_log));
+        options, fsManager, tabletWalPath, tabletId, metricEntity, &newLog));
   } else {
     return Status::NotSupported("No log factory provided");
   }
-  RETURN_NOT_OK(new_log->Init());
-  log->swap(new_log);
+  RETURN_NOT_OK(newLog->Init());
+  log->swap(newLog);
   return Status::OK();
 }
 
 Log::Log(
     LogOptions options,
-    FsManager* fs_manager,
-    string log_path,
-    string tablet_id,
-    std::shared_ptr<MetricEntity> metric_entity)
+    FsManager* fsManager,
+    string logPath,
+    string tabletId,
+    std::shared_ptr<MetricEntity> metricEntity)
     : options_(std::move(options)),
-      fs_manager_(fs_manager),
-      log_dir_(std::move(log_path)),
-      tablet_id_(std::move(tablet_id)),
+      fs_manager_(fsManager),
+      log_dir_(std::move(logPath)),
+      tablet_id_(std::move(tabletId)),
       log_state_(kLogInitialized),
-      metric_entity_(std::move(metric_entity)),
+      metric_entity_(std::move(metricEntity)),
       bootstrap_(std::make_shared<consensus::ConsensusBootstrapInfo>()) {
   if (metric_entity_) {
     metrics_.reset(new LogMetrics(metric_entity_));
@@ -98,15 +92,15 @@ Log::Log(
 Status Log::asyncAppendReplicates(
     const vector<consensus::ReplicateMsgWrapper>& wrappers,
     const StatusCallback& callback) {
-  vector<consensus::ReplicateRefPtr> uncompressed_msgs;
-  uncompressed_msgs.reserve(wrappers.size());
+  vector<consensus::ReplicateRefPtr> uncompressedMsgs;
+  uncompressedMsgs.reserve(wrappers.size());
 
   for (const auto& wrapper : wrappers) {
-    uncompressed_msgs.push_back(wrapper.getUncompressedMsg());
+    uncompressedMsgs.push_back(wrapper.getUncompressedMsg());
   }
   // By default we write uncompressed msgs to disk but a derived class can
   // choose to write compressed msgs instead
-  return asyncAppendReplicates(uncompressed_msgs, callback);
+  return asyncAppendReplicates(uncompressedMsgs, callback);
 }
 
 FsManager* Log::GetFsManager() {

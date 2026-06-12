@@ -121,9 +121,9 @@ class Log {
   // After a successful Open() the Log is ready to receive entries.
   static Status Open(
       const LogOptions& options,
-      FsManager* fs_manager,
-      const std::string& tablet_id,
-      const std::shared_ptr<MetricEntity>& metric_entity,
+      FsManager* fsManager,
+      const std::string& tabletId,
+      const std::shared_ptr<MetricEntity>& metricEntity,
       std::shared_ptr<Log>* log);
 
   virtual ~Log();
@@ -166,7 +166,7 @@ class Log {
   // the log specialization is expected to return the index of truncation
   virtual Status truncateOpsAfter(
       int64_t index,
-      int64_t* index_if_truncated = nullptr) = 0;
+      int64_t* indexIfTruncated = nullptr) = 0;
 
   // Get ID of tablet.
   const std::string& tablet_id() const {
@@ -185,7 +185,7 @@ class Log {
       const consensus::ReadContext& readContext,
       std::vector<consensus::ReplicateRefPtr>* replicates) const = 0;
 
-  virtual Status lookupOpId(int64_t op_index, consensus::OpId* op_id) const = 0;
+  virtual Status lookupOpId(int64_t opIndex, consensus::OpId* opId) const = 0;
 
  protected:
   friend class LogTest;
@@ -199,10 +199,10 @@ class Log {
   enum LogState { kLogInitialized, kLogWriting, kLogClosed };
 
   Log(LogOptions options,
-      FsManager* fs_manager,
-      std::string log_path,
-      std::string tablet_id,
-      std::shared_ptr<MetricEntity> metric_entity);
+      FsManager* fsManager,
+      std::string logPath,
+      std::string tabletId,
+      std::shared_ptr<MetricEntity> metricEntity);
 
   std::string logPrefix() const;
 
@@ -244,11 +244,11 @@ class LogFactory {
   LogFactory& operator=(LogFactory&&) = delete;
   virtual Status createLog(
       LogOptions options,
-      FsManager* fs_manager,
-      std::string log_path,
-      std::string tablet_id,
-      std::shared_ptr<MetricEntity> metric_entity,
-      std::shared_ptr<Log>* new_log) = 0;
+      FsManager* fsManager,
+      std::string logPath,
+      std::string tabletId,
+      std::shared_ptr<MetricEntity> metricEntity,
+      std::shared_ptr<Log>* newLog) = 0;
 };
 
 // Indicates which log indexes should be retained for different purposes.
