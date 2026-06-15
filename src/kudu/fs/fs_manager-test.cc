@@ -127,12 +127,12 @@ class FsManagerTestBase : public KuduTest {
 };
 
 TEST_F(FsManagerTestBase, TestBaseOperations) {
-  fsManager()->DumpFileSystemTree(std::cout);
+  fsManager()->dumpFileSystemTree(std::cout);
 
   testReadWriteDataFile(Slice("test0"));
   testReadWriteDataFile(Slice("test1"));
 
-  fsManager()->DumpFileSystemTree(std::cout);
+  fsManager()->dumpFileSystemTree(std::cout);
 }
 
 TEST_F(FsManagerTestBase, TestIllegalPaths) {
@@ -170,7 +170,7 @@ TEST_F(FsManagerTestBase, TestDuplicatePaths) {
 
 TEST_F(FsManagerTestBase, TestListTablets) {
   vector<string> tabletIds;
-  ASSERT_OK(fsManager()->ListTabletIds(&tabletIds));
+  ASSERT_OK(fsManager()->listTabletIds(&tabletIds));
   ASSERT_EQ(0, tabletIds.size());
 
   string path = fsManager()->GetTabletMetadataDir();
@@ -190,7 +190,7 @@ TEST_F(FsManagerTestBase, TestListTablets) {
   ASSERT_OK(env_->NewWritableFile(
       JoinPathSegments(path, "922ff7ed14c14dbca4ee16331dfda42a"), &writer));
 
-  ASSERT_OK(fsManager()->ListTabletIds(&tabletIds));
+  ASSERT_OK(fsManager()->listTabletIds(&tabletIds));
   ASSERT_EQ(1, tabletIds.size()) << tabletIds;
 }
 
@@ -668,7 +668,7 @@ TEST_F(FsManagerTestBase, TestUmask) {
   EXPECT_EQ("700", filePermsAsString(root));
   EXPECT_EQ("700", filePermsAsString(fsManager()->GetConsensusMetadataDir()));
   EXPECT_EQ(
-      "600", filePermsAsString(fsManager()->GetInstanceMetadataPath(root)));
+      "600", filePermsAsString(fsManager()->getInstanceMetadataPath(root)));
 
   // With umask 007, we should create files with permissions 660
   // and directories with 770.
@@ -681,7 +681,7 @@ TEST_F(FsManagerTestBase, TestUmask) {
   EXPECT_EQ("770", filePermsAsString(root));
   EXPECT_EQ("770", filePermsAsString(fsManager()->GetConsensusMetadataDir()));
   EXPECT_EQ(
-      "660", filePermsAsString(fsManager()->GetInstanceMetadataPath(root)));
+      "660", filePermsAsString(fsManager()->getInstanceMetadataPath(root)));
 
   // If we change the umask back to being restrictive and re-open the
   // filesystem, the permissions on the root dir should be fixed accordingly.

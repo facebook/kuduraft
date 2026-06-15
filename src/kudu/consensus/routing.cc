@@ -290,7 +290,7 @@ Status DurableRoutingTable::create(
     RaftConfigPB raftConfig,
     ProxyTopologyPB proxyTopology,
     std::shared_ptr<DurableRoutingTable>* drt) {
-  string path = fsManager->GetProxyMetadataPath(tabletId);
+  string path = fsManager->getProxyMetadataPath(tabletId);
   if (fsManager->env()->FileExists(path)) {
     return Status::AlreadyPresent(fmt::format("File {} already exists", path));
   }
@@ -312,7 +312,7 @@ Status DurableRoutingTable::load(
     RaftConfigPB raftConfig,
     LoadOptions opts,
     std::shared_ptr<DurableRoutingTable>* drt) {
-  string path = fsManager->GetProxyMetadataPath(tabletId);
+  string path = fsManager->getProxyMetadataPath(tabletId);
 
   ProxyTopologyPB proxyTopology;
   Status s =
@@ -334,7 +334,7 @@ Status DurableRoutingTable::load(
 Status DurableRoutingTable::deleteOnDiskData(
     FsManager* fsManager,
     const string& tabletId) {
-  string path = fsManager->GetProxyMetadataPath(tabletId);
+  string path = fsManager->getProxyMetadataPath(tabletId);
   RETURN_NOT_OK_PREPEND(
       fsManager->env()->DeleteFile(path),
       fmt::format(
@@ -532,7 +532,7 @@ Status DurableRoutingTable::flush() const {
         "Unable to fsync consensus parent dir " + parentDir);
   }
 
-  string path = fsManager_->GetProxyMetadataPath(tabletId_);
+  string path = fsManager_->getProxyMetadataPath(tabletId_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
           fsManager_->env(),

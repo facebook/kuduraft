@@ -56,7 +56,7 @@ Status Log::Open(
     const std::string& tabletId,
     const std::shared_ptr<MetricEntity>& metricEntity,
     std::shared_ptr<Log>* log) {
-  string tabletWalPath = fsManager->GetTabletWalDir(tabletId);
+  string tabletWalPath = fsManager->getTabletWalDir(tabletId);
   RETURN_NOT_OK(env_util::createDirIfMissing(fsManager->env(), tabletWalPath));
 
   std::shared_ptr<Log> newLog;

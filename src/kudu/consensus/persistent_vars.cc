@@ -94,7 +94,7 @@ Status PersistentVars::flush(FlushMode flushMode) {
         "Unable to fsync consensus parent dir " + parentDir);
   }
 
-  string persistentVarsFilePath = fsManager_->GetPersistentVarsPath(tabletId_);
+  string persistentVarsFilePath = fsManager_->getPersistentVarsPath(tabletId_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
           fsManager_->env(),
@@ -144,7 +144,7 @@ Status PersistentVars::load(
   RETURN_NOT_OK(
       pb_util::ReadPBContainerFromPath(
           fsManager->env(),
-          fsManager->GetPersistentVarsPath(tabletId),
+          fsManager->getPersistentVarsPath(tabletId),
           &persistentVars->pb_));
   if (persistentVars->pb_.has_raft_rpc_token()) {
     persistentVars->raftRpcTokenCache_ = std::make_shared<const std::string>(
@@ -160,7 +160,7 @@ bool PersistentVars::fileExists(
     FsManager* fsManager,
     const std::string& tabletId) {
   return fsManager->env()->FileExists(
-      fsManager->GetPersistentVarsPath(tabletId));
+      fsManager->getPersistentVarsPath(tabletId));
 }
 
 std::string PersistentVars::logPrefix() const {

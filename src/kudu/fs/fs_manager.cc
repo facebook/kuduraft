@@ -269,7 +269,7 @@ Status FsManager::Open(FsReport* report) {
     }
     unique_ptr<InstanceMetadataPB> pb(new InstanceMetadataPB);
     Status s = pb_util::ReadPBContainerFromPath(
-        env_, GetInstanceMetadataPath(root.path), pb.get());
+        env_, getInstanceMetadataPath(root.path), pb.get());
     if (PREDICT_FALSE(!s.ok())) {
       if (s.IsNotFound()) {
         missingRoots.emplace_back(root);
@@ -493,7 +493,7 @@ Status FsManager::createFileSystemRoots(
     RETURN_NOT_OK_PREPEND(
         writeInstanceMetadata(metadata, rootName),
         "unable to write instance metadata");
-    createdFiles->emplace_back(GetInstanceMetadataPath(rootName));
+    createdFiles->emplace_back(getInstanceMetadataPath(rootName));
   }
   return Status::OK();
 }
@@ -523,7 +523,7 @@ Status FsManager::createInstanceMetadata(
 Status FsManager::writeInstanceMetadata(
     const InstanceMetadataPB& metadata,
     const string& root) {
-  const string path = GetInstanceMetadataPath(root);
+  const string path = getInstanceMetadataPath(root);
 
   // The instance metadata is written effectively once per TS, so the
   // durability cost is negligible.
@@ -576,11 +576,11 @@ bool FsManager::isValidTabletId(const string& fname) {
   return true;
 }
 
-Status FsManager::ListTabletIds(vector<string>* tabletIds) {
+Status FsManager::listTabletIds(vector<string>* tabletIds) {
   string dir = GetTabletMetadataDir();
   vector<string> children;
   RETURN_NOT_OK_PREPEND(
-      ListDir(dir, &children),
+      listDir(dir, &children),
       fmt::format("Couldn't list tablets in metadata directory {}", dir));
 
   vector<string> tablets;
@@ -593,21 +593,21 @@ Status FsManager::ListTabletIds(vector<string>* tabletIds) {
   return Status::OK();
 }
 
-string FsManager::GetInstanceMetadataPath(const string& root) const {
+string FsManager::getInstanceMetadataPath(const string& root) const {
   return JoinPathSegments(root, kInstanceMetadataFileName);
 }
 
-string FsManager::GetTabletWalRecoveryDir(const string& tabletId) const {
+string FsManager::getTabletWalRecoveryDir(const string& tabletId) const {
   string path = JoinPathSegments(GetWalsRootDir(), tabletId);
   strAppend(&path, kWalsRecoveryDirSuffix);
   return path;
 }
 
-string FsManager::GetWalSegmentFileName(
+string FsManager::getWalSegmentFileName(
     const string& tabletId,
     uint64_t sequenceNumber) const {
   return JoinPathSegments(
-      GetTabletWalDir(tabletId),
+      getTabletWalDir(tabletId),
       fmt::format(
           "{}-{}", kWalFileNamePrefix, fmt::format("{:09d}", sequenceNumber)));
 }
@@ -640,7 +640,7 @@ void FsManager::checkAndFixPermissions() {
 //  Dump/Debug utils
 // ==========================================================================
 
-void FsManager::DumpFileSystemTree(ostream& out) {
+void FsManager::dumpFileSystemTree(ostream& out) {
   DCHECK(initted_);
 
   for (const auto& root : canonicalizedAllFsRoots_) {
@@ -656,11 +656,11 @@ void FsManager::DumpFileSystemTree(ostream& out) {
       return;
     }
 
-    DumpFileSystemTree(out, "|-", root.path, objects);
+    dumpFileSystemTree(out, "|-", root.path, objects);
   }
 }
 
-void FsManager::DumpFileSystemTree(
+void FsManager::dumpFileSystemTree(
     ostream& out,
     const string& prefix,
     const string& path,
@@ -675,7 +675,7 @@ void FsManager::DumpFileSystemTree(
     Status s = env_->GetChildren(subPath, &subObjects);
     if (s.ok()) {
       out << prefix << name << "/" << std::endl;
-      DumpFileSystemTree(out, prefix + "---", subPath, subObjects);
+      dumpFileSystemTree(out, prefix + "---", subPath, subObjects);
     } else {
       out << prefix << name << std::endl;
     }

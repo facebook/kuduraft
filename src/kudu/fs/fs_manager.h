@@ -161,7 +161,7 @@ class FsManager {
   // Returns an error if the file system is already initialized.
   Status CreateInitialFileSystemLayout(std::optional<std::string> uuid = {});
 
-  void DumpFileSystemTree(std::ostream& out);
+  void dumpFileSystemTree(std::ostream& out);
 
   // Return the UUID persisted in the local filesystem. If Open()
   // has not been called, this will crash.
@@ -177,13 +177,13 @@ class FsManager {
     return JoinPathSegments(canonicalizedWalFsRoot_.path, kWalDirName);
   }
 
-  std::string GetTabletWalDir(const std::string& tabletId) const {
+  std::string getTabletWalDir(const std::string& tabletId) const {
     return JoinPathSegments(GetWalsRootDir(), tabletId);
   }
 
-  std::string GetTabletWalRecoveryDir(const std::string& tabletId) const;
+  std::string getTabletWalRecoveryDir(const std::string& tabletId) const;
 
-  std::string GetWalSegmentFileName(
+  std::string getWalSegmentFileName(
       const std::string& tabletId,
       uint64_t sequenceNumber) const;
 
@@ -194,10 +194,10 @@ class FsManager {
   std::string GetTabletMetadataPath(const std::string& tabletId) const;
 
   // List the tablet IDs in the metadata directory.
-  Status ListTabletIds(std::vector<std::string>* tabletIds);
+  Status listTabletIds(std::vector<std::string>* tabletIds);
 
   // Return the path where InstanceMetadataPB is stored.
-  std::string GetInstanceMetadataPath(const std::string& root) const;
+  std::string getInstanceMetadataPath(const std::string& root) const;
 
   // Return the directory where the consensus metadata is stored.
   std::string GetConsensusMetadataDir() const {
@@ -207,17 +207,17 @@ class FsManager {
   }
 
   // Return the path where ConsensusMetadataPB is stored.
-  std::string GetConsensusMetadataPath(const std::string& tabletId) const {
+  std::string getConsensusMetadataPath(const std::string& tabletId) const {
     return JoinPathSegments(GetConsensusMetadataDir(), tabletId);
   }
 
   // Return the path where ProxyTopologyPB is stored.
-  std::string GetProxyMetadataPath(const std::string& tabletId) const {
+  std::string getProxyMetadataPath(const std::string& tabletId) const {
     return JoinPathSegments(GetConsensusMetadataDir(), tabletId + ".proxy");
   }
 
   // Return the path where PersistentVarsPB is stored.
-  std::string GetPersistentVarsPath(const std::string& tabletId) const {
+  std::string getPersistentVarsPath(const std::string& tabletId) const {
     return JoinPathSegments(
         GetConsensusMetadataDir(), tabletId + ".persistent_vars");
   }
@@ -233,11 +233,11 @@ class FsManager {
   // ==========================================================================
   //  file-system helpers
   // ==========================================================================
-  bool Exists(const std::string& path) const {
+  bool exists(const std::string& path) const {
     return env_->FileExists(path);
   }
 
-  Status ListDir(const std::string& path, std::vector<std::string>* objects)
+  Status listDir(const std::string& path, std::vector<std::string>* objects)
       const {
     return env_->GetChildren(path, objects);
   }
@@ -281,7 +281,7 @@ class FsManager {
   // ==========================================================================
   //  file-system helpers
   // ==========================================================================
-  void DumpFileSystemTree(
+  void dumpFileSystemTree(
       std::ostream& out,
       const std::string& prefix,
       const std::string& path,

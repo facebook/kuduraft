@@ -385,7 +385,7 @@ Status ConsensusMetadata::flush(FlushMode flushMode) {
         "Unable to fsync consensus parent dir " + parentDir);
   }
 
-  string metaFilePath = fsManager_->GetConsensusMetadataPath(tabletId_);
+  string metaFilePath = fsManager_->getConsensusMetadataPath(tabletId_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
           fsManager_->env(),
@@ -435,7 +435,7 @@ Status ConsensusMetadata::create(
     RETURN_NOT_OK(cmeta->flush(kNoOverwrite)); // create() should not clobber.
   } else {
     // Sanity check: ensure that there is no cmeta file currently on disk.
-    const string& path = fsManager->GetConsensusMetadataPath(tabletId);
+    const string& path = fsManager->getConsensusMetadataPath(tabletId);
     if (fsManager->env()->FileExists(path)) {
       return Status::AlreadyPresent(
           fmt::format("File {} already exists", path));
@@ -457,7 +457,7 @@ Status ConsensusMetadata::load(
   RETURN_NOT_OK(
       pb_util::ReadPBContainerFromPath(
           fsManager->env(),
-          fsManager->GetConsensusMetadataPath(tabletId),
+          fsManager->getConsensusMetadataPath(tabletId),
           &cmeta->pb_));
   cmeta->updateActiveRole(); // Needs to happen here as we sidestep the accessor
                              // APIs.
@@ -472,7 +472,7 @@ Status ConsensusMetadata::load(
 Status ConsensusMetadata::deleteOnDiskData(
     FsManager* fsManager,
     const string& tabletId) {
-  string cmetaPath = fsManager->GetConsensusMetadataPath(tabletId);
+  string cmetaPath = fsManager->getConsensusMetadataPath(tabletId);
   RETURN_NOT_OK_PREPEND(
       fsManager->env()->DeleteFile(cmetaPath),
       fmt::format(
@@ -495,7 +495,7 @@ void ConsensusMetadata::updateActiveRole() {
 }
 
 Status ConsensusMetadata::updateOnDiskSize() {
-  string path = fsManager_->GetConsensusMetadataPath(tabletId_);
+  string path = fsManager_->getConsensusMetadataPath(tabletId_);
   uint64_t diskSize;
   RETURN_NOT_OK(fsManager_->env()->GetFileSize(path, &diskSize));
   onDiskSize_ = diskSize;
