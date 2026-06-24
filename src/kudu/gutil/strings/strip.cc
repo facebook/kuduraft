@@ -17,13 +17,13 @@
 
 using std::string;
 
-string StripPrefixString(StringPiece str, const StringPiece& prefix) {
+string stripPrefixString(StringPiece str, const StringPiece& prefix) {
   if (str.startsWith(prefix))
     str.removePrefix(prefix.length());
   return str.asString();
 }
 
-bool TryStripPrefixString(
+bool tryStripPrefixString(
     StringPiece str,
     const StringPiece& prefix,
     string* result) {
@@ -34,13 +34,13 @@ bool TryStripPrefixString(
   return hasPrefix;
 }
 
-string StripSuffixString(StringPiece str, const StringPiece& suffix) {
+string stripSuffixString(StringPiece str, const StringPiece& suffix) {
   if (str.endsWith(suffix))
     str.removeSuffix(suffix.length());
   return str.asString();
 }
 
-bool TryStripSuffixString(
+bool tryStripSuffixString(
     StringPiece str,
     const StringPiece& suffix,
     string* result) {
@@ -52,11 +52,11 @@ bool TryStripSuffixString(
 }
 
 // ----------------------------------------------------------------------
-// StripString
+// stripString
 //    Replaces any occurrence of the character 'remove' (or the characters
 //    in 'remove') with the character 'replacewith'.
 // ----------------------------------------------------------------------
-void StripString(char* str, StringPiece remove, char replacewith) {
+void stripString(char* str, StringPiece remove, char replacewith) {
   for (; *str != '\0'; ++str) {
     if (remove.find(*str) != StringPiece::kNpos) {
       *str = replacewith;
@@ -64,7 +64,7 @@ void StripString(char* str, StringPiece remove, char replacewith) {
   }
 }
 
-void StripString(char* str, int len, StringPiece remove, char replacewith) {
+void stripString(char* str, int len, StringPiece remove, char replacewith) {
   char* end = str + len;
   for (; str < end; ++str) {
     if (remove.find(*str) != StringPiece::kNpos) {
@@ -73,7 +73,7 @@ void StripString(char* str, int len, StringPiece remove, char replacewith) {
   }
 }
 
-void StripString(string* s, StringPiece remove, char replacewith) {
+void stripString(string* s, StringPiece remove, char replacewith) {
   for (char& c : *s) {
     if (remove.find(c) != StringPiece::kNpos) {
       c = replacewith;
@@ -139,11 +139,11 @@ void StripWhiteSpace(string* str) {
 // ----------------------------------------------------------------------
 // Misc. stripping routines
 // ----------------------------------------------------------------------
-void StripCurlyBraces(string* s) {
-  return StripBrackets('{', '}', s);
+void stripCurlyBraces(string* s) {
+  return stripBrackets('{', '}', s);
 }
 
-void StripBrackets(char left, char right, string* s) {
+void stripBrackets(char left, char right, string* s) {
   string::iterator openCurly = find(s->begin(), s->end(), left);
   while (openCurly != s->end()) {
     string::iterator closeCurly = find(openCurly, s->end(), right);
@@ -154,7 +154,7 @@ void StripBrackets(char left, char right, string* s) {
   }
 }
 
-void StripMarkupTags(string* s) {
+void stripMarkupTags(string* s) {
   string::iterator openBracket = find(s->begin(), s->end(), '<');
   while (openBracket != s->end()) {
     string::iterator closeBracket = find(openBracket, s->end(), '>');
@@ -168,13 +168,13 @@ void StripMarkupTags(string* s) {
   }
 }
 
-string OutputWithMarkupTagsStripped(const string& s) {
+string outputWithMarkupTagsStripped(const string& s) {
   string result(s);
-  StripMarkupTags(&result);
+  stripMarkupTags(&result);
   return result;
 }
 
-int TrimStringLeft(string* s, const StringPiece& remove) {
+int trimStringLeft(string* s, const StringPiece& remove) {
   int i = 0;
   while (i < s->size() && memchr(remove.data(), (*s)[i], remove.size())) {
     ++i;
@@ -184,7 +184,7 @@ int TrimStringLeft(string* s, const StringPiece& remove) {
   return i;
 }
 
-int TrimStringRight(string* s, const StringPiece& remove) {
+int trimStringRight(string* s, const StringPiece& remove) {
   int i = s->size(), trimmed = 0;
   while (i > 0 && memchr(remove.data(), (*s)[i - 1], remove.size())) {
     --i;
@@ -252,13 +252,13 @@ int strrmm(string* str, const string& chars) {
 }
 
 // ----------------------------------------------------------------------
-// StripDupCharacters
+// stripDupCharacters
 //    Replaces any repeated occurrence of the character 'repeat_char'
 //    with single occurrence.  e.g.,
-//       StripDupCharacters("a//b/c//d", '/', 0) => "a/b/c/d"
+//       stripDupCharacters("a//b/c//d", '/', 0) => "a/b/c/d"
 //    Return the number of characters removed
 // ----------------------------------------------------------------------
-int StripDupCharacters(string* s, char dupChar, int startPos) {
+int stripDupCharacters(string* s, char dupChar, int startPos) {
   if (startPos < 0)
     startPos = 0;
 

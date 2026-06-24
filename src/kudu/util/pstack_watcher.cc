@@ -140,8 +140,8 @@ Status PstackWatcher::hasGoodGdb() {
     return Status::Incomplete("could not parse gdb version");
   }
   string version = words[words.size() - 1];
-  version = StripPrefixString(version, "(");
-  version = StripSuffixString(version, ")");
+  version = stripPrefixString(version, "(");
+  version = stripSuffixString(version, ")");
 
   // The variable pretty print routine in older versions of gdb is buggy in
   // that it reads the values of all local variables, including uninitialized

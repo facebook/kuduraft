@@ -277,7 +277,7 @@ Status MiniKdc::createServiceKeytab(const string& spn, string* path) {
   SCOPED_LOG_SLOW_EXECUTION(
       WARNING, 100, fmt::format("creating service keytab for {}", spn));
   string ktPath = spn;
-  StripString(&ktPath, "/", '_');
+  stripString(&ktPath, "/", '_');
   ktPath = JoinPathSegments(options_.dataRoot, ktPath) + ".keytab";
 
   string kadmin;
@@ -296,7 +296,7 @@ Status MiniKdc::createKeytabForExistingPrincipal(const string& spn) {
   SCOPED_LOG_SLOW_EXECUTION(
       WARNING, 100, fmt::format("creating keytab for {}", spn));
   string ktPath = spn;
-  StripString(&ktPath, "/", '_');
+  stripString(&ktPath, "/", '_');
   ktPath = JoinPathSegments(options_.dataRoot, ktPath) + ".keytab";
 
   string kadmin;

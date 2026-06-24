@@ -16,12 +16,12 @@
 // Given a string and a putative prefix, returns the string minus the
 // prefix string if the prefix matches, otherwise the original
 // string.
-std::string StripPrefixString(StringPiece str, const StringPiece& prefix);
+std::string stripPrefixString(StringPiece str, const StringPiece& prefix);
 
-// Like StripPrefixString, but return true if the prefix was
+// Like stripPrefixString, but return true if the prefix was
 // successfully matched.  Write the output to *result.
 // It is safe for result to point back to the input string.
-bool TryStripPrefixString(
+bool tryStripPrefixString(
     StringPiece str,
     const StringPiece& prefix,
     std::string* result);
@@ -29,24 +29,24 @@ bool TryStripPrefixString(
 // Given a string and a putative suffix, returns the string minus the
 // suffix string if the suffix matches, otherwise the original
 // string.
-std::string StripSuffixString(StringPiece str, const StringPiece& suffix);
+std::string stripSuffixString(StringPiece str, const StringPiece& suffix);
 
-// Like StripSuffixString, but return true if the suffix was
+// Like stripSuffixString, but return true if the suffix was
 // successfully matched.  Write the output to *result.
 // It is safe for result to point back to the input string.
-bool TryStripSuffixString(
+bool tryStripSuffixString(
     StringPiece str,
     const StringPiece& suffix,
     std::string* result);
 
 // ----------------------------------------------------------------------
-// StripString
+// stripString
 //    Replaces any occurrence of the character 'remove' (or the characters
 //    in 'remove') with the character 'replacewith'.
 //    Good for keeping html characters or protocol characters (\t) out
 //    of places where they might cause a problem.
 // ----------------------------------------------------------------------
-inline void StripString(char* str, char remove, char replacewith) {
+inline void stripString(char* str, char remove, char replacewith) {
   for (; *str; str++) {
     if (*str == remove) {
       *str = replacewith;
@@ -54,18 +54,18 @@ inline void StripString(char* str, char remove, char replacewith) {
   }
 }
 
-void StripString(char* str, StringPiece remove, char replacewith);
-void StripString(char* str, int len, StringPiece remove, char replacewith);
-void StripString(std::string* s, StringPiece remove, char replacewith);
+void stripString(char* str, StringPiece remove, char replacewith);
+void stripString(char* str, int len, StringPiece remove, char replacewith);
+void stripString(std::string* s, StringPiece remove, char replacewith);
 
 // ----------------------------------------------------------------------
-// StripDupCharacters
+// stripDupCharacters
 //    Replaces any repeated occurrence of the character 'dup_char'
 //    with single occurrence.  e.g.,
-//       StripDupCharacters("a//b/c//d", '/', 0) => "a/b/c/d"
+//       stripDupCharacters("a//b/c//d", '/', 0) => "a/b/c/d"
 //    Return the number of characters removed
 // ----------------------------------------------------------------------
-int StripDupCharacters(std::string* s, char dupChar, int startPos);
+int stripDupCharacters(std::string* s, char dupChar, int startPos);
 
 // ----------------------------------------------------------------------
 // StripWhiteSpace
@@ -183,20 +183,20 @@ inline char* SkipLeadingWhiteSpace(char* str) {
 }
 
 // ----------------------------------------------------------------------
-// StripCurlyBraces
+// stripCurlyBraces
 //    Strips everything enclosed in pairs of curly braces and the curly
 //    braces. Doesn't touch open braces. It doesn't handle nested curly
 //    braces. This is used for removing things like {:stopword} from
 //    queries.
-// StripBrackets does the same, but allows the caller to specify different
+// stripBrackets does the same, but allows the caller to specify different
 //    left and right bracket characters, such as '(' and ')'.
 // ----------------------------------------------------------------------
 
-void StripCurlyBraces(std::string* s);
-void StripBrackets(char left, char right, std::string* s);
+void stripCurlyBraces(std::string* s);
+void stripBrackets(char left, char right, std::string* s);
 
 // ----------------------------------------------------------------------
-// StripMarkupTags
+// stripMarkupTags
 //    Strips everything enclosed in pairs of angle brackets and the angle
 //    brackets.
 //    This is used for stripping strings of markup; e.g. going from
@@ -212,30 +212,30 @@ void StripBrackets(char left, char right, std::string* s);
 //    See "perldoc -q html"
 // ----------------------------------------------------------------------
 
-void StripMarkupTags(std::string* s);
-std::string OutputWithMarkupTagsStripped(const std::string& s);
+void stripMarkupTags(std::string* s);
+std::string outputWithMarkupTagsStripped(const std::string& s);
 
 // ----------------------------------------------------------------------
-// TrimStringLeft
+// trimStringLeft
 //    Removes any occurrences of the characters in 'remove' from the start
 //    of the string.  Returns the number of chars trimmed.
 // ----------------------------------------------------------------------
-int TrimStringLeft(std::string* s, const StringPiece& remove);
+int trimStringLeft(std::string* s, const StringPiece& remove);
 
 // ----------------------------------------------------------------------
-// TrimStringRight
+// trimStringRight
 //    Removes any occurrences of the characters in 'remove' from the end
 //    of the string.  Returns the number of chars trimmed.
 // ----------------------------------------------------------------------
-int TrimStringRight(std::string* s, const StringPiece& remove);
+int trimStringRight(std::string* s, const StringPiece& remove);
 
 // ----------------------------------------------------------------------
-// TrimString
+// trimString
 //    Removes any occurrences of the characters in 'remove' from either
 //    end of the string.
 // ----------------------------------------------------------------------
-inline int TrimString(std::string* s, const StringPiece& remove) {
-  return TrimStringRight(s, remove) + TrimStringLeft(s, remove);
+inline int trimString(std::string* s, const StringPiece& remove) {
+  return trimStringRight(s, remove) + trimStringLeft(s, remove);
 }
 
 // ----------------------------------------------------------------------

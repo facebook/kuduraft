@@ -50,7 +50,7 @@ class InsertAnnotations : public ::google::protobuf::compiler::CodeGenerator {
       std::string* error) const override {
     // Determine the file name we will substitute into.
     string pathNoExtension;
-    if (!TryStripSuffixString(
+    if (!tryStripSuffixString(
             file->name(), kProtoExtension, &pathNoExtension)) {
       *error = fmt::format(
           "file name {} did not end in {}", file->name(), kProtoExtension);

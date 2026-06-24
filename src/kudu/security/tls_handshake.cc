@@ -336,7 +336,7 @@ string TlsHandshake::getCipherDescription() const {
   }
   string ret(description);
   StripTrailingNewline(&ret);
-  StripDupCharacters(&ret, ' ', 0);
+  stripDupCharacters(&ret, ' ', 0);
   return ret;
 }
 

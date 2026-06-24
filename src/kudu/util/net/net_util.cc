@@ -155,13 +155,13 @@ Status HostPort::parseString(const string& str, uint16_t defaultPort) {
         strings::split(str, strings::delimiter::limit("]", 1));
     host = std::move(p.first);
     StripWhiteSpace(&host);
-    host = StripPrefixString(host, "[");
+    host = stripPrefixString(host, "[");
 
     portStr = std::move(p.second);
     hasPort = strcount(portStr, ':') > 0;
     if (hasPort) {
       StripWhiteSpace(&portStr);
-      portStr = StripPrefixString(portStr, ":");
+      portStr = stripPrefixString(portStr, ":");
     }
   } else {
     hasPort = numColons == 1;
