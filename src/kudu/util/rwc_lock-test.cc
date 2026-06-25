@@ -32,7 +32,7 @@
 
 namespace kudu {
 
-using base::subtle::NoBarrier_Load;
+using base::subtle::noBarrierLoad;
 using std::string;
 using std::thread;
 using std::vector;
@@ -87,7 +87,7 @@ struct SharedState {
 };
 
 void readerThread(SharedState* state) {
-  while (!NoBarrier_Load(&state->stop)) {
+  while (!noBarrierLoad(&state->stop)) {
     state->rwcLock.readLock();
     state->counts.adjustReaders(1);
     state->counts.adjustReaders(-1);
@@ -97,7 +97,7 @@ void readerThread(SharedState* state) {
 
 void writerThread(SharedState* state) {
   string localStr;
-  while (!NoBarrier_Load(&state->stop)) {
+  while (!noBarrierLoad(&state->stop)) {
     state->rwcLock.writeLock();
     state->counts.adjustWriters(1);
 

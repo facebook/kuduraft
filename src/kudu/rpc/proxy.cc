@@ -77,7 +77,7 @@ void Proxy::asyncRequest(
     RpcController* controller,
     const ResponseCallback& callback) const {
   CHECK(!controller->call_) << "Controller should be reset";
-  base::subtle::NoBarrier_Store(&isStarted_, true);
+  base::subtle::noBarrierStore(&isStarted_, true);
   RemoteMethod remoteMethod(serviceName_, method);
   controller->call_.reset(
       new OutboundCall(connId_, remoteMethod, response, controller, callback));
@@ -107,7 +107,7 @@ Status Proxy::syncRequest(
 }
 
 void Proxy::setUserCredentials(const UserCredentials& userCredentials) {
-  CHECK(base::subtle::NoBarrier_Load(&isStarted_) == false)
+  CHECK(base::subtle::noBarrierLoad(&isStarted_) == false)
       << "It is illegal to call setUserCredentials() after request processing has started";
   connId_.setUserCredentials(userCredentials);
 }

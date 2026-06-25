@@ -305,11 +305,11 @@ class LogThrottler {
 
     if (ts - lastTs_ < nSecs * 1000000) {
       *numSuppressed =
-          base::subtle::NoBarrier_AtomicIncrement(&numSuppressed_, 1);
+          base::subtle::noBarrierAtomicIncrement(&numSuppressed_, 1);
       return false;
     }
     lastTs_ = ts;
-    *numSuppressed = base::subtle::NoBarrier_AtomicExchange(&numSuppressed_, 0);
+    *numSuppressed = base::subtle::noBarrierAtomicExchange(&numSuppressed_, 0);
     return true;
   }
 

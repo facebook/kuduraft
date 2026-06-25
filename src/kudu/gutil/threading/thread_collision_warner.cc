@@ -59,32 +59,32 @@ void ThreadCollisionWarner::enterSelf() {
   subtle::Atomic64 currentThreadId = currentThread();
 
   int64_t previousThreadId =
-      subtle::NoBarrier_CompareAndSwap(&validThreadId_, 0, currentThreadId);
+      subtle::noBarrierCompareAndSwap(&validThreadId_, 0, currentThreadId);
   if (previousThreadId != 0 && previousThreadId != currentThreadId) {
     // gotcha! a thread is trying to use the same class and that is
     // not current thread.
     asserter_->warn(previousThreadId, currentThreadId);
   }
 
-  subtle::NoBarrier_AtomicIncrement(&counter_, 1);
+  subtle::noBarrierAtomicIncrement(&counter_, 1);
 }
 
 void ThreadCollisionWarner::enter() {
   subtle::Atomic64 currentThreadId = currentThread();
 
   int64_t previousThreadId =
-      subtle::NoBarrier_CompareAndSwap(&validThreadId_, 0, currentThreadId);
+      subtle::noBarrierCompareAndSwap(&validThreadId_, 0, currentThreadId);
   if (previousThreadId != 0) {
     // gotcha! another thread is trying to use the same class.
     asserter_->warn(previousThreadId, currentThreadId);
   }
 
-  subtle::NoBarrier_AtomicIncrement(&counter_, 1);
+  subtle::noBarrierAtomicIncrement(&counter_, 1);
 }
 
 void ThreadCollisionWarner::leave() {
   if (subtle::barrierAtomicIncrement(&counter_, -1) == 0) {
-    subtle::NoBarrier_Store(&validThreadId_, 0);
+    subtle::noBarrierStore(&validThreadId_, 0);
   }
 }
 

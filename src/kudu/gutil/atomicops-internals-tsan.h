@@ -19,7 +19,7 @@ namespace subtle {
 using Atomic32 = int32_t;
 using Atomic64 = int64_t;
 
-inline Atomic32 NoBarrier_CompareAndSwap(
+inline Atomic32 noBarrierCompareAndSwap(
     volatile Atomic32* ptr,
     Atomic32 oldValue,
     Atomic32 newValue) {
@@ -33,7 +33,7 @@ inline Atomic32 NoBarrier_CompareAndSwap(
   return cmp;
 }
 
-inline Atomic32 NoBarrier_AtomicExchange(
+inline Atomic32 noBarrierAtomicExchange(
     volatile Atomic32* ptr,
     Atomic32 newValue) {
   return __tsan_atomic32_exchange(ptr, newValue, __tsan_memory_order_relaxed);
@@ -51,7 +51,7 @@ inline Atomic32 releaseAtomicExchange(
   return __tsan_atomic32_exchange(ptr, newValue, __tsan_memory_order_release);
 }
 
-inline Atomic32 NoBarrier_AtomicIncrement(
+inline Atomic32 noBarrierAtomicIncrement(
     volatile Atomic32* ptr,
     Atomic32 increment) {
   return increment +
@@ -93,7 +93,7 @@ inline Atomic32 Release_CompareAndSwap(
   return cmp;
 }
 
-inline void NoBarrier_Store(volatile Atomic32* ptr, Atomic32 value) {
+inline void noBarrierStore(volatile Atomic32* ptr, Atomic32 value) {
   __tsan_atomic32_store(ptr, value, __tsan_memory_order_relaxed);
 }
 
@@ -106,7 +106,7 @@ inline void Release_Store(volatile Atomic32* ptr, Atomic32 value) {
   __tsan_atomic32_store(ptr, value, __tsan_memory_order_release);
 }
 
-inline Atomic32 NoBarrier_Load(volatile const Atomic32* ptr) {
+inline Atomic32 noBarrierLoad(volatile const Atomic32* ptr) {
   return __tsan_atomic32_load(ptr, __tsan_memory_order_relaxed);
 }
 
@@ -119,7 +119,7 @@ inline Atomic32 Release_Load(volatile const Atomic32* ptr) {
   return __tsan_atomic32_load(ptr, __tsan_memory_order_relaxed);
 }
 
-inline Atomic64 NoBarrier_CompareAndSwap(
+inline Atomic64 noBarrierCompareAndSwap(
     volatile Atomic64* ptr,
     Atomic64 oldValue,
     Atomic64 newValue) {
@@ -133,7 +133,7 @@ inline Atomic64 NoBarrier_CompareAndSwap(
   return cmp;
 }
 
-inline Atomic64 NoBarrier_AtomicExchange(
+inline Atomic64 noBarrierAtomicExchange(
     volatile Atomic64* ptr,
     Atomic64 newValue) {
   return __tsan_atomic64_exchange(ptr, newValue, __tsan_memory_order_relaxed);
@@ -151,7 +151,7 @@ inline Atomic64 releaseAtomicExchange(
   return __tsan_atomic64_exchange(ptr, newValue, __tsan_memory_order_release);
 }
 
-inline Atomic64 NoBarrier_AtomicIncrement(
+inline Atomic64 noBarrierAtomicIncrement(
     volatile Atomic64* ptr,
     Atomic64 increment) {
   return increment +
@@ -165,7 +165,7 @@ inline Atomic64 barrierAtomicIncrement(
       __tsan_atomic64_fetch_add(ptr, increment, __tsan_memory_order_acq_rel);
 }
 
-inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
+inline void noBarrierStore(volatile Atomic64* ptr, Atomic64 value) {
   __tsan_atomic64_store(ptr, value, __tsan_memory_order_relaxed);
 }
 
@@ -178,7 +178,7 @@ inline void Release_Store(volatile Atomic64* ptr, Atomic64 value) {
   __tsan_atomic64_store(ptr, value, __tsan_memory_order_release);
 }
 
-inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
+inline Atomic64 noBarrierLoad(volatile const Atomic64* ptr) {
   return __tsan_atomic64_load(ptr, __tsan_memory_order_relaxed);
 }
 

@@ -1275,7 +1275,7 @@ void TraceLog::updateCategoryGroupEnabledFlag(int categoryIndex) {
 }
 
 void TraceLog::updateCategoryGroupEnabledFlags() {
-  int categoryIndex = base::subtle::NoBarrier_Load(&gCategoryIndex);
+  int categoryIndex = base::subtle::noBarrierLoad(&gCategoryIndex);
   for (int i = 0; i < categoryIndex; i++) {
     updateCategoryGroupEnabledFlag(i);
   }
@@ -1368,7 +1368,7 @@ const unsigned char* TraceLog::getCategoryGroupEnabledInternal(
 void TraceLog::getKnownCategoryGroups(
     std::vector<std::string>* category_groups) {
   SpinLockHolder lock(lock_);
-  int category_index = base::subtle::NoBarrier_Load(&gCategoryIndex);
+  int category_index = base::subtle::noBarrierLoad(&gCategoryIndex);
   for (int i = kNumBuiltinCategories; i < category_index; i++) {
     category_groups->emplace_back(gCategoryGroups[i]);
   }
@@ -1409,7 +1409,7 @@ void TraceLog::setEnabled(
     mode_ = mode;
 
     if (options != oldOptions) {
-      base::subtle::NoBarrier_Store(&traceOptions_, options);
+      base::subtle::noBarrierStore(&traceOptions_, options);
       useNextTraceBuffer();
     }
 
@@ -1496,7 +1496,7 @@ void TraceLog::setDisabledWhileLocked() {
   }
 
   categoryFilter_.clear();
-  base::subtle::NoBarrier_Store(&watchCategory_, 0);
+  base::subtle::noBarrierStore(&watchCategory_, 0);
   watchEventName_ = "";
   updateCategoryGroupEnabledFlags();
   addMetadataEventsWhileLocked();
@@ -1609,7 +1609,7 @@ void TraceLog::setEventCallbackEnabled(
     const CategoryFilter& category_filter,
     EventCallback cb) {
   SpinLockHolder lock(lock_);
-  base::subtle::NoBarrier_Store(
+  base::subtle::noBarrierStore(
       &eventCallback_, reinterpret_cast<AtomicWord>(cb));
   eventCallbackCategoryFilter_ = category_filter;
   updateCategoryGroupEnabledFlags();
@@ -1617,7 +1617,7 @@ void TraceLog::setEventCallbackEnabled(
 
 void TraceLog::setEventCallbackDisabled() {
   SpinLockHolder lock(lock_);
-  base::subtle::NoBarrier_Store(&eventCallback_, 0);
+  base::subtle::noBarrierStore(&eventCallback_, 0);
   updateCategoryGroupEnabledFlags();
 }
 
@@ -1793,7 +1793,7 @@ void TraceLog::flushButLeaveBufferIntact(
 
 void TraceLog::useNextTraceBuffer() {
   loggedEvents_.reset(createTraceBuffer());
-  base::subtle::NoBarrier_AtomicIncrement(&generation_, 1);
+  base::subtle::noBarrierAtomicIncrement(&generation_, 1);
   threadSharedChunk_.reset();
   threadSharedChunkIndex_ = 0;
 }
@@ -1909,14 +1909,14 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
   // kEchoToConsole is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
-  if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
+  if (base::subtle::noBarrierLoad(&thrInfo->isInTraceEvent_)) {
     return handle;
   }
 
   MarkFlagInScope threadIsInTraceEvent(&thrInfo->isInTraceEvent_);
 
   ThreadLocalEventBuffer* threadLocalEventBuffer =
-      reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
+      reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::noBarrierLoad(
           reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_)));
 
   // If we have an event buffer, but it's a left-over from a previous trace,
@@ -1935,7 +1935,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   if (PREDICT_FALSE(!threadLocalEventBuffer)) {
     threadLocalEventBuffer = new ThreadLocalEventBuffer(this);
 
-    base::subtle::NoBarrier_Store(
+    base::subtle::noBarrierStore(
         reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_),
         reinterpret_cast<AtomicWord>(threadLocalEventBuffer));
   }
@@ -2017,7 +2017,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
   }
 
   if (PREDICT_FALSE(
-          reinterpret_cast<const unsigned char*>(base::subtle::NoBarrier_Load(
+          reinterpret_cast<const unsigned char*>(base::subtle::noBarrierLoad(
               &watchCategory_)) == category_group_enabled)) {
     bool eventNameMatches;
     WatchEventCallback watchEventCallbackCopy;
@@ -2035,7 +2035,7 @@ TraceEventHandle TraceLog::addTraceEventWithThreadIdAndTimestamp(
 
   if (PREDICT_FALSE(*category_group_enabled & kEnabledForEventCallback)) {
     EventCallback eventCallback = reinterpret_cast<EventCallback>(
-        base::subtle::NoBarrier_Load(&eventCallback_));
+        base::subtle::noBarrierLoad(&eventCallback_));
     if (eventCallback) {
       eventCallback(
           now,
@@ -2157,7 +2157,7 @@ void TraceLog::updateTraceEventDuration(
   // Avoid re-entrance of addTraceEvent. This may happen in GPU process when
   // kEchoToConsole is enabled: addTraceEvent -> LOG(ERROR) ->
   // GpuProcessLogMessageHandler -> PostPendingTask -> TRACE_EVENT ...
-  if (base::subtle::NoBarrier_Load(&thrInfo->isInTraceEvent_)) {
+  if (base::subtle::noBarrierLoad(&thrInfo->isInTraceEvent_)) {
     return;
   }
   MarkFlagInScope threadIsInTraceEvent(&thrInfo->isInTraceEvent_);
@@ -2190,7 +2190,7 @@ void TraceLog::updateTraceEventDuration(
 
   if (*category_group_enabled & kEnabledForEventCallback) {
     EventCallback eventCallback = reinterpret_cast<EventCallback>(
-        base::subtle::NoBarrier_Load(&eventCallback_));
+        base::subtle::noBarrierLoad(&eventCallback_));
     if (eventCallback) {
       eventCallback(
           now,
@@ -2214,7 +2214,7 @@ void TraceLog::setWatchEvent(
   const unsigned char* category =
       getCategoryGroupEnabled(category_name.c_str());
   SpinLockHolder lock(lock_);
-  base::subtle::NoBarrier_Store(
+  base::subtle::noBarrierStore(
       &watchCategory_, reinterpret_cast<AtomicWord>(category));
   watchEventName_ = event_name;
   watchEventCallback_ = callback;
@@ -2222,7 +2222,7 @@ void TraceLog::setWatchEvent(
 
 void TraceLog::cancelWatchEvent() {
   SpinLockHolder lock(lock_);
-  base::subtle::NoBarrier_Store(&watchCategory_, 0);
+  base::subtle::noBarrierStore(&watchCategory_, 0);
   watchEventName_ = "";
   watchEventCallback_.Reset();
 }
@@ -2314,7 +2314,7 @@ TraceEvent* TraceLog::getEventByHandleInternal(
 
   if (thrInfo) {
     ThreadLocalEventBuffer* buf =
-        reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::NoBarrier_Load(
+        reinterpret_cast<ThreadLocalEventBuffer*>(base::subtle::noBarrierLoad(
             reinterpret_cast<AtomicWord*>(&thrInfo->eventBuffer_)));
 
     if (buf) {

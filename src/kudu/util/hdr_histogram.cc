@@ -37,10 +37,10 @@
 #include "kudu/util/status.h"
 
 using base::subtle::Atomic64;
-using base::subtle::NoBarrier_AtomicIncrement;
-using base::subtle::NoBarrier_CompareAndSwap;
-using base::subtle::NoBarrier_Load;
-using base::subtle::NoBarrier_Store;
+using base::subtle::noBarrierAtomicIncrement;
+using base::subtle::noBarrierCompareAndSwap;
+using base::subtle::noBarrierLoad;
+using base::subtle::noBarrierStore;
 
 namespace kudu {
 
@@ -83,20 +83,20 @@ HdrHistogram::HdrHistogram(const HdrHistogram& other)
 
   // Not a consistent snapshot but we try to roughly keep it close.
   // Copy the sum and min first.
-  NoBarrier_Store(&totalSum_, NoBarrier_Load(&other.totalSum_));
-  NoBarrier_Store(&minValue_, NoBarrier_Load(&other.minValue_));
+  noBarrierStore(&totalSum_, noBarrierLoad(&other.totalSum_));
+  noBarrierStore(&minValue_, noBarrierLoad(&other.minValue_));
 
   uint64_t total_copied_count = 0;
   // Copy the counts in order of ascending magnitude.
   for (int i = 0; i < countsArrayLength_; i++) {
-    uint64_t count = NoBarrier_Load(&other.counts_[i]);
-    NoBarrier_Store(&counts_[i], count);
+    uint64_t count = noBarrierLoad(&other.counts_[i]);
+    noBarrierStore(&counts_[i], count);
     total_copied_count += count;
   }
   // Copy the max observed value last.
-  NoBarrier_Store(&maxValue_, NoBarrier_Load(&other.maxValue_));
+  noBarrierStore(&maxValue_, noBarrierLoad(&other.maxValue_));
   // We must ensure the total is consistent with the copied counts.
-  NoBarrier_Store(&totalCount_, total_copied_count);
+  noBarrierStore(&totalCount_, total_copied_count);
 }
 
 bool HdrHistogram::isValidHighestTrackableValue(
@@ -171,15 +171,15 @@ void HdrHistogram::incrementBy(int64_t value, int64_t count) {
   int counts_index = countsArrayIndex(bucket_index, sub_bucket_index);
 
   // Increment bucket, total, and sum.
-  NoBarrier_AtomicIncrement(&counts_[counts_index], count);
-  NoBarrier_AtomicIncrement(&totalCount_, count);
-  NoBarrier_AtomicIncrement(&totalSum_, value * count);
+  noBarrierAtomicIncrement(&counts_[counts_index], count);
+  noBarrierAtomicIncrement(&totalCount_, count);
+  noBarrierAtomicIncrement(&totalSum_, value * count);
 
   // Update min, if needed.
   {
     Atomic64 min_val;
     while (PREDICT_FALSE(value < (min_val = minValue()))) {
-      Atomic64 old_val = NoBarrier_CompareAndSwap(&minValue_, min_val, value);
+      Atomic64 old_val = noBarrierCompareAndSwap(&minValue_, min_val, value);
       if (PREDICT_TRUE(old_val == min_val)) {
         break; // CAS success.
       }
@@ -190,7 +190,7 @@ void HdrHistogram::incrementBy(int64_t value, int64_t count) {
   {
     Atomic64 max_val;
     while (PREDICT_FALSE(value > (max_val = maxValue()))) {
-      Atomic64 old_val = NoBarrier_CompareAndSwap(&maxValue_, max_val, value);
+      Atomic64 old_val = noBarrierCompareAndSwap(&maxValue_, max_val, value);
       if (PREDICT_TRUE(old_val == max_val)) {
         break; // CAS success.
       }
@@ -303,14 +303,14 @@ uint64_t HdrHistogram::minValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
-  return NoBarrier_Load(&minValue_);
+  return noBarrierLoad(&minValue_);
 }
 
 uint64_t HdrHistogram::maxValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
   }
-  return NoBarrier_Load(&maxValue_);
+  return noBarrierLoad(&maxValue_);
 }
 
 double HdrHistogram::meanValue() const {

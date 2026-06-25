@@ -421,7 +421,7 @@ class BASE_EXPORT TraceLog {
   CategoryFilter getCurrentCategoryFilter();
 
   Options traceOptions() const {
-    return static_cast<Options>(base::subtle::NoBarrier_Load(&traceOptions_));
+    return static_cast<Options>(base::subtle::noBarrierLoad(&traceOptions_));
   }
 
   // Enables normal tracing (recording trace events in the trace buffer).
@@ -679,7 +679,7 @@ class BASE_EXPORT TraceLog {
   static void threadExitingCb(void* arg);
 
   int generation() const {
-    return static_cast<int>(base::subtle::NoBarrier_Load(&generation_));
+    return static_cast<int>(base::subtle::noBarrierLoad(&generation_));
   }
   bool checkGeneration(int generation) const {
     return generation == this->generation();

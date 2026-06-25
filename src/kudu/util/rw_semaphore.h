@@ -67,7 +67,7 @@ class RwSemaphore {
 
   void lock_shared() {
     int loopCount = 0;
-    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
+    Atomic32 curState = base::subtle::noBarrierLoad(&state_);
     while (true) {
       Atomic32 expected = curState & kNumReadersMask; // I expect no write lock
       Atomic32 tryNewState = expected + 1; // Add me as reader
@@ -83,7 +83,7 @@ class RwSemaphore {
 
   void unlock_shared() {
     int loopCount = 0;
-    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
+    Atomic32 curState = base::subtle::noBarrierLoad(&state_);
     while (true) {
       DCHECK_GT(curState & kNumReadersMask, 0)
           << "unlock_shared() called when there are no shared locks held";
@@ -103,7 +103,7 @@ class RwSemaphore {
   // This function retries on CAS failure and waits for readers to complete.
   bool try_lock() {
     int loopCount = 0;
-    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
+    Atomic32 curState = base::subtle::noBarrierLoad(&state_);
     while (true) {
       // someone else has already the write lock
       if (curState & kWriteFlag) {
@@ -130,7 +130,7 @@ class RwSemaphore {
 
   void lock() {
     int loopCount = 0;
-    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
+    Atomic32 curState = base::subtle::noBarrierLoad(&state_);
     while (true) {
       Atomic32 expected =
           curState & kNumReadersMask; // I expect some 0+ readers
@@ -138,8 +138,8 @@ class RwSemaphore {
           kWriteFlag | expected; // I want to lock the other writers
       // Note: we use NoBarrier here because we'll do the Acquire barrier down
       // below in waitPendingReaders
-      curState = base::subtle::NoBarrier_CompareAndSwap(
-          &state_, expected, tryNewState);
+      curState =
+          base::subtle::noBarrierCompareAndSwap(&state_, expected, tryNewState);
       if (curState == expected) {
         break;
       }
@@ -154,7 +154,7 @@ class RwSemaphore {
 
   void unlock() {
     // I expect to be the only writer
-    DCHECK_EQ(base::subtle::NoBarrier_Load(&state_), kWriteFlag);
+    DCHECK_EQ(base::subtle::noBarrierLoad(&state_), kWriteFlag);
 
     resetLockHolderStack();
     // Reset: no writers & no readers.
@@ -164,14 +164,14 @@ class RwSemaphore {
   // Return true if the lock is currently held for write by any thread.
   // See simple_semaphore::isLocked() for details about where this is useful.
   bool isWriteLocked() const {
-    return base::subtle::NoBarrier_Load(&state_) & kWriteFlag;
+    return base::subtle::noBarrierLoad(&state_) & kWriteFlag;
   }
 
   // Return true if the lock is currently held, either for read or write
   // by any thread.
   // See simple_semaphore::isLocked() for details about where this is useful.
   bool isLocked() const {
-    return base::subtle::NoBarrier_Load(&state_);
+    return base::subtle::noBarrierLoad(&state_);
   }
 
  private:

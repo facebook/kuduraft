@@ -90,7 +90,7 @@ inline void MemoryBarrier() {
 
 // 32-bit Versions.
 
-inline Atomic32 NoBarrier_CompareAndSwap(
+inline Atomic32 noBarrierCompareAndSwap(
     volatile Atomic32* ptr,
     Atomic32 oldValue,
     Atomic32 newValue) {
@@ -105,7 +105,7 @@ inline Atomic32 NoBarrier_CompareAndSwap(
   return prevValue;
 }
 
-inline Atomic32 NoBarrier_AtomicExchange(
+inline Atomic32 noBarrierAtomicExchange(
     volatile Atomic32* ptr,
     Atomic32 newValue) {
   Atomic32 oldValue;
@@ -133,7 +133,7 @@ inline Atomic32 releaseAtomicExchange(
   return acquireAtomicExchange(ptr, newValue);
 }
 
-inline Atomic32 NoBarrier_AtomicIncrement(
+inline Atomic32 noBarrierAtomicIncrement(
     volatile Atomic32* ptr,
     Atomic32 increment) {
   return OSAtomicAdd32(increment, const_cast<Atomic32*>(ptr));
@@ -167,7 +167,7 @@ inline Atomic32 Release_CompareAndSwap(
   return Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
 
-inline void NoBarrier_Store(volatile Atomic32* ptr, Atomic32 value) {
+inline void noBarrierStore(volatile Atomic32* ptr, Atomic32 value) {
   *ptr = value;
 }
 
@@ -181,7 +181,7 @@ inline void Release_Store(volatile Atomic32* ptr, Atomic32 value) {
   *ptr = value;
 }
 
-inline Atomic32 NoBarrier_Load(volatile const Atomic32* ptr) {
+inline Atomic32 noBarrierLoad(volatile const Atomic32* ptr) {
   return *ptr;
 }
 
@@ -198,7 +198,7 @@ inline Atomic32 Release_Load(volatile const Atomic32* ptr) {
 
 // 64-bit version
 
-inline Atomic64 NoBarrier_CompareAndSwap(
+inline Atomic64 noBarrierCompareAndSwap(
     volatile Atomic64* ptr,
     Atomic64 oldValue,
     Atomic64 newValue) {
@@ -213,7 +213,7 @@ inline Atomic64 NoBarrier_CompareAndSwap(
   return prevValue;
 }
 
-inline Atomic64 NoBarrier_AtomicExchange(
+inline Atomic64 noBarrierAtomicExchange(
     volatile Atomic64* ptr,
     Atomic64 newValue) {
   Atomic64 oldValue;
@@ -241,7 +241,7 @@ inline Atomic64 releaseAtomicExchange(
   return acquireAtomicExchange(ptr, newValue);
 }
 
-inline Atomic64 NoBarrier_AtomicIncrement(
+inline Atomic64 noBarrierAtomicIncrement(
     volatile Atomic64* ptr,
     Atomic64 increment) {
   return OSAtomicAdd64(increment, const_cast<Atomic64*>(ptr));
@@ -281,7 +281,7 @@ inline Atomic64 Release_CompareAndSwap(
 
 // 64-bit implementation on 64-bit platform
 
-inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
+inline void noBarrierStore(volatile Atomic64* ptr, Atomic64 value) {
   *ptr = value;
 }
 
@@ -306,7 +306,7 @@ inline void Release_Store(volatile Atomic64* ptr, Atomic64 value) {
   *ptr = value;
 }
 
-inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
+inline Atomic64 noBarrierLoad(volatile const Atomic64* ptr) {
   return *ptr;
 }
 
@@ -327,18 +327,18 @@ inline Atomic64 Release_Load(volatile const Atomic64* ptr) {
 
 #if defined(__ppc__)
 
-inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
-  __asm__ __volatile__("_NoBarrier_Store_not_supported_for_32_bit_ppc\n\t");
+inline void noBarrierStore(volatile Atomic64* ptr, Atomic64 value) {
+  __asm__ __volatile__("_noBarrierStore_not_supported_for_32_bit_ppc\n\t");
 }
 
-inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
-  __asm__ __volatile__("_NoBarrier_Load_not_supported_for_32_bit_ppc\n\t");
+inline Atomic64 noBarrierLoad(volatile const Atomic64* ptr) {
+  __asm__ __volatile__("_noBarrierLoad_not_supported_for_32_bit_ppc\n\t");
   return 0;
 }
 
 #elif defined(__i386__)
 
-inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
+inline void noBarrierStore(volatile Atomic64* ptr, Atomic64 value) {
   __asm__ __volatile__(
       "movq %1, %%mm0\n\t" // Use mmx reg for 64-bit atomic
       "movq %%mm0, %0\n\t" // moves (ptr could be read-only)
@@ -364,7 +364,7 @@ inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
       "mm7");
 }
 
-inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
+inline Atomic64 noBarrierLoad(volatile const Atomic64* ptr) {
   Atomic64 value;
   __asm__ __volatile__(
       "movq %1, %%mm0\n\t" // Use mmx reg for 64-bit atomic
@@ -395,7 +395,7 @@ inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
 
 #elif defined(__arm__)
 
-inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
+inline void noBarrierStore(volatile Atomic64* ptr, Atomic64 value) {
   int storeFailed;
   Atomic64 dummy;
   __asm__ __volatile__(
@@ -410,7 +410,7 @@ inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
       : "cc", "memory");
 }
 
-inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
+inline Atomic64 noBarrierLoad(volatile const Atomic64* ptr) {
   Atomic64 res;
   __asm__ __volatile__(
       "ldrexd   %0, [%1]\n"
@@ -423,24 +423,24 @@ inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
 #endif
 
 inline void Acquire_Store(volatile Atomic64* ptr, Atomic64 value) {
-  NoBarrier_Store(ptr, value);
+  noBarrierStore(ptr, value);
   MemoryBarrier();
 }
 
 inline void Release_Store(volatile Atomic64* ptr, Atomic64 value) {
   MemoryBarrier();
-  NoBarrier_Store(ptr, value);
+  noBarrierStore(ptr, value);
 }
 
 inline Atomic64 Acquire_Load(volatile const Atomic64* ptr) {
-  Atomic64 value = NoBarrier_Load(ptr);
+  Atomic64 value = noBarrierLoad(ptr);
   MemoryBarrier();
   return value;
 }
 
 inline Atomic64 Release_Load(volatile const Atomic64* ptr) {
   MemoryBarrier();
-  return NoBarrier_Load(ptr);
+  return noBarrierLoad(ptr);
 }
 #endif // __LP64__
 

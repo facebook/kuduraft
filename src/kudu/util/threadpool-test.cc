@@ -99,7 +99,7 @@ TEST_F(ThreadPoolTest, TestNoTaskOpenClose) {
 
 static void simpleTaskMethod(int n, Atomic32* counter) {
   while (n--) {
-    base::subtle::NoBarrier_AtomicIncrement(counter, 1);
+    base::subtle::noBarrierAtomicIncrement(counter, 1);
     boost::detail::yield(n);
   }
 }
@@ -129,7 +129,7 @@ TEST_F(ThreadPoolTest, TestSimpleTasks) {
   ASSERT_OK(pool_->Submit(task));
   ASSERT_OK(pool_->submitClosure(Bind(&simpleTaskMethod, 123, &counter)));
   waitForPool(*pool_);
-  ASSERT_EQ(10 + 15 + 20 + 15 + 123, base::subtle::NoBarrier_Load(&counter));
+  ASSERT_EQ(10 + 15 + 20 + 15 + 123, base::subtle::noBarrierLoad(&counter));
   pool_->Shutdown();
 }
 

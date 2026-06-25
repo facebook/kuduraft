@@ -204,18 +204,18 @@ int64_t currentConsumption() {
   static Atomic64 consumption = 0;
   uint64_t time = getMonoTimeMicros();
   if (time > lastReadTime + kReadIntervalMicros && readLock.try_lock()) {
-    base::subtle::NoBarrier_Store(
+    base::subtle::noBarrierStore(
         &consumption, getTcmallocCurrentAllocatedBytes());
     // Re-fetch the time after getting the consumption. This way, in case
     // fetching consumption is extremely slow for some reason (eg due to lots of
     // contention in tcmalloc) we at least ensure that we wait at least another
     // full interval before fetching the information again.
     time = getMonoTimeMicros();
-    base::subtle::NoBarrier_Store(&lastReadTime, time);
+    base::subtle::noBarrierStore(&lastReadTime, time);
     readLock.unlock();
   }
 
-  return base::subtle::NoBarrier_Load(&consumption);
+  return base::subtle::noBarrierLoad(&consumption);
 #else
   // Without tcmalloc, we have no reliable way of determining our own heap
   // size (e.g. mallinfo doesn't work in ASAN builds). So, we'll fall back
@@ -285,10 +285,10 @@ bool softLimitExceeded(double* currentCapacityPct) {
 
 void maybeGcAfterRelease(int64_t releasedBytes) {
 #ifdef TCMALLOC_ENABLED
-  int64_t nowReleased = base::subtle::NoBarrier_AtomicIncrement(
+  int64_t nowReleased = base::subtle::noBarrierAtomicIncrement(
       &gReleasedMemorySinceGc, -releasedBytes);
   if (PREDICT_FALSE(nowReleased > kGcReleaseSize)) {
-    base::subtle::NoBarrier_Store(&gReleasedMemorySinceGc, 0);
+    base::subtle::noBarrierStore(&gReleasedMemorySinceGc, 0);
     gcTcmalloc();
   }
 #endif

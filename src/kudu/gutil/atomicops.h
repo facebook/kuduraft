@@ -38,8 +38,8 @@
 // It is incorrect to make direct assignments to/from an atomic variable.
 // You should use one of the Load or Store routines.  The NoBarrier
 // versions are provided when no barriers are needed:
-//   NoBarrier_Store()
-//   NoBarrier_Load()
+//   noBarrierStore()
+//   noBarrierLoad()
 // Although there are currently no compiler enforcement, you are encouraged
 // to use these.  Moreover, if you choose to use base::subtle::Atomic64 type,
 // you MUST use one of the Load or Store routines to get correct behavior
@@ -113,20 +113,20 @@ namespace subtle {
 // Always return the old value of "*ptr"
 //
 // This routine implies no memory barriers.
-inline AtomicWord NoBarrier_CompareAndSwap(
+inline AtomicWord noBarrierCompareAndSwap(
     volatile AtomicWord* ptr,
     AtomicWord oldValue,
     AtomicWord newValue) {
-  return NoBarrier_CompareAndSwap(
+  return noBarrierCompareAndSwap(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), oldValue, newValue);
 }
 
 // Atomically store newValue into *ptr, returning the previous value held in
 // *ptr.  This routine implies no memory barriers.
-inline AtomicWord NoBarrier_AtomicExchange(
+inline AtomicWord noBarrierAtomicExchange(
     volatile AtomicWord* ptr,
     AtomicWord newValue) {
-  return NoBarrier_AtomicExchange(
+  return noBarrierAtomicExchange(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
@@ -147,10 +147,10 @@ inline AtomicWord releaseAtomicExchange(
 // Atomically increment *ptr by "increment".  Returns the new value of
 // *ptr with the increment applied.  This routine implies no memory
 // barriers.
-inline AtomicWord NoBarrier_AtomicIncrement(
+inline AtomicWord noBarrierAtomicIncrement(
     volatile AtomicWord* ptr,
     AtomicWord increment) {
-  return NoBarrier_AtomicIncrement(
+  return noBarrierAtomicIncrement(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), increment);
 }
 
@@ -177,8 +177,8 @@ inline AtomicWord Release_CompareAndSwap(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), oldValue, newValue);
 }
 
-inline void NoBarrier_Store(volatile AtomicWord* ptr, AtomicWord value) {
-  NoBarrier_Store(reinterpret_cast<volatile AtomicWordCastType*>(ptr), value);
+inline void noBarrierStore(volatile AtomicWord* ptr, AtomicWord value) {
+  noBarrierStore(reinterpret_cast<volatile AtomicWordCastType*>(ptr), value);
 }
 
 inline void Acquire_Store(volatile AtomicWord* ptr, AtomicWord value) {
@@ -191,8 +191,8 @@ inline void Release_Store(volatile AtomicWord* ptr, AtomicWord value) {
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), value);
 }
 
-inline AtomicWord NoBarrier_Load(volatile const AtomicWord* ptr) {
-  return NoBarrier_Load(
+inline AtomicWord noBarrierLoad(volatile const AtomicWord* ptr) {
+  return noBarrierLoad(
       reinterpret_cast<volatile const AtomicWordCastType*>(ptr));
 }
 
@@ -231,13 +231,13 @@ namespace subtle {
 // from AtomicWord in 32-bit binaries where AtomicWord is 32-bits.
 typedef int64_t Atomic64;
 
-Atomic32 NoBarrier_CompareAndSwap(volatile Atomic32* ptr,
+Atomic32 noBarrierCompareAndSwap(volatile Atomic32* ptr,
                                   Atomic32 old_value,
                                   Atomic32 new_value);
-Atomic32 NoBarrier_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
+Atomic32 noBarrierAtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
 Atomic32 acquireAtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
 Atomic32 releaseAtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
-Atomic32 NoBarrier_AtomicIncrement(volatile Atomic32* ptr, Atomic32 increment);
+Atomic32 noBarrierAtomicIncrement(volatile Atomic32* ptr, Atomic32 increment);
 Atomic32 barrierAtomicIncrement(volatile Atomic32* ptr,
                                  Atomic32 increment);
 Atomic32 Acquire_CompareAndSwap(volatile Atomic32* ptr,
@@ -246,21 +246,21 @@ Atomic32 Acquire_CompareAndSwap(volatile Atomic32* ptr,
 Atomic32 Release_CompareAndSwap(volatile Atomic32* ptr,
                                 Atomic32 old_value,
                                 Atomic32 new_value);
-void NoBarrier_Store(volatile Atomic32* ptr, Atomic32 value);
+void noBarrierStore(volatile Atomic32* ptr, Atomic32 value);
 void Acquire_Store(volatile Atomic32* ptr, Atomic32 value);
 void Release_Store(volatile Atomic32* ptr, Atomic32 value);
-Atomic32 NoBarrier_Load(volatile const Atomic32* ptr);
+Atomic32 noBarrierLoad(volatile const Atomic32* ptr);
 Atomic32 Acquire_Load(volatile const Atomic32* ptr);
 Atomic32 Release_Load(volatile const Atomic32* ptr);
 
 // Corresponding operations on Atomic64
-Atomic64 NoBarrier_CompareAndSwap(volatile Atomic64* ptr,
+Atomic64 noBarrierCompareAndSwap(volatile Atomic64* ptr,
                                   Atomic64 old_value,
                                   Atomic64 new_value);
-Atomic64 NoBarrier_AtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
+Atomic64 noBarrierAtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
 Atomic64 acquireAtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
 Atomic64 releaseAtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
-Atomic64 NoBarrier_AtomicIncrement(volatile Atomic64* ptr, Atomic64 increment);
+Atomic64 noBarrierAtomicIncrement(volatile Atomic64* ptr, Atomic64 increment);
 Atomic64 barrierAtomicIncrement(volatile Atomic64* ptr, Atomic64 increment);
 
 Atomic64 Acquire_CompareAndSwap(volatile Atomic64* ptr,
@@ -269,10 +269,10 @@ Atomic64 Acquire_CompareAndSwap(volatile Atomic64* ptr,
 Atomic64 Release_CompareAndSwap(volatile Atomic64* ptr,
                                 Atomic64 old_value,
                                 Atomic64 new_value);
-void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value);
+void noBarrierStore(volatile Atomic64* ptr, Atomic64 value);
 void Acquire_Store(volatile Atomic64* ptr, Atomic64 value);
 void Release_Store(volatile Atomic64* ptr, Atomic64 value);
-Atomic64 NoBarrier_Load(volatile const Atomic64* ptr);
+Atomic64 noBarrierLoad(volatile const Atomic64* ptr);
 Atomic64 Acquire_Load(volatile const Atomic64* ptr);
 Atomic64 Release_Load(volatile const Atomic64* ptr);
 }  // namespace base::subtle

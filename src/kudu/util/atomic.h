@@ -193,7 +193,7 @@ template <typename T>
 inline T AtomicInt<T>::load(MemoryOrder memOrder) const {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
-      return base::subtle::NoBarrier_Load(&value_);
+      return base::subtle::noBarrierLoad(&value_);
     }
     case kMemOrderBarrier: {
       fatalMemOrderNotSupported("load");
@@ -213,7 +213,7 @@ template <typename T>
 inline void AtomicInt<T>::store(T newValue, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
-      base::subtle::NoBarrier_Store(&value_, newValue);
+      base::subtle::noBarrierStore(&value_, newValue);
       break;
     }
     case kMemOrderBarrier: {
@@ -242,7 +242,7 @@ inline T
 AtomicInt<T>::compareAndSwap(T expectedVal, T newVal, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
-      return base::subtle::NoBarrier_CompareAndSwap(
+      return base::subtle::noBarrierCompareAndSwap(
           &value_, expectedVal, newVal);
     }
     case kMemOrderBarrier: {
@@ -268,7 +268,7 @@ template <typename T>
 inline T AtomicInt<T>::incrementBy(T delta, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
-      return base::subtle::NoBarrier_AtomicIncrement(&value_, delta);
+      return base::subtle::noBarrierAtomicIncrement(&value_, delta);
     }
     case kMemOrderBarrier: {
       return base::subtle::barrierAtomicIncrement(&value_, delta);
@@ -295,7 +295,7 @@ template <typename T>
 inline T AtomicInt<T>::exchange(T newValue, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
-      return base::subtle::NoBarrier_AtomicExchange(&value_, newValue);
+      return base::subtle::noBarrierAtomicExchange(&value_, newValue);
     }
     case kMemOrderBarrier: {
       fatalMemOrderNotSupported("exchange");

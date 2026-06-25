@@ -40,8 +40,8 @@ METRIC_DEFINE_gauge_uint64(
 
 using base::subtle::Atomic64;
 using base::subtle::barrierAtomicIncrement;
-using base::subtle::NoBarrier_CompareAndSwap;
-using base::subtle::NoBarrier_Load;
+using base::subtle::noBarrierCompareAndSwap;
+using base::subtle::noBarrierLoad;
 
 Timestamp LogicalClock::now() {
   return Timestamp(barrierAtomicIncrement(&now_, 1));
@@ -57,7 +57,7 @@ Status LogicalClock::update(const Timestamp& toUpdate) {
   Atomic64 newValue = toUpdate.value();
 
   while (true) {
-    Atomic64 currentValue = NoBarrier_Load(&now_);
+    Atomic64 currentValue = noBarrierLoad(&now_);
     // if the incoming value is less than the current one, or we've failed the
     // CAS because the current clock increased to higher than the incoming
     // value, we can stop the loop now.
@@ -66,7 +66,7 @@ Status LogicalClock::update(const Timestamp& toUpdate) {
     }
     // otherwise try a CAS
     if (PREDICT_TRUE(
-            NoBarrier_CompareAndSwap(&now_, currentValue, newValue) ==
+            noBarrierCompareAndSwap(&now_, currentValue, newValue) ==
             currentValue)) {
       break;
     }
@@ -103,7 +103,7 @@ LogicalClock* LogicalClock::createStartingAt(const Timestamp& timestamp) {
 
 uint64_t LogicalClock::getCurrentTime() {
   // We don't want reading metrics to change the clock.
-  return NoBarrier_Load(&now_);
+  return noBarrierLoad(&now_);
 }
 
 void LogicalClock::registerMetrics(

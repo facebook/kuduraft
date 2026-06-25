@@ -112,12 +112,12 @@ class HdrHistogram {
 
   // Count of all events recorded.
   uint64_t totalCount() const {
-    return base::subtle::NoBarrier_Load(&totalCount_);
+    return base::subtle::noBarrierLoad(&totalCount_);
   }
 
   // Sum of all events recorded.
   uint64_t totalSum() const {
-    return base::subtle::NoBarrier_Load(&totalSum_);
+    return base::subtle::noBarrierLoad(&totalSum_);
   }
 
   // Return number of items at index.

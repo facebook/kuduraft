@@ -67,7 +67,7 @@
 DEFINE_bool(is_panic_test_child, false, "Used by TestRpcPanic");
 DECLARE_bool(socket_inject_short_recvs);
 
-using base::subtle::NoBarrier_Load;
+using base::subtle::noBarrierLoad;
 using kudu::pb_util::SecureDebugString;
 using std::shared_ptr;
 using std::string;
@@ -331,11 +331,11 @@ TEST_F(RpcStubTest, TestCallWithMissingPBFieldClientSide) {
   Atomic32 callbackCount = 0;
   p.AddAsync(
       req, &resp, &controller, boost::bind(&doIncrement, &callbackCount));
-  while (NoBarrier_Load(&callbackCount) == 0) {
+  while (noBarrierLoad(&callbackCount) == 0) {
     SleepFor(MonoDelta::FromMicroseconds(10));
   }
   SleepFor(MonoDelta::FromMicroseconds(100));
-  ASSERT_EQ(1, NoBarrier_Load(&callbackCount));
+  ASSERT_EQ(1, noBarrierLoad(&callbackCount));
   ASSERT_STR_CONTAINS(
       controller.status().ToString(),
       "Invalid argument: invalid parameter for call "

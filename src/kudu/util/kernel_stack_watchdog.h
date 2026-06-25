@@ -295,7 +295,7 @@ class ScopedWatchKernelStack {
     // is atomic. If we race with the watchdog, either they'll see the old
     // depth or the new depth, but in either case the underlying data is
     // perfectly valid.
-    base::subtle::NoBarrier_Store(&tls->depth, d - 1);
+    base::subtle::noBarrierStore(&tls->depth, d - 1);
   }
 
  private:
