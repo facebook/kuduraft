@@ -2836,7 +2836,7 @@ void PeerMessageQueue::DumpToStrings(vector<string>* lines) const {
 
 void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
   DCHECK(queueLock_.is_locked());
-  lines->push_back("Watermarks:");
+  lines->emplace_back("Watermarks:");
   for (const PeersMap::value_type& entry : peersMap_) {
     lines->push_back(
         fmt::format(
