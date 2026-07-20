@@ -8,7 +8,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ConstexprMath.h>
 #include "kudu/gutil/strings/strip.h"
 

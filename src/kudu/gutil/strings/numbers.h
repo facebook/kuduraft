@@ -14,7 +14,7 @@
 
 #include <cstdint>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/int128.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"

@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strtoint.h"

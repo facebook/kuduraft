@@ -23,7 +23,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <cstdint>
 #include "kudu/gutil/int128.h"
 #include "kudu/gutil/strings/ascii_ctype.h"
