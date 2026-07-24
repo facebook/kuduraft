@@ -226,8 +226,6 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
     }
     default:
       LOG(FATAL) << "Wrong state: " << completionRecord->state;
-      // dummy return to avoid warnings
-      return RpcState::kStale;
   }
 }
 
