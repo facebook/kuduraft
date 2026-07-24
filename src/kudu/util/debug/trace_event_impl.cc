@@ -248,7 +248,6 @@ class TraceBufferRingBuffer : public TraceBuffer {
 
     virtual unique_ptr<TraceBufferChunk> getChunk(size_t* /*index*/) override {
       NOTIMPLEMENTED();
-      return unique_ptr<TraceBufferChunk>();
     }
     virtual void returnChunk(
         size_t /* index */,
@@ -269,7 +268,6 @@ class TraceBufferRingBuffer : public TraceBuffer {
     }
     virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
       NOTIMPLEMENTED();
-      return unique_ptr<TraceBuffer>();
     }
 
     size_t currentIterationIndex_;
@@ -386,7 +384,6 @@ class TraceBufferVector : public TraceBuffer {
 
   virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
     NOTIMPLEMENTED();
-    return unique_ptr<TraceBuffer>();
   }
 
  private:
