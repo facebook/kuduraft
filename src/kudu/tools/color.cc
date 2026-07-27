@@ -79,7 +79,7 @@ const char* stringForCode(AnsiCode colorCode) {
       return "\x1b[m";
   }
   LOG(FATAL);
-  return "";
+  __builtin_unreachable();
 }
 } // anonymous namespace
 
