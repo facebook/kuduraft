@@ -95,7 +95,7 @@ static int tabletServerMain(int argc, char** argv) {
     SleepFor(MonoDelta::FromSeconds(60));
   }
 
-  return 0;
+  __builtin_unreachable();
 }
 
 } // namespace tserver
