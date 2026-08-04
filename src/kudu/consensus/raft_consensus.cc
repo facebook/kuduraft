@@ -4069,8 +4069,11 @@ std::string RaftConsensus::peer_region() const {
 }
 
 std::string RaftConsensus::peer_quorum_id(bool need_lock) const {
+  UniqueLock l(lock_, std::defer_lock);
   if (need_lock) {
-    LockGuard l(lock_);
+    l.lock();
+  } else {
+    DCHECK(lock_.is_locked());
   }
   return cmeta_->activeConfig().has_commit_rule()
       ? getQuorumId(localPeerPb_, cmeta_->activeConfig().commit_rule())
