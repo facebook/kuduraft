@@ -5631,23 +5631,30 @@ Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
       proxyPolicy_, cmeta_->leaderUuid(), cmeta_->activeConfig());
 }
 
-void RaftConsensus::getProxyPolicy(std::string* proxy_policy) {
-  LockGuard l(lock_);
+namespace {
 
-  switch (proxyPolicy_) {
+const char* proxyPolicyToString(ProxyPolicy policy) {
+  switch (policy) {
     case ProxyPolicy::DisableProxy:
-      *proxy_policy = "DISABLE_PROXY";
-      break;
+      return "DISABLE_PROXY";
     case ProxyPolicy::SimpleRegionRoutingPolicy:
-      *proxy_policy = "SIMPLE_REGION_ROUTING_POLICY";
-      break;
+      return "SIMPLE_REGION_ROUTING_POLICY";
     case ProxyPolicy::DurableRoutingPolicy:
-      *proxy_policy = "DURABLE_ROUTING_POLICY";
-      break;
-    default:
-      *proxy_policy = "UNKNOWN";
+      return "DURABLE_ROUTING_POLICY";
+    // Listed explicitly so that adding an enumerator fails the switch-enum
+    // check rather than silently falling into "UNKNOWN". This one has always
+    // reported "UNKNOWN".
+    case ProxyPolicy::RegionGroupRoutingPolicy:
       break;
   }
+  return "UNKNOWN";
+}
+
+} // namespace
+
+void RaftConsensus::getProxyPolicy(std::string* proxy_policy) {
+  LockGuard l(lock_);
+  *proxy_policy = proxyPolicyToString(proxyPolicy_);
 }
 
 void RaftConsensus::setProxyFailureThreshold(
@@ -5837,6 +5844,55 @@ Status RaftConsensus::getQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
 void RaftConsensus::setStateMachineMetrics(
     std::shared_ptr<StateMachineMetricsInterface> s) {
   stateMachineMetrics_ = std::move(s);
+}
+
+void RaftConsensus::getStatusSnapshot(StatusSnapshot* snapshot) const {
+  ThreadRestrictions::assertWaitAllowed();
+  DCHECK(snapshot);
+
+  LockGuard l(lock_);
+
+  // Deliberately no state_ == kShutdown guard. None of the individual accessors
+  // this replaces checked state_, and shutdown() leaves cmeta_ and queue_
+  // intact, so these variables kept reporting their last values after a
+  // shutdown. Adding a guard here would silently turn all 16 of them undefined.
+
+  snapshot->role = cmeta_->activeRole();
+  snapshot->currentTerm = currentTermUnlocked();
+  snapshot->leaderUuid = getLeaderUuidUnlocked();
+  snapshot->leaderHostPort = cmeta_->leaderHostport();
+
+  // Committed and pending config are read together so callers cannot observe
+  // them from two different configuration epochs.
+  snapshot->committedConfig = cmeta_->committedConfig();
+  snapshot->hasPendingConfig = cmeta_->hasPendingConfig();
+  if (snapshot->hasPendingConfig) {
+    snapshot->pendingConfig = cmeta_->pendingConfig();
+  }
+
+  const RaftConfigPB& activeConfig = cmeta_->activeConfig();
+  if (activeConfig.has_commit_rule()) {
+    snapshot->peerQuorumId =
+        getQuorumId(localPeerPb_, activeConfig.commit_rule());
+  }
+  snapshot->quorumType = activeConfig.has_commit_rule() &&
+          activeConfig.commit_rule().has_quorum_type()
+      ? activeConfig.commit_rule().quorum_type()
+      : QuorumType::REGION;
+
+  snapshot->voterDistributionValid =
+      cmeta_->voterDistribution(&snapshot->voterDistribution).ok();
+
+  snapshot->proxyPolicy = proxyPolicyToString(proxyPolicy_);
+
+  auto codec = CompressionCodecManager::getCurrentCodec();
+  snapshot->compressionStats = codec ? codec->stats() : "";
+
+  snapshot->availableCommitPeers = queue_->GetAvailableCommitPeers();
+  snapshot->quorumHealthValid =
+      queue_->GetQuorumHealth(&snapshot->quorumHealth).ok();
+  snapshot->allStateMachineMetricsValid =
+      queue_->getAllStateMachineMetrics(&snapshot->allStateMachineMetrics).ok();
 }
 
 Status RaftConsensus::getAllStateMachineMetrics(

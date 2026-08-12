@@ -812,6 +812,55 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status getAllStateMachineMetrics(
       PeerMessageQueue::AllStateMachineMetrics* metrics);
 
+  // Everything the status-variable layer needs, gathered under a single
+  // acquisition of lock_.
+  //
+  // The status variables exposed by the mysql_raft plugin used to call
+  // ~17 individual accessors here (role(), currentTerm(), getLeaderUuid(),
+  // committedConfig(), pendingConfig(), ...), each taking lock_ on its own.
+  // Materializing performance_schema.global_status therefore took lock_ around
+  // 20-25 times in a row, serialized against the replication hot path. This
+  // collapses that to one acquisition.
+  //
+  // It also removes a real consistency hole: committedConfig() and
+  // pendingConfig() were separate acquisitions, so the two could be observed
+  // from different configuration epochs.
+  //
+  // Fields whose underlying accessor returned a non-OK Status are left at
+  // their default-constructed value and the matching *Valid flag is false.
+  struct StatusSnapshot {
+    RaftPeerPB::Role role{RaftPeerPB::UNKNOWN_ROLE};
+    int64_t currentTerm{0};
+    std::string leaderUuid;
+    std::pair<std::string, unsigned int> leaderHostPort;
+    std::string peerQuorumId;
+    std::string proxyPolicy;
+    std::string compressionStats;
+    QuorumType quorumType{QuorumType::REGION};
+    int32_t availableCommitPeers{0};
+
+    RaftConfigPB committedConfig;
+    RaftConfigPB pendingConfig;
+    bool hasPendingConfig{false};
+
+    std::map<std::string, int32_t> voterDistribution;
+    bool voterDistributionValid{false};
+
+    PeerMessageQueue::QuorumHealth quorumHealth;
+    bool quorumHealthValid{false};
+
+    PeerMessageQueue::AllStateMachineMetrics allStateMachineMetrics;
+    bool allStateMachineMetricsValid{false};
+  };
+
+  // Fills 'snapshot' under a single lock_ acquisition.
+  //
+  // Note there is intentionally no state_ == kShutdown guard: none of the
+  // individual accessors this batches checked state_, and shutdown() leaves
+  // cmeta_ and queue_ intact, so callers keep observing the last known values
+  // after a shutdown exactly as they did before.
+  void getStatusSnapshot(StatusSnapshot* snapshot) const;
+
   void setStateMachineMetrics(
       std::shared_ptr<StateMachineMetricsInterface> state_machine_metrics);
 
