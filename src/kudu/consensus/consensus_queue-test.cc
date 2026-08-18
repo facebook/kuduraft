@@ -59,6 +59,7 @@
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
+#include "kudu/util/threadpool-test-util.h" // @manual - duplicate header owner
 
 DECLARE_int32(consensus_max_batch_size_bytes);
 DECLARE_int32(follower_unavailable_considered_failed_sec);
@@ -888,6 +889,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   // leader.
   queue_->updateLastIndexAppendedToLeader(10);
   appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+  waitForLocalPeerToAckIndex(10);
 
   // Now rewrite some of the operations and wait for the log to append.
   Synchronizer synch;
@@ -898,6 +900,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
 
   // Wait for the operation to be in the log.
   ASSERT_OK(synch.wait());
+  waitForPool(*raftPool_);
 
   // Having appended index 5, the follower is still 5 ops behind the leader.
   ASSERT_EQ(5, queue_->metrics_.num_ops_behind_leader->value());
@@ -912,6 +915,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
 
   // Wait for the operation to be in the log.
   ASSERT_OK(synch.wait());
+  waitForPool(*raftPool_);
 
   // Having appended index 6, the follower is still 4 ops behind the leader.
   ASSERT_EQ(4, queue_->metrics_.num_ops_behind_leader->value());
