@@ -21,15 +21,11 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <string>
 
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
-#include "kudu/util/faststring.h"
 #include "kudu/util/random.h"
-
-using std::string;
 
 namespace kudu {
 
@@ -45,13 +41,6 @@ void randomString(void* dest, size_t n, Random* rng) {
     }
   }
   memcpy(cdest + i, &random, n - i);
-}
-
-string randomString(size_t n, Random* rng) {
-  faststring s;
-  s.resize(n);
-  randomString(s.data(), n, rng);
-  return s.toString();
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
