@@ -57,8 +57,6 @@ class EasyJson {
   enum ComplexTypeInitializer { kObject, kArray };
 
   EasyJson();
-  // Initializes the EasyJson object with the given type.
-  explicit EasyJson(ComplexTypeInitializer type);
   ~EasyJson() = default;
 
   // Returns the child EasyJson associated with key.
@@ -96,7 +94,6 @@ class EasyJson {
   //
   // 'val' can be a bool, int32_t, int64_t, double,
   // char*, string, or ComplexTypeInitializer.
-  EasyJson& operator=(const std::string& val);
   template <typename T>
   EasyJson& operator=(T val);
 
@@ -121,22 +118,8 @@ class EasyJson {
   // coerced to an object, overwriting the old Value.
   // If the given key does not exist, a new child entry
   // is created with the given value.
-  EasyJson set(const std::string& key, const std::string& val);
   template <typename T>
   EasyJson set(const std::string& key, T val);
-
-  // Stores val at index.
-  // Returns the child object.
-  //
-  // If this EasyJson's underlying Value is not an array
-  // (i.e. !this->value().IsArray()), then its Value is
-  // coerced to an array, overwriting the old Value.
-  // If index >= this->value().Size(), then the underlying
-  // array's size is increased to index + 1 (new indices
-  // are filled with Null values).
-  EasyJson set(int index, const std::string& val);
-  template <typename T>
-  EasyJson set(int index, T val);
 
   // Appends val to the underlying array.
   // Returns a reference to the new child object.
@@ -144,7 +127,6 @@ class EasyJson {
   // If this EasyJson's underlying Value is not an array
   // (i.e. !this->value().IsArray()), then its Value is
   // coerced to an array, overwriting the old Value.
-  EasyJson pushBack(const std::string& val);
   template <typename T>
   EasyJson pushBack(T val);
 
@@ -152,9 +134,6 @@ class EasyJson {
   rapidjson::Value& value() const {
     return *value_;
   }
-
-  // Returns a string representation of the underlying json.
-  std::string toString() const;
 
  private:
   // One instance of EasyJsonAllocator is shared among a root
