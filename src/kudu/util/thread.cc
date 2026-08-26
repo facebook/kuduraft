@@ -371,13 +371,6 @@ static void initThreading() {
   threadManager.reset(new ThreadMgr());
 }
 
-Status startThreadInstrumentation(
-    const std::shared_ptr<MetricEntity>& serverMetrics,
-    WebCallbackRegistry* web) {
-  std::call_once(once, initThreading);
-  return threadManager->startInstrumentation(serverMetrics, web);
-}
-
 ThreadJoiner::ThreadJoiner(Thread* thr)
     : thread_(CHECK_NOTNULL(thr)),
       warnAfterMs_(kDefaultWarnAfterMs),

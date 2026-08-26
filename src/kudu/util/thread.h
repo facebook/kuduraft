@@ -45,9 +45,7 @@
 
 namespace kudu {
 
-class MetricEntity;
 class Thread;
-class WebCallbackRegistry;
 
 // Utility to join on a thread, printing warning messages if it
 // takes too long. For example:
@@ -428,13 +426,6 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // abrupt exit (i.e. pthread_exit()). Cleans up after superviseThread().
   static void finishThread(void* arg);
 };
-
-// Registers /threadz with the debug webserver, and creates thread-tracking
-// metrics under the given entity. If 'web' is NULL, does not register the path
-// handler.
-Status startThreadInstrumentation(
-    const std::shared_ptr<MetricEntity>& serverMetrics,
-    WebCallbackRegistry* web);
 
 // Container class for any details we want to capture about a thread
 // TODO: Add start-time.
