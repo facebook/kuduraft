@@ -269,12 +269,6 @@ inline internal::Splitter<Delimiter> split(StringPiece text, Delimiter d) {
   return internal::Splitter<Delimiter>(text, d);
 }
 
-template <typename Delimiter, typename Predicate>
-inline internal::Splitter<Delimiter, Predicate>
-split(StringPiece text, Delimiter d, Predicate p) {
-  return internal::Splitter<Delimiter, Predicate>(text, d, p);
-}
-
 namespace delimiter {
 // A Delimiter object represents a single separator, such as a character,
 // literal string, or regular expression. A Delimiter object must have the
@@ -384,14 +378,6 @@ class LimitImpl {
   const int limit_;
   int count_;
 };
-
-// Overloaded limit() function to create LimitImpl<> objects. Uses the Delimiter
-// Literal as the default if string-like objects are passed as the delimiter
-// parameter. This is similar to the overloads for split() below.
-template <typename Delimiter>
-inline LimitImpl<Delimiter> limit(Delimiter delim, int maxCount) {
-  return LimitImpl<Delimiter>(delim, maxCount);
-}
 
 inline LimitImpl<Literal> limit(const char* s, int maxCount) {
   return LimitImpl<Literal>(Literal(s), maxCount);
