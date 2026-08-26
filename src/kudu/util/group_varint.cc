@@ -17,15 +17,10 @@
 
 #include <cstdint>
 #include <cstring>
-#include <ostream>
-#include <string>
 
 #include <boost/utility/binary.hpp>
-#include <glog/logging.h>
 
 #include "kudu/util/group_varint-inl.h"
-#include "kudu/util/hexdump.h"
-#include "kudu/util/slice.h"
 
 namespace kudu {
 namespace coding {
@@ -67,11 +62,6 @@ __attribute__((constructor)) static void initializeSseTables() {
   }
 
   sseTableInitted = true;
-}
-
-void dumpSseTable() {
-  LOG(INFO) << "SSE table:\n"
-            << kudu::hexDump(Slice(sseTable, sizeof(sseTable)));
 }
 
 } // namespace coding
