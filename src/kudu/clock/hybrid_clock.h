@@ -139,19 +139,10 @@ class HybridClock : public Clock {
   // Returns the physical value embedded in 'timestamp', in microseconds.
   static uint64_t getPhysicalValueMicros(const Timestamp& timestamp);
 
-  // Obtains a new Timestamp with the logical value zeroed out.
-  static Timestamp timestampFromMicroseconds(uint64_t micros);
-
   // Obtains a new Timestamp that embeds both the physical and logical values.
   static Timestamp timestampFromMicrosecondsAndLogicalValue(
       uint64_t micros,
       uint64_t logicalValue);
-
-  // Creates a new timestamp whose physical time is getPhysicalValue(original) +
-  // 'toAdd' and which retains the same logical value.
-  static Timestamp addPhysicalTimeToTimestamp(
-      const Timestamp& original,
-      const MonoDelta& toAdd);
 
   // Outputs a string containing the physical and logical values of the
   // timestamp, separated.

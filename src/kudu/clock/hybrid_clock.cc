@@ -466,23 +466,10 @@ uint64_t HybridClock::getPhysicalValueMicros(const Timestamp& timestamp) {
   return timestamp.value() >> kBitsToShift;
 }
 
-Timestamp HybridClock::timestampFromMicroseconds(uint64_t micros) {
-  return Timestamp(micros << kBitsToShift);
-}
-
 Timestamp HybridClock::timestampFromMicrosecondsAndLogicalValue(
     uint64_t micros,
     uint64_t logicalValue) {
   return Timestamp((micros << kBitsToShift) + logicalValue);
-}
-
-Timestamp HybridClock::addPhysicalTimeToTimestamp(
-    const Timestamp& original,
-    const MonoDelta& toAdd) {
-  int64_t newPhysical = static_cast<int64_t>(getPhysicalValueMicros(original)) +
-      toAdd.ToMicroseconds();
-  int64_t oldLogical = getLogicalValue(original);
-  return timestampFromMicrosecondsAndLogicalValue(newPhysical, oldLogical);
 }
 
 string HybridClock::stringifyTimestamp(const Timestamp& timestamp) {
