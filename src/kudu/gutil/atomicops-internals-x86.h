@@ -30,8 +30,6 @@
 
 #include <glog/logging.h>
 
-#define BASE_HAS_ATOMIC64 1 // Use only in tests and base/atomic*
-
 // NOTE(user): x86 does not need to define AtomicWordCastType, because it
 // already matches Atomic32 or Atomic64, depending on the platform.
 
