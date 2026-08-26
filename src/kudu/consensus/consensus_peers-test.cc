@@ -398,5 +398,76 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   ASSERT_LT(mockProxy->updateCount(), 5);
 }
 
+// ---------------------------------------------------------------------------
+// raft_peer_rpc_faults parsing.
+//
+// A mis-parse that matches too broadly would silently break real rings rather
+// than fail loudly, and the flag is only tagged hidden/unsafe -- it is not
+// compiled out -- so the grammar is worth pinning down.
+// ---------------------------------------------------------------------------
+
+namespace {
+constexpr const char* kA = "aaaa-1111";
+constexpr const char* kB = "bbbb-2222";
+constexpr const char* kC = "cccc-3333";
+} // namespace
+
+TEST(PeerRpcFaultSpecTest, EmptySpecFaultsNothing) {
+  const auto spec = parsePeerRpcFaultSpec("");
+  EXPECT_FALSE(spec.matches(kA, kB));
+  EXPECT_FALSE(spec.matches(kB, kA));
+}
+
+TEST(PeerRpcFaultSpecTest, BareUuidFaultsThatDestinationFromAnySender) {
+  const auto spec = parsePeerRpcFaultSpec(kB);
+  EXPECT_TRUE(spec.matches(kA, kB));
+  EXPECT_TRUE(spec.matches(kC, kB));
+  // Only as a destination; naming a peer does not mute it as a sender.
+  EXPECT_FALSE(spec.matches(kB, kA));
+}
+
+// The whole reason the directed form exists: peers sharing a process read one
+// flag value, so an undirected rule cannot isolate just one of them.
+TEST(PeerRpcFaultSpecTest, DirectedFaultsOnlyThatDirection) {
+  const auto spec = parsePeerRpcFaultSpec(std::string(kA) + ">" + kB);
+  EXPECT_TRUE(spec.matches(kA, kB));
+  EXPECT_FALSE(spec.matches(kB, kA));
+  EXPECT_FALSE(spec.matches(kC, kB));
+  EXPECT_FALSE(spec.matches(kA, kC));
+}
+
+TEST(PeerRpcFaultSpecTest, StarFaultsEverything) {
+  const auto spec = parsePeerRpcFaultSpec("*");
+  EXPECT_TRUE(spec.matches(kA, kB));
+  EXPECT_TRUE(spec.matches(kC, kA));
+}
+
+TEST(PeerRpcFaultSpecTest, AcceptsCommaSemicolonAndWhitespace) {
+  const auto spec = parsePeerRpcFaultSpec(
+      std::string(kA) + ">" + kB + " ; " + kB + ">" + kA + ",  " + kC);
+  EXPECT_TRUE(spec.matches(kA, kB));
+  EXPECT_TRUE(spec.matches(kB, kA));
+  EXPECT_TRUE(spec.matches(kA, kC));
+  // Not implied by any of the three tokens above.
+  EXPECT_FALSE(spec.matches(kC, kA));
+}
+
+// Isolating one node bidirectionally is the shape tests actually need: cutting
+// only the outbound side leaves the node able to receive, so it learns the new
+// term and demotes -- and a demoted node is not a stale leader.
+TEST(PeerRpcFaultSpecTest, BidirectionalIsolationLeavesOthersConnected) {
+  const auto spec = parsePeerRpcFaultSpec(
+      std::string(kA) + ">" + kB + "," + kB + ">" + kA + "," + kA + ">" + kC +
+      "," + kC + ">" + kA);
+  EXPECT_TRUE(spec.matches(kA, kB));
+  EXPECT_TRUE(spec.matches(kB, kA));
+  EXPECT_TRUE(spec.matches(kA, kC));
+  EXPECT_TRUE(spec.matches(kC, kA));
+  // B and C must still reach each other, or no majority can make progress and
+  // there is nothing for a stale read to be stale against.
+  EXPECT_FALSE(spec.matches(kB, kC));
+  EXPECT_FALSE(spec.matches(kC, kB));
+}
+
 } // namespace consensus
 } // namespace kudu

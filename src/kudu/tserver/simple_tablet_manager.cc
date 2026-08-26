@@ -408,8 +408,8 @@ Status TsTabletManager::start(bool isFirstRun) {
   unique_ptr<PeerProxyFactory> peerProxyFactory;
   std::shared_ptr<ITimeManager> timeManager;
 
-  peerProxyFactory.reset(
-      new RpcPeerProxyFactory(server_->messenger(), server_->metricEntity()));
+  peerProxyFactory.reset(new RpcPeerProxyFactory(
+      server_->messenger(), server_->metricEntity(), fsManager_->uuid()));
 
   if (server_->opts().enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.

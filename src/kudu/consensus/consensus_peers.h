@@ -28,6 +28,7 @@
 #include <memory>
 #include <ostream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include <folly/concurrency/ConcurrentHashMap.h>
@@ -45,6 +46,7 @@
 
 DECLARE_bool(raft_enforce_rpc_token);
 DECLARE_int32(peer_rtt_update_interval_us);
+DECLARE_string(raft_peer_rpc_faults);
 DECLARE_string(raft_validation_peer_rpc_fault_file);
 
 namespace kudu {
@@ -294,9 +296,13 @@ class PeerProxyPool {
 // PeerProxy implementation that does RPC calls
 class RpcPeerProxy : public PeerProxy {
  public:
+  // 'localUuid' is the sending peer, needed so raft_peer_rpc_faults can
+  // express a one-way fault. Peers sharing a process all read the same flag, so
+  // a destination-only rule cannot distinguish them.
   RpcPeerProxy(
       std::unique_ptr<HostPort> hostport,
       std::string peerUuid,
+      std::string localUuid,
       std::shared_ptr<ConsensusServiceProxy> consensusProxy,
       std::shared_ptr<Counter> numRpcTokenMismatches);
 
@@ -322,6 +328,7 @@ class RpcPeerProxy : public PeerProxy {
  private:
   std::unique_ptr<HostPort> hostport_;
   std::string peerUuid_;
+  std::string localUuid_;
   std::shared_ptr<ConsensusServiceProxy> consensusProxy_;
 
   std::shared_ptr<Counter> numRpcTokenMismatches_;
@@ -330,9 +337,10 @@ class RpcPeerProxy : public PeerProxy {
 // PeerProxyFactory implementation that generates RPCPeerProxies
 class RpcPeerProxyFactory : public PeerProxyFactory {
  public:
-  explicit RpcPeerProxyFactory(
+  RpcPeerProxyFactory(
       std::shared_ptr<rpc::Messenger> messenger,
-      const std::shared_ptr<MetricEntity>& metricEntity);
+      const std::shared_ptr<MetricEntity>& metricEntity,
+      std::string localUuid);
 
   Status newProxy(const RaftPeerPB& peerPb, std::shared_ptr<PeerProxy>* proxy)
       override;
@@ -346,8 +354,31 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
  private:
   std::shared_ptr<rpc::Messenger> messenger_;
 
+  std::string localUuid_;
+
   std::shared_ptr<Counter> numRpcTokenMismatches_;
 };
+
+// Parsed form of the raft_peer_rpc_faults flag.
+//
+// Grammar, whitespace/comma/semicolon separated:
+//   dst        fault RPCs to 'dst' from any sender
+//   src>dst    fault only that direction
+//   *          fault everything
+//
+// The directed form exists because peers sharing a process all read the same
+// flag value, so a destination-only rule cannot say which of them is meant to
+// be cut off.
+struct PeerRpcFaultSpec {
+  bool matchAll = false;
+  std::unordered_set<std::string> peers;
+  std::unordered_set<std::string> directed;
+
+  bool matches(const std::string& localUuid, const std::string& remoteUuid)
+      const;
+};
+
+PeerRpcFaultSpec parsePeerRpcFaultSpec(const std::string& spec);
 
 // Query the consensus service at last known host/port that is
 // specified in 'remote_peer' and set the 'permanent_uuid' field based

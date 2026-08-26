@@ -112,6 +112,20 @@ DEFINE_int32(
     "Negative value means no update.");
 
 DEFINE_string(
+    raft_peer_rpc_faults,
+    "",
+    "Test-only. Comma-separated fault list for outbound Raft peer RPCs. A bare "
+    "'dst' UUID faults every sender's RPCs to that peer; 'src>dst' faults only "
+    "that direction; '*' faults everything. Empty disables. Unlike "
+    "raft_validation_peer_rpc_fault_file this needs no file and is settable at "
+    "runtime, so a test can open and heal a partition with a single SET GLOBAL. "
+    "The directed form is what lets a test isolate one node while the remaining "
+    "majority keeps electing and committing -- the state in which a stale "
+    "leader would serve stale reads.");
+TAG_FLAG(raft_peer_rpc_faults, hidden);
+TAG_FLAG(raft_peer_rpc_faults, unsafe);
+
+DEFINE_string(
     raft_validation_peer_rpc_fault_file,
     "",
     "Validation-only file listing remote peer UUIDs whose outbound Raft peer "
@@ -634,10 +648,12 @@ void checkAndEnforceResponseToken(
 RpcPeerProxy::RpcPeerProxy(
     unique_ptr<HostPort> hostport,
     string peerUuid,
+    string localUuid,
     shared_ptr<ConsensusServiceProxy> consensusProxy,
     std::shared_ptr<Counter> numRpcTokenMismatches)
     : hostport_(std::move(hostport)),
       peerUuid_(std::move(peerUuid)),
+      localUuid_(std::move(localUuid)),
       consensusProxy_(std::move(consensusProxy)),
       numRpcTokenMismatches_(std::move(numRpcTokenMismatches)) {
   DCHECK(hostport_ != nullptr);
@@ -646,9 +662,68 @@ RpcPeerProxy::RpcPeerProxy(
   DCHECK(numRpcTokenMismatches_ != nullptr);
 }
 
+bool PeerRpcFaultSpec::matches(
+    const string& localUuid,
+    const string& remoteUuid) const {
+  if (matchAll || peers.contains(remoteUuid)) {
+    return true;
+  }
+  return directed.contains(localUuid + ">" + remoteUuid);
+}
+
+PeerRpcFaultSpec parsePeerRpcFaultSpec(const string& spec) {
+  PeerRpcFaultSpec parsed;
+  string scratch = spec;
+  std::replace(scratch.begin(), scratch.end(), ',', ' ');
+  std::replace(scratch.begin(), scratch.end(), ';', ' ');
+  std::istringstream tokens(scratch);
+  string token;
+  while (tokens >> token) {
+    if (token == "*") {
+      parsed.matchAll = true;
+    } else if (token.find('>') != string::npos) {
+      parsed.directed.insert(token);
+    } else {
+      parsed.peers.insert(token);
+    }
+  }
+  return parsed;
+}
+
 namespace {
 
-bool validationPeerRpcFaultsRemote(const string& remotePeerUuid) {
+// Faults named directly by the raft_peer_rpc_faults flag.
+//
+// The parse is cached against the flag's current value: this runs on every
+// outbound peer RPC, so re-splitting the string each time would be wasteful,
+// and re-reading a file (as the fault-file path does) more so.
+bool peerRpcFaultsRemote(
+    const string& localUuid,
+    const string& remotePeerUuid) {
+  if (FLAGS_raft_peer_rpc_faults.empty()) {
+    return false;
+  }
+
+  static simple_mutexlock cacheLock;
+  static string cachedSpec;
+  static PeerRpcFaultSpec cachedParse;
+
+  std::lock_guard<simple_mutexlock> l(cacheLock);
+  if (FLAGS_raft_peer_rpc_faults != cachedSpec) {
+    cachedSpec = FLAGS_raft_peer_rpc_faults;
+    cachedParse = parsePeerRpcFaultSpec(cachedSpec);
+  }
+
+  return cachedParse.matches(localUuid, remotePeerUuid);
+}
+
+bool validationPeerRpcFaultsRemote(
+    const string& localUuid,
+    const string& remotePeerUuid) {
+  if (peerRpcFaultsRemote(localUuid, remotePeerUuid)) {
+    return true;
+  }
+
   if (FLAGS_raft_validation_peer_rpc_fault_file.empty()) {
     return false;
   }
@@ -701,7 +776,7 @@ void RpcPeerProxy::updateAsync(
     ConsensusResponsePB* response,
     rpc::RpcController* controller,
     const rpc::ResponseCallback& callback) {
-  if (validationPeerRpcFaultsRemote(peerUuid_)) {
+  if (validationPeerRpcFaultsRemote(localUuid_, peerUuid_)) {
     response->Clear();
     fillValidationPeerRpcFaultError(response->mutable_error(), peerUuid_);
     callback();
@@ -737,7 +812,7 @@ Status RpcPeerProxy::startElection(
     const RunLeaderElectionRequestPB* request,
     RunLeaderElectionResponsePB* response,
     rpc::RpcController* controller) {
-  if (validationPeerRpcFaultsRemote(peerUuid_)) {
+  if (validationPeerRpcFaultsRemote(localUuid_, peerUuid_)) {
     response->Clear();
     fillValidationPeerRpcFaultError(response->mutable_error(), peerUuid_);
     return validationPeerRpcFaultStatus(peerUuid_);
@@ -753,7 +828,7 @@ void RpcPeerProxy::requestConsensusVoteAsync(
     VoteResponsePB* response,
     rpc::RpcController* controller,
     const rpc::ResponseCallback& callback) {
-  if (validationPeerRpcFaultsRemote(peerUuid_)) {
+  if (validationPeerRpcFaultsRemote(localUuid_, peerUuid_)) {
     response->Clear();
     fillValidationPeerRpcFaultError(response->mutable_error(), peerUuid_);
     callback();
@@ -809,8 +884,10 @@ Status createConsensusServiceProxyForHost(
 
 RpcPeerProxyFactory::RpcPeerProxyFactory(
     shared_ptr<Messenger> messenger,
-    const std::shared_ptr<MetricEntity>& metricEntity)
+    const std::shared_ptr<MetricEntity>& metricEntity,
+    string localUuid)
     : messenger_(std::move(messenger)),
+      localUuid_(std::move(localUuid)),
       numRpcTokenMismatches_(metricEntity->findOrCreateCounter(
           &METRIC_raft_rpc_token_num_response_mismatches)) {}
 
@@ -825,6 +902,7 @@ Status RpcPeerProxyFactory::newProxy(
   proxy->reset(new RpcPeerProxy(
       std::move(hostport),
       peerPb.permanent_uuid(),
+      localUuid_,
       std::move(newProxy),
       numRpcTokenMismatches_));
   return Status::OK();
