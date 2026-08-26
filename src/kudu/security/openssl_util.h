@@ -73,10 +73,6 @@ namespace security {
 
 using PasswordCallback = std::function<std::string(void)>;
 
-// Disable initialization of OpenSSL. Must be called before
-// any call to initializeOpenSsl().
-Status disableOpenSslInitialization() WARN_UNUSED_RESULT;
-
 // Initializes static state required by the OpenSSL library.
 // This is a no-op if disableOpenSslInitialization() has been called.
 //

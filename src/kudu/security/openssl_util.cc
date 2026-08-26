@@ -69,19 +69,6 @@ bool gDisableSslInit = false;
 #error "OpenSSL < 1.1.0 - need to update"
 #endif
 
-Status checkOpenSslInitialized() {
-  if (!CRYPTO_get_locking_callback()) {
-    return Status::RuntimeError("Locking callback not initialized");
-  }
-  auto ctx = sslMakeUnique(SSL_CTX_new(SSLv23_method()));
-  if (!ctx) {
-    ERR_clear_error();
-    return Status::RuntimeError(
-        "SSL library appears uninitialized (cannot create SSL_CTX)");
-  }
-  return Status::OK();
-}
-
 void doInitializeOpenSsl() {
 #if OPENSSL_VERSION_NUMBER > 0x10100000L
   // The OPENSSL_init_ssl manpage [1] says "As of version 1.1.0 OpenSSL will
@@ -232,20 +219,6 @@ int derWriteStackOfX509(BIO* bio, STACK_OF(X509) * obj) {
 
 void freeStackOfX509(STACK_OF(X509) * sk) {
   sk_X509_pop_free(sk, X509_free);
-}
-
-Status disableOpenSslInitialization() {
-  if (gDisableSslInit) {
-    return Status::OK();
-  }
-  if (gSslIsInitialized) {
-    return Status::IllegalState(
-        "SSL already initialized. Initialization can only be disabled "
-        "before first usage.");
-  }
-  RETURN_NOT_OK(checkOpenSslInitialized());
-  gDisableSslInit = true;
-  return Status::OK();
 }
 
 void initializeOpenSsl() {
