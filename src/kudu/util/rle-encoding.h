@@ -94,8 +94,6 @@ class RleDecoder {
     DCHECK_LE(bitWidth_, 64);
   }
 
-  RleDecoder() {}
-
   // Skip n values, and returns the number of non-zero entries skipped.
   size_t skip(size_t toSkip);
 
