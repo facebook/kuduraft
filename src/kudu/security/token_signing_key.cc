@@ -91,13 +91,6 @@ Status TokenSigningPrivateKey::sign(SignedTokenPB* token) const {
   return Status::OK();
 }
 
-void TokenSigningPrivateKey::exportPb(TokenSigningPrivateKeyPB* pb) const {
-  pb->Clear();
-  pb->set_key_seq_num(keySeqNum_);
-  pb->set_rsa_key_der(privateKeyDer_);
-  pb->set_expire_unix_epoch_seconds(expireTime_);
-}
-
 void TokenSigningPrivateKey::exportPublicKeyPb(
     TokenSigningPublicKeyPB* pb) const {
   pb->Clear();

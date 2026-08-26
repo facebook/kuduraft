@@ -75,9 +75,6 @@ class TokenSigningPrivateKey {
   // Sign a token, and store the signature and signing key's sequence number.
   Status sign(SignedTokenPB* token) const WARN_UNUSED_RESULT;
 
-  // Export data into corresponding PB structure.
-  void exportPb(TokenSigningPrivateKeyPB* pb) const;
-
   // Export the public-key portion of this signing key.
   void exportPublicKeyPb(TokenSigningPublicKeyPB* pb) const;
 
