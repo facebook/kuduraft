@@ -179,19 +179,10 @@ class Trace : public std::enable_shared_from_this<Trace> {
       StringPiece label,
       const std::shared_ptr<Trace>& childTrace);
 
-  // Return a copy of the current set of related "child" traces.
-  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> childTraces()
-      const;
-
   // Return the current trace attached to this thread, if there is one.
   static Trace* currentTrace() {
     return threadLocalTrace_;
   }
-
-  // Simple function to dump the current trace to stderr, if one is
-  // available. This is meant for usage when debugging in gdb via
-  // 'call kudu::Trace::dumpCurrentTrace();'.
-  static void dumpCurrentTrace();
 
   TraceMetrics* metrics() {
     return &metrics_;

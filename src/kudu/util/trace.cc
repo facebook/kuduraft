@@ -219,15 +219,6 @@ void Trace::metricsToJson(JsonWriter* jw) const {
   jw->endObject();
 }
 
-void Trace::dumpCurrentTrace() {
-  Trace* t = currentTrace();
-  if (t == nullptr) {
-    LOG(INFO) << "No trace is currently active.";
-    return;
-  }
-  t->dump(&std::cerr, true);
-}
-
 void Trace::addChildTrace(
     StringPiece label,
     const std::shared_ptr<Trace>& childTrace) {
@@ -235,12 +226,6 @@ void Trace::addChildTrace(
 
   std::lock_guard<SimpleSpinlock> l(lock_);
   childTraces_.emplace_back(label, childTrace);
-}
-
-std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> Trace::childTraces()
-    const {
-  std::lock_guard<SimpleSpinlock> l(lock_);
-  return childTraces_;
 }
 
 } // namespace kudu
