@@ -55,7 +55,6 @@ struct FreeDeleter {
 } // namespace
 
 const char kTmpInfix[] = ".kudutmp";
-const char kOldTmpInfix[] = ".tmp";
 
 string JoinPathSegments(const string& a, const string& b) {
   CHECK(!a.empty()) << "empty first component: " << a;
