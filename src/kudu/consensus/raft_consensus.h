@@ -777,6 +777,28 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Get the bounded data loss window expiry timestamp
   MonoTime getBoundedDataLossWindowUntil();
 
+  // Everything a linearizable read needs from the queue, sampled
+  // together. See PeerMessageQueue::LeaderReadSnapshot.
+  PeerMessageQueue::LeaderReadSnapshot getLeaderReadSnapshot() const;
+
+  // Blocks until a majority of this leader's commit quorum is proven to have
+  // recognized it strictly after 'anchor' in 'term'.
+  //
+  // Must not be called while holding lock_. Every event that ends this wait --
+  // a peer response, setLeaderMode, setNonLeaderMode -- is raised from under
+  // lock_, so a caller that parks here holding it deadlocks itself for the full
+  // timeout and stalls every other Raft operation meanwhile.
+  PeerMessageQueue::ConfirmationResult
+  waitForQuorumConfirmation(int64_t term, MonoTime anchor, MonoDelta timeout);
+
+  // Sends a status-only request to every peer so leadership confirmation can
+  // make progress without write traffic.
+  //
+  // Confirmation normally rides on the acks that appends already generate, at
+  // no cost. An idle ring produces no appends, so without this a reader waits
+  // out the ambient raft_heartbeat_interval_ms (500ms by default) per read.
+  void forceHeartbeatRound();
+
   // Enables (or disables) compression of messages read from log
   Status setEnableCompressionOnCacheMiss(bool enable);
 

@@ -24,6 +24,7 @@
 #include "kudu/consensus/consensus_queue.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -31,6 +32,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 
@@ -332,6 +334,7 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
       leaseGranted(MinimumOpId()),
       boundedDatalossWindowAcked(MinimumOpId()),
       rpcStart(MonoTime::Min()),
+      leadershipConfirmedAt(MonoTime::Min()),
       walCatchupPossible(true),
       lastOverallHealthStatus(HealthReportPB::UNKNOWN),
       statusLogThrottler(std::make_shared<logging::LogThrottler>()),
@@ -568,45 +571,61 @@ void PeerMessageQueue::setLeaderMode(
     int64_t committed_index,
     int64_t current_term,
     const RaftConfigPB& active_config) {
-  std::lock_guard<simple_mutexlock> lock(queueLock_);
-  if (current_term != queueState_.current_term) {
-    CHECK_GT(current_term, queueState_.current_term)
-        << "Terms should only increase";
-    queueState_.first_index_in_current_term = {};
-    queueState_.current_term = current_term;
+  {
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
+    if (current_term != queueState_.current_term) {
+      CHECK_GT(current_term, queueState_.current_term)
+          << "Terms should only increase";
+      queueState_.first_index_in_current_term = {};
+      queueState_.current_term = current_term;
+    }
+
+    queueState_.committed_index = committed_index;
+    queueState_.majority_replicated_index = committed_index;
+    queueState_.active_config.reset(new RaftConfigPB(active_config));
+    queueState_.majority_size_ =
+        majoritySize(countVoters(*queueState_.active_config));
+    queueState_.mode = LEADER;
+
+    ResetQuorumConfirmationUnlocked();
+
+    trackLocalPeerUnlocked();
+    CheckPeersInActiveConfigIfLeaderUnlocked();
+
+    LOG_WITH_PREFIX_UNLOCKED(INFO)
+        << "Queue going to LEADER mode. State: " << queueState_.ToString();
+
+    timeManager_->setLeaderMode();
   }
 
-  queueState_.committed_index = committed_index;
-  queueState_.majority_replicated_index = committed_index;
-  queueState_.active_config.reset(new RaftConfigPB(active_config));
-  queueState_.majority_size_ =
-      majoritySize(countVoters(*queueState_.active_config));
-  queueState_.mode = LEADER;
-
-  trackLocalPeerUnlocked();
-  CheckPeersInActiveConfigIfLeaderUnlocked();
-
-  LOG_WITH_PREFIX_UNLOCKED(INFO)
-      << "Queue going to LEADER mode. State: " << queueState_.ToString();
-
-  timeManager_->setLeaderMode();
+  // The confirmations just cleared are the only proof a reader parked on the
+  // previous term was waiting for.
+  notifyConfirmationWaiters();
 }
 
 void PeerMessageQueue::setNonLeaderMode(const RaftConfigPB& active_config) {
-  std::lock_guard<simple_mutexlock> lock(queueLock_);
-  queueState_.active_config.reset(new RaftConfigPB(active_config));
-  queueState_.mode = NON_LEADER;
-  queueState_.majority_size_ = -1;
+  {
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
+    queueState_.active_config.reset(new RaftConfigPB(active_config));
+    queueState_.mode = NON_LEADER;
+    queueState_.majority_size_ = -1;
 
-  // Update this when stepping down, since it doesn't get tracked as LEADER.
-  queueState_.last_idx_appended_to_leader = queueState_.last_appended.index();
+    ResetQuorumConfirmationUnlocked();
 
-  trackLocalPeerUnlocked();
+    // Update this when stepping down, since it doesn't get tracked as LEADER.
+    queueState_.last_idx_appended_to_leader = queueState_.last_appended.index();
 
-  LOG_WITH_PREFIX_UNLOCKED(INFO)
-      << "Queue going to NON_LEADER mode. State: " << queueState_.ToString();
+    trackLocalPeerUnlocked();
 
-  timeManager_->setNonLeaderMode();
+    LOG_WITH_PREFIX_UNLOCKED(INFO)
+        << "Queue going to NON_LEADER mode. State: " << queueState_.ToString();
+
+    timeManager_->setNonLeaderMode();
+  }
+
+  // ResponseFromPeer records confirmations only in LEADER mode, so this is the
+  // last wake a parked reader can get.
+  notifyConfirmationWaiters();
 }
 
 void PeerMessageQueue::trackPeer(const RaftPeerPB& peer_pb) {
@@ -771,12 +790,19 @@ void PeerMessageQueue::DoLocalPeerAppendFinished(
         queueState_.committed_index);
   }
 
-  std::optional<int64_t> updated_commit_index;
+  std::optional<int64_t> updatedCommitIndex;
+  // The local peer never contributes to leadership confirmation, so this path
+  // cannot move the watermark.
+  bool quorumConfirmationAdvanced = false;
   DoResponseFromPeer(
-      localPeerPb_.permanent_uuid(), fake_response, updated_commit_index);
+      localPeerPb_.permanent_uuid(),
+      fake_response,
+      /*rpcStart=*/std::nullopt,
+      updatedCommitIndex,
+      quorumConfirmationAdvanced);
 
-  if (updated_commit_index) {
-    NotifyObserversOfCommitIndexChange(*updated_commit_index, need_lock);
+  if (updatedCommitIndex) {
+    NotifyObserversOfCommitIndexChange(*updatedCommitIndex, need_lock);
   }
 }
 
@@ -2200,21 +2226,6 @@ MonoDelta PeerMessageQueue::boundedDataLossDefaultWindowInMsec() {
   return MonoDelta::FromMilliseconds(bounded_data_loss_window_ms);
 }
 
-void PeerMessageQueue::setPeerRpcStartTime(
-    const std::string& peer_uuid,
-    MonoTime rpc_start) {
-  std::lock_guard<simple_mutexlock> lock(queueLock_);
-  auto it = peersMap_.find(peer_uuid);
-  // Validate peer exists and has non-null value.
-  if (PREDICT_FALSE(it == peersMap_.end() || it->second == nullptr)) {
-    LOG(WARNING) << "Candidate peer " << peer_uuid
-                 << " is not foung in Message Queue's Peers map";
-    return;
-  }
-  TrackedPeer* peer = it->second;
-  peer->rpcStart = rpc_start;
-}
-
 void PeerMessageQueue::updatePeerRtt(
     const std::string& peer_uuid,
     MonoDelta rtt) {
@@ -2282,13 +2293,23 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
 
 bool PeerMessageQueue::ResponseFromPeer(
     const std::string& peer_uuid,
-    const ConsensusResponsePB& response) {
-  std::optional<int64_t> updated_commit_index;
-  const bool ret =
-      DoResponseFromPeer(peer_uuid, response, updated_commit_index);
+    const ConsensusResponsePB& response,
+    std::optional<MonoTime> rpcStart) {
+  std::optional<int64_t> updatedCommitIndex;
+  bool quorumConfirmationAdvanced = false;
+  const bool ret = DoResponseFromPeer(
+      peer_uuid,
+      response,
+      rpcStart,
+      updatedCommitIndex,
+      quorumConfirmationAdvanced);
 
-  if (updated_commit_index) {
-    NotifyObserversOfCommitIndexChange(*updated_commit_index);
+  if (quorumConfirmationAdvanced) {
+    notifyConfirmationWaiters();
+  }
+
+  if (updatedCommitIndex) {
+    NotifyObserversOfCommitIndexChange(*updatedCommitIndex);
   }
 
   return ret;
@@ -2297,7 +2318,9 @@ bool PeerMessageQueue::ResponseFromPeer(
 bool PeerMessageQueue::DoResponseFromPeer(
     const std::string& peer_uuid,
     const ConsensusResponsePB& response,
-    std::optional<int64_t>& updated_commit_index) {
+    std::optional<MonoTime> rpcStart,
+    std::optional<int64_t>& updatedCommitIndex,
+    bool& quorumConfirmationAdvanced) {
   DCHECK(response.IsInitialized())
       << "Error: Uninitialized: " << response.InitializationErrorString()
       << ". Response: " << SecureShortDebugString(response);
@@ -2323,6 +2346,15 @@ bool PeerMessageQueue::DoResponseFromPeer(
       return sendMoreImmediately;
     }
     TrackedPeer* peer = it->second;
+    if (rpcStart.has_value()) {
+      // Overwritten rather than advanced, so this can move backwards: responses
+      // are not ordered by send time, and one from an earlier RPC arriving
+      // second leaves the older start time recorded. Callers that need a lower
+      // bound must not read this field directly. leadershipConfirmedAt below is
+      // the one this change adds, and it takes the max rather than the latest
+      // value for exactly this reason.
+      peer->rpcStart = *rpcStart;
+    }
 
     // Sanity checks.
     // Some of these can be eventually removed, but they are handy for now.
@@ -2354,6 +2386,27 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // offset between the local leader and the remote peer.
     UpdateExchangeStatus(
         peer, prev_last_exchange_status, response, &sendMoreImmediately);
+
+    // Leadership confirmation for linearizable reads.
+    //
+    // This must run here rather than alongside the lease bookkeeping further
+    // down, because a peer whose status is not Ok returns out of this function
+    // below and would never reach that point -- and LmpMismatch, the status a
+    // follower holds for the whole of its catch-up, is exactly the case we
+    // cannot afford to drop. Excluding it would leave a leader unable to
+    // confirm a quorum during a routine post-failover window.
+    //
+    // The local peer is skipped: it trivially agrees with itself and carries no
+    // rpcStart, so counting it would let a partitioned leader confirm itself.
+    if (queueState_.mode == LEADER &&
+        peer_uuid != localPeerPb_.permanent_uuid() &&
+        PeerStatusConfirmsLeadership(peer->lastExchangeStatus)) {
+      // Responses can be reordered, so clamp: a peer's proof of recognition
+      // only ever moves forward.
+      peer->leadershipConfirmedAt =
+          std::max(peer->leadershipConfirmedAt, peer->rpcStart);
+      quorumConfirmationAdvanced = true;
+    }
 
     // If the reported last-received op for the replica is in our local log,
     // then resume sending entries from that point onward. Otherwise, resume
@@ -2616,10 +2669,10 @@ bool PeerMessageQueue::DoResponseFromPeer(
       if (mode_copy == LEADER &&
           queueState_.committed_index != commit_index_before) {
         DCHECK_GT(queueState_.committed_index, commit_index_before);
-        updated_commit_index = queueState_.committed_index;
+        updatedCommitIndex = queueState_.committed_index;
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Commit index advanced from " << commit_index_before << " to "
-            << *updated_commit_index;
+            << *updatedCommitIndex;
       }
     }
 
@@ -2681,6 +2734,129 @@ MonoTime PeerMessageQueue::GetMaximumOfPeerRpcStarts(QuorumResults& qresults) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Unable to run GetMaximumOfPeerRpcStarts, "
         << "Number of remote peers: " << rpc_starts.size() << ".";
+  }
+  return result;
+}
+
+bool PeerMessageQueue::PeerStatusConfirmsLeadership(PeerStatus status) {
+  switch (status) {
+    // The peer took the request in our term. LmpMismatch rejects only the
+    // log-matching check, which the peer evaluates after accepting the term.
+    case PeerStatus::Ok:
+    case PeerStatus::LmpMismatch:
+      return true;
+
+    // InvalidTerm is an explicit rejection of our term. The rest mean we never
+    // learned anything about the peer's view of leadership.
+    case PeerStatus::New:
+    case PeerStatus::RemoteError:
+    case PeerStatus::RpcLayerError:
+    case PeerStatus::TabletFailed:
+    case PeerStatus::TabletNotFound:
+    case PeerStatus::InvalidTerm:
+    case PeerStatus::CannotPrepare:
+      return false;
+  }
+  return false;
+}
+
+void PeerMessageQueue::ResetQuorumConfirmationUnlocked() {
+  DCHECK(queueLock_.is_locked());
+  // Proof gathered under an earlier term says nothing about this one.
+  for (const PeersMap::value_type& entry : peersMap_) {
+    entry.second->leadershipConfirmedAt = MonoTime::Min();
+  }
+}
+
+PeerMessageQueue::LeaderReadSnapshot PeerMessageQueue::getLeaderReadSnapshot()
+    const {
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+  LeaderReadSnapshot snapshot;
+  snapshot.isLeader = queueState_.mode == Mode::LEADER;
+  snapshot.firstIndexInCurrentTerm = queueState_.first_index_in_current_term;
+  snapshot.currentTerm = queueState_.current_term;
+  return snapshot;
+}
+
+void PeerMessageQueue::notifyConfirmationWaiters() {
+  // With no reader blocked nothing evaluates the predicate, so skip the wake.
+  if (confirmationWaiters_.load(std::memory_order_acquire) == 0) {
+    return;
+  }
+  // Acquired and immediately dropped so the signal cannot be lost: a waiter
+  // that has evaluated its predicate but not yet parked still holds
+  // confirmationMutex_, so taking it here means every waiter is either parked
+  // (and will be woken) or has yet to evaluate (and will see the new state).
+  {
+    std::lock_guard<std::mutex> lock(confirmationMutex_);
+  }
+  confirmationCv_.notify_all();
+}
+
+PeerMessageQueue::ConfirmationResult PeerMessageQueue::checkQuorumConfirmation(
+    int64_t term,
+    MonoTime anchor) {
+  std::lock_guard<simple_mutexlock> lock(queueLock_);
+
+  // Losing leadership, moving past the term the caller sampled, or closing all
+  // mean no proof for that term can ever arrive. Close() leaves mode and term
+  // untouched, so the state check is not redundant: without it a reader parks
+  // on a dead queue until its deadline, and the condvar it is parked on is
+  // destroyed underneath it when ~PeerMessageQueue runs.
+  if (queueState_.state != kQueueOpen || queueState_.mode != Mode::LEADER ||
+      queueState_.current_term != term) {
+    return ConfirmationResult::kNotLeader;
+  }
+
+  // "A majority recognized us after 'anchor'" is a counting question, not a
+  // selection one: the k-th largest confirmation time is after 'anchor' exactly
+  // when k of them are. Folding the timestamp test into the quorum
+  // predicate answers it in one pass, and leaves IsQuorumSatisfiedUnlocked to
+  // supply the FlexiRaft commit-quorum group, the majority size, and the
+  // leader's own slot -- including the lone-voter ring, where the leader by
+  // itself is a majority and needs nobody's agreement.
+  const string& local_uuid = localPeerPb_.permanent_uuid();
+  QuorumResults qresults =
+      IsQuorumSatisfiedUnlocked(localPeerPb_, [&local_uuid, anchor](auto peer) {
+        if (peer->uuid() == local_uuid) {
+          return true;
+        }
+        return peer->leadershipConfirmedAt > anchor;
+      });
+
+  return qresults.quorum_satisfied ? ConfirmationResult::kConfirmed
+                                   : ConfirmationResult::kPending;
+}
+
+PeerMessageQueue::ConfirmationResult
+PeerMessageQueue::waitForQuorumConfirmation(
+    int64_t term,
+    MonoTime anchor,
+    MonoDelta timeout) {
+  const auto deadline = std::chrono::steady_clock::now() +
+      std::chrono::nanoseconds(timeout.ToNanoseconds());
+
+  // Published before the first evaluation so that any state change landing from
+  // here on signals us; notifyConfirmationWaiters() reading zero therefore
+  // means this thread has yet to evaluate and will observe that change itself.
+  //
+  // The count is a wake-up optimisation only. It is deliberately not used to
+  // decide when the condvar can be destroyed: this increment does not happen
+  // until the thread is already inside the call, so a zero reading proves
+  // nothing about whether a reader is on its way in. The queue must be kept
+  // alive across the call by whoever owns it.
+  confirmationWaiters_.fetch_add(1, std::memory_order_release);
+  SCOPE_EXIT {
+    confirmationWaiters_.fetch_sub(1, std::memory_order_release);
+  };
+
+  ConfirmationResult result = ConfirmationResult::kPending;
+  {
+    std::unique_lock<std::mutex> lock(confirmationMutex_);
+    confirmationCv_.wait_until(lock, deadline, [this, term, anchor, &result]() {
+      result = checkQuorumConfirmation(term, anchor);
+      return result != ConfirmationResult::kPending;
+    });
   }
   return result;
 }
@@ -2860,10 +3036,25 @@ void PeerMessageQueue::ClearUnlocked() {
 void PeerMessageQueue::Close() {
   raftPoolObserversToken_->Shutdown();
 
-  std::lock_guard<simple_mutexlock> lock(queueLock_);
-  ClearUnlocked();
-  // Reset here to appease folly::Singleton's check for leaky references
-  timeProvider_.reset();
+  {
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
+    ClearUnlocked();
+    // Reset here to appease folly::Singleton's check for leaky references
+    timeProvider_.reset();
+  }
+
+  // Releases parked readers: the queue is now closed, so every predicate
+  // resolves to kNotLeader on its first evaluation.
+  //
+  // This wakes them; it does not make the queue safe to destroy underneath one.
+  // No amount of draining here could: a reader that has entered
+  // waitForQuorumConfirmation but not yet incremented confirmationWaiters_ is
+  // indistinguishable from no reader, so any check can pass and be followed by
+  // that reader touching a destroyed condvar. Keeping the queue alive across a
+  // wait is the caller's job, and RaftConsensus::waitForQuorumConfirmation --
+  // the only path that reaches this from outside tests -- holds a strong
+  // reference to itself for the duration.
+  notifyConfirmationWaiters();
 }
 
 int64_t PeerMessageQueue::getQueuedOperationsSizeBytesForTests() const {

@@ -23,10 +23,13 @@
 
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -210,6 +213,16 @@ class PeerMessageQueue {
 
     // Leader Leases: captures UpdateConsensus rpc start time for each peer
     MonoTime rpcStart;
+
+    // Start time of the most recent UpdateConsensus RPC whose response showed
+    // this peer accepting the local peer's term.
+    //
+    // This is a lower bound on when the peer last recognized us as leader, and
+    // send time is the only sound anchor: the peer processed the request at
+    // some unobservable instant between send and receipt, and terms only ever
+    // increase, so "in our term when it replied" implies "in our term at send".
+    // Anchoring on receipt would over-claim by the whole return latency.
+    MonoTime leadershipConfirmedAt;
 
     // Set to false if it is determined that the remote peer has fallen behind
     // the local peer's WAL.
@@ -474,15 +487,27 @@ class PeerMessageQueue {
   // Returns true iff there are more requests pending in the queue for this
   // peer and another request should be sent immediately, with no intervening
   // delay.
+  //
+  // 'rpcStart' is when the UpdateConsensus RPC this response answers was sent.
+  // It is recorded on the peer under the same queueLock_ acquisition that
+  // processes the response, so callers on the RPC path must pass it here rather
+  // than take the lock a second time to publish it.
   bool ResponseFromPeer(
       const std::string& peer_uuid,
-      const ConsensusResponsePB& response);
+      const ConsensusResponsePB& response,
+      std::optional<MonoTime> rpcStart = std::nullopt);
 
-  // The method that does most of the heavy lifting of ResponseFromPeer
+  // The method that does most of the heavy lifting of ResponseFromPeer.
+  //
+  // Sets 'quorumConfirmationAdvanced' when a peer's leadership confirmation
+  // watermark moved. The caller must notify waiters only after dropping
+  // queueLock_.
   bool DoResponseFromPeer(
       const std::string& peer_uuid,
       const ConsensusResponsePB& response,
-      std::optional<int64_t>& updated_commit_index);
+      std::optional<MonoTime> rpcStart,
+      std::optional<int64_t>& updatedCommitIndex,
+      bool& quorumConfirmationAdvanced);
 
   // Called by the consensus implementation to update the queue's watermarks
   // based on information provided by the leader. This is used for metrics and
@@ -522,6 +547,83 @@ class PeerMessageQueue {
 
   // Whether the queue run in the leader mode.
   bool isInLeaderMode() const;
+
+  // Everything a linearizable read needs from the queue, read
+  // under a single queueLock_ acquisition.
+  //
+  // The fields must be sampled together: a term change clears
+  // first_index_in_current_term and raises current_term in one step under
+  // queueLock_, so reading them separately can pair one term's index with
+  // another term's number.
+  struct LeaderReadSnapshot {
+    bool isLeader = false;
+    // Index of the first operation this leader appended in its own term, i.e.
+    // its no-op. Reset to nullopt on every term change and repopulated when
+    // that operation is appended.
+    //
+    // Callers compare it against the applied low-water mark: until the
+    // contiguous applied prefix reaches this index, the engine can still be
+    // missing writes the previous leader acknowledged.
+    std::optional<int64_t> firstIndexInCurrentTerm;
+    int64_t currentTerm = -1;
+  };
+  LeaderReadSnapshot getLeaderReadSnapshot() const;
+
+  enum class ConfirmationResult {
+    // A majority of the commit quorum is proven to have recognized this leader
+    // strictly after the requested anchor.
+    kConfirmed,
+    // No such proof yet.
+    kPending,
+    // The term moved on, so no proof for the requested term can ever arrive.
+    kNotLeader,
+  };
+
+  // Non-blocking check of whether a majority of this leader's commit quorum is
+  // proven to have recognized it strictly after 'anchor', in 'term'.
+  //
+  // Strictly after, not at-or-after: equality would be sound only if the clock
+  // is fine-grained enough that two distinct instants never share a reading.
+  // Requiring a later confirmation costs nothing and keeps the proof valid if
+  // the time source is ever coarsened or cached.
+  //
+  // Takes queueLock_, so it must not be called while holding any mutex that the
+  // commit path acquires under queueLock_ -- notably mysql_raft's
+  // appliedTrxMutex_, which would invert the existing
+  // lock_ -> appliedTrxMutex_ edge.
+  ConfirmationResult checkQuorumConfirmation(int64_t term, MonoTime anchor);
+
+  // Blocks until checkQuorumConfirmation stops returning kPending, or until
+  // 'timeout' elapses.
+  //
+  // 'anchor' must be sampled after the LeaderReadSnapshot it is paired with; a
+  // confirmation older than that snapshot proves nothing about the interval in
+  // which the snapshot was taken.
+  //
+  // Anything else a caller needs to pair with 'term' belongs in that snapshot.
+  // Reading it from the queue separately reintroduces the race the snapshot
+  // exists to close: a re-election in between yields one term's value under
+  // another term's number, and this call will confirm it.
+  //
+  // Takes queueLock_, with the same restriction checkQuorumConfirmation
+  // documents -- and unlike that one this call blocks, so a caller holding a
+  // mutex the commit path needs stalls it for the whole timeout.
+  //
+  // The caller must keep this queue alive for the whole call. The wait parks on
+  // a condition variable owned by the queue, and nothing inside the queue can
+  // defend against its own destruction: a thread that has entered this function
+  // but not yet registered is indistinguishable from no thread at all. Close()
+  // releases parked readers but does not make destruction safe.
+  // RaftConsensus::waitForQuorumConfirmation satisfies this by holding a strong
+  // reference to the RaftConsensus that owns the queue.
+  ConfirmationResult
+  waitForQuorumConfirmation(int64_t term, MonoTime anchor, MonoDelta timeout);
+
+  // Number of readers currently blocked in waitForQuorumConfirmation, for
+  // tests that need one to be parked before acting on it.
+  int getConfirmationWaitersForTests() const {
+    return confirmationWaiters_.load(std::memory_order_acquire);
+  }
 
   // Returns the current majority replicated index, for tests.
   int64_t getMajorityReplicatedIndexForTests() const;
@@ -676,9 +778,6 @@ class PeerMessageQueue {
 
   // Return the default window size for the bounded data loss tracker.
   static MonoDelta boundedDataLossDefaultWindowInMsec();
-
-  // Sets the UpdateConsensus rpc start time for peer
-  void setPeerRpcStartTime(const std::string& peer_uuid, MonoTime rpcStart);
 
   void updatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
 
@@ -996,6 +1095,21 @@ class PeerMessageQueue {
 
   MonoTime GetMaximumOfPeerRpcStarts(QuorumResults& qresults);
 
+  // True if 'status' proves the peer accepted this leader's term.
+  //
+  // LmpMismatch counts: the peer took the request in our term and rejected it
+  // only on the log-matching check. Excluding it would starve confirmation for
+  // the whole of a follower's catch-up, which is a routine post-failover state.
+  // InvalidTerm must not count -- that peer explicitly rejected our term.
+  static bool PeerStatusConfirmsLeadership(PeerStatus status);
+
+  // Discards every peer's leadership confirmation.
+  void ResetQuorumConfirmationUnlocked();
+
+  // Wakes every thread blocked in waitForQuorumConfirmation. Must be called
+  // with queueLock_ released -- a woken reader immediately reacquires it.
+  void notifyConfirmationWaiters();
+
   Status GetQuorumHealthForFlexiRaftUnlocked(QuorumHealth* health) const;
 
   Status GetQuorumHealthForVanillaRaftUnlocked(QuorumHealth* health) const;
@@ -1066,6 +1180,21 @@ class PeerMessageQueue {
   // Bounded Data loss to support halting/start-throttling commits
   // using a time bound window
   std::atomic<MonoTime> boundedDatalossWindowUntil_;
+
+  // Wakes readers blocked in waitForQuorumConfirmation. Never signalled while
+  // holding queueLock_ -- the woken thread would immediately contend on the
+  // hottest lock in the queue.
+  std::mutex confirmationMutex_;
+  std::condition_variable confirmationCv_;
+
+  // Number of readers blocked in waitForQuorumConfirmation. Nothing evaluates
+  // the confirmation predicate while this is zero, so the response path can
+  // skip signalling entirely -- which is the overwhelmingly common case.
+  //
+  // It is also the drain Close() waits on before confirmationCv_ and
+  // confirmationMutex_ are destroyed, so a reader must not decrement it until
+  // it has finished touching both.
+  std::atomic<int> confirmationWaiters_{0};
 
   std::shared_ptr<TimeProvider> timeProvider_;
 };

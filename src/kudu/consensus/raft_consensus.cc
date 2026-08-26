@@ -1128,6 +1128,36 @@ MonoTime RaftConsensus::getBoundedDataLossWindowUntil() {
   return queue_->getBoundedDataLossWindowUntil();
 }
 
+PeerMessageQueue::LeaderReadSnapshot RaftConsensus::getLeaderReadSnapshot()
+    const {
+  return queue_->getLeaderReadSnapshot();
+}
+
+PeerMessageQueue::ConfirmationResult RaftConsensus::waitForQuorumConfirmation(
+    int64_t term,
+    MonoTime anchor,
+    MonoDelta timeout) {
+  // The wait parks on a condition variable owned by queue_. queue_ is a
+  // unique_ptr member set once in Start() and never replaced, so it has no
+  // lifetime of its own: holding a reference to this object is the only way to
+  // keep it alive, and is what this does. Nothing inside the queue could -- a
+  // thread that has entered the call but not yet announced itself is
+  // indistinguishable from no thread at all.
+  //
+  // This covers destruction *during* the wait, which is the exposure that
+  // matters because the wait blocks for up to the caller's whole timeout while
+  // callers hold us by raw dereference. It cannot cover a caller that is
+  // already holding a dangling pointer on entry -- shared_from_this() would be
+  // the use-after-free -- so callers still owe a live reference at the call
+  // itself.
+  const auto keepalive = shared_from_this();
+  return queue_->waitForQuorumConfirmation(term, anchor, timeout);
+}
+
+void RaftConsensus::forceHeartbeatRound() {
+  peerManager_->signalRequest(/*forceIfQueueEmpty=*/true);
+}
+
 Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
     const std::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,

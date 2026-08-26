@@ -416,6 +416,31 @@ TEST(TestMonoTime, TestOperators) {
   }
 }
 
+TEST(TestMonoTime, TestProcessLocalNanosRoundTrip) {
+  // An ordinary time survives the round trip exactly.
+  const MonoTime now = MonoTime::Now();
+  EXPECT_TRUE(
+      MonoTime::FromProcessLocalNanos(now.ToProcessLocalNanos()).Equals(now));
+
+  // Uninitialized maps to 0 and back, so callers can use 0 as "no time given"
+  // without carrying a separate flag.
+  const MonoTime uninitialized;
+  ASSERT_FALSE(uninitialized.Initialized());
+  EXPECT_EQ(uninitialized.ToProcessLocalNanos(), 0);
+  EXPECT_FALSE(MonoTime::FromProcessLocalNanos(0).Initialized());
+
+  // The extremes round trip too: they are what an out-of-range guard on the
+  // integer side gets tested against.
+  for (const MonoTime& t : {MonoTime::Min(), MonoTime::Max()}) {
+    ASSERT_TRUE(t.Initialized());
+    EXPECT_TRUE(MonoTime::FromProcessLocalNanos(t.ToProcessLocalNanos()) == t);
+  }
+
+  // Ordering is preserved, so a caller may compare the integers directly.
+  const MonoTime later = now + MonoDelta::FromMilliseconds(1);
+  EXPECT_LT(now.ToProcessLocalNanos(), later.ToProcessLocalNanos());
+}
+
 TEST(TestMonoTimePerf, TestMonoTimePerf) {
   alarm(360);
   doTestMonoTimePerf();

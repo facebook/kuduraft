@@ -26,6 +26,7 @@
 #include <mutex>
 #include <ostream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <gflags/gflags.h>
@@ -119,6 +120,7 @@ class ConsensusQueueTest : public KuduTest {
     ASSERT_OK(clock_->init());
 
     ASSERT_OK(ThreadPoolBuilder("raft").build(&raftPool_));
+    testLocalPeerPb_ = fakeRaftPeerPb(kLeaderUuid);
     closeAndReopenQueue(MinimumOpId(), MinimumOpId());
   }
 
@@ -136,7 +138,7 @@ class ConsensusQueueTest : public KuduTest {
         log_,
         timeManager,
         persistentVarsManager_,
-        fakeRaftPeerPb(kLeaderUuid),
+        testLocalPeerPb_,
         routingTableContainer_,
         kTestTablet,
         raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
@@ -274,6 +276,9 @@ class ConsensusQueueTest : public KuduTest {
   }
 
  protected:
+  // Identity the queue is opened with. Assign before closeAndReopenQueue() to
+  // give the local peer attributes, which flexi-raft quorum membership needs.
+  RaftPeerPB testLocalPeerPb_;
   unique_ptr<FsManager> fsManager_;
   MetricRegistry metricRegistry_;
   std::shared_ptr<MetricEntity> metricEntity_;
@@ -1550,5 +1555,399 @@ TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
 
   EXPECT_EQ(queue_->getMajorityReplicatedIndexForTests(), 10);
 }
+// ---------------------------------------------------------------------------
+// Leadership confirmation for linearizable reads.
+//
+// The watermark answers "when was a majority of this leader's commit quorum
+// last proven to recognize it?". A linearizable read compares that against the
+// instant it began. Without it a partitioned leader would serve a stale
+// snapshot quite happily, because its local role stays LEADER until something
+// tells it otherwise.
+// ---------------------------------------------------------------------------
+
+using ConfirmationResult = PeerMessageQueue::ConfirmationResult;
+
+class ConsensusQueueConfirmationTest : public ConsensusQueueTest {
+ public:
+  void SetUp() override {
+    ConsensusQueueTest::SetUp();
+    // Confirmation must work with leases off.
+    FLAGS_enable_raft_leader_lease = false;
+  }
+
+  // Mirrors Peer::doProcessResponse: record when the RPC was sent, then hand
+  // the response to the queue.
+  void respond(
+      const string& uuid,
+      ConsensusResponsePB* response,
+      const MonoTime& rpcStart) {
+    response->set_responder_uuid(uuid);
+    queue_->ResponseFromPeer(uuid, *response, rpcStart);
+  }
+
+  void ackFrom(
+      const string& uuid,
+      const OpId& lastReceived,
+      const MonoTime& rpcStart) {
+    ConsensusResponsePB response;
+    setLastReceivedAndLastCommitted(&response, lastReceived);
+    respond(uuid, &response, rpcStart);
+  }
+
+  void refuseWithInvalidTerm(
+      const string& uuid,
+      const OpId& lastReceived,
+      const MonoTime& rpcStart) {
+    ConsensusResponsePB response;
+    response.set_responder_term(kMinimumTerm);
+    ConsensusStatusPB* status = response.mutable_status();
+    *status->mutable_last_received() = lastReceived;
+    *status->mutable_last_received_current_leader() = lastReceived;
+    status->set_last_committed_idx(lastReceived.index());
+    ConsensusErrorPB* error = status->mutable_error();
+    error->set_code(ConsensusErrorPB::INVALID_TERM);
+    statusToPb(Status::IllegalState("Invalid term."), error->mutable_status());
+    respond(uuid, &response, rpcStart);
+  }
+
+  // Takes the term from the snapshot, as a real reader does: appending
+  // operations advances the queue's term past the one setLeaderMode was given.
+  ConfirmationResult confirmation(const MonoTime& anchor) {
+    return queue_->checkQuorumConfirmation(
+        queue_->getLeaderReadSnapshot().currentTerm, anchor);
+  }
+
+  // Brings the queue up as leader of a 'numVoters' ring with the remote voters
+  // tracked, and appends enough operations for the local peer to have acked.
+  void setupQueue(int numVoters) {
+    queue_->setLeaderMode(
+        kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(numVoters));
+    for (int i = 1; i < numVoters; i++) {
+      queue_->trackPeer(makePeer(fmt::format("peer-{}", i), RaftPeerPB::VOTER));
+    }
+    appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+    waitForLocalPeerToAckIndex(10);
+  }
+
+  // Blocks until a reader has entered waitForQuorumConfirmation.
+  //
+  // Tests that act on a parked reader must order against its arrival, not
+  // against a guessed interval: if the state change lands first the reader
+  // resolves on its first predicate evaluation and never exercises the wakeup
+  // the test exists for, so the test passes while proving nothing. The count is
+  // published before that first evaluation, so observing it means the reader is
+  // inside the call and about to park.
+  void awaitReaderArrival() {
+    while (queue_->getConfirmationWaitersForTests() == 0) {
+      std::this_thread::yield();
+    }
+  }
+
+  // Same, but under flexi-raft with an explicit quorum id per peer, keyed by
+  // the numeric suffix of its uuid. Peer 0 is the leader.
+  //
+  // The local peer must carry a quorum id of its own: TrackedPeer resolves
+  // membership only when both ends declare one, and a peer that resolves to
+  // "unknown" is skipped by the commit-quorum walk.
+  void setupFlexiQueue(const std::map<size_t, std::string>& quorumIds) {
+    FLAGS_enable_flexi_raft = true;
+
+    std::map<size_t, std::tuple<std::string, RaftPeerPB::MemberType>> members;
+    for (const auto& [index, quorumId] : quorumIds) {
+      members[index] = {quorumId, RaftPeerPB::VOTER};
+    }
+
+    queue_->Close();
+    testLocalPeerPb_ = fakeRaftPeerPb(kLeaderUuid);
+    testLocalPeerPb_.mutable_attrs()->set_quorum_id(quorumIds.at(0));
+    closeAndReopenQueue(MinimumOpId(), MinimumOpId());
+
+    queue_->setLeaderMode(
+        kMinimumOpIdIndex,
+        kMinimumTerm,
+        buildQuorumIdRaftConfigPbForTests(members));
+    for (const auto& [index, quorumId] : quorumIds) {
+      if (index == 0) {
+        continue;
+      }
+      RaftPeerPB peer =
+          makePeer(fmt::format("peer-{}", index), RaftPeerPB::VOTER);
+      peer.mutable_attrs()->set_quorum_id(quorumId);
+      queue_->trackPeer(peer);
+    }
+    appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+    waitForLocalPeerToAckIndex(10);
+  }
+};
+
+// A peer acking an operation that cannot move the commit index still proves it
+// recognizes this leader. Lease renewal is nested inside the commit-index
+// advancement path, so a read-only workload never refreshes it; confirmation
+// must not inherit that.
+TEST_F(
+    ConsensusQueueConfirmationTest,
+    TestConfirmationAdvancesWithoutCommitIndex) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  ASSERT_EQ(confirmation(anchor), ConfirmationResult::kPending);
+
+  ackFrom("peer-1", MakeOpId(0, 5), anchor + MonoDelta::FromMilliseconds(1));
+
+  ASSERT_EQ(queue_->getCommittedIndex(), 0);
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+}
+
+// One peer is not a majority of five. Counting the fastest responder alone
+// would let a leader reachable by a single follower confirm itself.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationRequiresMajority) {
+  setupQueue(5);
+
+  const MonoTime anchor = MonoTime::Now();
+  const MonoTime acked = anchor + MonoDelta::FromMilliseconds(1);
+
+  ackFrom("peer-1", MakeOpId(0, 5), acked);
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kPending);
+
+  ackFrom("peer-2", MakeOpId(0, 5), acked);
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+}
+
+// A lone voter needs nobody's agreement -- nobody can win an election without
+// its vote. Waiting for a confirmation that can never arrive would hang every
+// critical read on dev and single-node MTR rings.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationOnSingleVoterRing) {
+  setupQueue(1);
+
+  EXPECT_EQ(confirmation(MonoTime::Now()), ConfirmationResult::kConfirmed);
+}
+
+// Responses can be reordered, and an older send time arriving late must not
+// retract proof already held.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationIsMonotonic) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  ackFrom("peer-1", MakeOpId(0, 5), anchor + MonoDelta::FromMilliseconds(10));
+  ASSERT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+
+  ackFrom("peer-1", MakeOpId(0, 6), anchor - MonoDelta::FromMilliseconds(10));
+  EXPECT_EQ(
+      confirmation(anchor + MonoDelta::FromMilliseconds(5)),
+      ConfirmationResult::kConfirmed);
+}
+
+// The boundary is exclusive. A confirmation stamped at the anchor itself only
+// shows the peer was with us up to that instant, which is what the reader
+// already assumed when it sampled the anchor; it is not evidence about the
+// interval the read needs covered. Requiring a strictly later confirmation also
+// keeps the proof sound if the time source is ever coarsened, where two
+// distinct instants could share a reading.
+TEST_F(
+    ConsensusQueueConfirmationTest,
+    TestConfirmationExcludesTheAnchorItself) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  ackFrom("peer-1", MakeOpId(0, 5), anchor);
+
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kPending);
+
+  // The very same confirmation satisfies an anchor one nanosecond earlier, so
+  // the rejection above is the boundary and not a missing confirmation.
+  EXPECT_EQ(
+      confirmation(anchor - MonoDelta::FromNanoseconds(1)),
+      ConfirmationResult::kConfirmed);
+}
+
+// An expired wait must report that it has no proof, never invent one. It must
+// also actually block for the budget: returning kPending immediately would look
+// identical to the caller while turning every slice into a busy loop.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationWaitTimesOut) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  // The only confirmation on offer predates the anchor, so no arrival during
+  // the wait can satisfy it.
+  ackFrom("peer-1", MakeOpId(0, 5), anchor - MonoDelta::FromSeconds(1));
+
+  const MonoTime start = MonoTime::Now();
+  const auto result = queue_->waitForQuorumConfirmation(
+      queue_->getLeaderReadSnapshot().currentTerm,
+      anchor,
+      MonoDelta::FromMilliseconds(50));
+  const MonoDelta elapsed = MonoTime::Now().GetDeltaSince(start);
+
+  EXPECT_EQ(result, ConfirmationResult::kPending);
+  EXPECT_GE(elapsed.ToMilliseconds(), 40);
+}
+
+// Losing leadership during the wait is reported distinctly from running out of
+// time, because the two mean different things to a client: one says re-route,
+// the other says back off and retry.
+TEST_F(
+    ConsensusQueueConfirmationTest,
+    TestConfirmationWaitReportsLeadershipLoss) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  const int64_t term = queue_->getLeaderReadSnapshot().currentTerm;
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+
+  const MonoTime start = MonoTime::Now();
+  const auto result = queue_->waitForQuorumConfirmation(
+      term, anchor, MonoDelta::FromSeconds(30));
+  const MonoDelta elapsed = MonoTime::Now().GetDeltaSince(start);
+
+  EXPECT_EQ(result, ConfirmationResult::kNotLeader);
+  // And it gives up at once rather than sitting out a deadline it can never
+  // satisfy.
+  EXPECT_LT(elapsed.ToMilliseconds(), 1000);
+}
+
+// A peer rejecting our term is the one response that definitively does not
+// confirm leadership -- and its rpcStart is recorded just like any other, so
+// stamping it would let the exact peer that deposed us vouch for us.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationIgnoresInvalidTerm) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  refuseWithInvalidTerm(
+      "peer-1", MakeOpId(0, 5), anchor + MonoDelta::FromMilliseconds(1));
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kPending);
+}
+
+// "Peer P recognized us at time T" does not expire. A later transient error
+// says nothing about the interval the read cares about, and letting it retract
+// the proof would stall every critical read on a three-voter ring for as long
+// as one peer is unreachable -- and make confirmation non-monotonic for a fixed
+// anchor, which is exactly what stamping the maximum send time avoids.
+TEST_F(
+    ConsensusQueueConfirmationTest,
+    TestConfirmationSurvivesLaterTransientError) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  ackFrom("peer-1", MakeOpId(0, 5), anchor + MonoDelta::FromMilliseconds(1));
+  ASSERT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+
+  queue_->UpdatePeerStatus(
+      "peer-1",
+      PeerStatus::RpcLayerError,
+      Status::NetworkError("connection reset"));
+
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+}
+
+// MySQL Raft always runs the flexi-raft branch, which sizes the majority from
+// the leader's own commit quorum and ignores voters outside it. Vanilla raft
+// would demand three confirmations on this five-voter ring; flexi-raft needs
+// two, and only from r0.
+TEST_F(
+    ConsensusQueueConfirmationTest,
+    TestConfirmationUsesFlexiRaftCommitQuorum) {
+  setupFlexiQueue({{0, "r0"}, {1, "r0"}, {2, "r0"}, {3, "r1"}, {4, "r1"}});
+
+  const MonoTime anchor = MonoTime::Now();
+  const MonoTime acked = anchor + MonoDelta::FromMilliseconds(1);
+
+  // Peers outside the commit quorum contribute nothing, however prompt.
+  ackFrom("peer-3", MakeOpId(0, 5), acked);
+  ackFrom("peer-4", MakeOpId(0, 5), acked);
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kPending);
+
+  // Inside it, the leader plus one peer is a majority of three.
+  ackFrom("peer-1", MakeOpId(0, 5), acked);
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+}
+
+// A follower in LMP mismatch accepted our term and rejected only the
+// log-matching check. It holds that status for the whole of its catch-up, so
+// discarding it would leave a leader unable to confirm a quorum for seconds
+// after a routine failover.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationCountsLmpMismatch) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  ConsensusResponsePB response;
+  refuseWithLogPropertyMismatch(&response, MakeOpId(0, 5), MinimumOpId());
+  response.mutable_status()->set_last_committed_idx(MinimumOpId().index());
+  respond("peer-1", &response, anchor + MonoDelta::FromMilliseconds(1));
+
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+}
+
+// Proof gathered while leading says nothing once leadership is gone.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationResetOnLeadershipLoss) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  ackFrom("peer-1", MakeOpId(0, 5), anchor + MonoDelta::FromMilliseconds(1));
+  ASSERT_EQ(confirmation(anchor), ConfirmationResult::kConfirmed);
+
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+  EXPECT_EQ(confirmation(anchor), ConfirmationResult::kNotLeader);
+}
+
+// Demotion has to wake a reader that is *already* parked, not just
+// short-circuit one that has yet to start waiting. Peer responses are the only
+// other signal and they stop being recorded the moment the queue leaves LEADER
+// mode, so without an explicit wake here the reader sleeps out its entire
+// deadline.
+TEST_F(
+    ConsensusQueueConfirmationTest,
+    TestConfirmationWaitWokenByLeadershipLoss) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  const int64_t term = queue_->getLeaderReadSnapshot().currentTerm;
+
+  std::thread demoter([&]() {
+    awaitReaderArrival();
+    queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+  });
+
+  const MonoTime start = MonoTime::Now();
+  const auto result = queue_->waitForQuorumConfirmation(
+      term, anchor, MonoDelta::FromSeconds(30));
+  const MonoDelta elapsed = MonoTime::Now().GetDeltaSince(start);
+  demoter.join();
+
+  EXPECT_EQ(result, ConfirmationResult::kNotLeader);
+  EXPECT_LT(elapsed.ToMilliseconds(), 5000);
+}
+
+// Close() empties the peer map but leaves mode and term alone, so a parked
+// reader would otherwise keep evaluating a predicate that can never again be
+// satisfied. That is not merely a stalled read: ~PeerMessageQueue calls
+// Close(), so the condvar the reader is parked on can be destroyed underneath
+// it.
+TEST_F(ConsensusQueueConfirmationTest, TestConfirmationWaitWokenByClose) {
+  setupQueue(3);
+
+  const MonoTime anchor = MonoTime::Now();
+  const int64_t term = queue_->getLeaderReadSnapshot().currentTerm;
+
+  std::thread closer([&]() {
+    awaitReaderArrival();
+    queue_->Close();
+  });
+
+  const MonoTime start = MonoTime::Now();
+  const auto result = queue_->waitForQuorumConfirmation(
+      term, anchor, MonoDelta::FromSeconds(30));
+  const MonoDelta elapsed = MonoTime::Now().GetDeltaSince(start);
+  closer.join();
+
+  EXPECT_EQ(result, ConfirmationResult::kNotLeader);
+  EXPECT_LT(elapsed.ToMilliseconds(), 5000);
+}
+
+// Destroying the queue under a parked reader is deliberately not covered here,
+// because it is not supported. The queue cannot defend against its own
+// destruction -- see the contract on waitForQuorumConfirmation -- and the
+// keepalive that makes the real path safe lives in
+// RaftConsensus::waitForQuorumConfirmation, above this layer.
+
 } // namespace consensus
 } // namespace kudu

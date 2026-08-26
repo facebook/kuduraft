@@ -498,11 +498,8 @@ void Peer::doProcessResponse() {
       << "Response from peer " << peerPb().permanent_uuid() << ": "
       << SecureShortDebugString(response_);
 
-  if (FLAGS_enable_raft_leader_lease || FLAGS_enable_bounded_dataloss_window) {
-    queue_->setPeerRpcStartTime(peerPb().permanent_uuid(), rpcStart_);
-  }
   bool sendMoreImmediately =
-      queue_->ResponseFromPeer(peerPb_.permanent_uuid(), response_);
+      queue_->ResponseFromPeer(peerPb_.permanent_uuid(), response_, rpcStart_);
 
   {
     std::unique_lock<simple_spinlock> lock(peerLock_);

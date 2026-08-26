@@ -188,6 +188,36 @@ class KUDU_EXPORT MonoTime {
   /// @return @c true iff the object is initialized.
   bool Initialized() const;
 
+  /// @name Raw nanosecond access, for carrying a MonoTime through an
+  /// interface that admits only integers -- a C plugin ABI, a thrift field
+  /// read back by the same process.
+  ///
+  /// The value reads the monotonic clock. Its scope is one host and one boot:
+  /// do not persist it, and do not send it to another machine. Where a wall
+  /// clock is wanted, use one.
+  ///
+  /// Within that scope it is a plain reading of CLOCK_MONOTONIC, so a value
+  /// another component produced from that same clock is directly comparable --
+  /// which is the point of exposing it. The name is a conservative reminder of
+  /// the limit, not a claim that one process cannot hand the value to another.
+  ///
+  /// An uninitialized MonoTime converts to 0 and 0 converts back to an
+  /// uninitialized MonoTime, so a caller can use 0 as "no time given" without
+  /// a separate flag.
+  ///@{
+
+  /// @return Raw monotonic nanoseconds, or 0 if the object is uninitialized.
+  int64_t ToProcessLocalNanos() const;
+
+  /// Rebuild a MonoTime from raw monotonic nanoseconds.
+  ///
+  /// @param [in] nanos
+  ///   A value from ToProcessLocalNanos(), or any CLOCK_MONOTONIC reading taken
+  ///   on this host since boot.
+  /// @return The corresponding MonoTime; uninitialized if @c nanos is 0.
+  static MonoTime FromProcessLocalNanos(int64_t nanos);
+  ///@}
+
   /// Compute time interval between the point in time specified by this
   /// and the specified object.
   ///

@@ -192,6 +192,14 @@ bool MonoTime::Initialized() const {
   return nanos_ != 0;
 }
 
+int64_t MonoTime::ToProcessLocalNanos() const {
+  return nanos_;
+}
+
+MonoTime MonoTime::FromProcessLocalNanos(int64_t nanos) {
+  return MonoTime(nanos);
+}
+
 MonoDelta MonoTime::GetDeltaSince(const MonoTime& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
