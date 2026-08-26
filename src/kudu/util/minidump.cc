@@ -17,7 +17,6 @@
 
 #include "kudu/util/minidump.h"
 
-#include <atomic>
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
@@ -106,30 +105,12 @@ static sigset_t getSigset(int signo) {
 // At the time of writing, we don't support breakpad on Mac so we just stub out
 // all the methods defined in the header file.
 
-Status MinidumpExceptionHandler::initMinidumpExceptionHandler() {
-  return Status::OK();
-}
-
 // No-op on non-Linux platforms.
 Status MinidumpExceptionHandler::registerMinidumpExceptionHandler() {
   return Status::OK();
 }
 
 void MinidumpExceptionHandler::unregisterMinidumpExceptionHandler() {}
-
-bool MinidumpExceptionHandler::writeMinidump() {
-  return true;
-}
-
-Status MinidumpExceptionHandler::startUserSignalHandlerThread() {
-  return Status::OK();
-}
-
-void MinidumpExceptionHandler::stopUserSignalHandlerThread() {}
-
-void MinidumpExceptionHandler::runUserSignalHandlerThread() {}
-
-std::atomic<int> MinidumpExceptionHandler::currentNumInstances_;
 
 MinidumpExceptionHandler::MinidumpExceptionHandler() {
   CHECK_OK(registerMinidumpExceptionHandler());

@@ -52,11 +52,6 @@ class MinidumpExceptionHandler {
   MinidumpExceptionHandler();
   ~MinidumpExceptionHandler();
 
-  // Write a minidump immediately. Can be used to generate a minidump
-  // independently of a crash. Should not be called from a signal handler or a
-  // crash context because it uses the heap.
-  bool writeMinidump();
-
   // Deletes excess minidump files beyond the configured max of
   // 'FLAGS_max_minidumps'. Uses the file's modified time to determine recency.
   // Does nothing if 'FLAGS_enabled_minidumps' is false.
@@ -66,18 +61,8 @@ class MinidumpExceptionHandler {
   std::string minidumpDir() const;
 
  private:
-  Status initMinidumpExceptionHandler();
   Status registerMinidumpExceptionHandler();
   void unregisterMinidumpExceptionHandler();
-
-  Status startUserSignalHandlerThread();
-  void stopUserSignalHandlerThread();
-  void runUserSignalHandlerThread();
-
-  // The number of instnaces of this class that are currently in existence.
-  // We keep this counter in order to force a crash if more than one is running
-  // at a time, as a sanity check.
-  static std::atomic<int> currentNumInstances_;
 
   std::atomic<bool> userSignalHandlerThreadRunning_; // Unused in macOS build.
 
