@@ -47,7 +47,6 @@ namespace kudu {
 
 class Env;
 class RandomAccessFile;
-class SequentialFile;
 class Slice;
 class Status;
 class RWFile;
@@ -61,9 +60,6 @@ enum CreateMode { kOverwrite, kNoOverwrite };
 
 enum class FileState { NotInitialized, Open, Closed };
 
-// The minimum valid length of a PBC file.
-extern const int kPbContainerMinimumValidLength;
-
 // See MessageLite::AppendToString
 void appendToString(
     const google::protobuf::MessageLite& msg,
@@ -74,28 +70,12 @@ void appendPartialToString(
     const google::protobuf::MessageLite& msg,
     faststring* output);
 
-// See MessageLite::SerializeToString.
-void serializeToString(
-    const google::protobuf::MessageLite& msg,
-    faststring* output);
-
-// See MessageLite::ParseFromZeroCopyStream
-Status parseFromSequentialFile(
-    google::protobuf::MessageLite* msg,
-    SequentialFile* rfile);
-
 // Similar to MessageLite::ParseFromArray, with the difference that it returns
 // Status::Corruption() if the message could not be parsed.
 Status ParseFromArray(
     google::protobuf::MessageLite* msg,
     const uint8_t* data,
     uint32_t length);
-
-// Load a protobuf from the given path.
-Status ReadPBFromPath(
-    Env* env,
-    const std::string& path,
-    google::protobuf::MessageLite* msg);
 
 // Serialize a protobuf to the given path.
 //

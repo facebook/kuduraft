@@ -61,7 +61,6 @@
 #include "kudu/util/debug/sanitizer_scopes.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/env.h"
-#include "kudu/util/env_util.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
@@ -85,7 +84,6 @@ using google::protobuf::TextFormat;
 using google::protobuf::io::ArrayInputStream;
 using google::protobuf::io::CodedInputStream;
 using kudu::crc::Crc;
-using kudu::pb_util::internal::SequentialFileFileInputStream;
 using kudu::pb_util::internal::WritableFileOutputStream;
 using std::deque;
 using std::endl;
@@ -125,8 +123,6 @@ static const int kPbContainerV1HeaderLen =
     kPbContainerMagicLen + sizeof(uint32_t); // Magic number + version.
 static const int kPbContainerV2HeaderLen = kPbContainerV1HeaderLen +
     kPbContainerChecksumLen; // Same as V1 plus a checksum.
-
-const int kPbContainerMinimumValidLength = kPbContainerV1HeaderLen;
 
 static_assert(
     arraysize(kPbContainerMagic) - 1 == kPbContainerMagicLen,
@@ -562,24 +558,6 @@ void appendPartialToString(const MessageLite& msg, faststring* output) {
   }
 }
 
-void serializeToString(const MessageLite& msg, faststring* output) {
-  output->clear();
-  appendToString(msg, output);
-}
-
-Status parseFromSequentialFile(MessageLite* msg, SequentialFile* rfile) {
-  SequentialFileFileInputStream input(rfile);
-  if (!msg->ParseFromZeroCopyStream(&input)) {
-    RETURN_NOT_OK(input.status());
-
-    // If it's not a file IO error then it's a parsing error.
-    // Probably, we read wrong or damaged data here.
-    return Status::Corruption(
-        "Error parsing msg", initializationErrorMessage("parse", *msg));
-  }
-  return Status::OK();
-}
-
 Status ParseFromArray(MessageLite* msg, const uint8_t* data, uint32_t length) {
   if (!msg->ParseFromArray(data, length)) {
     return Status::Corruption(
@@ -620,13 +598,6 @@ Status WritePBToPath(
     RETURN_NOT_OK_PREPEND(
         env->SyncDir(dirName(path)), "Failed to SyncDir() parent of " + path);
   }
-  return Status::OK();
-}
-
-Status ReadPBFromPath(Env* env, const std::string& path, MessageLite* msg) {
-  shared_ptr<SequentialFile> rfile;
-  RETURN_NOT_OK(env_util::openFileForSequential(env, path, &rfile));
-  RETURN_NOT_OK(parseFromSequentialFile(msg, rfile.get()));
   return Status::OK();
 }
 
