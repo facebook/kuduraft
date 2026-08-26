@@ -41,19 +41,6 @@ extern const char kCaExpiredCert[];
 // The private key for the expired CA certificate described above.
 // This is 2048 bit RSA key, in PEM format.
 extern const char kCaExpiredPrivateKey[];
-// The public part of the abovementioned private key.
-extern const char kCaExpiredPublicKey[];
-// Certificate with multiple DNS hostnames in the SAN field.
-extern const char kCertDnsHostnamesInSan[];
-
-extern const char kDataTiny[];
-extern const char kSignatureTinySha512[];
-
-extern const char kDataShort[];
-extern const char kSignatureShortSha512[];
-
-extern const char kDataLong[];
-extern const char kSignatureLongSha512[];
 
 // Creates a matching SSL certificate and unencrypted private key file in 'dir',
 // returning their paths in '*certFile' and '*keyFile'.
