@@ -14,9 +14,7 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/macros.h"
 #include "kudu/gutil/template_util.h"
-#include "kudu/gutil/type_traits.h"
 
 // Note: implicit_cast has been removed. Use static_cast instead.
 // For implicit conversions, static_cast is clearer and more explicit.
@@ -59,25 +57,4 @@ inline To downCast(From* f) { // so we only accept pointers
   return static_cast<To>(f);
 }
 
-// Overload of downCast for references. Use like this: downCast<T&>(foo).
-// The code is slightly convoluted because we're still using the pointer
-// form of dynamic cast. (The reference form throws an exception if it
-// fails.)
-//
-// There's no need for a special const overload either for the pointer
-// or the reference form. If you call downCast with a const T&, the
-// compiler will just bind From to const T.
-template <typename To, typename From>
-inline To downCast(From& f) {
-  KUDU_COMPILE_ASSERT(
-      base::IsReference<To>::value, target_type_not_a_reference);
-  using ToAsPointer = typename base::RemoveReference<To>::type*;
-  if (false) {
-    // Compile-time check that To inherits from From. See above for details.
-    static_cast<void>(static_cast<From*>(static_cast<ToAsPointer>(NULL)));
-  }
-
-  assert(dynamic_cast<ToAsPointer>(&f) != NULL); // RTTI: debug mode only
-  return static_cast<To>(f);
-}
 } // namespace kudu
