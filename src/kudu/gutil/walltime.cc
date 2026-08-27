@@ -26,9 +26,6 @@
 
 #include "kudu/gutil/walltime.h"
 
-#include <stdio.h>
-#include <string.h>
-
 namespace kudu {
 
 #if defined(__APPLE__)
@@ -48,16 +45,6 @@ void initializeTimebaseInfo() {
 }
 } // namespace walltime_internal
 #endif
-
-// This is exactly like mktime() except it is guaranteed to return -1 on
-// failure.  Some versions of glibc allow mktime() to return negative
-// values which the standard says are undefined.  See the standard at
-// http://www.opengroup.org/onlinepubs/007904875/basedefs/xbd_chap04.html
-// under the heading "Seconds Since the Epoch".
-static inline time_t gmktime(struct tm* tm) {
-  time_t rt = mktime(tm);
-  return rt < 0 ? time_t(-1) : rt;
-}
 
 static void stringAppendStrftime(
     std::string* dst,
@@ -93,99 +80,6 @@ static void stringAppendStrftime(
   return;
 }
 
-// Convert a "struct tm" interpreted as *GMT* into a time_t (technically
-// a long since we can't include header files in header files bla bla bla).
-// This is basically filling a hole in the standard library.
-//
-// There are several approaches to mkgmtime() implementation on the net,
-// many of them wrong.  Simply reimplementing the logic seems to be the
-// simplest and most efficient, though it does reimplement calendar logic.
-// The calculation is mostly straightforward; leap years are the main issue.
-//
-// Like gmktime() this method returns -1 on failure. Negative results
-// are considered undefined by the standard so these cases are
-// considered failures and thus return -1.
-time_t mkgmtime(const struct tm* tm) {
-  // Month-to-day offset for non-leap-years.
-  static const int kMonthDay[12] = {
-      0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-
-  // Most of the calculation is easy; leap years are the main difficulty.
-  int month = tm->tm_mon % 12;
-  int year = tm->tm_year + tm->tm_mon / 12;
-  if (month < 0) { // Negative values % 12 are still negative.
-    month += 12;
-    --year;
-  }
-
-  // This is the number of Februaries since 1900.
-  const int yearForLeap = (month > 1) ? year + 1 : year;
-
-  time_t rt = tm->tm_sec // Seconds
-      + 60 *
-          (tm->tm_min // Minute = 60 seconds
-           + 60 *
-               (tm->tm_hour // Hour = 60 minutes
-                + 24 *
-                    (kMonthDay[month] + tm->tm_mday - 1 // Day = 24 hours
-                     + 365 * (year - 70) // Year = 365 days
-                     + (yearForLeap - 69) / 4 // Every 4 years is leap...
-                     - (yearForLeap - 1) / 100 // Except centuries...
-                     + (yearForLeap + 299) / 400))); // Except 400s.
-  return rt < 0 ? -1 : rt;
-}
-
-bool wallTimeParseTimezone(
-    const char* timeSpec,
-    const char* format,
-    const struct tm* defaultTime,
-    bool local,
-    WallTime* result) {
-  struct tm splitTime;
-  if (defaultTime) {
-    splitTime = *defaultTime;
-  } else {
-    memset(&splitTime, 0, sizeof(splitTime));
-  }
-  const char* parsed = strptime(timeSpec, format, &splitTime);
-  if (parsed == nullptr) {
-    return false;
-  }
-
-  // If format ends with "%S", match fractional seconds
-  double fraction = 0.0;
-  char junk;
-  if ((*parsed == '.') && (strcmp(format + strlen(format) - 2, "%S") == 0) &&
-      (sscanf(
-           parsed,
-           "%lf%c", // NOLINT(runtime/printf)
-           &fraction,
-           &junk) == 1)) {
-    parsed = format + strlen(format); // Parsed it all!
-  }
-  if (*parsed != '\0') {
-    return false;
-  }
-
-  // Convert into seconds since epoch.  Adjust so it is interpreted
-  // w.r.t. the daylight-saving-state at the specified time.
-  splitTime.tm_isdst = -1; // Ask gmktime() to find dst imfo
-  time_t ptime;
-  if (local) {
-    ptime = gmktime(&splitTime);
-  } else {
-    ptime = mkgmtime(&splitTime); // Returns time in GMT instead of local.
-  }
-
-  if (ptime == -1) {
-    return false;
-  }
-
-  *result = ptime;
-  *result += fraction;
-  return true;
-}
-
 WallTime wallTimeNow() {
 #if defined(__APPLE__)
   mach_timespec_t ts;
@@ -215,11 +109,5 @@ void stringAppendStrftime(
     return;
   }
   stringAppendStrftime(dst, format, &tm);
-}
-
-std::string localTimeAsString() {
-  std::string ret;
-  stringAppendStrftime(&ret, "%Y-%m-%d %H:%M:%S %Z", time(nullptr), true);
-  return ret;
 }
 } // namespace kudu

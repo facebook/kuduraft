@@ -48,20 +48,6 @@ void stringAppendStrftime(
     time_t when,
     bool local);
 
-// Return the local time as a string suitable for user display.
-std::string localTimeAsString();
-
-// Similar to the WallTime_Parse, but it takes a boolean flag local as
-// argument specifying if the time_spec is in local time or UTC
-// time. If local is set to true, the same exact result as
-// WallTime_Parse is returned.
-bool wallTimeParseTimezone(
-    const char* timeSpec,
-    const char* format,
-    const struct tm* defaultTime,
-    bool local,
-    WallTime* result);
-
 // Return current time in seconds as a WallTime.
 WallTime wallTimeNow();
 
