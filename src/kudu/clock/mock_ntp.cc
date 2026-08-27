@@ -36,15 +36,4 @@ Status MockNtp::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
   return Status::OK();
 }
 
-void MockNtp::setMockClockWallTimeForTests(uint64_t nowUsec) {
-  std::lock_guard<SimpleSpinlock> lock(lock_);
-  CHECK_GE(nowUsec, mockClockTimeUsec_);
-  mockClockTimeUsec_ = nowUsec;
-}
-
-void MockNtp::setMockMaxClockErrorForTests(uint64_t maxErrorUsec) {
-  std::lock_guard<SimpleSpinlock> lock(lock_);
-  mockClockMaxErrorUsec_ = maxErrorUsec;
-}
-
 } // namespace kudu::clock
