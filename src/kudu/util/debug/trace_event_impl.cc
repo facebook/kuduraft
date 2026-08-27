@@ -920,10 +920,6 @@ string TraceResultBuffer::flushTraceLogToString() {
   return doFlush(false);
 }
 
-string TraceResultBuffer::flushTraceLogToStringButLeaveBufferIntact() {
-  return doFlush(true);
-}
-
 string TraceResultBuffer::doFlush(bool leaveIntact) {
   TraceResultBuffer buf;
   TraceLog* tl = TraceLog::getInstance();
@@ -1362,15 +1358,6 @@ const unsigned char* TraceLog::getCategoryGroupEnabledInternal(
   return category_group_enabled;
 }
 
-void TraceLog::getKnownCategoryGroups(
-    std::vector<std::string>* category_groups) {
-  SpinLockHolder lock(lock_);
-  int category_index = base::subtle::noBarrierLoad(&gCategoryIndex);
-  for (int i = kNumBuiltinCategories; i < category_index; i++) {
-    category_groups->emplace_back(gCategoryGroups[i]);
-  }
-}
-
 void TraceLog::setEnabled(
     const CategoryFilter& category_filter,
     Mode mode,
@@ -1457,11 +1444,6 @@ void TraceLog::setEnabled(
   }
 }
 
-CategoryFilter TraceLog::getCurrentCategoryFilter() {
-  SpinLockHolder lock(lock_);
-  return categoryFilter_;
-}
-
 void TraceLog::setDisabled() {
   SpinLockHolder lock(lock_);
   setDisabledWhileLocked();
@@ -1519,34 +1501,6 @@ int TraceLog::getNumTracesRecorded() {
     return -1;
   }
   return numTracesRecorded_;
-}
-
-void TraceLog::addEnabledStateObserver(EnabledStateObserver* listener) {
-  enabledStateObserverList_.push_back(listener);
-}
-
-void TraceLog::removeEnabledStateObserver(EnabledStateObserver* listener) {
-  auto it = std::find(
-      enabledStateObserverList_.begin(),
-      enabledStateObserverList_.end(),
-      listener);
-  if (it != enabledStateObserverList_.end()) {
-    enabledStateObserverList_.erase(it);
-  }
-}
-
-bool TraceLog::hasEnabledStateObserver(EnabledStateObserver* listener) const {
-  auto it = std::find(
-      enabledStateObserverList_.begin(),
-      enabledStateObserverList_.end(),
-      listener);
-  return it != enabledStateObserverList_.end();
-}
-
-float TraceLog::getBufferPercentFull() const {
-  SpinLockHolder lock(lock_);
-  return static_cast<float>(
-      static_cast<double>(loggedEvents_->size()) / loggedEvents_->capacity());
 }
 
 bool TraceLog::bufferIsFull() const {
@@ -2104,44 +2058,6 @@ std::string TraceLog::eventToConsoleMessage(
   return log.str();
 }
 
-void TraceLog::addTraceEventEtw(
-    char phase,
-    const char* name,
-    const void* id,
-    const char* extra) {
-#if defined(OS_WIN)
-  TraceEventETWProvider::Trace(name, phase, id, extra);
-#endif
-  INTERNAL_TRACE_EVENT_ADD(
-      phase,
-      "ETW Trace Event",
-      name,
-      TRACE_EVENT_FLAG_COPY,
-      "id",
-      id,
-      "extra",
-      extra);
-}
-
-void TraceLog::addTraceEventEtw(
-    char phase,
-    const char* name,
-    const void* id,
-    const std::string& extra) {
-#if defined(OS_WIN)
-  TraceEventETWProvider::Trace(name, phase, id, extra);
-#endif
-  INTERNAL_TRACE_EVENT_ADD(
-      phase,
-      "ETW Trace Event",
-      name,
-      TRACE_EVENT_FLAG_COPY,
-      "id",
-      id,
-      "extra",
-      extra);
-}
-
 void TraceLog::updateTraceEventDuration(
     const unsigned char* category_group_enabled,
     const char* name,
@@ -2202,26 +2118,6 @@ void TraceLog::updateTraceEventDuration(
           TRACE_EVENT_FLAG_NONE);
     }
   }
-}
-
-void TraceLog::setWatchEvent(
-    const std::string& category_name,
-    const std::string& event_name,
-    const WatchEventCallback& callback) {
-  const unsigned char* category =
-      getCategoryGroupEnabled(category_name.c_str());
-  SpinLockHolder lock(lock_);
-  base::subtle::noBarrierStore(
-      &watchCategory_, reinterpret_cast<AtomicWord>(category));
-  watchEventName_ = event_name;
-  watchEventCallback_ = callback;
-}
-
-void TraceLog::cancelWatchEvent() {
-  SpinLockHolder lock(lock_);
-  base::subtle::noBarrierStore(&watchCategory_, 0);
-  watchEventName_ = "";
-  watchEventCallback_.Reset();
 }
 
 void TraceLog::addMetadataEventsWhileLocked() {
@@ -2296,10 +2192,6 @@ void TraceLog::addMetadataEventsWhileLocked() {
   }
 }
 
-TraceEvent* TraceLog::getEventByHandle(TraceEventHandle handle) {
-  return getEventByHandleInternal(handle, nullptr);
-}
-
 TraceEvent* TraceLog::getEventByHandleInternal(
     TraceEventHandle handle,
     OptionalAutoLock* lock) {
@@ -2348,50 +2240,6 @@ void TraceLog::setProcessId(int processId) {
   uint64_t fnvPrime = 1099511628211ull;
   uint64_t pid = static_cast<uint64_t>(processId_);
   processIdHash_ = (offsetBasis ^ pid) * fnvPrime;
-}
-
-void TraceLog::setProcessSortIndex(int sortIndex) {
-  SpinLockHolder lock(lock_);
-  processSortIndex_ = sortIndex;
-}
-
-void TraceLog::setProcessName(const std::string& processName) {
-  SpinLockHolder lock(lock_);
-  processName_ = processName;
-}
-
-void TraceLog::updateProcessLabel(
-    int labelId,
-    const std::string& currentLabel) {
-  if (!currentLabel.length()) {
-    return removeProcessLabel(labelId);
-  }
-
-  SpinLockHolder lock(lock_);
-  processLabels_[labelId] = currentLabel;
-}
-
-void TraceLog::removeProcessLabel(int labelId) {
-  SpinLockHolder lock(lock_);
-  auto it = processLabels_.find(labelId);
-  if (it == processLabels_.end()) {
-    return;
-  }
-
-  processLabels_.erase(it);
-}
-
-void TraceLog::setThreadSortIndex(int64_t thread_id, int sort_index) {
-  SpinLockHolder lock(lock_);
-  threadSortIndices_[static_cast<int>(thread_id)] = sort_index;
-}
-
-void TraceLog::setTimeOffset(kudu::MicrosecondsInt64 offset) {
-  timeOffset_ = offset;
-}
-
-size_t TraceLog::getObserverCountForTest() const {
-  return enabledStateObserverList_.size();
 }
 
 bool CategoryFilter::isEmptyOrContainsLeadingOrTrailingWhitespace(
@@ -2478,43 +2326,6 @@ void CategoryFilter::initializeFilter(const std::string& filterString) {
       included_.push_back(category);
     }
   }
-}
-
-void CategoryFilter::writeString(
-    const StringList& values,
-    std::string* out,
-    bool included) const {
-  bool prependComma = !out->empty();
-  int tokenCnt = 0;
-  for (const auto& value : values) {
-    if (tokenCnt > 0 || prependComma) {
-      *out += ",";
-    }
-    *out += fmt::format("{}{}", (included ? "" : "-"), value);
-    ++tokenCnt;
-  }
-}
-
-void CategoryFilter::writeString(const StringList& delays, std::string* out)
-    const {
-  bool prependComma = !out->empty();
-  int tokenCnt = 0;
-  for (const auto& delay : delays) {
-    if (tokenCnt > 0 || prependComma) {
-      *out += ",";
-    }
-    *out += fmt::format("{}{})", kSyntheticDelayCategoryFilterPrefix, delay);
-    ++tokenCnt;
-  }
-}
-
-std::string CategoryFilter::toString() const {
-  std::string filter_string;
-  writeString(included_, &filter_string, true);
-  writeString(disabled_, &filter_string, true);
-  writeString(excluded_, &filter_string, false);
-  writeString(delays_, &filter_string);
-  return filter_string;
 }
 
 bool CategoryFilter::isCategoryGroupEnabled(

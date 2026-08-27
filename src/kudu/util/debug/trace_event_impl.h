@@ -24,23 +24,6 @@
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/mutex.h"
 
-// Older style trace macros with explicit id and extra data
-// Only these macros result in publishing data to ETW as currently implemented.
-#define TRACE_EVENT_BEGIN_ETW(name, id, extra) \
-  base::debug::TraceLog::addTraceEventEtw(     \
-      TRACE_EVENT_PHASE_BEGIN, name, reinterpret_cast<const void*>(id), extra)
-
-#define TRACE_EVENT_END_ETW(name, id, extra) \
-  base::debug::TraceLog::addTraceEventEtw(   \
-      TRACE_EVENT_PHASE_END, name, reinterpret_cast<const void*>(id), extra)
-
-#define TRACE_EVENT_INSTANT_ETW(name, id, extra) \
-  base::debug::TraceLog::addTraceEventEtw(       \
-      TRACE_EVENT_PHASE_INSTANT,                 \
-      name,                                      \
-      reinterpret_cast<const void*>(id),         \
-      extra)
-
 template <typename Type>
 class Singleton;
 
@@ -132,43 +115,11 @@ class BASE_EXPORT TraceEvent {
   static void
   appendValueAsJson(unsigned char type, TraceValue value, std::string* out);
 
-  kudu::MicrosecondsInt64 timestamp() const {
-    return timestamp_;
-  }
-  kudu::MicrosecondsInt64 threadTimestamp() const {
-    return threadTimestamp_;
-  }
   char phase() const {
     return phase_;
   }
   int threadId() const {
     return threadId_;
-  }
-  kudu::MicrosecondsInt64 duration() const {
-    return duration_;
-  }
-  kudu::MicrosecondsInt64 threadDuration() const {
-    return threadDuration_;
-  }
-  uint64_t id() const {
-    return id_;
-  }
-  unsigned char flags() const {
-    return flags_;
-  }
-
-  // Exposed for unittesting:
-
-  const kudu::RefCountedString* parameterCopyStorage() const {
-    return parameterCopyStorage_.get();
-  }
-
-  const unsigned char* categoryGroupEnabled() const {
-    return categoryGroupEnabled_;
-  }
-
-  const char* name() const {
-    return name_;
   }
 
 #if defined(OS_ANDROID)
@@ -269,7 +220,6 @@ class BASE_EXPORT TraceBuffer {
 class TraceResultBuffer {
  public:
   static std::string flushTraceLogToString();
-  static std::string flushTraceLogToStringButLeaveBufferIntact();
 
  private:
   TraceResultBuffer();
@@ -325,13 +275,6 @@ class BASE_EXPORT CategoryFilter {
   CategoryFilter(CategoryFilter&&) = default;
   CategoryFilter& operator=(CategoryFilter&&) = default;
 
-  // Writes the string representation of the CategoryFilter. This is a comma
-  // separated string, similar in nature to the one used to determine
-  // enabled/disabled category patterns, except here there is an arbitrary
-  // order, included categories go first, then excluded categories. Excluded
-  // categories are distinguished from included categories by the prefix '-'.
-  std::string toString() const;
-
   // Determines whether category group would be enabled or
   // disabled by this category filter.
   bool isCategoryGroupEnabled(const char* category_group) const;
@@ -357,9 +300,6 @@ class BASE_EXPORT CategoryFilter {
       const std::string& str);
 
   void initializeFilter(const std::string& filterString);
-  void writeString(const StringList& values, std::string* out, bool included)
-      const;
-  void writeString(const StringList& delays, std::string* out) const;
   bool hasIncludedPatterns() const;
 
   bool doesCategoryGroupContainCategory(
@@ -413,13 +353,6 @@ class BASE_EXPORT TraceLog {
 
   static TraceLog* getInstance();
 
-  // Get set of known category groups. This can change as new code paths are
-  // reached. The known category groups are inserted into |category_groups|.
-  void getKnownCategoryGroups(std::vector<std::string>* category_groups);
-
-  // Retrieves a copy (for thread-safety) of the current CategoryFilter.
-  CategoryFilter getCurrentCategoryFilter();
-
   Options traceOptions() const {
     return static_cast<Options>(base::subtle::noBarrierLoad(&traceOptions_));
   }
@@ -471,11 +404,6 @@ class BASE_EXPORT TraceLog {
     // TraceLog::isEnabled() is false at this point.
     virtual void onTraceLogDisabled() = 0;
   };
-  void addEnabledStateObserver(EnabledStateObserver* listener);
-  void removeEnabledStateObserver(EnabledStateObserver* listener);
-  bool hasEnabledStateObserver(EnabledStateObserver* listener) const;
-
-  float getBufferPercentFull() const;
   bool bufferIsFull() const;
 
   // Not using kudu::Callback because of its limited by 7 parameters.
@@ -553,16 +481,6 @@ class BASE_EXPORT TraceLog {
       const uint64_t* arg_values,
       const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
-  static void addTraceEventEtw(
-      char phase,
-      const char* category_group,
-      const void* id,
-      const char* extra);
-  static void addTraceEventEtw(
-      char phase,
-      const char* category_group,
-      const void* id,
-      const std::string& extra);
 
   void updateTraceEventDuration(
       const unsigned char* category_group_enabled,
@@ -571,49 +489,12 @@ class BASE_EXPORT TraceLog {
 
   // For every matching event, the callback will be called.
   using WatchEventCallback = kudu::Callback<void()>;
-  void setWatchEvent(
-      const std::string& category_name,
-      const std::string& event_name,
-      const WatchEventCallback& callback);
-  // Cancel the watch event. If tracing is enabled, this may race with the
-  // watch event notification firing.
-  void cancelWatchEvent();
 
   int processId() const {
     return processId_;
   }
 
-  // Allow tests to inspect TraceEvents.
-  size_t getEventsSize() const {
-    return loggedEvents_->size();
-  }
-  TraceEvent* getEventByHandle(TraceEventHandle handle);
-
   void setProcessId(int processId);
-
-  // Process sort indices, if set, override the order of a process will appear
-  // relative to other processes in the trace viewer. Processes are sorted
-  // first on their sort index, ascending, then by their name, and then tid.
-  void setProcessSortIndex(int sortIndex);
-
-  // Sets the name of the process.
-  void setProcessName(const std::string& processName);
-
-  // Processes can have labels in addition to their names. Use labels, for
-  // instance, to list out the web page titles that a process is handling.
-  void updateProcessLabel(int labelId, const std::string& currentLabel);
-  void removeProcessLabel(int labelId);
-
-  // Thread sort indices, if set, override the order of a thread will appear
-  // within its process in the trace viewer. Threads are sorted first on their
-  // sort index, ascending, then by their name, and then tid.
-  void setThreadSortIndex(int64_t tid, int sort_index);
-
-  // Allow setting an offset between the current MicrosecondsInt64 time and
-  // the time that should be reported.
-  void setTimeOffset(kudu::MicrosecondsInt64 offset);
-
-  size_t getObserverCountForTest() const;
 
  private:
   FRIEND_TEST(TraceEventTestFixture, TraceBufferRingBufferGetReturnChunk);
