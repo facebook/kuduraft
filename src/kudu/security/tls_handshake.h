@@ -127,21 +127,11 @@ class TlsHandshake {
   // but without wrapping the socket.
   Status finishNoWrap(const Socket& socket) WARN_UNUSED_RESULT;
 
-  // Retrieve the local certificate. This will return an error status if there
-  // is no local certificate.
-  //
-  // May only be called after 'finish' or 'finishNoWrap'.
-  Status getLocalCert(Cert* cert) const WARN_UNUSED_RESULT;
-
   // Retrieve the remote peer's certificate. This will return an error status if
   // there is no remote certificate.
   //
   // May only be called after 'finish' or 'finishNoWrap'.
   Status getRemoteCert(Cert* cert) const WARN_UNUSED_RESULT;
-
-  // Retrieve the negotiated cipher suite. Only valid to call after the
-  // handshake is complete and before 'finish()'.
-  std::string getCipherSuite() const;
 
   // Retrieve the negotiated TLS protocol version. Only valid to call after the
   // handshake is complete and before 'finish()'.

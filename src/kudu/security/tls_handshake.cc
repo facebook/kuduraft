@@ -292,15 +292,6 @@ Status TlsHandshake::finishNoWrap(const Socket& socket) {
   return verify(socket);
 }
 
-Status TlsHandshake::getLocalCert(Cert* cert) const {
-  SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!localCert_.getRawData()) {
-    return Status::RuntimeError("no local certificate");
-  }
-  cert->adoptAndAddRefRawData(localCert_.getRawData());
-  return Status::OK();
-}
-
 Status TlsHandshake::getRemoteCert(Cert* cert) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   if (!remoteCert_.getRawData()) {
@@ -308,12 +299,6 @@ Status TlsHandshake::getRemoteCert(Cert* cert) const {
   }
   cert->adoptAndAddRefRawData(remoteCert_.getRawData());
   return Status::OK();
-}
-
-string TlsHandshake::getCipherSuite() const {
-  SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  CHECK(hasStarted_);
-  return SSL_get_cipher_name(ssl_.get());
 }
 
 string TlsHandshake::getProtocol() const {
