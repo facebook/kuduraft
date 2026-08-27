@@ -38,7 +38,12 @@
 #include "kudu/util/status.h"
 #include "kudu/util/subprocess.h"
 
-DECLARE_bool(inject_unsync_time_errors);
+DEFINE_bool(
+    inject_unsync_time_errors,
+    false,
+    "If true, both init() and walltimeWithError() return "
+    "'clock considered unsynchronized' error.");
+TAG_FLAG(inject_unsync_time_errors, unsafe);
 
 DEFINE_int32(
     ntp_initial_sync_wait_secs,
