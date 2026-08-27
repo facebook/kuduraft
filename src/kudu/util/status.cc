@@ -181,8 +181,4 @@ Status Status::cloneAndAppend(const Slice& msg) const {
 size_t Status::memoryFootprintExcludingThis() const {
   return state_ ? kuduMallocUsableSize(state_) : 0;
 }
-
-size_t Status::memoryFootprintIncludingThis() const {
-  return kuduMallocUsableSize(this) + memoryFootprintExcludingThis();
-}
 } // namespace kudu
