@@ -354,25 +354,6 @@ Status KinitContext::kinit(const string& keytabPath, const string& principal) {
 }
 } // anonymous namespace
 
-folly::SharedMutexTracked* kerberosReinitLock() {
-  return gKerberosReinitLock;
-}
-
-Status canonicalizeKrb5Principal(std::string* principal) {
-  initKrb5Ctx();
-  krb5_principal princ;
-  KRB5_RETURN_NOT_OK_PREPEND(
-      krb5_parse_name(gKrb5Ctx, principal->c_str(), &princ),
-      "could not parse principal");
-  SCOPE_EXIT {
-    krb5_free_principal(gKrb5Ctx, princ);
-  };
-  RETURN_NOT_OK_PREPEND(
-      krb5UnparseName(princ, principal),
-      "failed to convert principal back to string");
-  return Status::OK();
-}
-
 Status mapPrincipalToLocalName(
     const std::string& principal,
     std::string* localName) {
