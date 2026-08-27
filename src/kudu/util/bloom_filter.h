@@ -45,10 +45,6 @@ namespace kudu {
 // at some point.
 class BloomKeyProbe {
  public:
-  // Default constructor - this is only used to instantiate an object
-  // and later reassign by assignment from another instance
-  BloomKeyProbe() {}
-
   // Construct a probe from the given key.
   //
   // NOTE: proper operation requires that the referenced memory remain
@@ -61,10 +57,6 @@ class BloomKeyProbe {
     // as the two independent hash functions for mixing.
     h1_ = static_cast<uint32_t>(h);
     h2_ = static_cast<uint32_t>(h >> 32);
-  }
-
-  const Slice& key() const {
-    return key_;
   }
 
   // The initial hash value. See mixHash() for usage example.
@@ -93,11 +85,6 @@ class BloomKeyProbe {
 // constructors.
 class BloomFilterSizing {
  public:
-  // Size the bloom filter by a fixed size and false positive rate.
-  //
-  // Picks the number of entries to achieve the above.
-  static BloomFilterSizing bySizeAndFpRate(size_t nBytes, double fpRate);
-
   // Size the bloom filer by an expected count and false positive rate.
   //
   // Picks the number of bytes to achieve the above.
@@ -156,15 +143,6 @@ class BloomFilterBuilder {
     return nHashes_;
   }
 
-  size_t expectedCount() const {
-    return expectedCount_;
-  }
-
-  // Return the number of keys inserted.
-  size_t count() const {
-    return nInserted_;
-  }
-
  private:
   DISALLOW_COPY_AND_ASSIGN(BloomFilterBuilder);
 
@@ -184,7 +162,6 @@ class BloomFilterBuilder {
 // Wrapper around a byte array for reading it as a bloom filter.
 class BloomFilter {
  public:
-  BloomFilter() : bitmap_(nullptr) {}
   BloomFilter(const Slice& data, size_t nHashes);
 
   // Return true if the filter may contain the given key.

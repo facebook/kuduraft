@@ -49,16 +49,6 @@ BloomFilterSizing BloomFilterSizing::byCountAndFpRate(
   return BloomFilterSizing(nBytes, expectedCount);
 }
 
-BloomFilterSizing BloomFilterSizing::bySizeAndFpRate(
-    size_t nBytes,
-    double fpRate) {
-  size_t nBits = nBytes * 8;
-  double expectedElems =
-      -static_cast<double>(nBits) * kNaturalLog2 * kNaturalLog2 / log(fpRate);
-  DCHECK_GT(expectedElems, 1);
-  return BloomFilterSizing(nBytes, (size_t)ceil(expectedElems));
-}
-
 BloomFilterBuilder::BloomFilterBuilder(const BloomFilterSizing& sizing)
     : nBits_(sizing.nBytes() * 8),
       bitmap_(new uint8_t[sizing.nBytes()]),
