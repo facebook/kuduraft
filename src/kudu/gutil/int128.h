@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cstdint>
-#include <iosfwd>
 
 namespace kudu {
 
@@ -48,9 +47,6 @@ class Uint128 {
   friend uint64_t uint128Low64(const Uint128& v);
   friend uint64_t uint128High64(const Uint128& v);
 
-  // We add "std::" to avoid including all of port.h.
-  friend std::ostream& operator<<(std::ostream& o, const Uint128& b);
-
  private:
   // Little-endian memory order optimizations can benefit from
   // having lo_ first, hi_ last.
@@ -76,11 +72,6 @@ struct Uint128Pod {
   uint64_t hi;
   uint64_t lo;
 };
-
-extern const Uint128Pod kUint128PodMax;
-
-// allow Uint128 to be logged
-extern std::ostream& operator<<(std::ostream& o, const Uint128& b);
 
 // Methods to access low and high pieces of 128-bit value.
 // Defined externally from Uint128 to facilitate conversion
