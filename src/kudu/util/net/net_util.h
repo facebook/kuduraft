@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "kudu/gutil/int128.h"
 #include "kudu/util/status.h"
 
 namespace kudu {

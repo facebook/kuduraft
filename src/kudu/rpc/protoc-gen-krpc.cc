@@ -247,7 +247,7 @@ class MethodSubstitutions : public Substituter {
       const std::string& serviceFullName,
       const std::string& argFullName) {
     StringPiece servicePackage(serviceFullName);
-    if (!servicePackage.contains(".")) {
+    if (servicePackage.find(".") == StringPiece::kNpos) {
       return argFullName;
     }
     // remove the service name so that we are left with only the package,

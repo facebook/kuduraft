@@ -12,18 +12,11 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/hash/legacy_hash.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/memutil.h"
 
 using std::min;
 using std::string;
-
-namespace std {
-size_t hash<StringPiece>::operator()(StringPiece s) const {
-  return hashTo32(s.data(), s.size());
-}
-} // namespace std
 
 std::ostream& operator<<(std::ostream& o, StringPiece piece) {
   o.write(piece.data(), piece.size());
@@ -51,16 +44,6 @@ void StringPiece::appendToString(string* target) const {
   stlAppendToString(target, ptr_, length_);
 }
 
-int StringPiece::copy(char* buf, size_type n, size_type pos) const {
-  int ret = min(length_ - pos, n);
-  memcpy(buf, ptr_ + pos, ret);
-  return ret;
-}
-
-bool StringPiece::contains(StringPiece s) const {
-  return find(s, 0) != kNpos;
-}
-
 int StringPiece::find(StringPiece s, size_type pos) const {
   if (length_ <= 0 || pos > static_cast<size_type>(length_)) {
     if (length_ == 0 && pos == 0 && s.length_ == 0) {
@@ -79,20 +62,6 @@ int StringPiece::find(char c, size_type pos) const {
   const char* result =
       static_cast<const char*>(memchr(ptr_ + pos, c, length_ - pos));
   return result != nullptr ? result - ptr_ : kNpos;
-}
-
-int StringPiece::rfind(StringPiece s, size_type pos) const {
-  if (length_ < s.length_) {
-    return kNpos;
-  }
-  const size_t ulen = length_;
-  if (s.length_ == 0) {
-    return min(ulen, pos);
-  }
-
-  const char* last = ptr_ + min(ulen - s.length_, pos) + s.length_;
-  const char* result = std::find_end(ptr_, last, s.ptr_, s.ptr_ + s.length_);
-  return result != last ? result - ptr_ : kNpos;
 }
 
 // Search range is [0..pos] inclusive.  If pos == kNpos, search everything.
@@ -192,44 +161,6 @@ int StringPiece::findLastOf(StringPiece s, size_type pos) const {
   buildLookupTable(s, lookup);
   for (int i = min(pos, static_cast<size_type>(length_ - 1)); i >= 0; --i) {
     if (lookup[static_cast<unsigned char>(ptr_[i])]) {
-      return i;
-    }
-  }
-  return kNpos;
-}
-
-int StringPiece::findLastNotOf(StringPiece s, size_type pos) const {
-  if (length_ <= 0) {
-    return kNpos;
-  }
-
-  int i = min(pos, static_cast<size_type>(length_ - 1));
-  if (s.length_ <= 0) {
-    return i;
-  }
-
-  // Avoid the cost of buildLookupTable() for a single-character search.
-  if (s.length_ == 1) {
-    return findLastNotOf(s.ptr_[0], pos);
-  }
-
-  bool lookup[UCHAR_MAX + 1] = {false};
-  buildLookupTable(s, lookup);
-  for (; i >= 0; --i) {
-    if (!lookup[static_cast<unsigned char>(ptr_[i])]) {
-      return i;
-    }
-  }
-  return kNpos;
-}
-
-int StringPiece::findLastNotOf(char c, size_type pos) const {
-  if (length_ <= 0) {
-    return kNpos;
-  }
-
-  for (int i = min(pos, static_cast<size_type>(length_ - 1)); i >= 0; --i) {
-    if (ptr_[i] != c) {
       return i;
     }
   }

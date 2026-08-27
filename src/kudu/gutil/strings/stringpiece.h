@@ -115,14 +115,12 @@
 #include <cstddef>
 #include <cstring>
 
-#include <functional>
 #include <iosfwd>
 #include <iterator>
 #include <limits>
 #include <string>
 #include <string_view>
 
-#include "kudu/gutil/hash/string_hash.h"
 #include "kudu/gutil/strings/fastmem.h"
 #include "kudu/gutil/type_traits.h"
 
@@ -181,11 +179,6 @@ class StringPiece {
   // is not representable in std::string_view).
   operator std::string_view()
       const noexcept { // NOLINT(google-explicit-constructor)
-    return std::string_view(ptr_ ? ptr_ : "", ptr_ ? length_ : 0);
-  }
-
-  // Explicit conversion method for clarity when needed.
-  std::string_view toStringView() const noexcept {
     return std::string_view(ptr_ ? ptr_ : "", ptr_ ? length_ : 0);
   }
 
@@ -255,25 +248,6 @@ class StringPiece {
     length_ -= n;
   }
 
-  // returns {-1, 0, 1}
-  int compare(StringPiece x) const {
-    const int minSize = length_ < x.length_ ? length_ : x.length_;
-    int r = memcmp(ptr_, x.ptr_, minSize);
-    if (r < 0) {
-      return -1;
-    }
-    if (r > 0) {
-      return 1;
-    }
-    if (length_ < x.length_) {
-      return -1;
-    }
-    if (length_ > x.length_) {
-      return 1;
-    }
-    return 0;
-  }
-
   [[deprecated("Use toString() or explicit std::string(...) instead")]]
   std::string asString() const {
     return toString();
@@ -321,28 +295,9 @@ class StringPiece {
   iterator end() const {
     return ptr_ + length_;
   }
-  const_reverse_iterator rbegin() const {
-    return const_reverse_iterator(ptr_ + length_);
-  }
-  const_reverse_iterator rend() const {
-    return const_reverse_iterator(ptr_);
-  }
-  // STLS says return size_type, but Google says return int
-  int maxSize() const {
-    return length_;
-  }
-  int capacity() const {
-    return length_;
-  }
-
-  // cpplint.py emits a false positive [build/include_what_you_use]
-  int copy(char* buf, size_type n, size_type pos = 0) const; // NOLINT
-
-  bool contains(StringPiece s) const;
 
   int find(StringPiece s, size_type pos = 0) const;
   int find(char c, size_type pos = 0) const;
-  int rfind(StringPiece s, size_type pos = kNpos) const;
   int rfind(char c, size_type pos = kNpos) const;
 
   int findFirstOf(StringPiece s, size_type pos = 0) const;
@@ -355,8 +310,6 @@ class StringPiece {
   int findLastOf(char c, size_type pos = kNpos) const {
     return rfind(c, pos);
   }
-  int findLastNotOf(StringPiece s, size_type pos = kNpos) const;
-  int findLastNotOf(char c, size_type pos = kNpos) const;
 
   StringPiece substr(size_type pos, size_type n = kNpos) const;
 };
@@ -399,41 +352,6 @@ inline bool operator<=(StringPiece x, StringPiece y) {
 inline bool operator>=(StringPiece x, StringPiece y) {
   return !(x < y);
 }
-template <class X>
-struct GoodFastHash;
-
-// ------------------------------------------------------------------
-// Functions used to create STL containers that use StringPiece
-//  Remember that a StringPiece's lifetime had better be less than
-//  that of the underlying string or char*.  If it is not, then you
-//  cannot safely store a StringPiece into an STL container
-// ------------------------------------------------------------------
-
-// SWIG doesn't know how to parse this stuff properly. Omit it.
-#ifndef SWIG
-
-namespace std {
-template <>
-struct hash<StringPiece> {
-  size_t operator()(StringPiece s) const;
-};
-} // namespace std
-
-// An implementation of GoodFastHash for StringPiece.  See
-// GoodFastHash values.
-template <>
-struct GoodFastHash<StringPiece> {
-  size_t operator()(StringPiece s) const {
-    return hashStringThoroughly(s.data(), s.size());
-  }
-  // Less than operator, for MSVC.
-  bool operator()(const StringPiece& s1, const StringPiece& s2) const {
-    return s1 < s2;
-  }
-  static const size_t kBucketSize = 4; // These are required by MSVC
-  static const size_t kMinBuckets = 8; // 4 and 8 are defaults.
-};
-#endif
 
 // allow StringPiece to be logged
 extern std::ostream& operator<<(std::ostream& o, StringPiece piece);
