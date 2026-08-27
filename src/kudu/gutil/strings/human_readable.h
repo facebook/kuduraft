@@ -6,7 +6,6 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <string>
 
 #include "kudu/gutil/macros.h"
@@ -36,91 +35,12 @@ class HumanReadableNumBytes {
   // e.g. 1000000 -> "976.6K".
   //  Note that calling these two functions in succession isn't a
   //  noop, since ToString() may round.
-  static bool toInt64(const std::string& str, int64_t* numBytes);
   static std::string toString(int64_t numBytes);
-  // Like toString but without rounding.  For example 1025 would return
-  // "1025B" rather than "1.0K".  Uses the largest common denominator.
-  static std::string toStringWithoutRounding(int64_t numBytes);
-
-  static bool toDouble(const std::string& str, double* numBytes);
-  // Function overloading this with a function that takes an int64 is just
-  // asking for trouble.
-  static std::string doubleToString(double numBytes);
 
   // TODO(user): Maybe change this class to use SIPrefix?
 
-  // ----------------------------------------------------------------------
-  // lessThan
-  // HumanReadableBytesLess
-  // HumanReadableBytesGreater
-  //    These numerically compare the values encoded in strings by
-  //    toString().  Strings which cannot be parsed are treated as
-  //    if they represented the value 0.  The following byte sizes
-  //    would be sorted as:
-  //        3B
-  //        .06K
-  //        .03M
-  //        10000G
-  //        10T
-  //        3.01P
-  //        3.02P
-  //        0.007E
-  // ----------------------------------------------------------------------
-  static bool lessThan(const std::string& a, const std::string& b);
-
  private:
   DISALLOW_IMPLICIT_CONSTRUCTORS(HumanReadableNumBytes);
-};
-
-// See documentation at HumanReadableNumBytes::lessThan().
-struct HumanReadableBytesLess
-    : public std::
-          binary_function<const std::string&, const std::string&, bool> {
-  bool operator()(const std::string& a, const std::string& b) const {
-    return HumanReadableNumBytes::lessThan(a, b);
-  }
-};
-
-// See documentation at HumanReadableNumBytes::lessThan().
-struct HumanReadableBytesGreater
-    : public std::
-          binary_function<const std::string&, const std::string&, bool> {
-  bool operator()(const std::string& a, const std::string& b) const {
-    return HumanReadableNumBytes::lessThan(b, a);
-  }
-};
-
-class HumanReadableInt {
- public:
-  // Similar to HumanReadableNumBytes::toInt64(), but uses decimal
-  // rather than binary expansions - so M = 1 million, B = 1 billion,
-  // etc. Numbers beyond 1T are expressed as "3E14" etc.
-  static std::string toString(int64_t value);
-
-  // Reverses toString(). Note that calling these two functions in
-  // succession isn't a noop, since toString() may round.
-  static bool toInt64(const std::string& str, int64_t* value);
-
- private:
-  DISALLOW_IMPLICIT_CONSTRUCTORS(HumanReadableInt);
-};
-
-class HumanReadableNum {
- public:
-  // Same as HumanReadableInt::toString().
-  static std::string toString(int64_t value);
-
-  // Similar to HumanReadableInt::toString(), but prints 2 decimal
-  // places for numbers with absolute value < 10.0 and 1 decimal place
-  // for numbers >= 10.0 and < 100.0.
-  static std::string doubleToString(double value);
-
-  // Reverses doubleToString(). Note that calling these two functions in
-  // succession isn't a noop, since there may be rounding errors.
-  static bool toDouble(const std::string& str, double* value);
-
- private:
-  DISALLOW_IMPLICIT_CONSTRUCTORS(HumanReadableNum);
 };
 
 class HumanReadableElapsedTime {
@@ -133,23 +53,6 @@ class HumanReadableElapsedTime {
   //   39420000.0  -> "1.25 years"
   //   -10         -> "-10 s"
   static std::string toShortString(double seconds);
-
-  // Reverses toShortString(). Note that calling these two functions in
-  // succession isn't a noop, since toShortString() may round.
-  // This accepts multiple forms of units, but the abbreviated forms are
-  // us (microseconds), ms (milliseconds), s, m (minutes), h, d, w,
-  // M (month = 30 days), y
-  // This function is not particularly fast.  Use at performance peril.
-  // Only leading negative signs are allowed.
-  // Examples:
-  //   "1ms"        -> 0.001
-  //   "10 second"  -> 10
-  //   "10.8 days"  -> 933120.0
-  //   "1m 30s"     -> 90
-  //   "-10 sec"    -> -10
-  //   "18.3"       -> 18.3
-  //   "1M"         -> 2592000 (1 month = 30 days)
-  static bool toDouble(const std::string& str, double* value);
 
  private:
   DISALLOW_IMPLICIT_CONSTRUCTORS(HumanReadableElapsedTime);
