@@ -153,9 +153,6 @@ class HdrHistogram {
   // histogram's resolution.
   uint64_t nextNonEquivalentValue(uint64_t value) const;
 
-  // Determine if two values are equivalent with the histogram's resolution.
-  bool valuesAreEquivalent(uint64_t value1, uint64_t value2) const;
-
   // Get the exact minimum value (may lie outside the histogram).
   uint64_t minValue() const;
 
@@ -267,7 +264,6 @@ class AbstractHistogramIterator {
   Status next(HistogramIterationValue* value);
 
   virtual double percentileIteratedTo() const;
-  virtual double percentileIteratedFrom() const;
   uint64_t valueIteratedTo() const;
 
  protected:
@@ -327,38 +323,6 @@ class RecordedValuesIterator : public AbstractHistogramIterator {
   int visited_bucket_index_;
 
   DISALLOW_COPY_AND_ASSIGN(RecordedValuesIterator);
-};
-
-// Used for iterating through histogram values according to percentile levels.
-// The iteration is performed in steps that start at 0% and reduce their
-// distance to 100% according to the percentileTicksPerHalfDistance parameter,
-// ultimately reaching 100% when all recorded histogram values are exhausted.
-//
-// The underlying histogram must not be modified or destroyed while this class
-// is iterating over it.
-//
-// This class is not thread-safe.
-class PercentileIterator : public AbstractHistogramIterator {
- public:
-  // TODO: Explain percentile_ticks_per_half_distance.
-  PercentileIterator(
-      const HdrHistogram* histogram,
-      int percentile_ticks_per_half_distance);
-  virtual bool hasNext() const override;
-  virtual double percentileIteratedTo() const override;
-  virtual double percentileIteratedFrom() const override;
-
- protected:
-  virtual void incrementIterationLevel() override;
-  virtual bool reachedIterationLevel() const override;
-
- private:
-  int percentile_ticks_per_half_distance_;
-  double percentile_level_to_iterate_to_;
-  double percentile_level_to_iterate_from_;
-  bool reached_last_recorded_value_;
-
-  DISALLOW_COPY_AND_ASSIGN(PercentileIterator);
 };
 
 } // namespace kudu

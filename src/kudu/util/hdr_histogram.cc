@@ -295,10 +295,6 @@ uint64_t HdrHistogram::nextNonEquivalentValue(uint64_t value) const {
   return lowestEquivalentValue(value) + sizeOfEquivalentValueRange(value);
 }
 
-bool HdrHistogram::valuesAreEquivalent(uint64_t value1, uint64_t value2) const {
-  return (lowestEquivalentValue(value1) == lowestEquivalentValue(value2));
-}
-
 uint64_t HdrHistogram::minValue() const {
   if (PREDICT_FALSE(totalCount() == 0)) {
     return 0;
@@ -440,11 +436,6 @@ double AbstractHistogramIterator::percentileIteratedTo() const {
       histogramTotalCount_;
 }
 
-double AbstractHistogramIterator::percentileIteratedFrom() const {
-  return (100.0 * static_cast<double>(totalCountToPrevIndex_)) /
-      histogramTotalCount_;
-}
-
 uint64_t AbstractHistogramIterator::valueIteratedTo() const {
   return histogram_->highestEquivalentValue(currentValueAtIndex_);
 }
@@ -489,64 +480,6 @@ bool RecordedValuesIterator::reachedIterationLevel() const {
   return current_ij_count != 0 &&
       ((visited_sub_bucket_index_ != currentSubBucketIndex_) ||
        (visited_bucket_index_ != currentBucketIndex_));
-}
-
-///////////////////////////////////////////////////////////////////////
-// PercentileIterator
-///////////////////////////////////////////////////////////////////////
-
-PercentileIterator::PercentileIterator(
-    const HdrHistogram* histogram,
-    int percentile_ticks_per_half_distance)
-    : AbstractHistogramIterator(histogram),
-      percentile_ticks_per_half_distance_(percentile_ticks_per_half_distance),
-      percentile_level_to_iterate_to_(0.0),
-      percentile_level_to_iterate_from_(0.0),
-      reached_last_recorded_value_(false) {}
-
-bool PercentileIterator::hasNext() const {
-  if (AbstractHistogramIterator::hasNext()) {
-    return true;
-  }
-  // We want one additional last step to 100%
-  if (!reached_last_recorded_value_ && (histogramTotalCount_ > 0)) {
-    const_cast<PercentileIterator*>(this)->percentile_level_to_iterate_to_ =
-        100.0;
-    const_cast<PercentileIterator*>(this)->reached_last_recorded_value_ = true;
-    return true;
-  }
-  return false;
-}
-
-double PercentileIterator::percentileIteratedTo() const {
-  return percentile_level_to_iterate_to_;
-}
-
-double PercentileIterator::percentileIteratedFrom() const {
-  return percentile_level_to_iterate_from_;
-}
-
-void PercentileIterator::incrementIterationLevel() {
-  percentile_level_to_iterate_from_ = percentile_level_to_iterate_to_;
-  // TODO: Can this expression be simplified?
-  uint64_t percentile_reporting_ticks = percentile_ticks_per_half_distance_ *
-      static_cast<uint64_t>(pow(
-          2.0,
-          static_cast<int>(
-              log(100.0 / (100.0 - (percentile_level_to_iterate_to_))) /
-              log(2)) +
-              1));
-  percentile_level_to_iterate_to_ += 100.0 / percentile_reporting_ticks;
-}
-
-bool PercentileIterator::reachedIterationLevel() const {
-  if (countAtThisValue_ == 0) {
-    return false;
-  }
-  double current_percentile =
-      (100.0 * static_cast<double>(totalCountToCurrentIndex_)) /
-      histogramTotalCount_;
-  return (current_percentile >= percentile_level_to_iterate_to_);
 }
 
 } // namespace kudu
