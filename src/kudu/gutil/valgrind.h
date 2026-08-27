@@ -574,8 +574,6 @@ typedef struct {
 
 #endif /* PLAT_ppc64_aix5 */
 
-/* Insert assembly code for other platforms here... */
-
 #endif /* NVALGRIND */
 
 /* ------------------------------------------------------------------ */
@@ -3794,14 +3792,14 @@ static int VALGRIND_PRINTF_BACKTRACE(const char* format, ...) {
 
    where "Word" is a word-sized type.
 
-   Note that these client requests are not entirely reliable.  For example,
-   if you call a function with them that subsequently calls printf(),
-   there's a high chance Valgrind will crash.  Generally, your prospects of
-   these working are made higher if the called function does not refer to
-   any global variables, and does not refer to any libc or other functions
-   (printf et al).  Any kind of entanglement with libc or dynamic linking is
-   likely to have a bad outcome, for tricky reasons which we've grappled
-   with a lot in the past.
+   Note that these client requests are not entirely reliable.  For
+   example, if you call a function with them that subsequently calls
+   printf(), there's a high chance Valgrind will crash.  Generally, your
+   prospects of these working are made higher if the called function
+   does not refer to any global variables, and does not refer to any
+   libc or other functions (printf et al).  Any kind of entanglement
+   with libc or dynamic linking is likely to have a bad outcome, for
+   tricky reasons which we've grappled with a lot in the past.
 */
 #define VALGRIND_NON_SIMD_CALL0(_qyy_fn) \
   __extension__({                        \
@@ -3884,25 +3882,27 @@ static int VALGRIND_PRINTF_BACKTRACE(const char* format, ...) {
 /* Mark a block of memory as having been allocated by a malloc()-like
    function.  `addr' is the start of the usable block (ie. after any
    redzone) `rzB' is redzone size if the allocator can apply redzones;
-   use '0' if not.  Adding redzones makes it more likely Valgrind will spot
-   block overruns.  `is_zeroed' indicates if the memory is zeroed, as it is
-   for calloc().  Put it immediately after the point where a block is
-   allocated.
+   use '0' if not.  Adding redzones makes it more likely Valgrind will
+   spot block overruns.  `is_zeroed' indicates if the memory is zeroed,
+   as it is for calloc().  Put it immediately after the point where a
+   block is allocated.
 
-   If you're using Memcheck: If you're allocating memory via superblocks,
-   and then handing out small chunks of each superblock, if you don't have
-   redzones on your small blocks, it's worth marking the superblock with
-   VALGRIND_MAKE_MEM_NOACCESS when it's created, so that block overruns are
-   detected.  But if you can put redzones on, it's probably better to not do
-   this, so that messages for small overruns are described in terms of the
-   small block rather than the superblock (but if you have a big overrun
-   that skips over a redzone, you could miss an error this way).  See
-   memcheck/tests/custom_alloc.c for an example.
+   If you're using Memcheck: If you're allocating memory via
+   superblocks, and then handing out small chunks of each superblock, if
+   you don't have redzones on your small blocks, it's worth marking the
+   superblock with VALGRIND_MAKE_MEM_NOACCESS when it's created, so that
+   block overruns are detected.  But if you can put redzones on, it's
+   probably better to not do this, so that messages for small overruns
+   are described in terms of the small block rather than the superblock
+   (but if you have a big overrun that skips over a redzone, you could
+   miss an error this way).  See memcheck/tests/custom_alloc.c for an
+   example.
 
    WARNING: if your allocator uses malloc() or 'new' to allocate
-   superblocks, rather than mmap() or brk(), this will not work properly --
-   you'll likely get assertion failures during leak detection.  This is
-   because Valgrind doesn't like seeing overlapping heap blocks.  Sorry.
+   superblocks, rather than mmap() or brk(), this will not work properly
+   -- you'll likely get assertion failures during leak detection.  This
+   is because Valgrind doesn't like seeing overlapping heap blocks.
+   Sorry.
 
    Nb: block must be freed via a free()-like function specified
    with VALGRIND_FREELIKE_BLOCK or mismatch errors will occur. */
@@ -3920,10 +3920,11 @@ static int VALGRIND_PRINTF_BACKTRACE(const char* format, ...) {
         0);                                                    \
   }
 
-/* Mark a block of memory as having been freed by a free()-like function.
-   `rzB' is redzone size;  it must match that given to
-   VALGRIND_MALLOCLIKE_BLOCK.  Memory not freed will be detected by the leak
-   checker.  Put it immediately after the point where the block is freed. */
+/* Mark a block of memory as having been freed by a free()-like
+   function. `rzB' is redzone size;  it must match that given to
+   VALGRIND_MALLOCLIKE_BLOCK.  Memory not freed will be detected by the
+   leak checker.  Put it immediately after the point where the block is
+   freed. */
 #define VALGRIND_FREELIKE_BLOCK(addr, rzB)                            \
   {                                                                   \
     unsigned int _qzz_res;                                            \
