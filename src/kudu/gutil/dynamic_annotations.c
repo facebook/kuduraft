@@ -76,92 +76,24 @@ void AnnotateRWLockReleased(
     int line,
     const volatile void* lock,
     long isW) {}
-void AnnotateBarrierInit(
-    const char* file,
-    int line,
-    const volatile void* barrier,
-    long count,
-    long reinitializationAllowed) {}
-void AnnotateBarrierWaitBefore(
-    const char* file,
-    int line,
-    const volatile void* barrier) {}
-void AnnotateBarrierWaitAfter(
-    const char* file,
-    int line,
-    const volatile void* barrier) {}
-void AnnotateBarrierDestroy(
-    const char* file,
-    int line,
-    const volatile void* barrier) {}
-
-void AnnotateCondVarWait(
-    const char* file,
-    int line,
-    const volatile void* cv,
-    const volatile void* lock) {}
-void AnnotateCondVarSignal(
-    const char* file,
-    int line,
-    const volatile void* cv) {}
-void AnnotateCondVarSignalAll(
-    const char* file,
-    int line,
-    const volatile void* cv) {}
 void AnnotateHappensBefore(
     const char* file,
     int line,
-    const volatile void* obj);
-void AnnotateHappensAfter(const char* file, int line, const volatile void* obj);
-void AnnotatePublishMemoryRange(
+    const volatile void* obj) {}
+void AnnotateHappensAfter(
     const char* file,
     int line,
-    const volatile void* address,
-    long size) {}
-void AnnotateUnpublishMemoryRange(
-    const char* file,
-    int line,
-    const volatile void* address,
-    long size) {}
-void AnnotatePCQCreate(const char* file, int line, const volatile void* pcq) {}
-void AnnotatePCQDestroy(const char* file, int line, const volatile void* pcq) {}
-void AnnotatePCQPut(const char* file, int line, const volatile void* pcq) {}
-void AnnotatePCQGet(const char* file, int line, const volatile void* pcq) {}
-void AnnotateNewMemory(
-    const char* file,
-    int line,
-    const volatile void* mem,
-    long size) {}
-void AnnotateExpectRace(
-    const char* file,
-    int line,
-    const volatile void* mem,
-    const char* description) {}
-void AnnotateBenignRace(
-    const char* file,
-    int line,
-    const volatile void* mem,
-    const char* description) {}
+    const volatile void* obj) {}
 void AnnotateBenignRaceSized(
     const char* file,
     int line,
     const volatile void* mem,
     size_t size,
     const char* description) {}
-void AnnotateMutexIsUsedAsCondVar(
-    const char* file,
-    int line,
-    const volatile void* mu) {}
-void AnnotateTraceMemory(const char* file, int line, const volatile void* arg) {
-}
-void AnnotateThreadName(const char* file, int line, const char* name) {}
 void AnnotateIgnoreReadsBegin(const char* file, int line) {}
 void AnnotateIgnoreReadsEnd(const char* file, int line) {}
 void AnnotateIgnoreWritesBegin(const char* file, int line) {}
 void AnnotateIgnoreWritesEnd(const char* file, int line) {}
-void AnnotateEnableRaceDetection(const char* file, int line, int enable) {}
-void AnnotateNoOp(const char* file, int line, const volatile void* arg) {}
-void AnnotateFlushState(const char* file, int line) {}
 
 #endif /* DYNAMIC_ANNOTATIONS_ENABLED == 1 \
    && DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL == 0 */
@@ -195,20 +127,4 @@ int runningOnValgrind(void) {
     cachedRunningOnValgrind = localRunningOnValgrind = getRunningOnValgrind();
   }
   return localRunningOnValgrind;
-}
-
-/* See the comments in dynamic_annotations.h */
-double valgrindSlowdown(void) {
-  /* Same initialization hack as in runningOnValgrind(). */
-  static volatile double slowdown = 0.0;
-  double localSlowdown = slowdown;
-  KUDU_ANNONTATE_BENIGN_RACE(&slowdown, "safe hack");
-  if (runningOnValgrind() == 0) {
-    return 1.0;
-  }
-  if (localSlowdown == 0.0) {
-    char* env = getenv("VALGRIND_SLOWDOWN");
-    slowdown = localSlowdown = env ? atof(env) : 50.0;
-  }
-  return localSlowdown;
 }

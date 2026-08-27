@@ -123,99 +123,11 @@
    Note: when possible, please use the existing reference counting and message
    queue implementations instead of inventing new ones. */
 
-/* Report that wait on the condition variable at address "cv" has succeeded
-   and the lock at address "lock" is held. */
-#define KUDU_ANNONTATE_CONDVAR_LOCK_WAIT(cv, lock) \
-  AnnotateCondVarWait(__FILE__, __LINE__, cv, lock)
-
-/* Report that wait on the condition variable at "cv" has succeeded.  Variant
-   w/o lock. */
-#define KUDU_ANNONTATE_CONDVAR_WAIT(cv) \
-  AnnotateCondVarWait(__FILE__, __LINE__, cv, NULL)
-
-/* Report that we are about to signal on the condition variable at address
-   "cv". */
-#define KUDU_ANNONTATE_CONDVAR_SIGNAL(cv) \
-  AnnotateCondVarSignal(__FILE__, __LINE__, cv)
-
-/* Report that we are about to signal_all on the condition variable at "cv". */
-#define KUDU_ANNONTATE_CONDVAR_SIGNAL_ALL(cv) \
-  AnnotateCondVarSignalAll(__FILE__, __LINE__, cv)
-
 /* Annotations for user-defined synchronization mechanisms. */
 #define KUDU_ANNONTATE_HAPPENS_BEFORE(obj) \
   AnnotateHappensBefore(__FILE__, __LINE__, obj)
 #define KUDU_ANNONTATE_HAPPENS_AFTER(obj) \
   AnnotateHappensAfter(__FILE__, __LINE__, obj)
-
-/* Report that the bytes in the range [pointer, pointer+size) are about
-   to be published safely. The race checker will create a happens-before
-   arc from the call KUDU_ANNONTATE_PUBLISH_MEMORY_RANGE(pointer, size) to
-   subsequent accesses to this memory.
-   Note: this annotation may not work properly if the race detector uses
-   sampling, i.e. does not observe all memory accesses.
-   */
-#define KUDU_ANNONTATE_PUBLISH_MEMORY_RANGE(pointer, size) \
-  AnnotatePublishMemoryRange(__FILE__, __LINE__, pointer, size)
-
-/* DEPRECATED. Don't use it. */
-#define KUDU_ANNONTATE_UNPUBLISH_MEMORY_RANGE(pointer, size) \
-  AnnotateUnpublishMemoryRange(__FILE__, __LINE__, pointer, size)
-
-/* DEPRECATED. Don't use it. */
-#define KUDU_ANNONTATE_SWAP_MEMORY_RANGE(pointer, size)   \
-  do {                                                    \
-    KUDU_ANNONTATE_UNPUBLISH_MEMORY_RANGE(pointer, size); \
-    KUDU_ANNONTATE_PUBLISH_MEMORY_RANGE(pointer, size);   \
-  } while (0)
-
-/* Instruct the tool to create a happens-before arc between mu->Unlock() and
-   mu->Lock(). This annotation may slow down the race detector and hide real
-   races. Normally it is used only when it would be difficult to annotate each
-   of the mutex's critical sections individually using the annotations above.
-   This annotation makes sense only for hybrid race detectors. For pure
-   happens-before detectors this is a no-op. For more details see
-   http://code.google.com/p/data-race-test/wiki/PureHappensBeforeVsHybrid . */
-#define KUDU_ANNONTATE_PURE_HAPPENS_BEFORE_MUTEX(mu) \
-  AnnotateMutexIsUsedAsCondVar(__FILE__, __LINE__, mu)
-
-/* Deprecated. Use KUDU_ANNONTATE_PURE_HAPPENS_BEFORE_MUTEX. */
-#define KUDU_ANNONTATE_MUTEX_IS_USED_AS_CONDVAR(mu) \
-  AnnotateMutexIsUsedAsCondVar(__FILE__, __LINE__, mu)
-
-/* -------------------------------------------------------------
-   Annotations useful when defining memory allocators, or when memory that
-   was protected in one way starts to be protected in another. */
-
-/* Report that a new memory at "address" of size "size" has been allocated.
-   This might be used when the memory has been retrieved from a free list and
-   is about to be reused, or when a the locking discipline for a variable
-   changes. */
-#define KUDU_ANNONTATE_NEW_MEMORY(address, size) \
-  AnnotateNewMemory(__FILE__, __LINE__, address, size)
-
-/* -------------------------------------------------------------
-   Annotations useful when defining FIFO queues that transfer data between
-   threads. */
-
-/* Report that the producer-consumer queue (such as ProducerConsumerQueue) at
-   address "pcq" has been created.  The KUDU_ANNONTATE_PCQ_* annotations
-   should be used only for FIFO queues.  For non-FIFO queues use
-   KUDU_ANNONTATE_HAPPENS_BEFORE (for put) and KUDU_ANNONTATE_HAPPENS_AFTER (for
-   get). */
-#define KUDU_ANNONTATE_PCQ_CREATE(pcq) \
-  AnnotatePCQCreate(__FILE__, __LINE__, pcq)
-
-/* Report that the queue at address "pcq" is about to be destroyed. */
-#define KUDU_ANNONTATE_PCQ_DESTROY(pcq) \
-  AnnotatePCQDestroy(__FILE__, __LINE__, pcq)
-
-/* Report that we are about to put an element into a FIFO queue at address
-   "pcq". */
-#define KUDU_ANNONTATE_PCQ_PUT(pcq) AnnotatePCQPut(__FILE__, __LINE__, pcq)
-
-/* Report that we've just got an element from a FIFO queue at address "pcq". */
-#define KUDU_ANNONTATE_PCQ_GET(pcq) AnnotatePCQGet(__FILE__, __LINE__, pcq)
 
 /* -------------------------------------------------------------
    Annotations that suppress errors.  It is usually better to express the
@@ -278,23 +190,6 @@
 #define KUDU_ANNONTATE_IGNORE_SYNC_END() \
   AnnotateIgnoreSyncEnd(__FILE__, __LINE__)
 
-/* Enable (enable!=0) or disable (enable==0) race detection for all threads.
-   This annotation could be useful if you want to skip expensive race analysis
-   during some period of program execution, e.g. during initialization. */
-#define KUDU_ANNONTATE_ENABLE_RACE_DETECTION(enable) \
-  AnnotateEnableRaceDetection(__FILE__, __LINE__, enable)
-
-/* -------------------------------------------------------------
-   Annotations useful for debugging. */
-
-/* Request to trace every access to "address". */
-#define KUDU_ANNONTATE_TRACE_MEMORY(address) \
-  AnnotateTraceMemory(__FILE__, __LINE__, address)
-
-/* Report the current thread name to a race detector. */
-#define KUDU_ANNONTATE_THREAD_NAME(name) \
-  AnnotateThreadName(__FILE__, __LINE__, name)
-
 /* -------------------------------------------------------------
    Annotations useful when implementing locks.  They are not
    normally needed by modules that merely use locks.
@@ -303,16 +198,6 @@
 /* Report that a lock has been created at address "lock". */
 #define KUDU_ANNONTATE_RWLOCK_CREATE(lock) \
   AnnotateRWLockCreate(__FILE__, __LINE__, lock)
-
-/* Report that a linker initialized lock has been created at address "lock".
- */
-#ifdef KUDU_SANITIZE_THREAD
-#define KUDU_ANNONTATE_RWLOCK_CREATE_STATIC(lock) \
-  AnnotateRWLockCreateStatic(__FILE__, __LINE__, lock)
-#else
-#define KUDU_ANNONTATE_RWLOCK_CREATE_STATIC(lock) \
-  KUDU_ANNONTATE_RWLOCK_CREATE(lock)
-#endif
 
 /* Report that the lock at address "lock" is about to be destroyed. */
 #define KUDU_ANNONTATE_RWLOCK_DESTROY(lock) \
@@ -327,79 +212,17 @@
 #define KUDU_ANNONTATE_RWLOCK_RELEASED(lock, isW) \
   AnnotateRWLockReleased(__FILE__, __LINE__, lock, isW)
 
-/* -------------------------------------------------------------
-   Annotations useful when implementing barriers.  They are not
-   normally needed by modules that merely use barriers.
-   The "barrier" argument is a pointer to the barrier object. */
-
-/* Report that the "barrier" has been initialized with initial "count".
- If 'reinitializationAllowed' is true, initialization is allowed to happen
- multiple times w/o calling barrier_destroy() */
-#define KUDU_ANNONTATE_BARRIER_INIT(barrier, count, reinitializationAllowed) \
-  AnnotateBarrierInit(                                                       \
-      __FILE__, __LINE__, barrier, count, reinitializationAllowed)
-
-/* Report that we are about to enter barrier_wait("barrier"). */
-#define KUDU_ANNONTATE_BARRIER_WAIT_BEFORE(barrier) \
-  AnnotateBarrierWaitBefore(__FILE__, __LINE__, barrier)
-
-/* Report that we just exited barrier_wait("barrier"). */
-#define KUDU_ANNONTATE_BARRIER_WAIT_AFTER(barrier) \
-  AnnotateBarrierWaitAfter(__FILE__, __LINE__, barrier)
-
-/* Report that the "barrier" has been destroyed. */
-#define KUDU_ANNONTATE_BARRIER_DESTROY(barrier) \
-  AnnotateBarrierDestroy(__FILE__, __LINE__, barrier)
-
-/* -------------------------------------------------------------
-   Annotations useful for testing race detectors. */
-
-/* Report that we expect a race on the variable at "address".
-   Use only in unit tests for a race detector. */
-#define KUDU_ANNONTATE_EXPECT_RACE(address, description) \
-  AnnotateExpectRace(__FILE__, __LINE__, address, description)
-
-/* A no-op. Insert where you like to test the interceptors. */
-#define KUDU_ANNONTATE_NO_OP(arg) AnnotateNoOp(__FILE__, __LINE__, arg)
-
-/* Force the race detector to flush its state. The actual effect depends on
- * the implementation of the detector. */
-#define KUDU_ANNONTATE_FLUSH_STATE() AnnotateFlushState(__FILE__, __LINE__)
-
 #else /* DYNAMIC_ANNOTATIONS_ENABLED == 0 */
 
 #define KUDU_ANNONTATE_RWLOCK_CREATE(lock) /* empty */
-#define KUDU_ANNONTATE_RWLOCK_CREATE_STATIC(lock) /* empty */
 #define KUDU_ANNONTATE_RWLOCK_DESTROY(lock) /* empty */
 #define KUDU_ANNONTATE_RWLOCK_ACQUIRED(lock, isW) /* empty */
 #define KUDU_ANNONTATE_RWLOCK_RELEASED(lock, isW) /* empty */
-#define KUDU_ANNONTATE_BARRIER_INIT( \
-    barrier, count, reinitializationAllowed) /* */
-#define KUDU_ANNONTATE_BARRIER_WAIT_BEFORE(barrier) /* empty */
-#define KUDU_ANNONTATE_BARRIER_WAIT_AFTER(barrier) /* empty */
-#define KUDU_ANNONTATE_BARRIER_DESTROY(barrier) /* empty */
-#define KUDU_ANNONTATE_CONDVAR_LOCK_WAIT(cv, lock) /* empty */
-#define KUDU_ANNONTATE_CONDVAR_WAIT(cv) /* empty */
-#define KUDU_ANNONTATE_CONDVAR_SIGNAL(cv) /* empty */
-#define KUDU_ANNONTATE_CONDVAR_SIGNAL_ALL(cv) /* empty */
 #define KUDU_ANNONTATE_HAPPENS_BEFORE(obj) /* empty */
 #define KUDU_ANNONTATE_HAPPENS_AFTER(obj) /* empty */
-#define KUDU_ANNONTATE_PUBLISH_MEMORY_RANGE(address, size) /* empty */
-#define KUDU_ANNONTATE_UNPUBLISH_MEMORY_RANGE(address, size) /* empty */
-#define KUDU_ANNONTATE_SWAP_MEMORY_RANGE(address, size) /* empty */
-#define KUDU_ANNONTATE_PCQ_CREATE(pcq) /* empty */
-#define KUDU_ANNONTATE_PCQ_DESTROY(pcq) /* empty */
-#define KUDU_ANNONTATE_PCQ_PUT(pcq) /* empty */
-#define KUDU_ANNONTATE_PCQ_GET(pcq) /* empty */
-#define KUDU_ANNONTATE_NEW_MEMORY(address, size) /* empty */
-#define KUDU_ANNONTATE_EXPECT_RACE(address, description) /* empty */
 #define KUDU_ANNONTATE_BENIGN_RACE(address, description) /* empty */
 #define KUDU_ANNONTATE_BENIGN_RACE_SIZED(address, size, description) /* empty \
                                                                       */
-#define KUDU_ANNONTATE_PURE_HAPPENS_BEFORE_MUTEX(mu) /* empty */
-#define KUDU_ANNONTATE_MUTEX_IS_USED_AS_CONDVAR(mu) /* empty */
-#define KUDU_ANNONTATE_TRACE_MEMORY(arg) /* empty */
-#define KUDU_ANNONTATE_THREAD_NAME(name) /* empty */
 #define KUDU_ANNONTATE_IGNORE_READS_BEGIN() /* empty */
 #define KUDU_ANNONTATE_IGNORE_READS_END() /* empty */
 #define KUDU_ANNONTATE_IGNORE_WRITES_BEGIN() /* empty */
@@ -408,9 +231,6 @@
 #define KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END() /* empty */
 #define KUDU_ANNONTATE_IGNORE_SYNC_BEGIN() /* empty */
 #define KUDU_ANNONTATE_IGNORE_SYNC_END() /* empty */
-#define KUDU_ANNONTATE_ENABLE_RACE_DETECTION(enable) /* empty */
-#define KUDU_ANNONTATE_NO_OP(arg) /* empty */
-#define KUDU_ANNONTATE_FLUSH_STATE() /* empty */
 
 #endif /* DYNAMIC_ANNOTATIONS_ENABLED */
 
@@ -496,10 +316,6 @@ void AnnotateRWLockCreate(
     const char* file,
     int line,
     const volatile void* lock);
-void AnnotateRWLockCreateStatic(
-    const char* file,
-    int line,
-    const volatile void* lock);
 void AnnotateRWLockDestroy(
     const char* file,
     int line,
@@ -514,80 +330,17 @@ void AnnotateRWLockReleased(
     int line,
     const volatile void* lock,
     long isW);
-void AnnotateBarrierInit(
-    const char* file,
-    int line,
-    const volatile void* barrier,
-    long count,
-    long reinitializationAllowed);
-void AnnotateBarrierWaitBefore(
-    const char* file,
-    int line,
-    const volatile void* barrier);
-void AnnotateBarrierWaitAfter(
-    const char* file,
-    int line,
-    const volatile void* barrier);
-void AnnotateBarrierDestroy(
-    const char* file,
-    int line,
-    const volatile void* barrier);
-void AnnotateCondVarWait(
-    const char* file,
-    int line,
-    const volatile void* cv,
-    const volatile void* lock);
-void AnnotateCondVarSignal(const char* file, int line, const volatile void* cv);
-void AnnotateCondVarSignalAll(
-    const char* file,
-    int line,
-    const volatile void* cv);
 void AnnotateHappensBefore(
     const char* file,
     int line,
     const volatile void* obj);
 void AnnotateHappensAfter(const char* file, int line, const volatile void* obj);
-void AnnotatePublishMemoryRange(
-    const char* file,
-    int line,
-    const volatile void* address,
-    long size); // NOLINT
-void AnnotateUnpublishMemoryRange(
-    const char* file,
-    int line,
-    const volatile void* address,
-    long size);
-void AnnotatePCQCreate(const char* file, int line, const volatile void* pcq);
-void AnnotatePCQDestroy(const char* file, int line, const volatile void* pcq);
-void AnnotatePCQPut(const char* file, int line, const volatile void* pcq);
-void AnnotatePCQGet(const char* file, int line, const volatile void* pcq);
-void AnnotateNewMemory(
-    const char* file,
-    int line,
-    const volatile void* address,
-    long size);
-void AnnotateExpectRace(
-    const char* file,
-    int line,
-    const volatile void* address,
-    const char* description);
-void AnnotateBenignRace(
-    const char* file,
-    int line,
-    const volatile void* address,
-    const char* description);
 void AnnotateBenignRaceSized(
     const char* file,
     int line,
     const volatile void* address,
     size_t size,
     const char* description);
-void AnnotateMutexIsUsedAsCondVar(
-    const char* file,
-    int line,
-    const volatile void* mu);
-void AnnotateTraceMemory(const char* file, int line, const volatile void* arg);
-void AnnotateThreadName(const char* file, int line, const char* name);
 ANNOTALYSIS_STATIC_INLINE
 void AnnotateIgnoreReadsBegin(const char* file, int line)
     ANNOTALYSIS_IGNORE_READS_BEGIN ANNOTALYSIS_SEMICOLON_OR_EMPTY_BODY
@@ -602,9 +355,6 @@ void AnnotateIgnoreReadsBegin(const char* file, int line)
         ANNOTALYSIS_IGNORE_WRITES_END ANNOTALYSIS_SEMICOLON_OR_EMPTY_BODY
     void AnnotateIgnoreSyncBegin(const char* file, int line);
 void AnnotateIgnoreSyncEnd(const char* file, int line);
-void AnnotateEnableRaceDetection(const char* file, int line, int enable);
-void AnnotateNoOp(const char* file, int line, const volatile void* arg);
-void AnnotateFlushState(const char* file, int line);
 
 /* Return non-zero value if running under valgrind.
 
@@ -622,19 +372,6 @@ void AnnotateFlushState(const char* file, int line);
       change its return value.
  */
 int runningOnValgrind(void);
-
-/* valgrindSlowdown returns:
-    * 1.0, if (runningOnValgrind() == 0)
-    * 50.0, if (runningOnValgrind() != 0 && getenv("VALGRIND_SLOWDOWN") == NULL)
-    * atof(getenv("VALGRIND_SLOWDOWN")) otherwise
-   This function can be used to scale timeout values:
-   EXAMPLE:
-   for (;;) {
-     DoExpensiveBackgroundTask();
-     SleepForSeconds(5 * valgrindSlowdown());
-   }
- */
-double valgrindSlowdown(void);
 
 /* AddressSanitizer annotations from LLVM asan_interface.h */
 
@@ -668,16 +405,6 @@ void __asan_unpoison_memory_region(void const volatile* addr, size_t size);
   ((void)(addr), (void)(size))
 #endif
 
-// Sets the callback to be called right before death on error.
-// Passing 0 will unset the callback.
-void __asan_set_death_callback(void (*callback)(void));
-
-#if defined(__SANITIZE_ADDRESS__) || defined(ADDRESS_SANITIZER)
-#define KUDU_ASAN_SET_DEATH_CALLBACK(cb) __asan_set_death_callback((cb))
-#else
-#define KUDU_ASAN_SET_DEATH_CALLBACK(cb) ((void)(cb))
-#endif
-
 #ifdef __cplusplus
 }
 #endif
@@ -700,22 +427,9 @@ inline T KUDU_ANNONTATE_UNPROTECTED_READ(const volatile T& x)
   KUDU_ANNONTATE_IGNORE_READS_END();
   return res;
 }
-/* Apply KUDU_ANNONTATE_BENIGN_RACE_SIZED to a static variable. */
-#define KUDU_ANNONTATE_BENIGN_RACE_STATIC(staticVar, description)      \
-  namespace {                                                          \
-  class staticVar##_annotator {                                        \
-   public:                                                             \
-    staticVar##_annotator() {                                          \
-      KUDU_ANNONTATE_BENIGN_RACE_SIZED(                                \
-          &staticVar, sizeof(staticVar), #staticVar ": " description); \
-    }                                                                  \
-  };                                                                   \
-  static staticVar##_annotator the##staticVar##_annotator;             \
-  }
 #else /* DYNAMIC_ANNOTATIONS_ENABLED == 0 */
 
 #define KUDU_ANNONTATE_UNPROTECTED_READ(x) (x)
-#define KUDU_ANNONTATE_BENIGN_RACE_STATIC(staticVar, description) /* empty */
 
 #endif /* DYNAMIC_ANNOTATIONS_ENABLED */
 
