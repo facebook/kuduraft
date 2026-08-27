@@ -78,16 +78,6 @@ DECLARE_dynamic_quantile_stat(logCacheMsgSize, 1);
 DECLARE_dynamic_timeseries(logCacheCompressedPayloadSize, 1);
 DECLARE_dynamic_timeseries(logCachePayloadSize, 1);
 
-// --- log_metrics.cc: histograms ---
-DECLARE_dynamic_quantile_stat(logSyncLatency, 1);
-DECLARE_dynamic_quantile_stat(logAppendLatency, 1);
-DECLARE_dynamic_quantile_stat(logGroupCommitLatency, 1);
-DECLARE_dynamic_quantile_stat(logRollLatency, 1);
-DECLARE_dynamic_quantile_stat(logEntryBatchesPerGroup, 1);
-
-// --- log_metrics.cc: counter ---
-DECLARE_dynamic_timeseries(logBytesLogged, 1);
-
 // --- consensus_peers.cc: counter ---
 DECLARE_dynamic_timeseries(raftRpcTokenNumResponseMismatches, 1);
 
@@ -102,9 +92,6 @@ DECLARE_dynamic_timeseries(blockCacheMisses, 1);
 DECLARE_dynamic_timeseries(blockCacheMissesCaching, 1);
 DECLARE_dynamic_timeseries(blockCacheHits, 1);
 DECLARE_dynamic_timeseries(blockCacheHitsCaching, 1);
-
-// --- cache_metrics.cc: gauge ---
-DECLARE_dynamic_quantile_stat(blockCacheUsage, 1);
 
 // --- RaftInterface.cpp: histogram ---
 DECLARE_dynamic_quantile_stat(leaderReplicateLatency, 1);

@@ -173,50 +173,6 @@ DEFINE_dynamic_timeseries(
     "{}.log_cache_payload_size_bytes",
     facebook::fb303::ExportType::SUM);
 
-// ---- log_metrics.cc: histograms ----
-
-DEFINE_dynamic_quantile_stat(
-    logSyncLatency,
-    "{}.log_sync_latency_us",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
-DEFINE_dynamic_quantile_stat(
-    logAppendLatency,
-    "{}.log_append_latency_us",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
-DEFINE_dynamic_quantile_stat(
-    logGroupCommitLatency,
-    "{}.log_group_commit_latency_us",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
-DEFINE_dynamic_quantile_stat(
-    logRollLatency,
-    "{}.log_roll_latency_us",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
-DEFINE_dynamic_quantile_stat(
-    logEntryBatchesPerGroup,
-    "{}.log_entry_batches_per_group",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
-// ---- log_metrics.cc: counter ----
-
-DEFINE_dynamic_timeseries(
-    logBytesLogged,
-    "{}.log_bytes_logged_bytes",
-    facebook::fb303::ExportType::SUM);
-
 // ---- consensus_peers.cc: counter ----
 
 DEFINE_dynamic_timeseries(
@@ -267,15 +223,6 @@ DEFINE_dynamic_timeseries(
     blockCacheHitsCaching,
     "{}.block_cache_hits_caching",
     facebook::fb303::ExportType::SUM);
-
-// ---- cache_metrics.cc: gauge ----
-
-DEFINE_dynamic_quantile_stat(
-    blockCacheUsage,
-    "{}.block_cache_usage_bytes",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
 // ---- RaftInterface.cpp: histogram ----
 
