@@ -50,7 +50,6 @@
 #include "kudu/util/slice.h"
 #include "kudu/util/spinlock_profiling.h"
 #include "kudu/util/status.h"
-#include "kudu/util/string_case.h"
 #include "kudu/util/subprocess.h"
 
 DEFINE_string(
@@ -266,12 +265,6 @@ string getTestDataDirectory() {
   return dir;
 }
 
-string getTestExecutableDirectory() {
-  string exec;
-  CHECK_OK(Env::Default()->getExecutablePath(&exec));
-  return dirName(exec);
-}
-
 void assertEventually(
     const std::function<void(void)>& f,
     const MonoDelta& timeout,
@@ -423,30 +416,8 @@ waitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
 }
 } // anonymous namespace
 
-Status waitForTcpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
-  return waitForBind(pid, port, "4TCP", timeout);
-}
-
 Status waitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
   return waitForBind(pid, port, "4UDP", timeout);
-}
-
-Status findHomeDir(const string& name, const string& binDir, string* homeDir) {
-  string nameUpper;
-  toUpperCase(name, &nameUpper);
-
-  string envVar = fmt::format("{}_HOME", nameUpper);
-  const char* env = std::getenv(envVar.c_str());
-  string dir = env == nullptr
-      ? JoinPathSegments(binDir, fmt::format("{}-home", name))
-      : env;
-
-  if (!Env::Default()->FileExists(dir)) {
-    return Status::NotFound(
-        fmt::format("{} directory does not exist", envVar), dir);
-  }
-  *homeDir = dir;
-  return Status::OK();
 }
 
 } // namespace kudu

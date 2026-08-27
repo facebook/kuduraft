@@ -107,9 +107,6 @@ int seedRandom();
 // if a KuduTest instance is available.
 std::string getTestDataDirectory();
 
-// Return the directory which contains the test's executable.
-std::string getTestExecutableDirectory();
-
 // Wait until 'f()' succeeds without adding any GTest 'fatal failures'.
 // For example:
 //
@@ -140,25 +137,10 @@ void assertEventually(
 // unlike the usual behavior of path globs.
 int countOpenFds(Env* env, const std::string& pathPattern);
 
-// Waits for the subprocess to bind to any listening TCP port, and returns the
-// port.
-Status waitForTcpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
-    WARN_UNUSED_RESULT;
-
 // Waits for the subprocess to bind to any listening UDP port, and returns the
 // port.
 Status waitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
     WARN_UNUSED_RESULT;
-
-// Find the home directory of a Java-style application, e.g. JAVA_HOME or
-// HADOOP_HOME.
-//
-// Checks the environment, or falls back to a symlink in the bin installation
-// directory.
-Status findHomeDir(
-    const std::string& name,
-    const std::string& binDir,
-    std::string* homeDir) WARN_UNUSED_RESULT;
 
 } // namespace kudu
 #endif
