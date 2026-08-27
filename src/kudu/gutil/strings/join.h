@@ -185,14 +185,6 @@ void JoinElementsIterator(
   }
 }
 
-template <class ITERATOR>
-std::string
-JoinElementsIterator(ITERATOR first, ITERATOR last, StringPiece delim) {
-  std::string result;
-  JoinElementsIterator(first, last, delim, &result);
-  return result;
-}
-
 template <class CONTAINER>
 inline void JoinElements(
     const CONTAINER& components,
