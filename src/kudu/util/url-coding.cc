@@ -85,12 +85,6 @@ void urlEncode(const string& in, string* out, bool hiveCompat) {
   urlEncode(in.c_str(), in.size(), out, hiveCompat);
 }
 
-string urlEncodeToString(const std::string& in, bool hiveCompat) {
-  string ret;
-  urlEncode(in, &ret, hiveCompat);
-  return ret;
-}
-
 // Adapted from
 // http://www.boost.org/doc/libs/1_40_0/doc/html/boost_asio/
 //   example/http/server3/request_handler.cpp
@@ -165,10 +159,6 @@ void base64Encode(const string& in, string* out) {
   std::ostringstream ss;
   base64Encode(in.c_str(), in.size(), &ss);
   *out = ss.str();
-}
-
-void base64Encode(const string& in, std::ostringstream* out) {
-  base64Encode(in.c_str(), in.size(), out);
 }
 
 bool base64Decode(const string& in, string* out) {

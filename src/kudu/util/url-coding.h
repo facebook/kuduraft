@@ -37,7 +37,6 @@ void urlEncode(
     const std::vector<uint8_t>& in,
     std::string* out,
     bool hiveCompat = false);
-std::string urlEncodeToString(const std::string& in, bool hiveCompat = false);
 
 // Utility method to decode a string that was URL-encoded. Returns
 // true unless the string could not be correctly decoded.
@@ -55,7 +54,6 @@ bool urlDecode(
 void base64Encode(const std::vector<uint8_t>& in, std::string* out);
 void base64Encode(const std::vector<uint8_t>& in, std::ostringstream* out);
 void base64Encode(const std::string& in, std::string* out);
-void base64Encode(const std::string& in, std::ostringstream* out);
 
 // Utility method to decode base64 encoded strings.  Also not extremely
 // performant.
