@@ -17,7 +17,6 @@
 
 #include <memory>
 
-#include <boost/bind.hpp> // IWYU pragma: keep
 #include <boost/function.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
@@ -41,7 +40,7 @@ class ReactorTest : public RpcTestBase {
 
   void SetUp() override {
     RpcTestBase::SetUp();
-    ASSERT_OK(CreateMessenger("my_messenger", &messenger_, 4));
+    ASSERT_OK(createMessenger("my_messenger", &messenger_, 4));
   }
 
   void scheduledTask(const Status& status, const Status& expectedStatus) {
@@ -55,13 +54,12 @@ class ReactorTest : public RpcTestBase {
     latch_.countDown();
   }
 
-  void scheduledTaskScheduleAgain(const Status& status) {
+  void scheduledTaskScheduleAgain(const Status& /*status*/) {
+    auto* current = Thread::currentThread();
     messenger_->ScheduleOnReactor(
-        boost::bind(
-            &ReactorTest::scheduledTaskCheckThread,
-            this,
-            _1,
-            Thread::currentThread()),
+        [this, current](const Status& s) {
+          scheduledTaskCheckThread(s, current);
+        },
         MonoDelta::FromMilliseconds(0));
     latch_.countDown();
   }
@@ -73,7 +71,7 @@ class ReactorTest : public RpcTestBase {
 
 TEST_F(ReactorTest, TestFunctionIsCalled) {
   messenger_->ScheduleOnReactor(
-      boost::bind(&ReactorTest::scheduledTask, this, _1, Status::OK()),
+      [this](const Status& s) { scheduledTask(s, Status::OK()); },
       MonoDelta::FromSeconds(0));
   latch_.wait();
 }
@@ -81,7 +79,7 @@ TEST_F(ReactorTest, TestFunctionIsCalled) {
 TEST_F(ReactorTest, TestFunctionIsCalledAtTheRightTime) {
   MonoTime before = MonoTime::Now();
   messenger_->ScheduleOnReactor(
-      boost::bind(&ReactorTest::scheduledTask, this, _1, Status::OK()),
+      [this](const Status& s) { scheduledTask(s, Status::OK()); },
       MonoDelta::FromMilliseconds(100));
   latch_.wait();
   MonoTime after = MonoTime::Now();
@@ -91,11 +89,9 @@ TEST_F(ReactorTest, TestFunctionIsCalledAtTheRightTime) {
 
 TEST_F(ReactorTest, TestFunctionIsCalledIfReactorShutdown) {
   messenger_->ScheduleOnReactor(
-      boost::bind(
-          &ReactorTest::scheduledTask,
-          this,
-          _1,
-          Status::Aborted("doesn't matter")),
+      [this](const Status& s) {
+        scheduledTask(s, Status::Aborted("doesn't matter"));
+      },
       MonoDelta::FromSeconds(60));
   messenger_->Shutdown();
   latch_.wait();
@@ -106,7 +102,7 @@ TEST_F(ReactorTest, TestReschedulesOnSameReactorThread) {
   latch_.reset(2);
 
   messenger_->ScheduleOnReactor(
-      boost::bind(&ReactorTest::scheduledTaskScheduleAgain, this, _1),
+      [this](const Status& s) { scheduledTaskScheduleAgain(s); },
       MonoDelta::FromSeconds(0));
   latch_.wait();
   latch_.wait();
