@@ -30,10 +30,3 @@
 // These slow down a lot if inlined, so do not inline them  --Sanjay
 uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c);
 uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c);
-
-// This is a reference implementation of the same fundamental algorithm as
-// hash32StringWithSeed. It is used primarily as a performance metric.
-uint32_t hash32StringWithSeedReferenceImplementation(
-    const char* s,
-    uint32_t len,
-    uint32_t c);
