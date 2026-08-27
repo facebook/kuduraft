@@ -298,17 +298,6 @@ inline AtomicWord acquireCompareAndSwap(
   return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
 
-inline AtomicWord releaseCompareAndSwap(
-    volatile AtomicWord* ptr,
-    AtomicWord oldValue,
-    AtomicWord newValue) {
-  return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
-}
-
-inline void acquireStore(volatile AtomicWord* ptr, AtomicWord value) {
-  return base::subtle::Acquire_Store(ptr, value);
-}
-
 inline void releaseStore(volatile AtomicWord* ptr, AtomicWord value) {
   return base::subtle::Release_Store(ptr, value);
 }
@@ -330,15 +319,6 @@ inline Atomic32 acquireCompareAndSwap(
     Atomic32 newValue) {
   return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
-inline Atomic32 releaseCompareAndSwap(
-    volatile Atomic32* ptr,
-    Atomic32 oldValue,
-    Atomic32 newValue) {
-  return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
-}
-inline void acquireStore(volatile Atomic32* ptr, Atomic32 value) {
-  base::subtle::Acquire_Store(ptr, value);
-}
 inline void releaseStore(volatile Atomic32* ptr, Atomic32 value) {
   return base::subtle::Release_Store(ptr, value);
 }
@@ -356,17 +336,6 @@ inline base::subtle::Atomic64 acquireCompareAndSwap(
     base::subtle::Atomic64 oldValue,
     base::subtle::Atomic64 newValue) {
   return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
-}
-inline base::subtle::Atomic64 releaseCompareAndSwap(
-    volatile base::subtle::Atomic64* ptr,
-    base::subtle::Atomic64 oldValue,
-    base::subtle::Atomic64 newValue) {
-  return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
-}
-inline void acquireStore(
-    volatile base::subtle::Atomic64* ptr,
-    base::subtle::Atomic64 value) {
-  base::subtle::Acquire_Store(ptr, value);
 }
 inline void releaseStore(
     volatile base::subtle::Atomic64* ptr,
