@@ -29,6 +29,7 @@
 #include <ostream>
 #include <set>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -73,6 +74,7 @@
 
 METRIC_DECLARE_histogram(handler_latency_kudu_rpc_test_CalculatorService_Sleep);
 METRIC_DECLARE_histogram(rpc_incoming_queue_time);
+METRIC_DECLARE_histogram(reactor_active_latency_us);
 METRIC_DECLARE_counter(timeout_connection_kill);
 
 DECLARE_bool(rpc_reopen_outbound_connections);
@@ -1047,6 +1049,120 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
   auto* metric = it->second.get();
   ASSERT_EQ(1, kudu::downCast<Histogram*>(metric)->totalCount());
+}
+
+// Duration one of the messenger's reactors is held busy, long enough that the
+// wake-up it produces is unambiguously thousands of microseconds.
+static constexpr int64_t kReactorBusyMs = 5;
+
+// Occupies one of the messenger's reactor threads for kReactorBusyMs and
+// returns once the callback has run. Yields rather than sleeping: the reactor
+// runs with ThreadRestrictions wait and IO disallowed, so SleepFor would trip
+// assertWaitAllowed. The bound is wall clock, so being descheduled still
+// satisfies it without pinning a core.
+static void occupyReactor(const shared_ptr<Messenger>& messenger) {
+  CountDownLatch busy(1);
+  messenger->ScheduleOnReactor(
+      [&busy](const Status& /*status*/) {
+        const MonoTime deadline =
+            MonoTime::Now() + MonoDelta::FromMilliseconds(kReactorBusyMs);
+        while (MonoTime::Now() < deadline) {
+          std::this_thread::yield();
+        }
+        busy.countDown();
+      },
+      MonoDelta::FromSeconds(0));
+  busy.wait();
+}
+
+// The reactor wake-up latency is a cycle count divided by a double
+// cycles-per-second rate, which yields seconds. Narrowing that quotient before
+// scaling to microseconds rounds every wake-up shorter than a full second down
+// to zero, so the histogram reports a flat zero even under load.
+TEST_P(TestRpc, TestReactorActiveLatencyIsNotQuantizedToSeconds) {
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
+  Proxy p(
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
+      GenericCalculatorService::staticServiceName());
+
+  // Bounds the histogram's maximum from below, instead of leaving it to depend
+  // on whatever the RPC traffic happens to cost.
+  occupyReactor(serverMessenger_);
+
+  // The reactor records its sample once the callback above returns, so these
+  // round trips also serve to order the sample before the read below.
+  for (int i = 0; i < 10; ++i) {
+    ASSERT_OK(doTestSyncCall(p, GenericCalculatorService::kAddMethodName));
+  }
+
+  auto metricMap = serverMessenger_->metricEntity()->unsafeMetricsMapForTests();
+  auto it = metricMap.find(&METRIC_reactor_active_latency_us);
+  ASSERT_NE(it, metricMap.end())
+      << "Map key not found: " << "METRIC_reactor_active_latency_us";
+  auto* histogram = kudu::downCast<Histogram*>(it->second.get());
+
+  ASSERT_GT(histogram->totalCount(), 0);
+  // A wake-up held for kReactorBusyMs must register as thousands of
+  // microseconds. Zero means the samples were quantized to whole seconds; a
+  // value below the bound would mean they are not in microseconds at all.
+  EXPECT_GE(histogram->maxValueForTests(), 1000);
+}
+
+// The Kudu histogram checked above is the exporter Stats.h is retiring. The
+// series that regressed in ODS is fed from the fb303 counter instead, which
+// reactor.cc populates from the same value, so cover that path too.
+TEST_P(TestRpc, TestReactorActiveLatencyReachesFb303) {
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
+  Proxy p(
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
+      GenericCalculatorService::staticServiceName());
+
+  occupyReactor(serverMessenger_);
+  for (int i = 0; i < 10; ++i) {
+    ASSERT_OK(doTestSyncCall(p, GenericCalculatorService::kAddMethodName));
+  }
+
+  // Quantile stats are not among the thread-cached counters publishStats()
+  // drains, and their sliding window closes on its own cadence, so poll rather
+  // than expecting the samples to be visible immediately. Poll on the value
+  // being asserted: a non-empty window does not imply the wake-up above has
+  // landed in it yet, so waiting on the count instead would race.
+  const std::string p99Key = "reactor.reactor_active_latency_us.p99.60";
+  std::map<std::string, int64_t> counters;
+  int64_t p99 = 0;
+  for (int i = 0; i < 40; ++i) {
+    facebook::tcData().publishStats();
+    counters = facebook::fb303::fbData->getRegexCounters(
+        "reactor\\.reactor_active_latency_us\\..*\\.60");
+    const auto it = counters.find(p99Key);
+    p99 = it == counters.end() ? 0 : it->second;
+    if (p99 > 0) {
+      break;
+    }
+    SleepFor(MonoDelta::FromMilliseconds(250));
+  }
+  for (const auto& [key, value] : counters) {
+    LOG(INFO) << "fb303 " << key << " = " << value;
+  }
+
+  ASSERT_FALSE(counters.empty())
+      << "No fb303 reactor_active_latency_us counters were exported";
+  // Quantized samples put every quantile at zero, which is how the regression
+  // presented on the dashboard. The magnitude is pinned by the histogram
+  // assertion in the test above; this one covers the export path.
+  EXPECT_GT(p99, 0);
 }
 
 // Tests that if we reset the connection after negotiation completes the

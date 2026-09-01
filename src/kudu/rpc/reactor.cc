@@ -180,6 +180,9 @@ Status ReactorThread::init() {
 }
 
 void ReactorThread::invokePendingCb(struct ev_loop* loop) {
+  // Pre-compute the duration of a single CPU cycle.
+  static const double cycleDurationUs = 1000000.0 / base::cyclesPerSecond();
+
   // Calculate the number of cycles spent calling our callbacks.
   // This is called quite frequently so we use CycleClock rather than MonoTime
   // since it's a bit faster.
@@ -190,7 +193,7 @@ void ReactorThread::invokePendingCb(struct ev_loop* loop) {
   // Contribute this to our histogram.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   if (thr->invokeUsHistogram_) {
-    auto latencyUs = (int64_t)(durCycles / base::cyclesPerSecond()) * 1000000;
+    auto latencyUs = static_cast<int64_t>(durCycles * cycleDurationUs);
     thr->invokeUsHistogram_->increment(latencyUs);
     STATS_reactorActiveLatencyUs.addValue(latencyUs, KUDU_STATS_TAG);
   }
