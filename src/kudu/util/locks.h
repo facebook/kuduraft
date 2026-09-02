@@ -97,14 +97,6 @@ class RwSpinlock {
     sem_.unlock_shared();
   }
 
-  bool try_lock() {
-    bool ret = sem_.try_lock();
-    if (ret) {
-      KUDU_ANNONTATE_RWLOCK_ACQUIRED(this, 1);
-    }
-    return ret;
-  }
-
   void lock() {
     sem_.lock();
     KUDU_ANNONTATE_RWLOCK_ACQUIRED(this, 1);
@@ -113,14 +105,6 @@ class RwSpinlock {
   void unlock() {
     KUDU_ANNONTATE_RWLOCK_RELEASED(this, 1);
     sem_.unlock();
-  }
-
-  bool isWriteLocked() const {
-    return sem_.isWriteLocked();
-  }
-
-  bool isLocked() const {
-    return sem_.isLocked();
   }
 
  private:
@@ -134,24 +118,8 @@ class RwSpinlock {
 template <typename Mutex>
 class shared_lock {
  public:
-  shared_lock() : m_(nullptr) {}
-
   explicit shared_lock(Mutex& m) : m_(&m) {
     m_->lock_shared();
-  }
-
-  shared_lock(Mutex& m, std::try_to_lock_t /* t */) : m_(nullptr) {
-    if (m.try_lock_shared()) {
-      m_ = &m;
-    }
-  }
-
-  bool owns_lock() const {
-    return m_;
-  }
-
-  void swap(shared_lock& other) {
-    std::swap(m_, other.m_);
   }
 
   ~shared_lock() {
