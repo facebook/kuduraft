@@ -149,29 +149,6 @@ inline void BitReader::rewind(int numBits) {
   memcpy(&bufferedValues_, buffer_ + byteOffset_, 8);
 }
 
-inline void BitReader::seekToBit(uint streamPosition) {
-  DCHECK_LE(streamPosition, maxBytes_ * 8);
-
-  int delta = static_cast<int>(streamPosition) - position();
-  if (delta == 0) {
-    return;
-  } else if (delta < 0) {
-    rewind(position() - streamPosition);
-  } else {
-    bitOffset_ += delta;
-    while (bitOffset_ >= 64) {
-      byteOffset_ += 8;
-      bitOffset_ -= 64;
-      if (bitOffset_ < 64) {
-        // This should only be executed if seeking to
-        // 'streamPosition' makes the existing bufferedValues_
-        // invalid.
-        bufferValues();
-      }
-    }
-  }
-}
-
 template <typename T>
 inline bool BitReader::getAligned(int numBytes, T* v) {
   DCHECK_LE(numBytes, sizeof(T));

@@ -133,9 +133,6 @@ class BitReader {
   // Rewind the stream by 'numBits' bits
   void rewind(int numBits);
 
-  // Seek to a specific bit in the buffer
-  void seekToBit(uint streamPosition);
-
   // Maximum byte length of a vlq encoded int
   static const int kMaxVlqByteLen = 5;
 
