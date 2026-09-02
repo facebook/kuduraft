@@ -28,7 +28,6 @@
 #include <folly/executors/FunctionScheduler.h>
 
 #include "kudu/gutil/atomicops.h"
-#include "kudu/gutil/bind.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
