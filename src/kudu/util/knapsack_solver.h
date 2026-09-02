@@ -89,13 +89,6 @@ class KnapsackSolver {
 
     void resizeAndClear(int nItems, int maxWeight);
 
-    // Current maximum value at the given weight
-    ValueType& maxAt(int weight) {
-      DCHECK_GE(weight, 0);
-      DCHECK_LT(weight, nWeights_);
-      return maxValue_[weight];
-    }
-
     // Consider the next item to be put into the knapsack
     // Moves the "state" of the solution forward
     void advance(ValueType newVal, int newWt);
