@@ -22,29 +22,9 @@ namespace strings {
 // BM_CharSetTesting/1M           21         21   32563138
 //
 // This class is thread-compatible.
-//
-// This class has an implicit constructor.
-// Style guide exception granted:
-// http://goto/style-guide-exception-20978288
 
 class CharSet {
  public:
-  // Initialize a CharSet containing no characters or the given set of
-  // characters, respectively.
-  CharSet();
-  // Deliberately an implicit constructor, so anything that takes a CharSet
-  // can also take an explicit list of characters.
-  CharSet(const char* characters); // NOLINT(google-explicit-constructor)
-  explicit CharSet(const CharSet& other);
-
-  // Add or remove a character from the set.
-  void add(unsigned char c) {
-    bits_[word(c)] |= bitMask(c);
-  }
-  void remove(unsigned char c) {
-    bits_[word(c)] &= ~bitMask(c);
-  }
-
   // Return true if this character is in the set
   bool test(unsigned char c) const {
     return bits_[word(c)] & bitMask(c);
