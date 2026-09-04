@@ -27,28 +27,12 @@ namespace process_memory {
 // percentage of the hard limit consumed is written to it.
 bool softLimitExceeded(double* currentCapacityPct);
 
-// Return true if we are under memory pressure (i.e if we are nearing the point
-// at which softLimitExceeded will begin to return true).
-//
-// If the process is under memory pressure, and 'currentCapacityPct' is not
-// NULL, the percentage of the hard limit consumed is written to it.
-bool underMemoryPressure(double* currentCapacityPct);
-
 // Potentially trigger a call to release tcmalloc memory back to the
 // OS, after the given amount of memory was released.
 void maybeGcAfterRelease(int64_t releasedBytes);
 
 // Return the total current memory consumption of the process.
 int64_t currentConsumption();
-
-// Return the configured hard limit for the process.
-int64_t hardLimit();
-
-// Return the configured soft limit for the process.
-int64_t softLimit();
-
-// Return the configured memory pressure threshold for the process.
-int64_t memoryPressureThreshold();
 
 #ifdef TCMALLOC_ENABLED
 // Get the current amount of allocated memory, according to tcmalloc.

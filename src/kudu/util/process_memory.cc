@@ -224,33 +224,6 @@ int64_t currentConsumption() {
 #endif
 }
 
-int64_t hardLimit() {
-  initLimits();
-  return gHardLimit;
-}
-
-int64_t softLimit() {
-  initLimits();
-  return gSoftLimit;
-}
-
-int64_t memoryPressureThreshold() {
-  initLimits();
-  return gPressureThreshold;
-}
-
-bool underMemoryPressure(double* currentCapacityPct) {
-  initLimits();
-  int64_t consumption = currentConsumption();
-  if (consumption < gPressureThreshold) {
-    return false;
-  }
-  if (currentCapacityPct) {
-    *currentCapacityPct = static_cast<double>(consumption) / gHardLimit * 100;
-  }
-  return true;
-}
-
 bool softLimitExceeded(double* currentCapacityPct) {
   initLimits();
   int64_t consumption = currentConsumption();
