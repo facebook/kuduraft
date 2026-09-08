@@ -36,8 +36,4 @@ void crashIfNotOkStatusCb(const string& message, const Status& status) {
   }
 }
 
-Status doNothingStatusClosure() {
-  return Status::OK();
-}
-
 } // end namespace kudu

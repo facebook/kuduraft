@@ -49,9 +49,6 @@ extern void crashIfNotOkStatusCb(
 // whether it was successful or not.
 using StatusClosure = Callback<Status()>;
 
-// To be used when setting a StatusClosure is optional.
-extern Status doNothingStatusClosure();
-
 } // namespace kudu
 
 #endif
