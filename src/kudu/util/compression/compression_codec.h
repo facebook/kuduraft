@@ -109,6 +109,11 @@ class CompressionCodec {
     return {};
   }
 
+  // Returns the dictionary ID if dictionary compression is used, 0 otherwise.
+  virtual unsigned int getDictionaryId() const {
+    return 0;
+  }
+
   // Sets compression level
   virtual Status setCompressionLevel(int level) {
     compressionLevel_ = level;

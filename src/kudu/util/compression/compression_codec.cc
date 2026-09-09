@@ -297,6 +297,10 @@ class Lz4DictCodec : public CompressionCodec {
     return dict_;
   }
 
+  unsigned int getDictionaryId() const override {
+    return CompressionCodecManager::getDictionaryId(dict_);
+  }
+
   Status setCompressionLevel(int level) override {
     if (level < 0) {
       const std::string& msg =
@@ -536,6 +540,10 @@ class ZstdDictCodec : public CompressionCodec {
 
   std::string getDictionary() const override {
     return dict_;
+  }
+
+  unsigned int getDictionaryId() const override {
+    return CompressionCodecManager::getDictionaryId(dict_);
   }
 
   Status setCompressionLevel(int level) override {
