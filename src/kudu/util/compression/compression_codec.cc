@@ -127,6 +127,11 @@ class SnappyCodec : public CompressionCodec {
   CompressionType type() const override {
     return SNAPPY;
   }
+
+  const std::string& getDictionary() const override {
+    static const std::string kEmptyDictionary;
+    return kEmptyDictionary;
+  }
 };
 
 class Lz4Codec : public CompressionCodec {
@@ -178,6 +183,11 @@ class Lz4Codec : public CompressionCodec {
 
   CompressionType type() const override {
     return LZ4;
+  }
+
+  const std::string& getDictionary() const override {
+    static const std::string kEmptyDictionary;
+    return kEmptyDictionary;
   }
 };
 
@@ -293,7 +303,7 @@ class Lz4DictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  std::string getDictionary() const override {
+  const std::string& getDictionary() const override {
     return dict_;
   }
 
@@ -362,6 +372,11 @@ class ZlibCodec : public CompressionCodec {
 
   CompressionType type() const override {
     return ZLIB;
+  }
+
+  const std::string& getDictionary() const override {
+    static const std::string kEmptyDictionary;
+    return kEmptyDictionary;
   }
 };
 
@@ -433,6 +448,11 @@ class ZstdCodec : public CompressionCodec {
 
   CompressionType type() const override {
     return ZSTD;
+  }
+
+  const std::string& getDictionary() const override {
+    static const std::string kEmptyDictionary;
+    return kEmptyDictionary;
   }
 };
 
@@ -538,7 +558,7 @@ class ZstdDictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  std::string getDictionary() const override {
+  const std::string& getDictionary() const override {
     return dict_;
   }
 

@@ -105,9 +105,7 @@ class CompressionCodec {
   }
 
   // Returns dictionary if dictionary compression is used
-  virtual std::string getDictionary() const {
-    return {};
-  }
+  virtual const std::string& getDictionary() const = 0;
 
   // Returns the dictionary ID if dictionary compression is used, 0 otherwise.
   virtual unsigned int getDictionaryId() const {
