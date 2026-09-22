@@ -127,8 +127,9 @@ const char* gstrncasestr(const char* haystack, const char* needle, size_t len) {
     size_t needleLen = strlen(needle);
     do {
       do {
-        if (len-- <= needleLen || 0 == (sc = *haystack++))
+        if (len-- <= needleLen || 0 == (sc = *haystack++)) {
           return nullptr;
+        }
       } while (asciiToLower(sc) != c);
     } while (strncasecmp(haystack, needle, needleLen) != 0);
     haystack--;
@@ -342,8 +343,9 @@ static void eatSameChars(
 template <typename CHAR, typename NEXT>
 static void eatWildcard(const CHAR** pattern, const CHAR* end, NEXT next) {
   while (*pattern != end) {
-    if (!isWildcard(**pattern))
+    if (!isWildcard(**pattern)) {
       return;
+    }
     next(pattern, end);
   }
 }
@@ -357,8 +359,9 @@ static bool matchPatternT(
     int depth,
     NEXT next) {
   const int kMaxDepth = 16;
-  if (depth > kMaxDepth)
+  if (depth > kMaxDepth) {
     return false;
+  }
 
   // Eat all the matching chars.
   eatSameChars(&pattern, patternEnd, &eval, evalEnd, next);
@@ -371,21 +374,25 @@ static bool matchPatternT(
   }
 
   // Pattern is empty but not string, this is not a match.
-  if (pattern == patternEnd)
+  if (pattern == patternEnd) {
     return false;
+  }
 
   // If this is a question mark, then we need to compare the rest with
   // the current string or the string with one character eaten.
   const CHAR* nextPattern = pattern;
   next(&nextPattern, patternEnd);
   if (pattern[0] == '?') {
-    if (matchPatternT(eval, evalEnd, nextPattern, patternEnd, depth + 1, next))
+    if (matchPatternT(
+            eval, evalEnd, nextPattern, patternEnd, depth + 1, next)) {
       return true;
+    }
     const CHAR* nextEval = eval;
     next(&nextEval, evalEnd);
     if (matchPatternT(
-            nextEval, evalEnd, nextPattern, patternEnd, depth + 1, next))
+            nextEval, evalEnd, nextPattern, patternEnd, depth + 1, next)) {
       return true;
+    }
   }
 
   // This is a *, try to match all the possible substrings with the remainder
@@ -397,8 +404,9 @@ static bool matchPatternT(
 
     while (eval != evalEnd) {
       if (matchPatternT(
-              eval, evalEnd, nextPattern, patternEnd, depth + 1, next))
+              eval, evalEnd, nextPattern, patternEnd, depth + 1, next)) {
         return true;
+      }
       eval++;
     }
 
@@ -406,8 +414,9 @@ static bool matchPatternT(
     // wildcards.
     if (eval == evalEnd) {
       eatWildcard(&pattern, patternEnd, next);
-      if (pattern != patternEnd)
+      if (pattern != patternEnd) {
         return false;
+      }
       return true;
     }
   }
@@ -504,17 +513,20 @@ namespace {
 template <typename CHAR>
 size_t lcpyT(CHAR* dst, const CHAR* src, size_t dstSize) {
   for (size_t i = 0; i < dstSize; ++i) {
-    if ((dst[i] = src[i]) == 0) // We hit and copied the terminating NULL.
+    if ((dst[i] = src[i]) == 0) { // We hit and copied the terminating NULL.
       return i;
+    }
   }
 
   // We were left off at dstSize.  We over copied 1 byte.  Null terminate.
-  if (dstSize != 0)
+  if (dstSize != 0) {
     dst[dstSize - 1] = 0;
+  }
 
   // Count the rest of the |src|, and return it's length in characters.
-  while (src[dstSize])
+  while (src[dstSize]) {
     ++dstSize;
+  }
   return dstSize;
 }
 

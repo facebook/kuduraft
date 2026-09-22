@@ -14,8 +14,9 @@ const char* memmatch(
   if (0 == neelen) {
     return phaystack; // even if haylen is 0
   }
-  if (haylen < neelen)
+  if (haylen < neelen) {
     return nullptr;
+  }
 
   const char* match;
   const char* hayend = phaystack + haylen - neelen + 1;
@@ -24,10 +25,11 @@ const char* memmatch(
   while (
       (match = static_cast<const char*>(
            memchr(phaystack, pneedle[0], hayend - phaystack)))) {
-    if (memcmp(match, pneedle, neelen) == 0)
+    if (memcmp(match, pneedle, neelen) == 0) {
       return match;
-    else
+    } else {
       phaystack = match + 1;
+    }
   }
   return nullptr;
 }
