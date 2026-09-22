@@ -5561,6 +5561,19 @@ void RaftConsensus::handleProxyRequest(
             SecureShortDebugString(*next_peer_pb))));
   }
 
+  // Forward the destination's state machine metrics before the degraded-proxy
+  // check below, so a proxy that could not serve the batch from its log cache
+  // still reports the destination's lag rather than dropping it. The leader
+  // assigns this field unconditionally, so omitting it does not leave the
+  // previous sample in place -- it overwrites it with a default-constructed
+  // message, which reads downstream as a replica with a stopped applier and
+  // zero lag. That silently removes proxied replicas from the replication-lag
+  // write throttling majority.
+  if (downstream_response.has_state_machine_metrics()) {
+    *response->mutable_state_machine_metrics() =
+        downstream_response.state_machine_metrics();
+  }
+
   if (proxy_error) {
     SetupErrorAndRespond(
         Status::Incomplete(
