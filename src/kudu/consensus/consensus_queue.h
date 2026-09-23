@@ -55,9 +55,7 @@
 #include "kudu/util/status.h"
 #include "kudu/util/status_callback.h"
 
-DECLARE_int32(bounded_dataloss_window_interval_ms);
 DECLARE_int32(consensus_rpc_timeout_ms);
-DECLARE_bool(enable_bounded_dataloss_window);
 DECLARE_bool(enable_flexi_raft);
 DECLARE_int32(follower_unavailable_considered_failed_sec);
 DECLARE_bool(enable_raft_leader_lease);
@@ -186,9 +184,6 @@ class PeerMessageQueue {
 
     // Last OpId when Peer granted Lease duration
     OpId leaseGranted;
-
-    // Last OpId when Peer ACKed the Leader for Bounded DataLoss window.
-    OpId boundedDatalossWindowAcked;
 
     // The time of the last successful Raft consensus exchange with the peer
     // Defaults to the time of construction, so does not necessarily mean that
@@ -670,10 +665,6 @@ class PeerMessageQueue {
     std::shared_ptr<Counter> check_quorum_failures;
     // Keeps track of number of remote peers that are Leader lease grantors.
     std::shared_ptr<AtomicGauge<int64_t>> available_leader_lease_grantors;
-    // Keeps track of number of remote peers that are Bounded DataLoss window
-    // ACKers.
-    std::shared_ptr<AtomicGauge<int64_t>>
-        available_bounded_dataloss_window_ackers;
     // Number of peers, including leader, that are healthy in commit quorum.
     std::shared_ptr<AtomicGauge<int64_t>> available_commit_peers;
     // Number of cache drops due to corruption
@@ -765,9 +756,6 @@ class PeerMessageQueue {
   // Gets the Leader Lease timestamp
   MonoTime getLeaderLeaseUntil();
 
-  // Get the bounded data loss window expiry timestamp
-  MonoTime getBoundedDataLossWindowUntil();
-
   // Sets the Leader lease until timestamp
   void setLeaderLeaseUntil(MonoTime update) {
     leaderLeaseUntil_ = update;
@@ -775,9 +763,6 @@ class PeerMessageQueue {
 
   // Return the Leader Lease timeout.
   static MonoDelta leaderLeaseTimeout();
-
-  // Return the default window size for the bounded data loss tracker.
-  static MonoDelta boundedDataLossDefaultWindowInMsec();
 
   void updatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
 
@@ -1081,19 +1066,11 @@ class PeerMessageQueue {
       const RaftPeerPB& peer,
       const std::function<bool(const TrackedPeer*)>& predicate);
 
-  QuorumResults IsSecondRegionDurabilitySatisfiedUnlocked(
-      const std::function<bool(const TrackedPeer*)>& predicate);
-
   // Checks and renews Leader lease if the UpdateConsensus response has
   // lease_granted by followers
   bool CanLeaderLeaseRenewUnlocked(QuorumResults& qresults);
 
-  // Checks and renews Bounded Data Loss window lease
-  bool CanBoundedDataLossWindowRenewUnlocked(QuorumResults& qresults);
-
   MonoTime GetQuorumMajorityOfPeerRpcStarts(QuorumResults& qresults);
-
-  MonoTime GetMaximumOfPeerRpcStarts(QuorumResults& qresults);
 
   // True if 'status' proves the peer accepted this leader's term.
   //
@@ -1176,10 +1153,6 @@ class PeerMessageQueue {
 
   // Leader Leases to support strong reads on primary
   std::atomic<MonoTime> leaderLeaseUntil_;
-
-  // Bounded Data loss to support halting/start-throttling commits
-  // using a time bound window
-  std::atomic<MonoTime> boundedDatalossWindowUntil_;
 
   // Wakes readers blocked in waitForQuorumConfirmation. Never signalled while
   // holding queueLock_ -- the woken thread would immediately contend on the

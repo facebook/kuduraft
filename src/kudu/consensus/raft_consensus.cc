@@ -1124,10 +1124,6 @@ MonoTime RaftConsensus::getLeaderLeaseUntil() {
   return queue_->getLeaderLeaseUntil();
 }
 
-MonoTime RaftConsensus::getBoundedDataLossWindowUntil() {
-  return queue_->getBoundedDataLossWindowUntil();
-}
-
 PeerMessageQueue::LeaderReadSnapshot RaftConsensus::getLeaderReadSnapshot()
     const {
   return queue_->getLeaderReadSnapshot();

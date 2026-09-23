@@ -774,9 +774,6 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Gets the Leader Lease timestamp
   MonoTime getLeaderLeaseUntil();
 
-  // Get the bounded data loss window expiry timestamp
-  MonoTime getBoundedDataLossWindowUntil();
-
   // Everything a linearizable read needs from the queue, sampled
   // together. See PeerMessageQueue::LeaderReadSnapshot.
   PeerMessageQueue::LeaderReadSnapshot getLeaderReadSnapshot() const;

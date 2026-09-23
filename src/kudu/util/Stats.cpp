@@ -109,13 +109,6 @@ DEFINE_dynamic_quantile_stat(
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
-DEFINE_dynamic_quantile_stat(
-    availableBoundedDatalossWindowAckers,
-    "{}.available_bounded_dataloss_window_ackers",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
 // ---- consensus_queue.cc: counters ----
 
 DEFINE_dynamic_timeseries(

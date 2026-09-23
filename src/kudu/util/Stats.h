@@ -61,7 +61,6 @@ DECLARE_dynamic_quantile_stat(inProgressOps, 1);
 DECLARE_dynamic_quantile_stat(opsBehindLeader, 1);
 DECLARE_dynamic_quantile_stat(availableCommitPeers, 1);
 DECLARE_dynamic_quantile_stat(availableLeaderLeaseGrantors, 1);
-DECLARE_dynamic_quantile_stat(availableBoundedDatalossWindowAckers, 1);
 
 // --- consensus_queue.cc: counters ---
 DECLARE_dynamic_timeseries(checkQuorumRuns, 1);

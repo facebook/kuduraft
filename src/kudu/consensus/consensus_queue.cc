@@ -178,23 +178,6 @@ DEFINE_int32(
 
 DEFINE_int32(proxy_disable_secs, 600, "Number of seconds to disable proxying.");
 
-DEFINE_bool(
-    enable_bounded_dataloss_window,
-    false,
-    "Whether to enable Bounded DataLoss window support in raft. If enabled, Leader keeps "
-    "renewing the window using Vote quorum on every commit requtest."
-    "And Followers will ACK on each of the commits sent by Leader.");
-TAG_FLAG(enable_bounded_dataloss_window, experimental);
-
-DEFINE_int32(
-    bounded_dataloss_window_interval_ms,
-    2 * 60 * 60 * 1000,
-    "The Bounded DataLoss Window interval after which commits on Leader are "
-    "stopped/write-throttled. The Leader creates a sliding window and waits for "
-    "Vote quorum of nodes to ACK the window. The Followers expect "
-    "the Window to be renewed for all updates until the Leader is active.");
-TAG_FLAG(bounded_dataloss_window_interval_ms, experimental);
-
 DEFINE_int32(
     min_corruption_count,
     5,
@@ -291,13 +274,6 @@ METRIC_DEFINE_gauge_int64(
     "Available Leader lease grantors",
     MetricUnit::kUnits,
     "Number of remote peers who are Leader lease grantors.");
-METRIC_DEFINE_gauge_int64(
-    server,
-    available_bounded_dataloss_window_ackers,
-    "Available Bounded DataLoss Window ACKers",
-    MetricUnit::kUnits,
-    "Number of remote peers who are Bounded DataLoss window ACKers.");
-
 const char* peerStatusToString(PeerStatus p) {
   switch (p) {
     case PeerStatus::Ok:
@@ -332,7 +308,6 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
       lastKnownCommittedIndex(MinimumOpId().index()),
       lastExchangeStatus(PeerStatus::New),
       leaseGranted(MinimumOpId()),
-      boundedDatalossWindowAcked(MinimumOpId()),
       rpcStart(MonoTime::Min()),
       leadershipConfirmedAt(MonoTime::Min()),
       walCatchupPossible(true),
@@ -445,8 +420,6 @@ PeerMessageQueue::Metrics::Metrics(
       num_ops_behind_leader(INSTANTIATE_METRIC(METRIC_ops_behind_leader)),
       available_leader_lease_grantors(
           INSTANTIATE_METRIC(METRIC_available_leader_lease_grantors)),
-      available_bounded_dataloss_window_ackers(
-          INSTANTIATE_METRIC(METRIC_available_bounded_dataloss_window_ackers)),
       available_commit_peers(
           INSTANTIATE_METRIC(METRIC_available_commit_peers)) {
   check_quorum_runs =
@@ -488,7 +461,6 @@ PeerMessageQueue::PeerMessageQueue(
       metrics_(metric_entity),
       timeManager_(std::move(time_manager)),
       leaderLeaseUntil_(MonoTime::Min()),
-      boundedDatalossWindowUntil_(MonoTime::Min()),
       timeProvider_(TimeProvider::getInstance()) {
   DCHECK(localPeerPb_.has_permanent_uuid());
   DCHECK(localPeerPb_.has_last_known_addr());
@@ -994,13 +966,6 @@ MonoTime PeerMessageQueue::getLeaderLeaseUntil() {
     return MonoTime().Min();
   }
   return leaderLeaseUntil_;
-}
-
-MonoTime PeerMessageQueue::getBoundedDataLossWindowUntil() {
-  if (queueState_.mode != LEADER) {
-    return MonoTime().Min();
-  }
-  return boundedDatalossWindowUntil_;
 }
 
 bool PeerMessageQueue::SafeToEvictUnlocked(const string& evictUuid) const {
@@ -1716,33 +1681,6 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   return results;
 }
 
-PeerMessageQueue::QuorumResults
-PeerMessageQueue::IsSecondRegionDurabilitySatisfiedUnlocked(
-    const std::function<bool(const TrackedPeer*)>& predicate) {
-  int acks_outoflocalregion = 0;
-  std::vector<TrackedPeer*> outoflocalregion_peers;
-  for (const PeersMap::value_type& peer : peersMap_) {
-    if (!peer.second->peerPb.has_member_type() ||
-        peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
-      continue;
-    }
-    if (predicate(peer.second)) {
-      if (peer.second->isPeerInLocalRegion.has_value() &&
-          !peer.second->isPeerInLocalRegion.value()) {
-        acks_outoflocalregion++;
-        outoflocalregion_peers.push_back(peer.second);
-      }
-    }
-  }
-  return {
-      // Check if atleast one of the acks is out of local region
-      acks_outoflocalregion > 0,
-      acks_outoflocalregion,
-      queueState_.majority_size_,
-      kVanillaRaftQuorumId,
-      outoflocalregion_peers};
-}
-
 int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
   CHECK(watermark);
   CHECK(queueState_.active_config->has_commit_rule());
@@ -2220,12 +2158,6 @@ MonoDelta PeerMessageQueue::leaderLeaseTimeout() {
   return MonoDelta::FromMilliseconds(lease_timeout);
 }
 
-MonoDelta PeerMessageQueue::boundedDataLossDefaultWindowInMsec() {
-  int32_t const bounded_data_loss_window_ms =
-      FLAGS_bounded_dataloss_window_interval_ms;
-  return MonoDelta::FromMilliseconds(bounded_data_loss_window_ms);
-}
-
 void PeerMessageQueue::updatePeerRtt(
     const std::string& peer_uuid,
     MonoDelta rtt) {
@@ -2347,12 +2279,8 @@ bool PeerMessageQueue::DoResponseFromPeer(
     }
     TrackedPeer* peer = it->second;
     if (rpcStart.has_value()) {
-      // Overwritten rather than advanced, so this can move backwards: responses
-      // are not ordered by send time, and one from an earlier RPC arriving
-      // second leaves the older start time recorded. Callers that need a lower
-      // bound must not read this field directly. leadershipConfirmedAt below is
-      // the one this change adds, and it takes the max rather than the latest
-      // value for exactly this reason.
+      // Record the start of the current RPC. UpdateConsensus is single-flight
+      // per peer, so responses from this Peer are processed in send order.
       peer->rpcStart = *rpcStart;
     }
 
@@ -2401,8 +2329,9 @@ bool PeerMessageQueue::DoResponseFromPeer(
     if (queueState_.mode == LEADER &&
         peer_uuid != localPeerPb_.permanent_uuid() &&
         PeerStatusConfirmsLeadership(peer->lastExchangeStatus)) {
-      // Responses can be reordered, so clamp: a peer's proof of recognition
-      // only ever moves forward.
+      // Keep a peer's proof of recognition monotonic. UpdateConsensus is
+      // currently single-flight per peer; taking the maximum also preserves the
+      // invariant if requests are pipelined in the future.
       peer->leadershipConfirmedAt =
           std::max(peer->leadershipConfirmedAt, peer->rpcStart);
       quorumConfirmationAdvanced = true;
@@ -2477,10 +2406,6 @@ bool PeerMessageQueue::DoResponseFromPeer(
       if (FLAGS_enable_raft_leader_lease && response.has_lease_granted() &&
           response.lease_granted()) {
         peer->leaseGranted = peer->lastReceived;
-      }
-
-      if (FLAGS_enable_bounded_dataloss_window) {
-        peer->boundedDatalossWindowAcked = peer->lastReceived;
       }
     }
 
@@ -2639,18 +2564,6 @@ bool PeerMessageQueue::DoResponseFromPeer(
                         leaderLeaseTimeout()));
           }
         }
-
-        if (FLAGS_enable_bounded_dataloss_window) {
-          // Check for Vote Quorum of Bounded DataLoss ACKs from followers
-          QuorumResults qresults;
-          if (CanBoundedDataLossWindowRenewUnlocked(qresults)) {
-            boundedDatalossWindowUntil_.store(
-                std::max(
-                    boundedDatalossWindowUntil_.load(),
-                    GetMaximumOfPeerRpcStarts(qresults) +
-                        boundedDataLossDefaultWindowInMsec()));
-          }
-        }
       } else {
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Cannot advance commit index, waiting for > "
@@ -2715,24 +2628,6 @@ MonoTime PeerMessageQueue::GetQuorumMajorityOfPeerRpcStarts(
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Unable to run GetQuorumMajorityOfPeerRpcStarts, "
         << "Quorum size: " << qresults.quorum_size << ". "
-        << "Number of remote peers: " << rpc_starts.size() << ".";
-  }
-  return result;
-}
-
-MonoTime PeerMessageQueue::GetMaximumOfPeerRpcStarts(QuorumResults& qresults) {
-  MonoTime result = MonoTime::Min();
-  std::vector<MonoTime> rpc_starts;
-  rpc_starts.reserve(qresults.quorum_peers.size());
-  for (const TrackedPeer* peer : qresults.quorum_peers) {
-    rpc_starts.emplace_back(peer->rpcStart);
-  }
-
-  if (rpc_starts.size() > 0) {
-    result = *std::max_element(rpc_starts.begin(), rpc_starts.end());
-  } else {
-    LOG_WITH_PREFIX_UNLOCKED(WARNING)
-        << "Unable to run GetMaximumOfPeerRpcStarts, "
         << "Number of remote peers: " << rpc_starts.size() << ".";
   }
   return result;
@@ -2910,34 +2805,6 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
     LOG(WARNING) << "Lease granted quorum failed. " << results.quorum_size
                  << " is required lease grant quorum. " << results.num_satisfied
                  << " peers grants are healthy.";
-    return false;
-  }
-  qresults = std::move(results);
-  return true;
-}
-
-bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
-    QuorumResults& qresults) {
-  DCHECK(queueLock_.is_locked());
-  string local_uuid = localPeerPb_.permanent_uuid();
-  auto results =
-      IsSecondRegionDurabilitySatisfiedUnlocked([this, &local_uuid](auto peer) {
-        // Check for the Leader
-        const string& peer_uuid = peer->uuid();
-        if (peer_uuid == local_uuid) {
-          return true;
-        }
-        return peer->boundedDatalossWindowAcked.index() >=
-            queueState_.committed_index;
-      });
-
-  STATS_availableBoundedDatalossWindowAckers.addValue(
-      results.num_satisfied, KUDU_STATS_TAG);
-
-  if (!results.quorum_satisfied) {
-    LOG(WARNING) << "Bounded Data Loss window lease granted, quorum failed. "
-                 << results.quorum_size << " is required lease grant quorum. "
-                 << results.num_satisfied << " peers grants are healthy.";
     return false;
   }
   qresults = std::move(results);
