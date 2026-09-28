@@ -19,7 +19,7 @@
 #include <glog/logging.h>
 #include <atomic>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/util/env.h"

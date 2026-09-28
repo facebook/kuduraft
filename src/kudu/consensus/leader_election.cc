@@ -224,8 +224,8 @@ Status VoteCounter::registerVote(
           "Peer {} voted a different way twice in the same election. "
           "First vote: {}, second vote: {}.",
           voterUuid,
-          priorVoteInfo.vote,
-          voteInfo.vote);
+          fmt::underlying(priorVoteInfo.vote),
+          fmt::underlying(voteInfo.vote));
       return Status::InvalidArgument(msg);
     }
 

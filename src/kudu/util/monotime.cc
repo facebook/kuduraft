@@ -24,7 +24,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/Singleton.h>
 #include <cstdint>
 #include "kudu/gutil/port.h"

@@ -31,7 +31,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"

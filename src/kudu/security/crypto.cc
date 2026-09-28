@@ -33,7 +33,7 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/security/openssl_util.h"
 #include "kudu/security/openssl_util_bio.h"
 #include "kudu/util/status.h"

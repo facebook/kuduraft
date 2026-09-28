@@ -23,7 +23,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/stopwatch.h"

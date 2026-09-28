@@ -25,7 +25,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/status.h"
 
 using std::string;

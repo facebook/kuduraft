@@ -27,7 +27,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/debug/leakcheck_disabler.h"

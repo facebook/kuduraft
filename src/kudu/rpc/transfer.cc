@@ -27,7 +27,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/constants.h"

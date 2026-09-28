@@ -26,7 +26,7 @@
 #include <gtest/gtest.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/util/status.h"

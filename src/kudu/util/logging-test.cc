@@ -28,7 +28,7 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/async_logger.h"
 #include "kudu/util/barrier.h"
 #include "kudu/util/logging.h"

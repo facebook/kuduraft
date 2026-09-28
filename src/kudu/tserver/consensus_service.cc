@@ -32,7 +32,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"

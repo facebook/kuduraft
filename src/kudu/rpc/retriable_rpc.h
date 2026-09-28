@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/request_tracker.h"
 #include "kudu/rpc/rpc.h"

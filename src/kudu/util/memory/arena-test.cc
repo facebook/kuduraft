@@ -26,7 +26,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/memory/arena.h"

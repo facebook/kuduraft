@@ -33,7 +33,7 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/util/json_util.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/walltime.h"

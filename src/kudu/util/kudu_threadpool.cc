@@ -27,7 +27,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"

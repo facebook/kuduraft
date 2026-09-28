@@ -25,7 +25,7 @@
 #include <boost/core/ref.hpp>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/outbound_call.h"
 #include "kudu/rpc/remote_method.h"

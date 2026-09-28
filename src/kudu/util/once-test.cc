@@ -21,7 +21,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/once.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"

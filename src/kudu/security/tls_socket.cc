@@ -25,7 +25,7 @@
 #include <glog/logging.h>
 #include <openssl/err.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/security/openssl_util.h"
 #include "kudu/util/errno.h"

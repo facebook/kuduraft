@@ -19,7 +19,7 @@
 
 #include <utility>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/port.h"
 
 using rapidjson::Value;
@@ -54,7 +54,7 @@ Status JsonReader::extractBool(
     return Status::InvalidArgument(
         fmt::format(
             "Wrong type during field extraction: expected bool but got {}",
-            val->GetType()));
+            fmt::underlying(val->GetType())));
   }
   *result = val->GetBool();
   return Status::OK();
@@ -70,7 +70,7 @@ Status JsonReader::extractInt32(
     return Status::InvalidArgument(
         fmt::format(
             "Wrong type during field extraction: expected int32 but got {}",
-            val->GetType()));
+            fmt::underlying(val->GetType())));
   }
   *result = val->GetUint();
   return Status::OK();
@@ -86,7 +86,7 @@ Status JsonReader::extractInt64(
     return Status::InvalidArgument(
         fmt::format(
             "Wrong type during field extraction: expected int64 but got {}",
-            val->GetType()));
+            fmt::underlying(val->GetType())));
   }
   *result = val->GetUint64();
   return Status::OK();
@@ -106,7 +106,7 @@ Status JsonReader::extractString(
     return Status::InvalidArgument(
         fmt::format(
             "Wrong type during field extraction: expected string but got {}",
-            val->GetType()));
+            fmt::underlying(val->GetType())));
   }
   result->assign(val->GetString());
   return Status::OK();
@@ -122,7 +122,7 @@ Status JsonReader::extractObject(
     return Status::InvalidArgument(
         fmt::format(
             "Wrong type during field extraction: expected object but got {}",
-            val->GetType()));
+            fmt::underlying(val->GetType())));
   }
   *result = val;
   return Status::OK();
@@ -138,7 +138,7 @@ Status JsonReader::extractObjectArray(
     return Status::InvalidArgument(
         fmt::format(
             "Wrong type during field extraction: expected object array but got {}",
-            val->GetType()));
+            fmt::underlying(val->GetType())));
   }
   for (Value::ConstValueIterator iter = val->Begin(); iter != val->End();
        ++iter) {

@@ -35,7 +35,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/macros.h"

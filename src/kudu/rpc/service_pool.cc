@@ -28,7 +28,7 @@
 #include <glog/logging.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/rpc/inbound_call.h"
@@ -214,7 +214,9 @@ Status ServicePool::queueInboundCall(unique_ptr<InboundCall> call) {
     c->respondFailure(ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   } else {
     status = Status::RuntimeError(
-        fmt::format("Unknown error from BlockingQueue: {}", queueStatus));
+        fmt::format(
+            "Unknown error from BlockingQueue: {}",
+            fmt::underlying(queueStatus)));
     c->respondFailure(ErrorStatusPB::FATAL_UNKNOWN, status);
   }
   return status;

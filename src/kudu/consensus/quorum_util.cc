@@ -24,7 +24,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/macros.h"

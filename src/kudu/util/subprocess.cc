@@ -41,7 +41,7 @@
 #include <glog/logging.h>
 #include <glog/stl_logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
@@ -329,7 +329,8 @@ static int pipe2(int pipefd[2], int flags) {
 Status Subprocess::start() {
   VLOG(2) << "Invoking command: " << argv_;
   if (state_ != kNotStarted) {
-    const string errStr = fmt::format("{}: illegal sub-process state", state_);
+    const string errStr =
+        fmt::format("{}: illegal sub-process state", fmt::underlying(state_));
     LOG(DFATAL) << errStr;
     return Status::IllegalState(errStr);
   }
@@ -765,7 +766,8 @@ Status Subprocess::doWait(int* waitStatus, WaitMode mode) {
     return Status::OK();
   }
   if (state_ != kRunning) {
-    const string errStr = fmt::format("{}: illegal sub-process state", state_);
+    const string errStr =
+        fmt::format("{}: illegal sub-process state", fmt::underlying(state_));
     LOG(DFATAL) << errStr;
     return Status::IllegalState(errStr);
   }

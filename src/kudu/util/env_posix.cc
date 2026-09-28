@@ -34,7 +34,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/basictypes.h"
@@ -288,7 +288,8 @@ Status doOpen(const string& filename, Env::CreateMode mode, int* fd) {
     case Env::kOpenExisting:
       break;
     default:
-      return Status::NotSupported(fmt::format("Unknown create mode {}", mode));
+      return Status::NotSupported(
+          fmt::format("Unknown create mode {}", fmt::underlying(mode)));
   }
   int f;
   RETRY_ON_EINTR(f, open(filename.c_str(), flags, 0666));

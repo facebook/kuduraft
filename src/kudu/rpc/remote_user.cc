@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 using std::string;
 

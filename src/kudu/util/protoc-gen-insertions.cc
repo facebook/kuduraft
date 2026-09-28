@@ -28,7 +28,7 @@
 #include <google/protobuf/io/printer.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/strings/strip.h"
 
 using google::protobuf::io::Printer;

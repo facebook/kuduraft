@@ -40,7 +40,7 @@
 #include <gtest/gtest.h>
 
 // #include "kudu/common/wire_protocol-test-util.h"
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log-test-base.h"

@@ -26,7 +26,7 @@
 #include <mutex>
 #include <ostream>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/port.h"
 #include "kudu/util/mutex.h"
 #include "kudu/util/process_memory.h"

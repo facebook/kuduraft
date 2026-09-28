@@ -44,7 +44,7 @@
 #include <libunwind.h>
 #endif //__aarch64__
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/dynamic_annotations.h"

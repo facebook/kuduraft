@@ -28,7 +28,7 @@
 #include <rapidjson/document.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"

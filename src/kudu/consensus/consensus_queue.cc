@@ -39,7 +39,7 @@
 #include <gflags/gflags.h>
 #include <range/v3/view/concat.hpp>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
@@ -3134,7 +3134,7 @@ string PeerMessageQueue::QueueState::ToString() const {
       last_idx_appended_to_leader,
       current_term,
       majority_size_,
-      state,
+      fmt::underlying(state),
       (mode == LEADER ? "LEADER" : "NON_LEADER"),
       active_config
           ? ", active raft config: " + SecureShortDebugString(*active_config)

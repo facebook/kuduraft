@@ -28,7 +28,7 @@
 #include <utility>
 
 #include <boost/range/adaptor/reversed.hpp>
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <folly/ScopeGuard.h>
 

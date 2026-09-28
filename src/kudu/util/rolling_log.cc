@@ -30,7 +30,7 @@
 #include <glog/logging.h>
 #include <zlib.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"

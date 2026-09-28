@@ -26,7 +26,7 @@
 #include <cstring>
 #include <string>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/hash/builtin_type_hash.h"
 #include "kudu/gutil/hash/hash128to64.h"

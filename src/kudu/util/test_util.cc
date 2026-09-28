@@ -34,7 +34,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest-spi.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"

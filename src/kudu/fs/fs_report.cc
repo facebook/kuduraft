@@ -24,7 +24,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/pb_util.h"

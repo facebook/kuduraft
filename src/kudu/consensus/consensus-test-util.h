@@ -33,7 +33,7 @@
 #include <boost/bind.hpp>
 #include <gmock/gmock.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/Synchronized.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/timestamp.h"

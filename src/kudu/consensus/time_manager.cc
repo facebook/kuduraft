@@ -29,7 +29,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/gutil/macros.h"

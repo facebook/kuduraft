@@ -28,7 +28,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/port.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/monotime.h"

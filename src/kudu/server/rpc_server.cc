@@ -25,7 +25,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/rpc/acceptor_pool.h"
@@ -232,7 +232,7 @@ void RpcServer::shutdown() {
 Status RpcServer::getBoundAddresses(vector<Sockaddr>* addresses) const {
   if (serverState_ != kBound && serverState_ != kStarted) {
     return Status::ServiceUnavailable(
-        fmt::format("bad state: {}", serverState_));
+        fmt::format("bad state: {}", fmt::underlying(serverState_)));
   }
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
     Sockaddr boundAddr;
@@ -247,7 +247,7 @@ Status RpcServer::getBoundAddresses(vector<Sockaddr>* addresses) const {
 Status RpcServer::getAdvertisedAddresses(vector<Sockaddr>* addresses) const {
   if (serverState_ != kBound && serverState_ != kStarted) {
     return Status::ServiceUnavailable(
-        fmt::format("bad state: {}", serverState_));
+        fmt::format("bad state: {}", fmt::underlying(serverState_)));
   }
   if (rpcAdvertisedAddresses_.empty()) {
     return getBoundAddresses(addresses);

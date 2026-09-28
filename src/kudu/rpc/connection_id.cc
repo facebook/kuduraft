@@ -23,7 +23,7 @@
 #include <boost/functional/hash/hash.hpp>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 using std::string;
 

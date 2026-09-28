@@ -25,7 +25,7 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/message_lite.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/connection.h"
 #include "kudu/rpc/rpc_introspection.pb.h"
@@ -95,7 +95,7 @@ Status InboundCall::parseFrom(unique_ptr<InboundTransfer> transfer) {
         fmt::format(
             "Received {} additional payload slices, expected at most {}",
             header_.sidecar_offsets_size(),
-            TransferLimits::kMaxSidecars));
+            fmt::underlying(TransferLimits::kMaxSidecars)));
   }
 
   RETURN_NOT_OK(
@@ -245,7 +245,7 @@ Status InboundCall::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
         fmt::format(
             "Total size of sidecars {} would exceed limit {}",
             static_cast<int64_t>(outboundSidecarsTotalBytes_) + sidecarBytes,
-            TransferLimits::kMaxTotalSidecarBytes));
+            fmt::underlying(TransferLimits::kMaxTotalSidecarBytes)));
   }
 
   outboundSidecars_.emplace_back(std::move(car));

@@ -29,7 +29,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"

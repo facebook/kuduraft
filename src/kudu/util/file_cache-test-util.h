@@ -22,7 +22,7 @@
 #include <glog/logging.h>
 #include <string>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/logging.h"

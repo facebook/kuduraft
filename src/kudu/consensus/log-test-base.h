@@ -38,7 +38,7 @@
 #include "kudu/clock/hybrid_clock.h"
 #include "kudu/common/timestamp.h"
 // #include "kudu/common/wire_protocol-test-util.h"
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/consensus/log_anchor_registry.h"
 #include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/log_util.h"

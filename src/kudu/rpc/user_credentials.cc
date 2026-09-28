@@ -23,7 +23,7 @@
 
 #include <boost/functional/hash/hash.hpp>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/status.h"
 #include "kudu/util/user.h"
 

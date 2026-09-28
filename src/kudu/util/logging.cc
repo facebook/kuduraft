@@ -30,7 +30,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/synchronization/CallOnce.h>
 #include "kudu/gutil/callback.h" // IWYU pragma: keep
 #include "kudu/gutil/port.h"

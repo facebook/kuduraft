@@ -24,7 +24,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/remote_method.h"
 #include "kudu/rpc/rpc_context.h"
@@ -653,7 +653,7 @@ string ResultTracker::CompletionRecord::toString() const {
   string result = fmt::format(
       "Completion Record[State: {}, Driver: {}, "
       "Cached response: {}, {} OngoingRpcs:",
-      state,
+      fmt::underlying(state),
       driverAttemptNo,
       response ? SecureShortDebugString(*response) : "None",
       ongoingRpcs.size());

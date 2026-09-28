@@ -27,7 +27,7 @@
 #include <glog/logging.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/fs.pb.h"

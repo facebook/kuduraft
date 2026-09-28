@@ -1,7 +1,7 @@
 // (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 #include "kudu/thrift/thrift_consensus_service.h"
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/logging.h"
 
 namespace facebook {

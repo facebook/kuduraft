@@ -26,7 +26,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/monotime.h"

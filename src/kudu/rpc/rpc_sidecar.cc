@@ -21,7 +21,7 @@
 #include <memory>
 #include <utility>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/rpc/transfer.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/status.h"
@@ -80,7 +80,7 @@ Status RpcSidecar::parseSidecars(
         fmt::format(
             "Received {} additional payload slices, expected at most {}",
             last,
-            TransferLimits::kMaxSidecars));
+            fmt::underlying(TransferLimits::kMaxSidecars)));
   }
 
   if (buffer.size() > TransferLimits::kMaxTotalSidecarBytes) {
@@ -88,7 +88,7 @@ Status RpcSidecar::parseSidecars(
         fmt::format(
             "Received {} payload bytes, expected at most {}",
             buffer.size(),
-            TransferLimits::kMaxTotalSidecarBytes));
+            fmt::underlying(TransferLimits::kMaxTotalSidecarBytes)));
   }
 
   for (int i = 0; i < last; ++i) {

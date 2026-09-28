@@ -30,7 +30,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/bind.h"
 #include "kudu/rpc/client_negotiation.h"
 #include "kudu/rpc/connection.h"

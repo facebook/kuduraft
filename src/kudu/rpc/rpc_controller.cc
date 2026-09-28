@@ -24,7 +24,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/outbound_call.h"
 #include "kudu/rpc/rpc_header.pb.h"
@@ -162,7 +162,7 @@ Status RpcController::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
             "Total size of sidecars {} would exceed limit {}",
             static_cast<int64_t>(outbound_sidecars_total_bytes_) +
                 sidecar_bytes,
-            TransferLimits::kMaxTotalSidecarBytes));
+            fmt::underlying(TransferLimits::kMaxTotalSidecarBytes)));
   }
 
   outbound_sidecars_.emplace_back(std::move(car));

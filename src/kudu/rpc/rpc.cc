@@ -23,7 +23,7 @@
 #include <boost/bind.hpp> // IWYU pragma: keep
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/rpc_header.pb.h"
 

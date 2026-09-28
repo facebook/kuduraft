@@ -31,7 +31,7 @@
 #include <glog/logging.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/client_negotiation.h"
 #include "kudu/rpc/connection.h"

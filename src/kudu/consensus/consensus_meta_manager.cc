@@ -22,7 +22,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/consensus/consensus_meta.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/fs/fs_manager.h"

@@ -29,7 +29,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/monotime.h"
 #include "kudu/util/test_util.h"
 

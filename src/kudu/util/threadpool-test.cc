@@ -37,7 +37,7 @@
 
 #include <folly/ScopeGuard.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"

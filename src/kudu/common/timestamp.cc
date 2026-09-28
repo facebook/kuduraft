@@ -19,7 +19,7 @@
 
 #include <ostream> // IWYU pragma: keep
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/util/memcmpable_varint.h"
 

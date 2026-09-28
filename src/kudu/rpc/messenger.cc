@@ -25,7 +25,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/connection_direction.h"

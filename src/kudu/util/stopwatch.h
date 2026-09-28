@@ -31,7 +31,7 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/walltime.h"
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 namespace kudu {
 

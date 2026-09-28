@@ -26,7 +26,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/clock/mock_ntp.h"
 #include "kudu/clock/system_ntp.h"
 #include "kudu/gutil/bind.h"

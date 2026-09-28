@@ -27,7 +27,7 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/env.h"

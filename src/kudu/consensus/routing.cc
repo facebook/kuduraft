@@ -22,7 +22,7 @@
 #include <glog/logging.h>
 #include <google/protobuf/util/message_differencer.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/region_group_routing.h"

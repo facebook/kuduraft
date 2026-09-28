@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/openssl_util.h"

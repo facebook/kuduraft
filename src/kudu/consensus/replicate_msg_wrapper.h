@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/compression/compression_codec.h"
@@ -127,8 +127,8 @@ class ReplicateMsgWrapper {
             "Operation type: {}, Compressed payload size: {} "
             "Uncompressed payload size: {}",
             compressedMsg_->get()->id().ShortDebugString(),
-            compressionCodec,
-            opType,
+            fmt::underlying(compressionCodec),
+            fmt::underlying(opType),
             compressedSize,
             uncompressedSize));
 

@@ -19,7 +19,7 @@
 
 #include <gflags/gflags.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/map-util.h"

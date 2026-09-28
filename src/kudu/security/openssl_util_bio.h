@@ -25,7 +25,7 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/status.h"
 
 namespace kudu {

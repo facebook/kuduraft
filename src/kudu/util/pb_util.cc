@@ -48,7 +48,7 @@
 #include <google/protobuf/util/json_util.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include <cstdint>
 #include "kudu/gutil/macros.h"

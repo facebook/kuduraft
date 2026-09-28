@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/test_macros.h"
 
 using std::string;

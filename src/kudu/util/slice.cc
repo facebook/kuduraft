@@ -19,7 +19,7 @@
 
 #include <cctype>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "kudu/gutil/port.h"
 #include "kudu/util/logging.h"

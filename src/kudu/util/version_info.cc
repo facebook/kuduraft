@@ -20,7 +20,7 @@
 #include <cstring>
 #include <string>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/generated/version_defines.h"
 #include "kudu/util/version_info.pb.h"
 

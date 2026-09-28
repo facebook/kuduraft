@@ -22,7 +22,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/cpu.h"
 #include "kudu/util/status.h"
 

@@ -28,7 +28,7 @@
 #include <glog/logging.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/strings/join.h"
 #include "kudu/tools/tool_action.h"
 #include "kudu/util/flags.h"

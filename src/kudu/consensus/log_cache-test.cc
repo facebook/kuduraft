@@ -34,7 +34,7 @@
 // #include "kudu/common/schema.h"
 // #include "kudu/common/wire_protocol-test-util.h"
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"

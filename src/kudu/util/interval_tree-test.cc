@@ -31,7 +31,7 @@
 #include <gtest/gtest.h>
 #include <optional>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/util/interval_tree-inl.h"
 #include "kudu/util/interval_tree.h"
 #include "kudu/util/test_util.h"

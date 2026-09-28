@@ -50,7 +50,7 @@
 #include <fb303/ThreadCachedServiceData.h>
 #include <fb303/Timeseries.h>
 #include <fb303/detail/QuantileStatWrappers.h>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -939,7 +939,7 @@ Status RaftConsensus::waitUntilLeaderForTests(const MonoDelta& timeout) {
               peer_uuid(),
               options_.tablet_id,
               timeout.ToString(),
-              role()));
+              fmt::underlying(role())));
     }
     SleepFor(MonoDelta::FromMilliseconds(10));
   }

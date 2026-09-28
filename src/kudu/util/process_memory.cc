@@ -26,7 +26,7 @@
 #include <gperftools/malloc_extension.h> // IWYU pragma: keep
 #endif
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/walltime.h" // IWYU pragma: keep
 #include "kudu/util/debug/trace_event.h" // IWYU pragma: keep

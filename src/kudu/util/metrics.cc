@@ -23,7 +23,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include "kudu/gutil/singleton.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/hdr_histogram.h"
