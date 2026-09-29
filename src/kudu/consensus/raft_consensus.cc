@@ -5590,6 +5590,16 @@ void RaftConsensus::handleProxyRequest(
   if (downstream_response.has_status()) {
     *response->mutable_status() = downstream_response.status();
   }
+  // Without this the destination's lease grant never reaches the leader, and
+  // because CanLeaderLeaseRenewUnlocked() evaluates every VOTER in peersMap_,
+  // a proxied peer is counted as refusing rather than skipped. Remote quorum
+  // groups are mostly proxied LBUs, so they could never reach a grant
+  // majority. Copied here rather than before the degraded-proxy check above:
+  // the leader only records a grant when lastExchangeStatus is Ok, so a grant
+  // salvaged from an errored round would be ignored anyway.
+  if (downstream_response.has_lease_granted()) {
+    response->set_lease_granted(downstream_response.lease_granted());
+  }
   if (downstream_response.has_error()) {
     *response->mutable_error() = downstream_response.error();
   }
