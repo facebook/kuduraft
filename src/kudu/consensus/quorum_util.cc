@@ -127,6 +127,25 @@ std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config) {
   return electableUuids;
 }
 
+std::unordered_set<std::string> getUuidsOutsideRegion(
+    const RaftConfigPB& config,
+    const std::unordered_set<std::string>& uuids,
+    const std::string& excludedRegion) {
+  std::unordered_set<std::string> filteredUuids;
+  if (excludedRegion.empty()) {
+    return filteredUuids;
+  }
+
+  for (const RaftPeerPB& peer : config.peers()) {
+    const std::string& peerRegion = peer.attrs().region();
+    if (uuids.contains(peer.permanent_uuid()) && !peerRegion.empty() &&
+        peerRegion != excludedRegion) {
+      filteredUuids.insert(peer.permanent_uuid());
+    }
+  }
+  return filteredUuids;
+}
+
 bool getRaftConfigMemberQuorumIdRegardlessQuorumType(
     const std::string& uuid,
     const RaftConfigPB& config,

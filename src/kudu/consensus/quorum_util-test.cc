@@ -223,6 +223,22 @@ TEST(QuorumUtilTest, TestGetElectableUuids) {
   }
 }
 
+TEST(QuorumUtilTest, TestGetUuidsOutsideRegion) {
+  RaftConfigPB config;
+  addPeer(&config, "A", V);
+  addPeer(&config, "B", V);
+  addPeer(&config, "C", V);
+  addPeer(&config, "D", V);
+  config.mutable_peers(0)->mutable_attrs()->set_region("frc");
+  config.mutable_peers(1)->mutable_attrs()->set_region("atn");
+  config.mutable_peers(3)->mutable_attrs()->set_region("atn");
+
+  const std::unordered_set<std::string> uuids = {"A", "B", "C", "missing"};
+  const std::unordered_set<std::string> expected = {"B"};
+  EXPECT_EQ(expected, getUuidsOutsideRegion(config, uuids, "frc"));
+  EXPECT_TRUE(getUuidsOutsideRegion(config, uuids, "").empty());
+}
+
 TEST(QuorumUtilTest, TestMemberExtraction) {
   RaftConfigPB config;
   addPeer(&config, "A", V);

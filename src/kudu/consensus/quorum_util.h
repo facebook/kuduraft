@@ -80,6 +80,13 @@ void getRaftPeerDetail(
  */
 std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config);
 
+// Returns candidate UUIDs whose configured region is known and differs from
+// excludedRegion.
+std::unordered_set<std::string> getUuidsOutsideRegion(
+    const RaftConfigPB& config,
+    const std::unordered_set<std::string>& uuids,
+    const std::string& excludedRegion);
+
 // Whether the specified Raft role is attributed to a peer which can participate
 // in leader elections.
 bool isVoterRole(RaftPeerPB::Role role);
