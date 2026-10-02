@@ -86,11 +86,6 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
   // Return Status::OK() if key match the end-user certificate.
   Status checkKeyMatch(const PrivateKey& key) const WARN_UNUSED_RESULT;
 
-  // Returns the 'tls-server-end-point' channel bindings for the end-user
-  // certificate as specified in RFC 5929.
-  Status getServerEndPointChannelBindings(std::string* channelBindings) const
-      WARN_UNUSED_RESULT;
-
   // Adopts the provided STACK_OF(X509), and increments the reference count of
   // the X509 cert contained within it. Currently, only one certificate should
   // be contained in the stack.
@@ -118,9 +113,6 @@ class CertSignRequest : public RawDataWrapper<X509_REQ> {
       WARN_UNUSED_RESULT;
   Status toString(std::string* data, DataFormat format) const
       WARN_UNUSED_RESULT;
-  Status fromFile(const std::string& fpath, DataFormat format)
-      WARN_UNUSED_RESULT;
-
   // Returns a clone of the CSR.
   //
   // Whether this clone is deep or shallow (i.e. only a reference count is

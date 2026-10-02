@@ -186,67 +186,6 @@ Status Cert::checkKeyMatch(const PrivateKey& key) const {
   return Status::OK();
 }
 
-Status Cert::getServerEndPointChannelBindings(string* channelBindings) const {
-  SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  // Find the signature type of the certificate. This corresponds to the digest
-  // (hash) algorithm, and the public key type which signed the cert.
-
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
-  int signatureNid = X509_get_signature_nid(getTopOfChainX509());
-#else
-  // Older version of OpenSSL appear not to have a public way to get the
-  // signature digest method from a certificate. Instead, we reach into the
-  // 'private' internals.
-  int signatureNid = OBJ_obj2nid(getTopOfChainX509()->sig_alg->algorithm);
-#endif
-
-  // Retrieve the digest algorithm type.
-  int digestNid;
-  int publicKeyNid;
-  OBJ_find_sigid_algs(signatureNid, &digestNid, &publicKeyNid);
-
-  // RFC 5929: if the certificate's signatureAlgorithm uses no hash functions or
-  // uses multiple hash functions, then this channel binding type's channel
-  // bindings are undefined at this time (updates to is channel binding type may
-  // occur to address this issue if it ever arises).
-  //
-  // TODO(dan): can the multiple hash function scenario actually happen? What
-  // does OBJ_find_sigid_algs do in that scenario?
-  if (digestNid == NID_undef) {
-    return Status::NotSupported(
-        "server certificate has no signature digest (hash) algorithm");
-  }
-
-  // RFC 5929: if the certificate's signatureAlgorithm uses a single hash
-  // function, and that hash function is either MD5 [RFC1321] or SHA-1
-  // [RFC3174], then use SHA-256 [FIPS-180-3];
-  if (digestNid == NID_md5 || digestNid == NID_sha1) {
-    digestNid = NID_sha256;
-  }
-
-  const EVP_MD* md = EVP_get_digestbynid(digestNid);
-  OPENSSL_RET_IF_NULL(md, "digest for nid not found");
-
-  // Create a digest BIO. All data written to the BIO will be sent through the
-  // digest (hash) function. The digest BIO requires a null BIO to writethrough
-  // to.
-  auto nullBio = sslMakeUnique(BIO_new(BIO_s_null()));
-  auto mdBio = sslMakeUnique(BIO_new(BIO_f_md()));
-  OPENSSL_RET_NOT_OK(
-      BIO_set_md(mdBio.get(), md), "failed to set digest for BIO");
-  BIO_push(mdBio.get(), nullBio.get());
-
-  // Write the cert to the digest BIO.
-  RETURN_NOT_OK(toBio(mdBio.get(), DataFormat::Der, data_.get()));
-
-  // Read the digest from the BIO and append it to 'channelBindings'.
-  char buf[EVP_MAX_MD_SIZE];
-  int digestLen = BIO_gets(mdBio.get(), buf, sizeof(buf));
-  OPENSSL_RET_NOT_OK(digestLen, "failed to get cert digest from BIO");
-  channelBindings->assign(buf, digestLen);
-  return Status::OK();
-}
-
 void Cert::adoptAndAddRefRawData(RawDataType* data) {
   DCHECK_EQ(sk_X509_num(data), 1);
   X509* cert = sk_X509_value(data, sk_X509_num(data) - 1);
@@ -297,10 +236,6 @@ Status CertSignRequest::fromString(const std::string& data, DataFormat format) {
 
 Status CertSignRequest::toString(std::string* data, DataFormat format) const {
   return ::kudu::security::toString(data, format, data_.get());
-}
-
-Status CertSignRequest::fromFile(const std::string& fpath, DataFormat format) {
-  return ::kudu::security::fromFile(fpath, format, &data_);
 }
 
 CertSignRequest CertSignRequest::clone() const {
