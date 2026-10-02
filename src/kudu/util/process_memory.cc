@@ -46,13 +46,6 @@ DEFINE_int64(
 TAG_FLAG(memory_limit_hard_bytes, stable);
 
 DEFINE_int32(
-    memory_pressure_percentage,
-    60,
-    "Percentage of the hard memory limit that this daemon may "
-    "consume before flushing of in-memory data becomes prioritized.");
-TAG_FLAG(memory_pressure_percentage, advanced);
-
-DEFINE_int32(
     memory_limit_soft_percentage,
     80,
     "Percentage of the hard memory limit that this daemon may "
@@ -84,7 +77,6 @@ namespace process_memory {
 namespace {
 int64_t gHardLimit;
 int64_t gSoftLimit;
-int64_t gPressureThreshold;
 
 ThreadSafeRandom* gRand = nullptr;
 
@@ -184,7 +176,6 @@ void doInitLimits() {
   }
   gHardLimit = limit;
   gSoftLimit = FLAGS_memory_limit_soft_percentage * gHardLimit / 100;
-  gPressureThreshold = FLAGS_memory_pressure_percentage * gHardLimit / 100;
 
   gRand = new ThreadSafeRandom(1);
 }
