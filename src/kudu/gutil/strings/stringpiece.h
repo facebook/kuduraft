@@ -182,14 +182,6 @@ class StringPiece {
     return std::string_view(ptr_ ? ptr_ : "", ptr_ ? length_ : 0);
   }
 
-  // Substring of another StringPiece.
-  // pos must be non-negative and <= x.length().
-  StringPiece(StringPiece x, int pos);
-  // Substring of another StringPiece.
-  // pos must be non-negative and <= x.length().
-  // len must be non-negative and will be pinned to at most x.length() - pos.
-  StringPiece(StringPiece x, int pos, int len);
-
   // data() may return a pointer to a buffer with embedded NULs, and the
   // returned buffer may or may not be null terminated.  Therefore it is
   // typically a mistake to pass data() to a routine that expects a NUL

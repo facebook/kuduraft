@@ -10,8 +10,6 @@
 #include <ostream>
 #include <string>
 
-#include <glog/logging.h>
-
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/memutil.h"
 
@@ -21,19 +19,6 @@ using std::string;
 std::ostream& operator<<(std::ostream& o, StringPiece piece) {
   o.write(piece.data(), piece.size());
   return o;
-}
-
-StringPiece::StringPiece(StringPiece x, int pos)
-    : ptr_(x.ptr_ + pos), length_(x.length_ - pos) {
-  DCHECK_LE(0, pos);
-  DCHECK_LE(pos, x.length_);
-}
-
-StringPiece::StringPiece(StringPiece x, int pos, int len)
-    : ptr_(x.ptr_ + pos), length_(min(len, x.length_ - pos)) {
-  DCHECK_LE(0, pos);
-  DCHECK_LE(pos, x.length_);
-  DCHECK_GE(len, 0);
 }
 
 void StringPiece::copyToString(string* target) const {
