@@ -16,8 +16,6 @@
 
 #include "kudu/gutil/hash/city.h"
 
-#include <sys/types.h>
-
 #include <algorithm>
 #include <iterator>
 #include <utility>
@@ -210,125 +208,6 @@ uint64_t cityHash64(const char* s, size_t len) {
   return hashLen16(
       hashLen16(v.first, w.first) + shiftMix(y) * k1 + z,
       hashLen16(v.second, w.second) + x);
-}
-
-uint64_t cityHash64WithSeed(const char* s, size_t len, uint64_t seed) {
-  return cityHash64WithSeeds(s, len, k2, seed);
-}
-
-uint64_t
-cityHash64WithSeeds(const char* s, size_t len, uint64_t seed0, uint64_t seed1) {
-  return hashLen16(cityHash64(s, len) - seed0, seed1);
-}
-
-// A subroutine for cityHash128().  Returns a decent 128-bit hash for strings
-// of any length representable in ssize_t.  Based on City and Murmur128.
-static Uint128 cityMurmur(const char* s, size_t len, const Uint128& seed) {
-  uint64_t a = uint128Low64(seed);
-  uint64_t b = uint128High64(seed);
-  uint64_t c = 0;
-  uint64_t d = 0;
-  ssize_t l = len - 16;
-  if (l <= 0) { // len <= 16
-    c = b * k1 + hashLen0To16(s, len);
-    d = rotate(a + (len >= 8 ? LittleEndian::load64(s) : c), 32);
-  } else { // len > 16
-    c = hashLen16(LittleEndian::load64(s + len - 8) + k1, a);
-    d = hashLen16(b + len, c + LittleEndian::load64(s + len - 16));
-    a += d;
-    do {
-      a ^= shiftMix(LittleEndian::load64(s) * k1) * k1;
-      a *= k1;
-      b ^= a;
-      c ^= shiftMix(LittleEndian::load64(s + 8) * k1) * k1;
-      c *= k1;
-      d ^= c;
-      s += 16;
-      l -= 16;
-    } while (l > 0);
-  }
-  a = hashLen16(a, c);
-  b = hashLen16(d, b);
-  return Uint128(a ^ b, hashLen16(b, a));
-}
-
-Uint128 cityHash128WithSeed(const char* s, size_t len, const Uint128& seed) {
-  // TODO(user): As of February 2011, there's a beta of Murmur3 that would
-  // most likely be useful here.  E.g., if (len < 900) return Murmur3(...)
-  if (len < 128) {
-    return cityMurmur(s, len, seed);
-  }
-
-  // We expect len >= 128 to be the common case.  Keep 56 bytes of state:
-  // v, w, x, y, and z.
-  pair<uint64_t, uint64_t> v, w;
-  uint64_t x = uint128Low64(seed);
-  uint64_t y = uint128High64(seed);
-  uint64_t z = len * k1;
-  v.first = rotate(y ^ k1, 49) * k1 + LittleEndian::load64(s);
-  v.second = rotate(v.first, 42) * k1 + LittleEndian::load64(s + 8);
-  w.first = rotate(y + z, 35) * k1 + x;
-  w.second = rotate(x + LittleEndian::load64(s + 88), 53) * k1;
-
-  // This is similar to the inner loop of cityHash64(), manually unrolled.
-  do {
-    x = rotate(x + y + v.first + LittleEndian::load64(s + 16), 37) * k1;
-    y = rotate(y + v.second + LittleEndian::load64(s + 48), 42) * k1;
-    x ^= w.second;
-    y ^= v.first;
-    z = rotate(z ^ w.first, 33);
-    v = weakHashLen32WithSeeds(s, v.second * k1, x + w.first);
-    w = weakHashLen32WithSeeds(s + 32, z + w.second, y);
-    std::swap(z, x);
-    s += 64;
-    x = rotate(x + y + v.first + LittleEndian::load64(s + 16), 37) * k1;
-    y = rotate(y + v.second + LittleEndian::load64(s + 48), 42) * k1;
-    x ^= w.second;
-    y ^= v.first;
-    z = rotate(z ^ w.first, 33);
-    v = weakHashLen32WithSeeds(s, v.second * k1, x + w.first);
-    w = weakHashLen32WithSeeds(s + 32, z + w.second, y);
-    std::swap(z, x);
-    s += 64;
-    len -= 128;
-  } while (PREDICT_TRUE(len >= 128));
-  y += rotate(w.first, 37) * k0 + z;
-  x += rotate(v.first + z, 49) * k0;
-  // If 0 < len < 128, hash up to 4 chunks of 32 bytes each from the end of s.
-  for (size_t tailDone = 0; tailDone < len;) {
-    tailDone += 32;
-    y = rotate(y - x, 42) * k0 + v.second;
-    w.first += LittleEndian::load64(s + len - tailDone + 16);
-    x = rotate(x, 49) * k0 + w.first;
-    w.first += v.first;
-    v = weakHashLen32WithSeeds(s + len - tailDone, v.first, v.second);
-  }
-  // At this point our 48 bytes of state should contain more than
-  // enough information for a strong 128-bit hash.  We use two
-  // different 48-byte-to-8-byte hashes to get a 16-byte final result.
-  x = hashLen16(x, v.first);
-  y = hashLen16(y, w.first);
-  return Uint128(
-      hashLen16(x + v.second, w.second) + y,
-      hashLen16(x + w.second, y + v.second));
-}
-
-Uint128 cityHash128(const char* s, size_t len) {
-  if (len >= 16) {
-    return cityHash128WithSeed(
-        s + 16,
-        len - 16,
-        Uint128(LittleEndian::load64(s) ^ k3, LittleEndian::load64(s + 8)));
-  } else if (len >= 8) {
-    return cityHash128WithSeed(
-        nullptr,
-        0,
-        Uint128(
-            LittleEndian::load64(s) ^ (len * k0),
-            LittleEndian::load64(s + len - 8) ^ k1));
-  } else {
-    return cityHash128WithSeed(s, len, Uint128(k0, k1));
-  }
 }
 
 } // namespace util_hash
