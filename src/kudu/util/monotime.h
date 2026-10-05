@@ -171,16 +171,6 @@ class KUDU_EXPORT MonoTime {
   /// @return MonoTime equal to farthest possible time into the past.
   static MonoTime Min();
 
-  /// Select the earliest between the specified time points.
-  ///
-  /// @param [in] a
-  ///   The first MonoTime object to select from.
-  /// @param [in] b
-  ///   The second MonoTime object to select from.
-  /// @return The earliest (minimum) of the two monotimes.
-  static const MonoTime& earliest(const MonoTime& a, const MonoTime& b)
-      ATTRIBUTE_DEPRECATED("use std::min() instead");
-
   /// Build a MonoTime object. The resulting object is not initialized
   /// and not ready to use.
   MonoTime();

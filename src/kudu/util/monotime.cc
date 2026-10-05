@@ -179,13 +179,6 @@ MonoTime MonoTime::Min() {
   return MonoTime(1);
 }
 
-const MonoTime& MonoTime::earliest(const MonoTime& a, const MonoTime& b) {
-  if (b.nanos_ < a.nanos_) {
-    return b;
-  }
-  return a;
-}
-
 MonoTime::MonoTime() : nanos_(0) {}
 
 bool MonoTime::Initialized() const {
