@@ -99,8 +99,6 @@ class BitReader {
   // 'buffer' is the buffer to read from.  The buffer's length is 'bufferLen'.
   BitReader(const uint8_t* buffer, int bufferLen);
 
-  BitReader() : buffer_(NULL), maxBytes_(0) {}
-
   // Gets the next value from the buffer.  Returns true if 'v' could be read or
   // false if there are not enough bytes left. numBits must be <= 32.
   template <typename T>
@@ -123,11 +121,6 @@ class BitReader {
   // byte (i.e., there may be an additional fraction of a byte).
   int bytesLeft() {
     return maxBytes_ - (byteOffset_ + BitUtil::ceil(bitOffset_, 8));
-  }
-
-  // Current position in the stream, by bit.
-  int position() const {
-    return byteOffset_ * 8 + bitOffset_;
   }
 
   // Rewind the stream by 'numBits' bits
