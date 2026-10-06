@@ -120,10 +120,6 @@ static inline uint64_t word64At(const char* ptr) {
   return UNALIGNED_LOAD64(ptr);
 }
 
-static inline uint32_t word32At(const char* ptr) {
-  return UNALIGNED_LOAD32(ptr);
-}
-
 // This produces the same results as the byte-by-byte version below.
 // Here, we mask off the sign bits and subtract off two copies.  To
 // see why this is the same as adding together the sign extensions,
@@ -169,13 +165,6 @@ static inline uint64_t word64At(const char* ptr) {
       (static_cast<uint64_t>(ptr[5]) << 40) +
       (static_cast<uint64_t>(ptr[6]) << 48) +
       (static_cast<uint64_t>(ptr[7]) << 56));
-}
-
-static inline uint32_t word32At(const char* ptr) {
-  return (
-      static_cast<uint32_t>(ptr[0]) + (static_cast<uint32_t>(ptr[1]) << 8) +
-      (static_cast<uint32_t>(ptr[2]) << 16) +
-      (static_cast<uint32_t>(ptr[3]) << 24));
 }
 
 static inline uint32_t google1At(const char* ptr2) {
