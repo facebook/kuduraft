@@ -169,10 +169,6 @@ class LongAdder : Striped64 {
   }
 
  protected:
-  int64_t combineValue(int64_t currentValue, int64_t newValue) {
-    return currentValue + newValue;
-  }
-
   DISALLOW_COPY_AND_ASSIGN(LongAdder);
 };
 
