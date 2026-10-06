@@ -442,14 +442,8 @@ class ThreadDescriptor {
   const std::string& name() const {
     return name_;
   }
-  const std::string& category() const {
-    return category_;
-  }
   int64_t threadId() const {
     return threadId_;
-  }
-  int priority() const {
-    return priority_;
   }
   void setPriority(int p) {
     priority_ = p;
