@@ -171,14 +171,6 @@ class CompletionFlag {
     return complete_;
   }
 
-  void reset() {
-    complete_ = false;
-  }
-
-  bool complete() const {
-    return complete_;
-  }
-
  private:
   std::atomic<int32_t> complete_{0};
 };
@@ -529,12 +521,6 @@ void hexStackTraceToString(char* buf, size_t size) {
   trace.stringifyToHex(buf, size);
 }
 
-string getLogFormatStackTraceHex() {
-  StackTrace trace;
-  trace.collect(1);
-  return trace.toLogFormatHexString();
-}
-
 // Bogus empty function which we use below to fill in the stack trace with
 // something readable to indicate that stack trace collection was unavailable.
 void couldNotCollectStackTraceBecauseInsideLibDl() {}
@@ -669,19 +655,6 @@ string StackTrace::symbolize() const {
         fmt::ptr(pc),
         kPrintfPointerFieldWidth,
         symbol);
-  }
-  return ret;
-}
-
-string StackTrace::toLogFormatHexString() const {
-  string ret;
-  for (int i = 0; i < numFrames_; i++) {
-    void* pc = frames_[i];
-    fmt::format_to(
-        std::back_inserter(ret),
-        "    @ {:>{}}\n",
-        fmt::ptr(pc),
-        kPrintfPointerFieldWidth);
   }
   return ret;
 }

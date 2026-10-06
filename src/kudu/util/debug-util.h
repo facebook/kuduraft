@@ -99,13 +99,6 @@ std::string getStackTrace();
 // runtime.
 std::string getStackTraceHex();
 
-// This is the same as getStackTraceHex(), except multi-line in a format that
-// looks very similar to getStackTrace() but without symbols. Because it's in
-// that format, the tool stacktrace_addr2line.pl in the kudu build-support
-// directory can symbolize it automatically (to the extent that addr2line(1)
-// is able to find the symbols).
-std::string getLogFormatStackTraceHex();
-
 // Collect the current stack trace in hex form into the given buffer.
 //
 // The resulting trace just includes the hex addresses, space-separated. This is
@@ -191,11 +184,6 @@ class StackTrace {
   // printing to a log file.
   // This is not async-safe.
   std::string symbolize() const;
-
-  // Return a string with a hex-only backtrace in the format typically used in
-  // log files. Similar to the format given by symbolize(), but symbols are not
-  // resolved (only the hex addresses are given).
-  std::string toLogFormatHexString() const;
 
   uint64_t hashCode() const;
 
