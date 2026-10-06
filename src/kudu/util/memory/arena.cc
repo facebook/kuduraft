@@ -28,9 +28,6 @@ using std::unique_ptr;
 
 namespace kudu {
 
-template <bool ThreadSafe>
-const size_t ArenaBase<ThreadSafe>::kMinimumChunkSize = 16;
-
 // The max size of our allocations is set to this magic number
 // corresponding to 127 tcmalloc pages (each being 8KB). tcmalloc
 // internally keeps a free-list of spans up to this size. Larger
@@ -158,12 +155,6 @@ void ArenaBase<ThreadSafe>::reset() {
   addComponent(CHECK_NOTNULL(newComponent(lastSize, 0)));
   arenaFootprint_ = 0;
 #endif
-}
-
-template <bool ThreadSafe>
-size_t ArenaBase<ThreadSafe>::memoryFootprint() const {
-  std::lock_guard<MutexType> lock(componentLock_);
-  return arenaFootprint_;
 }
 
 // Explicit instantiation.

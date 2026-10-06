@@ -76,9 +76,6 @@ struct ArenaTraits<false> {
 template <bool ThreadSafe>
 class ArenaBase {
  public:
-  // Arenas are required to have a minimum size of at least this amount.
-  static const size_t kMinimumChunkSize;
-
   // Creates a new arena, with a single buffer of size up-to initialBufferSize
   // and maximum capacity (i.e. total sizes of all buffers)
   // possibly limited by the buffer allocator. The allocator might cap the
@@ -125,19 +122,6 @@ class ArenaBase {
   // Arena instance, but before making any allocations.
   void setMaxBufferSize(size_t size);
 
-  // Adds content of the specified Slice to the arena, and returns a
-  // pointer to it. The pointer is guaranteed to remain valid during the
-  // lifetime of the arena. The Slice object itself is not copied. The
-  // size information is not stored.
-  // (Normal use case is that the caller already has an array of Slices,
-  // where it keeps these pointers together with size information).
-  // If this request would make the arena grow and the allocator denies that,
-  // returns NULL and leaves the arena unchanged.
-  uint8_t* addSlice(const Slice& value);
-
-  // Same as above.
-  void* addBytes(const void* data, size_t len);
-
   // Handy wrapper for placement-new.
   //
   // This ensures that the returned object is properly aligned based on
@@ -148,7 +132,6 @@ class ArenaBase {
   // Relocate the given Slice into the arena, setting 'dst' and
   // returning true if successful.
   // It is legal for 'dst' to be a pointer to 'src'.
-  // See addSlice above for detail on memory lifetime.
   bool relocateSlice(const Slice& src, Slice* dst);
 
   // Similar to the above, but for StringPiece.
@@ -175,11 +158,6 @@ class ArenaBase {
   // resetting normally lead to quickly settling memory footprint and ceasing
   // buffer allocations, as the arena keeps reusing a single, large buffer.
   void reset();
-
-  // Returns the memory footprint of this arena, in bytes, defined as a sum of
-  // all buffer sizes. Always greater or equal to the total number of
-  // bytes allocated out of the arena.
-  size_t memoryFootprint() const;
 
  private:
   using MutexType = typename ArenaTraits<ThreadSafe>::MutexType;
@@ -246,12 +224,6 @@ class ArenaAllocator {
   using const_pointer = const T*;
   using reference = T&;
   using const_reference = const T&;
-  pointer index(reference r) const {
-    return &r;
-  }
-  const_pointer index(const_reference r) const {
-    return &r;
-  }
   size_type max_size() const {
     return size_t(-1) / sizeof(T);
   }
@@ -338,21 +310,6 @@ class MemoryTrackingArena : public ArenaBase<false> {
   std::shared_ptr<MemoryTrackingBufferAllocator> trackingAllocator_;
 };
 
-class ThreadSafeMemoryTrackingArena : public ArenaBase<true> {
- public:
-  ThreadSafeMemoryTrackingArena(
-      size_t initialBufferSize,
-      const std::shared_ptr<MemoryTrackingBufferAllocator>& trackingAllocator)
-      : ArenaBase<true>(trackingAllocator.get(), initialBufferSize),
-        trackingAllocator_(trackingAllocator) {}
-
-  ~ThreadSafeMemoryTrackingArena() {}
-
- private:
-  // See comment in MemoryTrackingArena above.
-  std::shared_ptr<MemoryTrackingBufferAllocator> trackingAllocator_;
-};
-
 // Implementation of inline and template methods
 
 template <bool ThreadSafe>
@@ -363,12 +320,6 @@ class ArenaBase<ThreadSafe>::Component {
         data_(static_cast<uint8_t*>(buffer->data())),
         offset_(0),
         size_(buffer->size()) {}
-
-  // Tries to reserve space in this component. Returns the pointer to the
-  // reserved space if successful; NULL on failure (if there's no more room).
-  uint8_t* allocateBytes(const size_t size) {
-    return allocateBytesAligned(size, 1);
-  }
 
   uint8_t* allocateBytesAligned(const size_t size, const size_t alignment);
 
@@ -475,21 +426,6 @@ inline void* ArenaBase<ThreadSafe>::allocateBytesAligned(
     return result;
   }
   return allocateBytesFallback(size, align);
-}
-
-template <bool ThreadSafe>
-inline uint8_t* ArenaBase<ThreadSafe>::addSlice(const Slice& value) {
-  return reinterpret_cast<uint8_t*>(addBytes(value.data(), value.size()));
-}
-
-template <bool ThreadSafe>
-inline void* ArenaBase<ThreadSafe>::addBytes(const void* data, size_t len) {
-  void* destination = allocateBytes(len);
-  if (destination == nullptr) {
-    return nullptr;
-  }
-  memcpy(destination, data, len);
-  return destination;
 }
 
 template <bool ThreadSafe>
