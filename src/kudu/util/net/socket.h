@@ -121,9 +121,6 @@ class Socket {
   // start connecting this socket to a remote address.
   Status connect(const Sockaddr& remote);
 
-  // get the error status using getsockopt(2)
-  Status getSockError() const;
-
   // write up to 'amt' bytes from 'buf' to the socket. The number of bytes
   // actually written will be stored in 'nwritten'. If an error is returned,
   // the value of 'nwritten' is undefined.
@@ -166,9 +163,6 @@ class Socket {
   peek(uint8_t* buf, size_t amt, size_t* nread, const MonoTime& deadline);
 
  private:
-  // Called internally to set a socket buffer size
-  Status setSockBuf(int opt, const char* optname, int bufSize);
-
   // Called internally from setSend/RecvTimeout().
   Status setTimeout(int opt, const char* optname, const MonoDelta& timeout);
 

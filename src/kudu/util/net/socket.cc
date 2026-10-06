@@ -64,9 +64,6 @@ TAG_FLAG(socket_inject_short_recvs, unsafe);
 
 using std::string;
 
-// Min sock buf allowed by kernel, see socket(7)
-constexpr int kMinSockBuf = 1024;
-
 namespace kudu {
 
 Socket::Socket() : fd_(-1) {}
@@ -405,22 +402,6 @@ Status Socket::connect(const Sockaddr& remote) {
   return Status::OK();
 }
 
-Status Socket::getSockError() const {
-  int val = 0, ret;
-  socklen_t valLen = sizeof(val);
-  DCHECK_GE(fd_, 0);
-  ret = ::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &valLen);
-  if (ret) {
-    int err = errno;
-    return Status::NetworkError(
-        "getsockopt(SO_ERROR) failed", errnoToString(err), err);
-  }
-  if (val != 0) {
-    return Status::NetworkError(errnoToString(val), Slice(), val);
-  }
-  return Status::OK();
-}
-
 Status Socket::write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
   if (amt <= 0) {
     return Status::NetworkError(
@@ -627,19 +608,6 @@ Status Socket::peek(
     return Status::NetworkError(errorMessage);
   }
   *nread = res;
-  return Status::OK();
-}
-
-Status Socket::setSockBuf(int opt, const char* optname, int bufSize) {
-  if (PREDICT_FALSE(bufSize < kMinSockBuf)) {
-    return Status::InvalidArgument(
-        fmt::format("{} cannot be lower than {}", optname, kMinSockBuf),
-        std::to_string(bufSize));
-  }
-  RETURN_NOT_OK_PREPEND(
-      setSockOpt(SOL_SOCKET, opt, bufSize),
-      fmt::format("failed to set {} to {}", optname, bufSize));
-
   return Status::OK();
 }
 
