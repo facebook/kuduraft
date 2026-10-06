@@ -17,7 +17,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <string>
 
 #include <openssl/bio.h>
@@ -36,8 +35,6 @@ class Status;
 
 namespace security {
 
-extern const size_t kNonceSize;
-
 // Supported message digests for data signing and signature verification.
 enum class DigestType {
   Sha256,
@@ -54,9 +51,6 @@ class PublicKey : public RawDataWrapper<EVP_PKEY> {
       WARN_UNUSED_RESULT;
   Status toString(std::string* data, DataFormat format) const
       WARN_UNUSED_RESULT;
-  Status fromFile(const std::string& fpath, DataFormat format)
-      WARN_UNUSED_RESULT;
-
   Status fromBio(BIO* bio, DataFormat format) WARN_UNUSED_RESULT;
 
   // Using the key, verify data signature using the specified message
@@ -105,9 +99,6 @@ class PrivateKey : public RawDataWrapper<EVP_PKEY> {
 
 // Utility method to generate private keys.
 Status generatePrivateKey(int numBits, PrivateKey* ret) WARN_UNUSED_RESULT;
-
-// Generates a nonce of size kNonceSize, and writes it to the provided string.
-Status generateNonce(std::string* s) WARN_UNUSED_RESULT;
 
 } // namespace security
 } // namespace kudu

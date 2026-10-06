@@ -29,7 +29,6 @@
 #include <openssl/opensslv.h>
 #include <openssl/ossl_typ.h>
 #include <openssl/pem.h>
-#include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
@@ -42,8 +41,6 @@ using std::string;
 
 namespace kudu {
 namespace security {
-
-const size_t kNonceSize = 16;
 
 namespace {
 
@@ -119,11 +116,6 @@ Status PublicKey::fromString(const std::string& data, DataFormat format) {
 Status PublicKey::toString(std::string* data, DataFormat format) const {
   return ::kudu::security::toString<RawDataType, RsaPublicKeyTraits>(
       data, format, data_.get());
-}
-
-Status PublicKey::fromFile(const std::string& fpath, DataFormat format) {
-  return ::kudu::security::fromFile<RawDataType, RsaPublicKeyTraits>(
-      fpath, format, &data_);
 }
 
 Status PublicKey::fromBio(BIO* bio, DataFormat format) {
@@ -273,15 +265,6 @@ Status generatePrivateKey(int numBits, PrivateKey* ret) {
   }
   ret->adoptRawData(key.release());
 
-  return Status::OK();
-}
-
-Status generateNonce(string* s) {
-  SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  CHECK_NOTNULL(s);
-  unsigned char buf[kNonceSize];
-  OPENSSL_RET_NOT_OK(RAND_bytes(buf, sizeof(buf)), "failed to generate nonce");
-  s->assign(reinterpret_cast<char*>(buf), kNonceSize);
   return Status::OK();
 }
 
