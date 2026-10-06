@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <cstddef>
-
 #include <string>
 
 #include "kudu/gutil/strings/ascii_ctype.h"
@@ -17,14 +15,6 @@
 // prefix string if the prefix matches, otherwise the original
 // string.
 std::string stripPrefixString(StringPiece str, const StringPiece& prefix);
-
-// Like stripPrefixString, but return true if the prefix was
-// successfully matched.  Write the output to *result.
-// It is safe for result to point back to the input string.
-bool tryStripPrefixString(
-    StringPiece str,
-    const StringPiece& prefix,
-    std::string* result);
 
 // Given a string and a putative suffix, returns the string minus the
 // suffix string if the suffix matches, otherwise the original
@@ -54,8 +44,6 @@ inline void stripString(char* str, char remove, char replacewith) {
   }
 }
 
-void stripString(char* str, StringPiece remove, char replacewith);
-void stripString(char* str, int len, StringPiece remove, char replacewith);
 void stripString(std::string* s, StringPiece remove, char replacewith);
 
 // ----------------------------------------------------------------------
@@ -158,11 +146,6 @@ inline char* StripLeadingWhiteSpace(char* line) {
       StripLeadingWhiteSpace(const_cast<const char*>(line)));
 }
 
-void StripLeadingWhiteSpace(std::string* str);
-
-// Remove leading, trailing, and duplicate internal whitespace.
-void RemoveExtraWhitespace(std::string* s);
-
 // ----------------------------------------------------------------------
 // SkipLeadingWhiteSpace
 //    Returns str advanced past white space characters, if any.
@@ -181,97 +164,3 @@ inline char* SkipLeadingWhiteSpace(char* str) {
   }
   return str;
 }
-
-// ----------------------------------------------------------------------
-// stripCurlyBraces
-//    Strips everything enclosed in pairs of curly braces and the curly
-//    braces. Doesn't touch open braces. It doesn't handle nested curly
-//    braces. This is used for removing things like {:stopword} from
-//    queries.
-// stripBrackets does the same, but allows the caller to specify different
-//    left and right bracket characters, such as '(' and ')'.
-// ----------------------------------------------------------------------
-
-void stripCurlyBraces(std::string* s);
-void stripBrackets(char left, char right, std::string* s);
-
-// ----------------------------------------------------------------------
-// stripMarkupTags
-//    Strips everything enclosed in pairs of angle brackets and the angle
-//    brackets.
-//    This is used for stripping strings of markup; e.g. going from
-//    "the quick <b>brown</b> fox" to "the quick brown fox."
-//    If you want to skip entire sections of markup (e.g. the word "brown"
-//    too in that example), see webutil/pageutil/pageutil.h .
-//    This function was designed for stripping the bold tags (inserted by the
-//    docservers) from the titles of news stories being returned by RSS.
-//    This implementation DOES NOT cover all cases in html documents
-//    like tags that contain quoted angle-brackets, or HTML comment.
-//    For example <IMG SRC = "foo.gif" ALT = "A > B">
-//    or <!-- <A comment> -->
-//    See "perldoc -q html"
-// ----------------------------------------------------------------------
-
-void stripMarkupTags(std::string* s);
-std::string outputWithMarkupTagsStripped(const std::string& s);
-
-// ----------------------------------------------------------------------
-// trimStringLeft
-//    Removes any occurrences of the characters in 'remove' from the start
-//    of the string.  Returns the number of chars trimmed.
-// ----------------------------------------------------------------------
-int trimStringLeft(std::string* s, const StringPiece& remove);
-
-// ----------------------------------------------------------------------
-// trimStringRight
-//    Removes any occurrences of the characters in 'remove' from the end
-//    of the string.  Returns the number of chars trimmed.
-// ----------------------------------------------------------------------
-int trimStringRight(std::string* s, const StringPiece& remove);
-
-// ----------------------------------------------------------------------
-// trimString
-//    Removes any occurrences of the characters in 'remove' from either
-//    end of the string.
-// ----------------------------------------------------------------------
-inline int trimString(std::string* s, const StringPiece& remove) {
-  return trimStringRight(s, remove) + trimStringLeft(s, remove);
-}
-
-// ----------------------------------------------------------------------
-// TrimRunsInString
-//    Removes leading and trailing runs, and collapses middle
-//    runs of a set of characters into a single character (the
-//    first one specified in 'remove').  Useful for collapsing
-//    runs of repeated delimiters, whitespace, etc.  E.g.,
-//    TrimRunsInString(&s, " :,()") removes leading and trailing
-//    delimiter chars and collapses and converts internal runs
-//    of delimiters to single ' ' characters, so, for example,
-//    "  a:(b):c  " -> "a b c"
-//    "first,last::(area)phone, ::zip" -> "first last area phone zip"
-// ----------------------------------------------------------------------
-void TrimRunsInString(std::string* s, StringPiece remove);
-
-// ----------------------------------------------------------------------
-// RemoveNullsInString
-//    Removes any internal \0 characters from the string.
-// ----------------------------------------------------------------------
-void RemoveNullsInString(std::string* s);
-
-// ----------------------------------------------------------------------
-// strrm()
-// memrm()
-//    Remove all occurrences of a given character from a string.
-//    Returns the new length.
-// ----------------------------------------------------------------------
-
-int strrm(char* str, char c);
-int memrm(char* str, int strlen, char c);
-
-// ----------------------------------------------------------------------
-// strrmm()
-//    Remove all occurrences of a given set of characters from a string.
-//    Returns the new length.
-// ----------------------------------------------------------------------
-int strrmm(char* str, const char* chars);
-int strrmm(std::string* str, const std::string& chars);

@@ -6,10 +6,6 @@
 
 #include "kudu/gutil/strings/strip.h"
 
-#include <cassert>
-#include <cstring>
-
-#include <algorithm>
 #include <string>
 
 #include "kudu/gutil/strings/ascii_ctype.h"
@@ -21,17 +17,6 @@ string stripPrefixString(StringPiece str, const StringPiece& prefix) {
   if (str.startsWith(prefix))
     str.removePrefix(prefix.length());
   return str.asString();
-}
-
-bool tryStripPrefixString(
-    StringPiece str,
-    const StringPiece& prefix,
-    string* result) {
-  const bool hasPrefix = str.startsWith(prefix);
-  if (hasPrefix)
-    str.removePrefix(prefix.length());
-  str.asString().swap(*result);
-  return hasPrefix;
 }
 
 string stripSuffixString(StringPiece str, const StringPiece& suffix) {
@@ -56,23 +41,6 @@ bool tryStripSuffixString(
 //    Replaces any occurrence of the character 'remove' (or the characters
 //    in 'remove') with the character 'replacewith'.
 // ----------------------------------------------------------------------
-void stripString(char* str, StringPiece remove, char replacewith) {
-  for (; *str != '\0'; ++str) {
-    if (remove.find(*str) != StringPiece::kNpos) {
-      *str = replacewith;
-    }
-  }
-}
-
-void stripString(char* str, int len, StringPiece remove, char replacewith) {
-  char* end = str + len;
-  for (; str < end; ++str) {
-    if (remove.find(*str) != StringPiece::kNpos) {
-      *str = replacewith;
-    }
-  }
-}
-
 void stripString(string* s, StringPiece remove, char replacewith) {
   for (char& c : *s) {
     if (remove.find(c) != StringPiece::kNpos) {
@@ -137,121 +105,6 @@ void StripWhiteSpace(string* str) {
 }
 
 // ----------------------------------------------------------------------
-// Misc. stripping routines
-// ----------------------------------------------------------------------
-void stripCurlyBraces(string* s) {
-  return stripBrackets('{', '}', s);
-}
-
-void stripBrackets(char left, char right, string* s) {
-  string::iterator openCurly = find(s->begin(), s->end(), left);
-  while (openCurly != s->end()) {
-    string::iterator closeCurly = find(openCurly, s->end(), right);
-    if (closeCurly == s->end())
-      return;
-    openCurly = s->erase(openCurly, closeCurly + 1);
-    openCurly = find(openCurly, s->end(), left);
-  }
-}
-
-void stripMarkupTags(string* s) {
-  string::iterator openBracket = find(s->begin(), s->end(), '<');
-  while (openBracket != s->end()) {
-    string::iterator closeBracket = find(openBracket, s->end(), '>');
-    if (closeBracket == s->end()) {
-      s->erase(openBracket, closeBracket);
-      return;
-    }
-
-    openBracket = s->erase(openBracket, closeBracket + 1);
-    openBracket = find(openBracket, s->end(), '<');
-  }
-}
-
-string outputWithMarkupTagsStripped(const string& s) {
-  string result(s);
-  stripMarkupTags(&result);
-  return result;
-}
-
-int trimStringLeft(string* s, const StringPiece& remove) {
-  int i = 0;
-  while (i < s->size() && memchr(remove.data(), (*s)[i], remove.size())) {
-    ++i;
-  }
-  if (i > 0)
-    s->erase(0, i);
-  return i;
-}
-
-int trimStringRight(string* s, const StringPiece& remove) {
-  int i = s->size(), trimmed = 0;
-  while (i > 0 && memchr(remove.data(), (*s)[i - 1], remove.size())) {
-    --i;
-  }
-  if (i < s->size()) {
-    trimmed = s->size() - i;
-    s->erase(i);
-  }
-  return trimmed;
-}
-
-// ----------------------------------------------------------------------
-// Various removal routines
-// ----------------------------------------------------------------------
-int strrm(char* str, char c) {
-  char *src, *dest;
-  for (src = dest = str; *src != '\0'; ++src)
-    if (*src != c)
-      *(dest++) = *src;
-  *dest = '\0';
-  return dest - str;
-}
-
-int memrm(char* str, int strlen, char c) {
-  char *src, *dest;
-  for (src = dest = str; strlen-- > 0; ++src)
-    if (*src != c)
-      *(dest++) = *src;
-  return dest - str;
-}
-
-int strrmm(char* str, const char* chars) {
-  char *src, *dest;
-  for (src = dest = str; *src != '\0'; ++src) {
-    bool skip = false;
-    for (const char* c = chars; *c != '\0'; c++) {
-      if (*src == *c) {
-        skip = true;
-        break;
-      }
-    }
-    if (!skip)
-      *(dest++) = *src;
-  }
-  *dest = '\0';
-  return dest - str;
-}
-
-int strrmm(string* str, const string& chars) {
-  size_t strLen = str->length();
-  size_t inIndex = str->find_first_of(chars);
-  if (inIndex == string::npos)
-    return strLen;
-
-  size_t outIndex = inIndex++;
-
-  while (inIndex < strLen) {
-    char c = (*str)[inIndex++];
-    if (chars.find(c) == string::npos)
-      (*str)[outIndex++] = c;
-  }
-
-  str->resize(outIndex);
-  return outIndex;
-}
-
-// ----------------------------------------------------------------------
 // stripDupCharacters
 //    Replaces any repeated occurrence of the character 'repeat_char'
 //    with single occurrence.  e.g.,
@@ -284,106 +137,10 @@ int stripDupCharacters(string* s, char dupChar, int startPos) {
   return numDeleted;
 }
 
-// ----------------------------------------------------------------------
-// RemoveExtraWhitespace()
-//   Remove leading, trailing, and duplicate internal whitespace.
-// ----------------------------------------------------------------------
-void RemoveExtraWhitespace(string* s) {
-  assert(s != nullptr);
-  // Empty strings clearly have no whitespace, and this code assumes that
-  // string length is greater than 0
-  if (s->empty())
-    return;
-
-  int inputPos = 0; // current reader position
-  int outputPos = 0; // current writer position
-  const int inputEnd = s->size();
-  // Strip off leading space
-  while (inputPos < inputEnd && asciiIsSpace((*s)[inputPos]))
-    inputPos++;
-
-  while (inputPos < inputEnd - 1) {
-    char c = (*s)[inputPos];
-    char next = (*s)[inputPos + 1];
-    // Copy each non-whitespace character to the right position.
-    // For a block of whitespace, print the last one.
-    if (!asciiIsSpace(c) || !asciiIsSpace(next)) {
-      if (outputPos != inputPos) { // only copy if needed
-        (*s)[outputPos] = c;
-      }
-      outputPos++;
-    }
-    inputPos++;
-  }
-  // Pick up the last character if needed.
-  char c = (*s)[inputEnd - 1];
-  if (!asciiIsSpace(c))
-    (*s)[outputPos++] = c;
-
-  s->resize(outputPos);
-}
-
-//------------------------------------------------------------------------
-// See comment in header file for a complete description.
-//------------------------------------------------------------------------
-void StripLeadingWhiteSpace(string* str) {
-  char const* const leading =
-      StripLeadingWhiteSpace(const_cast<char*>(str->c_str()));
-  if (leading != nullptr) {
-    string const tmp(leading);
-    str->assign(tmp);
-  } else {
-    str->assign("");
-  }
-}
-
 void StripTrailingWhitespace(string* const s) {
   string::size_type i;
   for (i = s->size(); i > 0 && asciiIsSpace((*s)[i - 1]); --i) {
   }
 
   s->resize(i);
-}
-
-// ----------------------------------------------------------------------
-// TrimRunsInString
-//    Removes leading and trailing runs, and collapses middle
-//    runs of a set of characters into a single character (the
-//    first one specified in 'remove').  Useful for collapsing
-//    runs of repeated delimiters, whitespace, etc.  E.g.,
-//    TrimRunsInString(&s, " :,()") removes leading and trailing
-//    delimiter chars and collapses and converts internal runs
-//    of delimiters to single ' ' characters, so, for example,
-//    "  a:(b):c  " -> "a b c"
-//    "first,last::(area)phone, ::zip" -> "first last area phone zip"
-// ----------------------------------------------------------------------
-void TrimRunsInString(string* s, StringPiece remove) {
-  string::iterator dest = s->begin();
-  string::iterator srcEnd = s->end();
-  for (string::iterator src = s->begin(); src != srcEnd;) {
-    if (remove.find(*src) == StringPiece::kNpos) {
-      *(dest++) = *(src++);
-    } else {
-      // Skip to the end of this run of chars that are in 'remove'.
-      for (++src; src != srcEnd; ++src) {
-        if (remove.find(*src) == StringPiece::kNpos) {
-          if (dest != s->begin()) {
-            // This is an internal run; collapse it.
-            *(dest++) = remove[0];
-          }
-          *(dest++) = *(src++);
-          break;
-        }
-      }
-    }
-  }
-  s->erase(dest, srcEnd);
-}
-
-// ----------------------------------------------------------------------
-// RemoveNullsInString
-//    Removes any internal \0 characters from the string.
-// ----------------------------------------------------------------------
-void RemoveNullsInString(string* s) {
-  s->erase(remove(s->begin(), s->end(), '\0'), s->end());
 }
