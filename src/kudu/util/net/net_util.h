@@ -17,7 +17,6 @@
 #ifndef KUDU_UTIL_NET_NET_UTIL_H
 #define KUDU_UTIL_NET_NET_UTIL_H
 
-#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -34,7 +33,6 @@ class HostPort {
  public:
   HostPort();
   HostPort(std::string host, uint16_t port);
-  explicit HostPort(const Sockaddr& addr);
 
   bool initialized() const {
     return !host_.empty();
@@ -71,8 +69,6 @@ class HostPort {
     port_ = port;
   }
 
-  size_t hashCode() const;
-
   // Parse a comma separated list of "host:port" pairs into a vector
   // HostPort objects. If no port is specified for an entry in the
   // comma separated list, 'defaultPort' is used for that entry's
@@ -82,32 +78,9 @@ class HostPort {
       uint16_t defaultPort,
       std::vector<HostPort>* res);
 
-  // Takes a vector of HostPort objects and returns a comma separated
-  // string containing of "host:port" pairs. This method is the
-  // "inverse" of parseStrings().
-  static std::string toCommaSeparatedString(
-      const std::vector<HostPort>& hostPorts);
-
  private:
   std::string host_;
   uint16_t port_;
-};
-
-bool operator==(const HostPort& hp1, const HostPort& hp2);
-
-// Hasher of HostPort objects for UnorderedAssociativeContainers.
-struct HostPortHasher {
-  size_t operator()(const HostPort& hp) const {
-    return hp.hashCode();
-  }
-};
-
-// Equality BinaryPredicate of HostPort objects for
-// UnorderedAssociativeContainers.
-struct HostPortEqualityPredicate {
-  bool operator()(const HostPort& hp1, const HostPort& hp2) const {
-    return hp1 == hp2;
-  }
 };
 
 // A container for addr:mask pair.
@@ -117,14 +90,6 @@ class Network {
  public:
   Network();
   Network(Uint128 addr, Uint128 netmask);
-
-  Uint128 addr() const {
-    return addr_;
-  }
-
-  Uint128 netmask() const {
-    return netmask_;
-  }
 
   // Returns true if the address is within network.
   bool withinNetwork(const Sockaddr& addr) const;
@@ -165,11 +130,6 @@ Status getLocalNetworks(std::vector<Network>* net);
 
 // Return the local machine's FQDN.
 Status getFqdn(std::string* hostname);
-
-// Returns a single socket address from a HostPort.
-// If the hostname resolves to multiple addresses, returns the first in the
-// list and logs a message in verbose mode.
-Status sockaddrFromHostPort(const HostPort& hostPort, Sockaddr* addr);
 
 // Converts the given Sockaddr into a HostPort, substituting the FQDN
 // in the case that the provided address is the wildcard.

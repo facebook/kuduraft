@@ -31,7 +31,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/functional/hash/hash.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
@@ -40,7 +39,6 @@
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"
@@ -107,20 +105,6 @@ HostPort::HostPort() : port_(0) {}
 
 HostPort::HostPort(std::string host, uint16_t port)
     : host_(std::move(host)), port_(port) {}
-
-HostPort::HostPort(const Sockaddr& addr)
-    : host_(addr.host()), port_(addr.port()) {}
-
-bool operator==(const HostPort& hp1, const HostPort& hp2) {
-  return hp1.port() == hp2.port() && hp1.host() == hp2.host();
-}
-
-size_t HostPort::hashCode() const {
-  size_t seed = 0;
-  boost::hash_combine(seed, host_);
-  boost::hash_combine(seed, port_);
-  return seed;
-}
 
 bool HostPort::isHostIpv6Address() const {
   if (!initialized()) {
@@ -243,14 +227,6 @@ string HostPort::toString() const {
   // style of host:port
   return isHostIpv6Address() ? fmt::format("[{}]:{}", host_, port_)
                              : fmt::format("{}:{}", host_, port_);
-}
-
-string HostPort::toCommaSeparatedString(const vector<HostPort>& hostPorts) {
-  vector<string> hostPortStrs;
-  for (const HostPort& hostPort : hostPorts) {
-    hostPortStrs.push_back(hostPort.toString());
-  }
-  return JoinStrings(hostPortStrs, ",");
 }
 
 Network::Network() : addr_(0), netmask_(0) {}
@@ -400,22 +376,6 @@ Status getFqdn(string* hostname) {
   }
 
   *hostname = result->ai_canonname;
-  return Status::OK();
-}
-
-Status sockaddrFromHostPort(const HostPort& hostPort, Sockaddr* addr) {
-  vector<Sockaddr> addrs;
-  RETURN_NOT_OK(hostPort.resolveAddresses(&addrs));
-  if (addrs.empty()) {
-    return Status::NetworkError(
-        "Unable to resolve address", hostPort.toString());
-  }
-  *addr = addrs[0];
-  if (addrs.size() > 1) {
-    VLOG(1) << "Hostname " << hostPort.host()
-            << " resolved to more than one address. "
-            << "Using address: " << addr->ToString();
-  }
   return Status::OK();
 }
 
