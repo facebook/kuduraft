@@ -63,7 +63,6 @@ namespace base {
 
 static double cpuinfoCyclesPerSecond = 1.0; // 0.0 might be dangerous
 static int cpuinfoNumCpus = 1; // Conservative guess
-static int cpuinfoMaxCpuIndex = -1;
 
 void sleepForNanoseconds(int64_t nanoseconds) {
   // Sleep for nanosecond duration
@@ -143,27 +142,6 @@ static bool readIntFromFile(const char* file, int* value) {
     return true;
   }
   return false;
-}
-
-static int readMaxCpuIndex() {
-  char buf[1024];
-  CHECK(slurpSmallTextFile(
-      "/sys/devices/system/cpu/present", buf, arraysize(buf)));
-
-  // On a single-core machine, 'buf' will contain the string '0' with a newline.
-  if (strcmp(buf, "0\n") == 0) {
-    return 0;
-  }
-
-  // On multi-core, it will have a CPU range like '0-7'.
-  CHECK_EQ(0, memcmp(buf, "0-", 2)) << "bad list of possible CPUs: " << buf;
-
-  char* maxCpuStr = &buf[2];
-  char* err;
-  int val = strtol(maxCpuStr, &err, 10);
-  CHECK(*err == '\n' || *err == '\0')
-      << "unable to parse max CPU index from: " << buf;
-  return val;
 }
 
 int parseMaxCpuIndex(const char* str) {
@@ -383,14 +361,6 @@ static void initializeSystemInfo() {
   }
   if (localNumCpus > 0) {
     cpuinfoNumCpus = localNumCpus;
-  }
-  cpuinfoMaxCpuIndex = readMaxCpuIndex();
-
-  // On platforms where we can't determine the max CPU index, just use the
-  // number of CPUs. This might break if CPUs are taken offline, but
-  // better than a wild guess.
-  if (cpuinfoMaxCpuIndex < 0) {
-    cpuinfoMaxCpuIndex = cpuinfoNumCpus - 1;
   }
 }
 
