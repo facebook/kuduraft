@@ -4,72 +4,17 @@
 
 #include "kudu/gutil/ref_counted_memory.h"
 
-#include <cstdlib>
-#include <cstring>
-#include <utility>
-
 #include <glog/logging.h>
 
 namespace kudu {
-
-bool RefCountedMemory::equals(
-    const std::shared_ptr<RefCountedMemory>& other) const {
-  return other.get() && size() == other->size() &&
-      (memcmp(front(), other->front(), size()) == 0);
-}
 
 RefCountedMemory::RefCountedMemory() {}
 
 RefCountedMemory::~RefCountedMemory() {}
 
-const unsigned char* RefCountedStaticMemory::front() const {
-  return data_;
-}
-
-size_t RefCountedStaticMemory::size() const {
-  return length_;
-}
-
-RefCountedStaticMemory::~RefCountedStaticMemory() {}
-
-RefCountedBytes::RefCountedBytes() {}
-
-RefCountedBytes::RefCountedBytes(std::vector<unsigned char> initializer)
-    : data_(std::move(initializer)) {}
-
-RefCountedBytes::RefCountedBytes(const unsigned char* p, size_t size)
-    : data_(p, p + size) {}
-
-std::shared_ptr<RefCountedBytes> RefCountedBytes::takeVector(
-    std::vector<unsigned char>* toDestroy) {
-  auto bytes = std::make_shared<RefCountedBytes>();
-  bytes->data_.swap(*toDestroy);
-  return bytes;
-}
-
-const unsigned char* RefCountedBytes::front() const {
-  // STL will assert if we do front() on an empty vector, but calling code
-  // expects a NULL.
-  return size() ? &data_.front() : nullptr;
-}
-
-size_t RefCountedBytes::size() const {
-  return data_.size();
-}
-
-RefCountedBytes::~RefCountedBytes() {}
-
 RefCountedString::RefCountedString() {}
 
 RefCountedString::~RefCountedString() {}
-
-// static
-std::shared_ptr<RefCountedString> RefCountedString::takeString(
-    std::string* toDestroy) {
-  auto self = std::make_shared<RefCountedString>();
-  toDestroy->swap(self->data_);
-  return self;
-}
 
 const unsigned char* RefCountedString::front() const {
   return data_.empty() ? nullptr
@@ -78,23 +23,6 @@ const unsigned char* RefCountedString::front() const {
 
 size_t RefCountedString::size() const {
   return data_.size();
-}
-
-RefCountedMallocedMemory::RefCountedMallocedMemory(void* data, size_t length)
-    : data_(reinterpret_cast<unsigned char*>(data)), length_(length) {
-  DCHECK(data || length == 0);
-}
-
-const unsigned char* RefCountedMallocedMemory::front() const {
-  return length_ ? data_ : nullptr;
-}
-
-size_t RefCountedMallocedMemory::size() const {
-  return length_;
-}
-
-RefCountedMallocedMemory::~RefCountedMallocedMemory() {
-  free(data_);
 }
 
 } //  namespace kudu
