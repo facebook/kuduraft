@@ -34,18 +34,6 @@ extern "C" {
 
 int runetochar(char* s, const Rune* r);
 
-// chartorune copies (decodes) at most UTFmax bytes starting at s to
-// one rune, pointed to by r, and returns the number of bytes consumed.
-// If the input is not exactly in UTF format, chartorune will set *r
-// to Runeerror and return 1.
-//
-// Note: There is no special case for a "null-terminated" string. A
-// string whose first byte has the value 0 is the UTF8 encoding of the
-// Unicode value 0 (i.e., ASCII NULL). A byte value of 0 is illegal
-// anywhere else in a UTF sequence.
-
-int chartorune(Rune* r, const char* s);
-
 // charntorune is like chartorune, except that it will access at most
 // n bytes of s.  If the UTF sequence is incomplete within n bytes,
 // charntorune will set *r to Runeerror and return 0. If it is complete
@@ -54,30 +42,6 @@ int chartorune(Rune* r, const char* s);
 // Added 2004-09-24 by Wei-Hwa Huang
 
 int charntorune(Rune* r, const char* s, int n);
-
-// isvalidcharntorune(str, n, r, consumed)
-// is a convenience function that calls "*consumed = charntorune(r, str, n)"
-// and returns an int (logically boolean) indicating whether the first
-// n bytes of str was a valid and complete UTF sequence.
-
-int isvalidcharntorune(const char* str, int n, Rune* r, int* consumed);
-
-// runelen returns the number of bytes required to convert r into UTF.
-
-int runelen(Rune r);
-
-// runenlen returns the number of bytes required to convert the n
-// runes pointed to by r into UTF.
-
-int runenlen(const Rune* r, int n);
-
-// fullrune returns 1 if the string s of length n is long enough to be
-// decoded by chartorune, and 0 otherwise. This does not guarantee
-// that the string contains a legal UTF encoding. This routine is used
-// by programs that obtain input one byte at a time and need to know
-// when a full rune has arrived.
-
-int fullrune(const char* s, int n);
 
 // The following routines are analogous to the corresponding string
 // routines with "utf" substituted for "str", and "rune" substituted
