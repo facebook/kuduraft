@@ -42,11 +42,6 @@ namespace base {
 // maximum value of sched_getcpu().
 extern int numCpus();
 
-// Return the maximum CPU index that may be returned by sched_getcpu(). For
-// example, on an 8-core machine, this will return '7' even if some of the CPUs
-// have been disabled.
-extern int maxCpuIndex();
-
 void sleepForNanoseconds(int64_t nanoseconds);
 void sleepForMilliseconds(int64_t milliseconds);
 

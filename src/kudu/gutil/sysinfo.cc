@@ -404,9 +404,4 @@ int numCpus(void) {
   return cpuinfoNumCpus;
 }
 
-int maxCpuIndex(void) {
-  initializeSystemInfo();
-  return cpuinfoMaxCpuIndex;
-}
-
 } // namespace base
