@@ -31,12 +31,6 @@ class BASE_EXPORT RefCountedMemory
   // Size of the memory pointed to.
   virtual size_t size() const = 0;
 
-  // Handy method to simplify calling front() with a reinterpret_cast.
-  template <typename T>
-  const T* frontAs() const {
-    return reinterpret_cast<const T*>(front());
-  }
-
  protected:
   RefCountedMemory();
   virtual ~RefCountedMemory();
@@ -52,9 +46,6 @@ class BASE_EXPORT RefCountedString : public RefCountedMemory {
   virtual const unsigned char* front() const override;
   virtual size_t size() const override;
 
-  const std::string& data() const {
-    return data_;
-  }
   std::string& data() {
     return data_;
   }
