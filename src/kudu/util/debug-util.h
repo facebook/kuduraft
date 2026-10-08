@@ -25,8 +25,6 @@
 #include <string>
 #include <vector>
 
-#include <glog/logging.h>
-
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/fastmem.h"
 #include "kudu/util/status.h"
@@ -148,15 +146,6 @@ class StackTrace {
   // This function is async-safe.
   void collect(int skipFrames = 0);
 
-  int numFrames() const {
-    return numFrames_;
-  }
-
-  void* frame(int i) const {
-    DCHECK_LE(i, numFrames_);
-    return frames_[i];
-  }
-
   enum Flags {
     // Do not fix up the addresses on the stack to try to point to the 'call'
     // instructions instead of the return address. This is necessary when
@@ -224,10 +213,6 @@ class StackTraceSnapshot {
   };
   using VisitorFunc = std::function<void(ArrayView<ThreadInfo> group)>;
 
-  void setCaptureThreadNames(bool c) {
-    captureThreadNames_ = c;
-  }
-
   // Snapshot the stack traces of all threads in the process. This may return a
   // bad Status in the case that stack traces aren't supported on the platform,
   // or if the process is running inside a debugger.
@@ -245,13 +230,6 @@ class StackTraceSnapshot {
   //
   // REQUIRES: a previous successful call to snapshotAllStacks().
   void visitGroups(const VisitorFunc& visitor);
-
-  // Return the number of threads which were interrogated for a stack trace.
-  //
-  // NOTE: this includes threads which failed to collect.
-  int numThreads() const {
-    return infos_.size();
-  }
 
   // Return the number of threads which failed to collect a stack trace.
   int numFailed() const {
