@@ -176,15 +176,6 @@ class TraceBufferRingBuffer : public TraceBuffer {
     return false;
   }
 
-  virtual size_t size() const override {
-    // This is approximate because not all of the chunks are full.
-    return chunks_.size() * kTraceBufferChunkSize;
-  }
-
-  virtual size_t capacity() const override {
-    return maxChunks_ * kTraceBufferChunkSize;
-  }
-
   virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
     if (handle.chunkIndex >= chunks_.size()) {
       return nullptr;
@@ -256,12 +247,6 @@ class TraceBufferRingBuffer : public TraceBuffer {
     }
     virtual bool isFull() const override {
       return false;
-    }
-    virtual size_t size() const override {
-      return 0;
-    }
-    virtual size_t capacity() const override {
-      return 0;
     }
     virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
       return nullptr;
@@ -349,15 +334,6 @@ class TraceBufferVector : public TraceBuffer {
 
   virtual bool isFull() const override {
     return chunks_.size() >= kTraceEventVectorBufferChunks;
-  }
-
-  virtual size_t size() const override {
-    // This is approximate because not all of the chunks are full.
-    return chunks_.size() * kTraceBufferChunkSize;
-  }
-
-  virtual size_t capacity() const override {
-    return kTraceEventVectorBufferChunks * kTraceBufferChunkSize;
   }
 
   virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
@@ -1495,14 +1471,6 @@ void TraceLog::setDisabledWhileLocked() {
   dispatchingToObserverList_ = false;
 }
 
-int TraceLog::getNumTracesRecorded() {
-  SpinLockHolder lock(lock_);
-  if (!isEnabled()) {
-    return -1;
-  }
-  return numTracesRecorded_;
-}
-
 bool TraceLog::bufferIsFull() const {
   SpinLockHolder lock(lock_);
   return loggedEvents_->isFull();
@@ -2404,40 +2372,3 @@ const CategoryFilter::StringList& CategoryFilter::getSyntheticDelayValues()
 
 } // namespace debug
 } // namespace kudu
-
-namespace trace_event_internal {
-
-ScopedTraceBinaryEfficient::ScopedTraceBinaryEfficient(
-    const char* category_group,
-    const char* name) {
-  // The single atom works because for now the category_group can only be "gpu".
-  DCHECK(strcmp(category_group, "gpu") == 0);
-  static TRACE_EVENT_API_ATOMIC_WORD atomic = 0;
-  INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO_CUSTOM_VARIABLES(
-      category_group, atomic, categoryGroupEnabled_);
-  name_ = name;
-  if (*categoryGroupEnabled_) {
-    eventHandle_ = TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
-        TRACE_EVENT_PHASE_COMPLETE,
-        categoryGroupEnabled_,
-        name,
-        trace_event_internal::kNoEventId,
-        static_cast<int>(kudu::Thread::uniqueThreadId()),
-        kudu::getMonoTimeMicros(),
-        0,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        TRACE_EVENT_FLAG_NONE);
-  }
-}
-
-ScopedTraceBinaryEfficient::~ScopedTraceBinaryEfficient() {
-  if (*categoryGroupEnabled_) {
-    TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
-        categoryGroupEnabled_, name_, eventHandle_);
-  }
-}
-
-} // namespace trace_event_internal

@@ -205,8 +205,6 @@ class BASE_EXPORT TraceBuffer {
       std::unique_ptr<TraceBufferChunk> chunk) = 0;
 
   virtual bool isFull() const = 0;
-  virtual size_t size() const = 0;
-  virtual size_t capacity() const = 0;
   virtual TraceEvent* getEventByHandle(TraceEventHandle handle) = 0;
 
   // For iteration. Each TraceBuffer can only be iterated once.
@@ -370,13 +368,6 @@ class BASE_EXPORT TraceLog {
   bool isEnabled() {
     return mode_ != kDisabled;
   }
-
-  // The number of times we have begun recording traces. If tracing is off,
-  // returns -1. If tracing is on, then it returns the number of times we have
-  // recorded a trace. By watching for this number to increment, you can
-  // passively discover when a new trace has begun. This is then used to
-  // implement the TRACE_EVENT_IS_NEW_TRACE() primitive.
-  int getNumTracesRecorded();
 
 #if defined(OS_ANDROID)
   void StartATrace();
