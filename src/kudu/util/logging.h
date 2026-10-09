@@ -26,7 +26,6 @@
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/walltime.h"
-#include "kudu/util/logging_callback.h"
 #include "kudu/util/status.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,31 +228,6 @@ class Env;
 // setting the signal handler for SIGPIPE to SIG_IGN.
 void initGoogleLoggingSafe(const char* arg);
 
-// Like initGoogleLoggingSafe() but stripped down: no signal handlers are
-// installed, regular logging is disabled, and log events of any severity
-// will be written to stderr.
-//
-// These properties make it attractive for us in libraries.
-void initGoogleLoggingSafeBasic(const char* arg);
-
-// Demotes stderr logging to ERROR or higher and registers 'cb' as the
-// recipient for all log events.
-//
-// Subsequent calls to registerLoggingCallback no-op (until the callback
-// is unregistered with unregisterLoggingCallback()).
-void registerLoggingCallback(const LoggingCallback& cb);
-
-// Unregisters a callback previously registered with
-// registerLoggingCallback() and promotes stderr logging back to all
-// severities.
-//
-// If no callback is registered, this is a no-op.
-void unregisterLoggingCallback();
-
-// Returns the full pathname of the symlink to the most recent log
-// file corresponding to this severity
-void getFullLogFilename(google::LogSeverity severity, std::string* filename);
-
 // Format a timestamp in the same format as used by GLog.
 std::string formatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch);
 
@@ -264,10 +238,6 @@ std::string formatTimestampForLog(kudu::MicrosecondsInt64 microsSinceEpoch);
 // Uses FLAGS_log_async_buffer_bytes_per_level to set the buffer size.
 // Safe to call multiple times — subsequent calls are no-ops.
 void enableAsyncLogging();
-
-// Shuts down the google logging library. Call before exit to ensure that log
-// files are flushed.
-void shutdownLoggingSafe();
 
 // Deletes excess rotated log files.
 //
