@@ -157,8 +157,8 @@ void enableAsyncLogging() {
       google::base::SetLogger(level, async);
     }
 
-    LOG(INFO) << "Async logging enabled with buffer size "
-              << FLAGS_log_async_buffer_bytes_per_level << " bytes per level";
+    VLOG(1) << "Async logging enabled with buffer size "
+            << FLAGS_log_async_buffer_bytes_per_level << " bytes per level";
   });
 }
 
