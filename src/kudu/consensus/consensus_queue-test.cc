@@ -50,6 +50,7 @@
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/ref_counted_replicate.h"
+#include "kudu/consensus/replicate_msg_wrapper.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/fs/fs_manager.h"
@@ -148,6 +149,7 @@ class ConsensusQueueTest : public KuduTest {
 
   virtual void TearDown() override {
     queue_->Close();
+    raftPool_->Shutdown();
   }
 
   Status appendReplicateMsg(int term, int index, int payloadSize) {
@@ -1948,6 +1950,305 @@ TEST_F(ConsensusQueueConfirmationTest, TestConfirmationWaitWokenByClose) {
 // destruction -- see the contract on waitForQuorumConfirmation -- and the
 // keepalive that makes the real path safe lives in
 // RaftConsensus::waitForQuorumConfirmation, above this layer.
+
+// Bounded data loss: the leader measures how far it has run ahead of a
+// position an eligible remote database replica is known to hold.
+class ConsensusQueueBoundedDatalossTest : public ConsensusQueueTest {
+ protected:
+  static constexpr int64_t kSetupOps = 10;
+
+  // An eligible remote database voter with a resolvable quorum id.
+  RaftPeerPB makeDbVoter(const string& uuid, const string& quorumId) {
+    RaftPeerPB peer = makePeer(uuid, RaftPeerPB::VOTER);
+    peer.mutable_attrs()->set_quorum_id(quorumId);
+    peer.mutable_attrs()->set_backing_db_present(true);
+    return peer;
+  }
+
+  // Leader in quorum "a" with the given peers tracked, and enough operations
+  // appended for the local peer to have acked.
+  //
+  // Quorum ids are required on both ends: TrackedPeer resolves membership only
+  // when the leader and the peer both declare one, and a peer that resolves to
+  // "unknown" is excluded from the exposure walk rather than assumed remote.
+  void setupDcqQueue(
+      const std::vector<RaftPeerPB>& peers,
+      bool enableMeasurement = true) {
+    FLAGS_enable_dataloss_bound_measurement = enableMeasurement;
+    FLAGS_enable_flexi_raft = true;
+
+    std::map<size_t, std::tuple<string, RaftPeerPB::MemberType>> members;
+    members[0] = {"a", RaftPeerPB::VOTER};
+    for (size_t i = 0; i < peers.size(); i++) {
+      members[i + 1] = {peers[i].attrs().quorum_id(), peers[i].member_type()};
+    }
+
+    queue_->Close();
+    testLocalPeerPb_ = fakeRaftPeerPb(kLeaderUuid);
+    testLocalPeerPb_.mutable_attrs()->set_quorum_id("a");
+    closeAndReopenQueue(MinimumOpId(), MinimumOpId());
+
+    queue_->setLeaderMode(
+        kMinimumOpIdIndex,
+        kMinimumTerm,
+        buildQuorumIdRaftConfigPbForTests(members));
+    for (const auto& peer : peers) {
+      queue_->trackPeer(peer);
+    }
+    appendReplicateMessagesToQueue(queue_.get(), clock_, 1, kSetupOps);
+    waitForLocalPeerToAckIndex(kSetupOps);
+  }
+
+  // createDummyReplicate stores its payload under noop_request, which the byte
+  // accounting deliberately ignores. These carry a real write_payload, which
+  // is the field both the counter and the log index record.
+  void
+  appendWritesWithPayload(int64_t first, int64_t count, size_t payloadBytes) {
+    for (int64_t i = first; i < first + count; i++) {
+      auto msg = std::make_unique<ReplicateMsg>();
+      OpId* id = msg->mutable_id();
+      id->set_term(i / 7);
+      id->set_index(i);
+      msg->set_op_type(WRITE_OP_EXT);
+      msg->mutable_write_payload()->mutable_payload()->assign(
+          payloadBytes, 'x');
+      msg->set_timestamp(clock_->now().toUint64());
+      // Deliberately the wrapper overload: the ReplicateRefPtr one is
+      // test-only, and byte accounting lives on the path production uses.
+      CHECK_OK(queue_->appendOperation(ReplicateMsgWrapper(
+          makeScopedRefptrReplicate(std::move(msg), Source::Memory))));
+    }
+  }
+
+  void ackFrom(const string& uuid, const OpId& lastReceived) {
+    ConsensusResponsePB response;
+    response.set_responder_uuid(uuid);
+    setLastReceivedAndLastCommitted(&response, lastReceived);
+    queue_->ResponseFromPeer(uuid, response, MonoTime::Now());
+  }
+
+  void ackFromWithCurrentLeaderPosition(
+      const string& uuid,
+      const OpId& lastReceived,
+      const OpId& lastReceivedCurrentLeader) {
+    ConsensusResponsePB response;
+    response.set_responder_uuid(uuid);
+    setLastReceivedAndLastCommitted(&response, lastReceived);
+    *response.mutable_status()->mutable_last_received_current_leader() =
+        lastReceivedCurrentLeader;
+    queue_->ResponseFromPeer(uuid, response, MonoTime::Now());
+  }
+
+  void ackWithLmpMismatch(
+      const string& uuid,
+      const OpId& lastReceived,
+      const OpId& lastReceivedCurrentLeader) {
+    ConsensusResponsePB response;
+    response.set_responder_uuid(uuid);
+    refuseWithLogPropertyMismatch(
+        &response, lastReceived, lastReceivedCurrentLeader);
+    // UpdateExchangeStatus CHECKs on this before inspecting the error.
+    response.mutable_status()->set_last_committed_idx(
+        lastReceivedCurrentLeader.index());
+    queue_->ResponseFromPeer(uuid, response, MonoTime::Now());
+  }
+
+  // A watermark is established over two exchanges: the first snapshots a
+  // candidate position with the byte total at that position, the second
+  // proves the peer holds it.
+  void establishWatermark(const string& uuid, const OpId& at) {
+    ackFrom(uuid, at);
+    ackFrom(uuid, at);
+  }
+
+  std::optional<PeerMessageQueue::RemoteWatermark> confirmedWatermarkFor(
+      const string& uuid) {
+    return queue_->getTrackedPeerForTests(uuid).confirmedWatermark;
+  }
+};
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestWatermarkTracksConfirmedPositionAndBytes) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto caughtUp = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(caughtUp.has_value());
+  EXPECT_EQ(caughtUp->opId.term(), 1);
+  EXPECT_EQ(caughtUp->opId.index(), kSetupOps);
+  EXPECT_EQ(caughtUp->bytes, 0);
+
+  constexpr int64_t kOps = 5;
+  constexpr size_t kPayload = 1024;
+  appendWritesWithPayload(kSetupOps + 1, kOps, kPayload);
+
+  const auto tail = queue_->getLastOpIdInLog();
+  ackFrom("peer-1", tail);
+
+  auto peer = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.confirmedWatermark->opId.index(), kSetupOps);
+  EXPECT_EQ(peer.confirmedWatermark->bytes, 0);
+  ASSERT_TRUE(peer.pendingWatermark.has_value());
+  EXPECT_EQ(peer.pendingWatermark->opId.index(), tail.index());
+  EXPECT_EQ(peer.pendingWatermark->bytes, kOps * kPayload);
+
+  ackFrom("peer-1", tail);
+
+  peer = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.confirmedWatermark->opId.index(), tail.index());
+  EXPECT_EQ(peer.confirmedWatermark->bytes, kOps * kPayload);
+  EXPECT_FALSE(peer.pendingWatermark.has_value());
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestLegacyAppendPathCountsPayloadBytes) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  constexpr size_t kPayload = 321;
+  auto msg = std::make_unique<ReplicateMsg>();
+  *msg->mutable_id() = MakeOpId(1, kSetupOps + 1);
+  msg->set_op_type(WRITE_OP_EXT);
+  msg->mutable_write_payload()->mutable_payload()->assign(kPayload, 'x');
+  msg->set_timestamp(clock_->now().toUint64());
+  CHECK_OK(queue_->appendOperation(
+      makeScopedRefptrReplicate(std::move(msg), Source::Memory)));
+
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps + 1));
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.confirmedWatermark->bytes, kPayload);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestMeasurementGateChangesAtRuntime) {
+  gflags::FlagSaver flagSaver;
+  setupDcqQueue({makeDbVoter("peer-1", "b")}, false);
+  appendWritesWithPayload(kSetupOps + 1, 5, 1024);
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  // Prefix tracking is cheap and stays current while byte measurement is
+  // disabled, so re-enabling cannot reuse a position the peer has since lost.
+  EXPECT_EQ(
+      peer.lastConfirmedPrefixOpId.index(), queue_->getLastOpIdInLog().index());
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+  EXPECT_FALSE(peer.pendingWatermark.has_value());
+
+  FLAGS_enable_dataloss_bound_measurement = true;
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  appendWritesWithPayload(kSetupOps + 6, 1, 256);
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+
+  const auto enabled = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(enabled.confirmedWatermark.has_value());
+  EXPECT_EQ(enabled.confirmedWatermark->bytes, 256);
+
+  FLAGS_enable_dataloss_bound_measurement = false;
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  const auto disabledAgain = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_FALSE(disabledAgain.confirmedWatermark.has_value());
+  EXPECT_FALSE(disabledAgain.pendingWatermark.has_value());
+}
+
+// An LMP-mismatch response reports a position that is NOT known to be on this
+// leader's log. Treating it as a watermark would credit a divergent peer with
+// data it may not hold, understating exposure -- the unsafe direction.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestLmpMismatchDoesNotEstablishWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+
+  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), MakeOpId(1, kSetupOps));
+  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), MakeOpId(1, kSetupOps));
+
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), MinimumOpId().index());
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestMatchingRegressionRetractsConfirmedWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  ackFrom("peer-1", MakeOpId(1, kSetupOps - 2));
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps - 2);
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+  ASSERT_TRUE(peer.pendingWatermark.has_value());
+  EXPECT_EQ(peer.pendingWatermark->opId.index(), kSetupOps);
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestLmpMismatchRegressionRetractsConfirmedWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  ackWithLmpMismatch("peer-1", MakeOpId(1, kSetupOps - 2), MinimumOpId());
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps - 2);
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestProgressBelowPendingWatermarkDoesNotRetract) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  appendWritesWithPayload(kSetupOps + 1, 5, 8);
+
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  ackFrom("peer-1", MakeOpId((kSetupOps + 3) / 7, kSetupOps + 3));
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.confirmedWatermark->opId.index(), kSetupOps);
+  ASSERT_TRUE(peer.pendingWatermark.has_value());
+  EXPECT_EQ(peer.pendingWatermark->opId.index(), kSetupOps + 5);
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps + 3);
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestCurrentLeaderPositionDoesNotRetractWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  ackFromWithCurrentLeaderPosition(
+      "peer-1", MakeOpId(1, kSetupOps), MinimumOpId());
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.confirmedWatermark->opId.index(), kSetupOps);
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestWrongServerUuidClearsWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  queue_->UpdatePeerStatus(
+      "peer-1",
+      PeerStatus::WrongServerUuid,
+      Status::InvalidArgument("wrong server UUID"));
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), MinimumOpId().index());
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+  EXPECT_FALSE(peer.pendingWatermark.has_value());
+}
 
 } // namespace consensus
 } // namespace kudu

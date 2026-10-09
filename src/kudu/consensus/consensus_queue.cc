@@ -82,6 +82,13 @@ DEFINE_int32(
     "The maximum per-tablet RPC batch size when updating peers.");
 TAG_FLAG(consensus_max_batch_size_bytes, advanced);
 
+DEFINE_bool(
+    enable_dataloss_bound_measurement,
+    false,
+    "Enable bounded-data-loss measurement.");
+TAG_FLAG(enable_dataloss_bound_measurement, experimental);
+TAG_FLAG(enable_dataloss_bound_measurement, runtime);
+
 DEFINE_int32(
     follower_unavailable_considered_failed_sec,
     300,
@@ -280,6 +287,8 @@ const char* peerStatusToString(PeerStatus p) {
       return "OK";
     case PeerStatus::RemoteError:
       return "REMOTE_ERROR";
+    case PeerStatus::WrongServerUuid:
+      return "WRONG_SERVER_UUID";
     case PeerStatus::RpcLayerError:
       return "RPC_LAYER_ERROR";
     case PeerStatus::TabletFailed:
@@ -305,6 +314,7 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
     : peerPb(std::move(peer_pb)),
       nextIndex(kInvalidOpIdIndex),
       lastReceived(MinimumOpId()),
+      lastConfirmedPrefixOpId(MinimumOpId()),
       lastKnownCommittedIndex(MinimumOpId().index()),
       lastExchangeStatus(PeerStatus::New),
       leaseGranted(MinimumOpId()),
@@ -461,6 +471,7 @@ PeerMessageQueue::PeerMessageQueue(
       metrics_(metric_entity),
       timeManager_(std::move(time_manager)),
       leaderLeaseUntil_(MonoTime::Min()),
+      datalossMeasurementEnabled_(FLAGS_enable_dataloss_bound_measurement),
       timeProvider_(TimeProvider::getInstance()) {
   DCHECK(localPeerPb_.has_permanent_uuid());
   DCHECK(localPeerPb_.has_last_known_addr());
@@ -859,8 +870,20 @@ Status PeerMessageQueue::appendOperations(
           last_id,
           log_append_callback)));
   lock.lock();
+  RefreshDatalossMeasurementStateUnlocked();
   DCHECK(last_id.IsInitialized());
   queueState_.last_appended = last_id;
+  if (datalossMeasurementEnabled_.load(std::memory_order_relaxed)) {
+    // These are bare messages, not ReplicateMsgWrappers, so there is no
+    // separate compressed copy: this write_payload is what the log stores and
+    // indexes, the same quantity sumPayloadBytes() counts for wrappers.
+    uint64_t appendedPayloadBytes = 0;
+    for (const auto& msg : msgs) {
+      appendedPayloadBytes += msg->get()->write_payload().payload().size();
+    }
+    cumulativePayloadBytes_.fetch_add(
+        appendedPayloadBytes, std::memory_order_relaxed);
+  }
   UpdateMetricsUnlocked();
 
   return Status::OK();
@@ -873,6 +896,86 @@ Status PeerMessageQueue::appendOperation(
       Bind(
           crashIfNotOkStatusCb,
           "Enqueued replicate operation failed to write to WAL"));
+}
+
+void PeerMessageQueue::RefreshDatalossMeasurementStateUnlocked() {
+  DCHECK(queueLock_.is_locked());
+  const bool requested = FLAGS_enable_dataloss_bound_measurement;
+  const bool active =
+      datalossMeasurementEnabled_.load(std::memory_order_relaxed);
+  if (requested == active) {
+    return;
+  }
+
+  // Byte watermarks cannot span an interval in which counting was disabled.
+  // Mark measurement inactive before clearing them, and active only afterward.
+  if (!requested) {
+    datalossMeasurementEnabled_.store(false, std::memory_order_relaxed);
+  }
+  for (const auto& [uuid, peer] : peersMap_) {
+    if (peer != nullptr && uuid != localPeerPb_.permanent_uuid()) {
+      peer->confirmedWatermark.reset();
+      peer->pendingWatermark.reset();
+    }
+  }
+  if (requested) {
+    // The cumulative counter is only a coordinate. A new watermark captures
+    // the current counter with its log position, so bytes from a disabled
+    // interval are not exposure after that position.
+    datalossMeasurementEnabled_.store(true, std::memory_order_relaxed);
+  }
+}
+
+void PeerMessageQueue::AdvanceRemoteWatermarkUnlocked(TrackedPeer* peer) {
+  DCHECK(queueLock_.is_locked());
+  DCHECK(peer);
+
+  // Not remote.
+  if (peer->uuid() == localPeerPb_.permanent_uuid()) {
+    return;
+  }
+
+  // Once the peer has confirmed the saved position, use it as the new
+  // baseline.
+  if (peer->pendingWatermark.has_value() &&
+      peer->lastConfirmedPrefixOpId.index() >=
+          peer->pendingWatermark->opId.index()) {
+    peer->confirmedWatermark = peer->pendingWatermark;
+    peer->pendingWatermark.reset();
+  }
+
+  // Keep one target fixed until it is confirmed. queueLock_ ensures its log
+  // position and byte count describe the same point in the log.
+  const auto confirmedIndex = peer->confirmedWatermark.has_value()
+      ? peer->confirmedWatermark->opId.index()
+      : MinimumOpId().index();
+  if (!peer->pendingWatermark.has_value() &&
+      queueState_.last_appended.index() > confirmedIndex) {
+    peer->pendingWatermark = RemoteWatermark{
+        .opId = queueState_.last_appended,
+        .bytes = cumulativePayloadBytes_.load(std::memory_order_relaxed)};
+  }
+}
+
+void PeerMessageQueue::ClearRemoteWatermarkUnlocked(TrackedPeer* peer) {
+  DCHECK(queueLock_.is_locked());
+  DCHECK(peer);
+  peer->lastConfirmedPrefixOpId = MinimumOpId();
+  peer->confirmedWatermark.reset();
+  peer->pendingWatermark.reset();
+}
+
+uint64_t PeerMessageQueue::sumPayloadBytes(
+    const vector<ReplicateMsgWrapper>& msgWrappers) {
+  uint64_t total = 0;
+  for (const auto& msgWrapper : msgWrappers) {
+    const auto& msg = msgWrapper.getUncompressedMsg();
+    // LogCache::appendOperations() checks the same invariant after this
+    // accounting step.
+    CHECK(msg) << "ReplicateMsgWrapper must be initialized before append";
+    total += msg->get()->write_payload().payload().size();
+  }
+  return total;
 }
 
 Status PeerMessageQueue::appendOperations(
@@ -924,8 +1027,16 @@ Status PeerMessageQueue::appendOperations(
           last_id,
           log_append_callback)));
   lock.lock();
+  RefreshDatalossMeasurementStateUnlocked();
   DCHECK(last_id.IsInitialized());
   queueState_.last_appended = last_id;
+  // Past the RETURN_NOT_OK, so a failed append never advances the total, and
+  // in last_appended's critical section, so readers holding queueLock_ see the
+  // two agree. See cumulativePayloadBytes_ for readers that skip the lock.
+  if (datalossMeasurementEnabled_.load(std::memory_order_relaxed)) {
+    cumulativePayloadBytes_.fetch_add(
+        sumPayloadBytes(msg_wrappers), std::memory_order_relaxed);
+  }
   UpdateMetricsUnlocked();
 
   return Status::OK();
@@ -1881,15 +1992,23 @@ void PeerMessageQueue::UpdatePeerStatus(
 
     case PeerStatus::TabletNotFound:
       peer->incrConsecutiveFailures();
+      ClearRemoteWatermarkUnlocked(peer);
       VLOG_WITH_PREFIX_UNLOCKED(1)
           << "Peer needs tablet copy: " << peer->ToString();
       break;
 
     case PeerStatus::TabletFailed: {
       peer->incrConsecutiveFailures();
+      ClearRemoteWatermarkUnlocked(peer);
       UpdatePeerHealthUnlocked(peer);
       return;
     }
+
+    case PeerStatus::WrongServerUuid:
+      peer->incrConsecutiveFailures();
+      ClearRemoteWatermarkUnlocked(peer);
+      UpdatePeerAppendFailure(peer, status);
+      break;
 
     case PeerStatus::RemoteError:
     case PeerStatus::InvalidTerm:
@@ -2343,11 +2462,52 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // sent them anything, start after the last-committed op in their log, which
     // is guaranteed by the Raft protocol to be a valid op.
 
-    bool peer_has_prefix_of_log = IsOpInLog(status.last_received());
-    if (peer_has_prefix_of_log) {
+    const LogMatchResult logMatch = MatchOpInLog(status.last_received());
+    if (logMatch == LogMatchResult::Mismatch) {
+      ClearRemoteWatermarkUnlocked(peer);
+    } else if (
+        logMatch == LogMatchResult::Unavailable &&
+        status.last_received().index() <
+            peer->lastConfirmedPrefixOpId.index()) {
+      // The leader no longer retains this index, so the reply cannot establish
+      // a new prefix. It can still show that the peer no longer reaches a
+      // position it had previously confirmed.
+      if (peer->confirmedWatermark.has_value() &&
+          peer->confirmedWatermark->opId.index() <=
+              status.last_received().index()) {
+        peer->lastConfirmedPrefixOpId = peer->confirmedWatermark->opId;
+      } else {
+        ClearRemoteWatermarkUnlocked(peer);
+      }
+    }
+
+    if (logMatch == LogMatchResult::Match) {
       // If the latest thing in their log is in our log, we are in sync.
       peer->lastReceived = status.last_received();
       peer->nextIndex = peer->lastReceived.index() + 1;
+
+      // A matching response reports the peer's actual last entry even when it
+      // rejects the preceding entry in this request. Lower the confirmed
+      // prefix immediately if the peer has lost a suffix. Only a successful
+      // response may move the prefix forward.
+      if (status.last_received().index() <
+          peer->lastConfirmedPrefixOpId.index()) {
+        if (peer->confirmedWatermark.has_value() &&
+            status.last_received().index() <
+                peer->confirmedWatermark->opId.index()) {
+          peer->confirmedWatermark.reset();
+        }
+        peer->lastConfirmedPrefixOpId = status.last_received();
+      }
+      if (peer->lastExchangeStatus == PeerStatus::Ok) {
+        peer->lastConfirmedPrefixOpId = status.last_received();
+      }
+
+      RefreshDatalossMeasurementStateUnlocked();
+      if (datalossMeasurementEnabled_.load(std::memory_order_relaxed) &&
+          peer->lastExchangeStatus == PeerStatus::Ok) {
+        AdvanceRemoteWatermarkUnlocked(peer);
+      }
 
       // Check if the peer is a NON_VOTER candidate ready for promotion.
       PromoteIfNeeded(peer, prev_last_received, status);
@@ -2645,6 +2805,7 @@ bool PeerMessageQueue::PeerStatusConfirmsLeadership(PeerStatus status) {
     // learned anything about the peer's view of leadership.
     case PeerStatus::New:
     case PeerStatus::RemoteError:
+    case PeerStatus::WrongServerUuid:
     case PeerStatus::RpcLayerError:
     case PeerStatus::TabletFailed:
     case PeerStatus::TabletNotFound:
@@ -2964,18 +3125,23 @@ Status PeerMessageQueue::UnRegisterObserver(
   return Status::OK();
 }
 
-bool PeerMessageQueue::IsOpInLog(const OpId& desired_op) const {
+PeerMessageQueue::LogMatchResult PeerMessageQueue::MatchOpInLog(
+    const OpId& desired_op) const {
   OpId log_op;
   Status s = log_cache_->lookupOpId(desired_op.index(), &log_op);
   if (PREDICT_TRUE(s.ok())) {
-    return OpIdEquals(desired_op, log_op);
+    return OpIdEquals(desired_op, log_op) ? LogMatchResult::Match
+                                          : LogMatchResult::Mismatch;
   }
-  if (PREDICT_TRUE(s.IsNotFound() || s.isIncomplete())) {
-    return false;
+  if (PREDICT_TRUE(s.IsNotFound())) {
+    return LogMatchResult::Unavailable;
+  }
+  if (PREDICT_TRUE(s.isIncomplete())) {
+    return LogMatchResult::Mismatch;
   }
   LOG_WITH_PREFIX_UNLOCKED(FATAL)
       << "Error while reading the log: " << s.ToString();
-  return false; // Unreachable; here to squelch GCC warning.
+  return LogMatchResult::Unavailable; // Unreachable.
 }
 
 void PeerMessageQueue::NotifyObserversOfCommitIndexChange(

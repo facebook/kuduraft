@@ -469,14 +469,11 @@ void Peer::processResponse() {
   // Process tserver-level errors.
   if (response_.has_error()) {
     Status responseStatus = statusFromPb(response_.error().status());
-    PeerStatus ps;
-    ps = PeerStatus::RemoteError;
-
-    ServerErrorPB respError = response_.error();
+    PeerStatus ps = PeerStatus::RemoteError;
     switch (response_.error().code()) {
-      // We treat WRONG_SERVER_UUID as failed.
       case ServerErrorPB::WRONG_SERVER_UUID:
-        FALLTHROUGH_INTENDED;
+        ps = PeerStatus::WrongServerUuid;
+        break;
       default:
         // Unknown kind of error.
         ps = PeerStatus::RemoteError;

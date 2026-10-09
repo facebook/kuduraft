@@ -350,6 +350,7 @@ Status LogCache::appendOperations(
   for (const auto& msgWrapper : msgWrappers) {
     auto msg = msgWrapper.getUncompressedMsg();
     auto compressedMsg = msgWrapper.getCompressedMsg();
+    CHECK(msg) << "ReplicateMsgWrapper must be initialized before append";
 
     CacheEntry e;
     e.msgSize = approxMsgSize(msg);
