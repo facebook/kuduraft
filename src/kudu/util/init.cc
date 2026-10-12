@@ -22,21 +22,7 @@
 
 #include <glog/logging.h>
 
-#include <fmt/format.h>
-#include "kudu/gutil/cpu.h"
-#include "kudu/util/status.h"
-
 namespace kudu {
-
-Status badCpuStatus(const base::Cpu& cpu, const char* instructionSet) {
-  return Status::NotSupported(
-      fmt::format(
-          "The CPU on this system ({}) does not support the {} instruction "
-          "set which is required for running Kudu. If you are running inside a VM, "
-          "you may need to enable SSE4.2 pass-through.",
-          cpu.cpuBrand(),
-          instructionSet));
-}
 
 bool isFdOpen(int fd) {
   return fcntl(fd, F_GETFL) != -1;
