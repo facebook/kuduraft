@@ -17,16 +17,10 @@
 
 #include "kudu/util/once.h"
 
-#include "kudu/util/malloc.h"
-
 namespace kudu {
 
 size_t KuduOnceLambda::memoryFootprintExcludingThis() const {
   return status_.memoryFootprintExcludingThis();
-}
-
-size_t KuduOnceLambda::memoryFootprintIncludingThis() const {
-  return kuduMallocUsableSize(this) + memoryFootprintExcludingThis();
 }
 
 } // namespace kudu

@@ -69,10 +69,6 @@ class KuduOnceLambda {
   // be used when embedded inside another object.
   size_t memoryFootprintExcludingThis() const;
 
-  // Returns the memory usage of this object including the object itself.
-  // Should be used when allocated on the heap.
-  size_t memoryFootprintIncludingThis() const;
-
  private:
   AtomicBool initSucceeded_;
   std::once_flag onceFlag_;
