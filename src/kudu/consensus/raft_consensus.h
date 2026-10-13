@@ -110,7 +110,9 @@ class StateMachineMetricsInterface;
 
 struct ConsensusOptions {
   std::string tablet_id;
-  ProxyPolicy proxy_policy;
+  // Callers that configure routing set this explicitly; anything else gets
+  // direct shipping to every peer.
+  ProxyPolicy proxy_policy = ProxyPolicy::DisableProxy;
   std::vector<std::unordered_set<std::string>> proxy_region_groups = {};
   std::optional<std::string> initial_raft_rpc_token;
 };
