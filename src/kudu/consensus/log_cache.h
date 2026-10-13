@@ -216,6 +216,14 @@ class LogCache {
   // error).
   Status lookupOpId(int64_t opIndex, OpId* opId) const;
 
+  // See Log::sumPayloadBytesInRange.
+  Status sumPayloadBytesInRange(
+      int64_t afterIndex,
+      int64_t upToIndex,
+      int64_t* totalBytes,
+      int64_t* entriesCounted,
+      int64_t* firstMissingIndex) const;
+
   // Enable (or disable) compression of messages read from log
   Status setEnableCompressionOnCacheMiss(bool enable);
 

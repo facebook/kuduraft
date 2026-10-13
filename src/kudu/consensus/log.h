@@ -187,6 +187,22 @@ class Log {
 
   virtual Status lookupOpId(int64_t opIndex, consensus::OpId* opId) const = 0;
 
+  // Sum payload bytes in (afterIndex, upToIndex] from log metadata. On
+  // incomplete coverage, return non-OK with the sum and count for the available
+  // prefix and firstMissingIndex set to its first absent entry.
+  virtual Status sumPayloadBytesInRange(
+      int64_t afterIndex,
+      int64_t /* upToIndex */,
+      int64_t* totalBytes,
+      int64_t* entriesCounted,
+      int64_t* firstMissingIndex) const {
+    *totalBytes = 0;
+    *entriesCounted = 0;
+    *firstMissingIndex = afterIndex + 1;
+    return Status::NotSupported(
+        "this log implementation cannot sum payload bytes by range");
+  }
+
  protected:
   friend class LogTest;
   friend class LogTestBase;

@@ -497,6 +497,18 @@ bool LogCache::hasOpBeenWritten(int64_t index) const {
   return index < nextSequentialOpIndex_;
 }
 
+Status LogCache::sumPayloadBytesInRange(
+    int64_t afterIndex,
+    int64_t upToIndex,
+    int64_t* totalBytes,
+    int64_t* entriesCounted,
+    int64_t* firstMissingIndex) const {
+  // Deliberately not served from the cache: the cache holds only a recent
+  // window, while this answers about a range that may extend well behind it.
+  return log_->sumPayloadBytesInRange(
+      afterIndex, upToIndex, totalBytes, entriesCounted, firstMissingIndex);
+}
+
 Status LogCache::lookupOpId(int64_t opIndex, OpId* opId) const {
   // First check the log cache itself.
   {

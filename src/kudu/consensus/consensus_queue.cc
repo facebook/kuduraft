@@ -907,6 +907,8 @@ void PeerMessageQueue::RefreshDatalossMeasurementStateUnlocked() {
     return;
   }
 
+  datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
+
   // Byte watermarks cannot span an interval in which counting was disabled.
   // Mark measurement inactive before clearing them, and active only afterward.
   if (!requested) {
@@ -965,15 +967,15 @@ void PeerMessageQueue::ClearRemoteWatermarkUnlocked(TrackedPeer* peer) {
   peer->pendingWatermark.reset();
 }
 
-uint64_t PeerMessageQueue::sumPayloadBytes(
+int64_t PeerMessageQueue::sumPayloadBytes(
     const vector<ReplicateMsgWrapper>& msgWrappers) {
-  uint64_t total = 0;
+  int64_t total = 0;
   for (const auto& msgWrapper : msgWrappers) {
     const auto& msg = msgWrapper.getUncompressedMsg();
     // LogCache::appendOperations() checks the same invariant after this
     // accounting step.
     CHECK(msg) << "ReplicateMsgWrapper must be initialized before append";
-    total += msg->get()->write_payload().payload().size();
+    total += static_cast<int64_t>(msg->get()->write_payload().payload().size());
   }
   return total;
 }
@@ -1055,6 +1057,10 @@ void PeerMessageQueue::truncateOpsAfter(int64_t index) {
     std::unique_lock<simple_mutexlock> lock(queueLock_);
     DCHECK(op.IsInitialized());
     queueState_.last_appended = op;
+    // Bumped in the same critical section that moves the tail back. A
+    // reconstruction that recorded the old tail fails the generation check;
+    // one that records the new tail never reads the discarded entries.
+    datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
   }
   log_cache_->truncateOpsAfter(op.index());
 }
@@ -1077,6 +1083,149 @@ MonoTime PeerMessageQueue::getLeaderLeaseUntil() {
     return MonoTime().Min();
   }
   return leaderLeaseUntil_;
+}
+
+bool PeerMessageQueue::isDatalossBoundEligibleUnlocked(
+    const TrackedPeer& peer) const {
+  DCHECK(queueLock_.is_locked());
+  if (peer.uuid() == localPeerPb_.permanent_uuid()) {
+    return false;
+  }
+  // Any remote voter can preserve the Raft prefix for recovery, including a
+  // log-only LBU that later hands leadership to a database voter. Standby
+  // members are non-voters, so the voter check excludes them.
+  if (peer.peerPb.member_type() != RaftPeerPB::VOTER) {
+    return false;
+  }
+  // Cached at TrackedPeer construction, and the peer is reconstructed on every
+  // configuration change, so it cannot go stale while tracked. Unset means the
+  // quorum id was not resolvable; exclude rather than assume the peer is
+  // outside the DCQ.
+  return peer.isPeerInLocalQuorum.has_value() &&
+      !peer.isPeerInLocalQuorum.value();
+}
+
+int64_t PeerMessageQueue::reconstructMissingWatermarks() {
+  if (!FLAGS_enable_dataloss_bound_measurement ||
+      !datalossMeasurementEnabled_.load(std::memory_order_relaxed)) {
+    return 0;
+  }
+
+  // Collect the work under the lock, scan without it: the scan walks the log
+  // index and takes that index's own spinlock, which the append path also
+  // uses. Holding queueLock_ across it would couple the two.
+  struct Candidate {
+    string uuid;
+    OpId at;
+  };
+  vector<Candidate> candidates;
+  OpId tail;
+  int64_t tailBytes = 0;
+  int64_t term = 0;
+  int64_t generation = 0;
+
+  {
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
+    if (queueState_.mode != LEADER) {
+      return 0;
+    }
+    tail = queueState_.last_appended;
+    tailBytes = cumulativePayloadBytes_.load(std::memory_order_relaxed);
+    term = queueState_.current_term;
+    generation = datalossBoundGeneration_.load(std::memory_order_relaxed);
+
+    for (const PeersMap::value_type& entry : peersMap_) {
+      TrackedPeer* peer = entry.second;
+      if (peer == nullptr || peer->confirmedWatermark.has_value()) {
+        continue;
+      }
+      // Filter eligibility here rather than after scanning: reconstructing a
+      // backlog for a peer that can never bound the loss is pure cost.
+      if (!isDatalossBoundEligibleUnlocked(*peer)) {
+        continue;
+      }
+      if (peer->lastConfirmedPrefixOpId.index() <= 0 ||
+          peer->lastConfirmedPrefixOpId.index() > tail.index()) {
+        continue;
+      }
+      candidates.push_back({peer->uuid(), peer->lastConfirmedPrefixOpId});
+    }
+  }
+
+  // Latest position first: it has the shortest backlog, so it is the cheapest
+  // to scan and the most likely to still be retained. The NotFound break below
+  // relies on this order.
+  std::sort(
+      candidates.begin(),
+      candidates.end(),
+      [](const Candidate& lhs, const Candidate& rhs) {
+        return lhs.at.index() > rhs.at.index();
+      });
+
+  int64_t reconstructed = 0;
+  for (const auto& candidate : candidates) {
+    int64_t backlogBytes = 0;
+    int64_t entriesCounted = 0;
+    int64_t firstMissingIndex = 0;
+    Status s = log_cache_->sumPayloadBytesInRange(
+        candidate.at.index(),
+        tail.index(),
+        &backlogBytes,
+        &entriesCounted,
+        &firstMissingIndex);
+    const int64_t expectedEntries = tail.index() - candidate.at.index();
+    if (s.ok() && entriesCounted != expectedEntries) {
+      s = Status::IllegalState(
+          fmt::format(
+              "summed {} entries, expected {}",
+              entriesCounted,
+              expectedEntries));
+    }
+    if (!s.ok()) {
+      // A short or unavailable range cannot produce a bound. Leaving the peer
+      // without a watermark reports unknown, which is correct; setting one from
+      // the partial sum would report less exposure than there is.
+      KLOG_EVERY_N_SECS(WARNING, 60)
+          << "Cannot reconstruct bounded-dataloss backlog for peer "
+          << candidate.uuid << " over (" << candidate.at.index() << ", "
+          << tail.index() << "]: " << s.ToString() << " (first missing index "
+          << firstMissingIndex << ")";
+      // Candidates are ordered newest first. If this range crosses a missing
+      // index, every remaining candidate's range contains it too.
+      if (s.IsNotFound()) {
+        break;
+      }
+      continue;
+    }
+
+    std::lock_guard<simple_mutexlock> lock(queueLock_);
+    if (!FLAGS_enable_dataloss_bound_measurement ||
+        !datalossMeasurementEnabled_.load(std::memory_order_relaxed) ||
+        queueState_.mode != LEADER || queueState_.current_term != term ||
+        datalossBoundGeneration_.load(std::memory_order_relaxed) !=
+            generation) {
+      return reconstructed;
+    }
+    auto it = peersMap_.find(candidate.uuid);
+    if (it == peersMap_.end() || it->second == nullptr) {
+      continue;
+    }
+    TrackedPeer* peer = it->second;
+    if (peer->confirmedWatermark.has_value() ||
+        peer->lastConfirmedPrefixOpId.index() < candidate.at.index()) {
+      continue;
+    }
+
+    // The captured byte total and backlog refer to the same tail. If appends
+    // race the scan, subtracting this baseline from the live total includes
+    // them automatically. A peer that advances during the scan only makes the
+    // older baseline conservative.
+    peer->confirmedWatermark = RemoteWatermark{
+        .opId = candidate.at, .bytes = tailBytes - backlogBytes};
+    reconstructed++;
+  }
+
+  return reconstructed;
 }
 
 bool PeerMessageQueue::SafeToEvictUnlocked(const string& evictUuid) const {

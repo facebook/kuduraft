@@ -32,6 +32,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -78,6 +79,17 @@ struct PhysicalEntry {
   uint64_t segmentSequenceNumber;
   uint64_t offsetInSegment;
 } PACKED;
+
+namespace {
+
+// No real entry is written at offset 0, because each log segment starts with
+// a header. Chunk files are created zero-filled, so a zero offset marks a slot
+// that was never written.
+[[nodiscard]] bool neverWritten(const PhysicalEntry& physical) {
+  return physical.offsetInSegment == 0;
+}
+
+} // namespace
 
 ////////////////////////////////////////////////////////////
 // LogIndex::IndexChunk implementation
@@ -456,6 +468,18 @@ Status LogIndex::addEntry(const LogIndexEntry& entry) {
   return Status::OK();
 }
 
+Status LogIndex::mmapChunkForRead(std::shared_ptr<IndexChunk>* chunk) {
+  if (PREDICT_TRUE((*chunk)->isMmapped())) {
+    return Status::OK();
+  }
+  RETURN_NOT_OK(mmapChunk(chunk));
+  if (mmapForReads_) {
+    mmapForReads_->increment(); // needed for tests
+    STATS_logIndexChunkMmapForRead.add(1, KUDU_STATS_TAG);
+  }
+  return Status::OK();
+}
+
 Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
   int64_t minRetained = minRetainedIndex_.load(std::memory_order_acquire);
   if (minRetained > 0 && index < minRetained) {
@@ -472,27 +496,100 @@ Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
     // Grab the 'openChunksLock_' to ensure that the chunk does not get
     // unmapped
     std::lock_guard<simple_spinlock> l(openChunksLock_);
-    if (PREDICT_FALSE(!chunk->isMmapped())) {
-      RETURN_NOT_OK(mmapChunk(&chunk));
-
-      if (mmapForReads_) {
-        mmapForReads_->increment(); // needed for tests
-        STATS_logIndexChunkMmapForRead.add(1, KUDU_STATS_TAG);
-      }
-    }
-
+    RETURN_NOT_OK(mmapChunkForRead(&chunk));
     chunk->getEntry(indexInChunk, &phys);
   }
 
-  // We never write any real entries to offset 0, because there's a header
-  // in each log segment. So, this indicates an entry that was never written.
-  if (phys.offsetInSegment == 0) {
+  if (neverWritten(phys)) {
     return Status::NotFound(fmt::format("entry not found, index: {}", index));
   }
 
   entry->opId = consensus::MakeOpId(phys.term, index);
   entry->segmentSequenceNumber = phys.segmentSequenceNumber;
   entry->offsetInSegment = phys.offsetInSegment;
+
+  return Status::OK();
+}
+
+Status LogIndex::forEachInRange(
+    int64_t beginIndex,
+    int64_t endIndex,
+    int64_t maxEntriesPerBatch,
+    const std::function<void(const LogIndexEntry&)>& callback,
+    int64_t* firstMissingIndex) {
+  if (firstMissingIndex == nullptr) {
+    return Status::InvalidArgument("first missing index output is null");
+  }
+  *firstMissingIndex = beginIndex;
+  if (beginIndex <= 0) {
+    return Status::InvalidArgument("log index range must start above zero");
+  }
+  if (!callback) {
+    return Status::InvalidArgument("log index range callback is empty");
+  }
+  if (beginIndex > endIndex) {
+    return Status::OK();
+  }
+
+  const auto batchEntries = std::max<int64_t>(1, maxEntriesPerBatch);
+  auto nextIndex = beginIndex;
+  while (nextIndex <= endIndex) {
+    const auto minRetained = minRetainedIndex_.load(std::memory_order_acquire);
+    if (minRetained > 0 && nextIndex < minRetained) {
+      return Status::NotFound("entry has been purged");
+    }
+
+    std::shared_ptr<IndexChunk> chunk;
+    auto status = getChunkForIndex(nextIndex, /*create=*/false, &chunk);
+    if (!status.ok()) {
+      return status;
+    }
+
+    const auto indexInChunk = nextIndex % entriesPerIndexChunk_;
+    const auto entriesToRead = std::min(
+        {batchEntries,
+         endIndex - nextIndex + 1,
+         entriesPerIndexChunk_ - indexInChunk});
+    vector<PhysicalEntry> physicalEntries;
+    physicalEntries.reserve(entriesToRead);
+    int64_t missingIndex = 0;
+
+    {
+      std::lock_guard<simple_spinlock> l(openChunksLock_);
+      status = mmapChunkForRead(&chunk);
+      if (!status.ok()) {
+        return status;
+      }
+
+      for (int64_t indexOffset = 0; indexOffset < entriesToRead;
+           indexOffset++) {
+        PhysicalEntry physical{};
+        chunk->getEntry(
+            static_cast<int>(indexInChunk + indexOffset), &physical);
+        if (neverWritten(physical)) {
+          missingIndex = nextIndex + indexOffset;
+          break;
+        }
+        physicalEntries.push_back(physical);
+      }
+    }
+
+    const auto entriesRead = static_cast<int64_t>(physicalEntries.size());
+    for (int64_t indexOffset = 0; indexOffset < entriesRead; indexOffset++) {
+      const auto& physical = physicalEntries[indexOffset];
+      LogIndexEntry entry;
+      entry.opId = consensus::MakeOpId(physical.term, nextIndex + indexOffset);
+      entry.segmentSequenceNumber = physical.segmentSequenceNumber;
+      entry.offsetInSegment = physical.offsetInSegment;
+      callback(entry);
+    }
+    nextIndex += entriesRead;
+    *firstMissingIndex = nextIndex;
+    if (missingIndex > 0) {
+      return Status::NotFound(
+          fmt::format("entry not found, index: {}", missingIndex));
+    }
+  }
 
   return Status::OK();
 }

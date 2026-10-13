@@ -2250,5 +2250,395 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestWrongServerUuidClearsWatermark) {
   EXPECT_FALSE(peer.pendingWatermark.has_value());
 }
 
+// After a leadership change the byte counter restarts at zero, so the ordinary
+// path cannot report exposure until the peer reaches the new leader's tail.
+// Reconstruction from the log index answers immediately instead.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapReconstructsBacklog) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+
+  constexpr int64_t kHeldOps = 2;
+  constexpr int64_t kBacklogOps = 6;
+  constexpr size_t kPayload = 512;
+  appendWritesWithPayload(kSetupOps + 1, kHeldOps + kBacklogOps, kPayload);
+
+  // The peer holds the first kHeldOps writes and is kBacklogOps behind. One
+  // exchange proves the position; it never reaches the current tail.
+  constexpr int64_t kHeld = kSetupOps + kHeldOps;
+  ackFrom("peer-1", MakeOpId(kHeld / 7, kHeld));
+  ASSERT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+
+  // The baseline is the byte total at the peer's position: the writes it
+  // holds, none of the backlog.
+  const auto watermark = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(watermark.has_value());
+  EXPECT_EQ(watermark->opId.index(), kHeld);
+  EXPECT_EQ(watermark->bytes, kHeldOps * static_cast<int64_t>(kPayload));
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestRuntimeEnableReconstructsDisabledInterval) {
+  gflags::FlagSaver flagSaver;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  FLAGS_enable_dataloss_bound_measurement = false;
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  appendWritesWithPayload(kSetupOps + 1, 2, 200);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+
+  FLAGS_enable_dataloss_bound_measurement = true;
+  appendWritesWithPayload(kSetupOps + 3, 1, 300);
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+
+  const auto watermark = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(watermark.has_value());
+  EXPECT_EQ(watermark->opId.index(), kSetupOps);
+  EXPECT_EQ(watermark->bytes, -400);
+}
+
+// A peer that never proved a position has nothing to reconstruct from.
+// Reporting zero exposure for it would be a false bound.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapSkipsPeerWithoutProvenPosition) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+// Reconstruction is for peers that lack a watermark. One already established
+// through the ordinary path must not be overwritten by a scan.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapLeavesExistingWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto before = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(before.has_value());
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+
+  const auto after = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(after.has_value());
+  EXPECT_EQ(after->opId.index(), before->opId.index());
+  EXPECT_EQ(after->bytes, before->bytes);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapSkipsIneligiblePeer) {
+  setupDcqQueue({makeDbVoter("peer-1", "a"), makeDbVoter("peer-2", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-2", MakeOpId(1, kSetupOps));
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+  EXPECT_TRUE(confirmedWatermarkFor("peer-2").has_value());
+}
+
+// A Log that reports success after a short read must not set a baseline:
+// the bytes of the entries it skipped would count as already replicated.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapRejectsShortCount) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([](int64_t /* afterIndex */,
+                                     int64_t upToIndex,
+                                     int64_t* totalBytes,
+                                     int64_t* entriesCounted,
+                                     int64_t* firstMissingIndex) {
+    *totalBytes = 128;
+    *entriesCounted = 1;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+// A range the log no longer fully covers reports unknown, never the partial
+// sum.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapSkipsIncompleteHistory) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([](int64_t afterIndex,
+                                     int64_t /* upToIndex */,
+                                     int64_t* totalBytes,
+                                     int64_t* entriesCounted,
+                                     int64_t* firstMissingIndex) {
+    *totalBytes = 128;
+    *entriesCounted = 1;
+    *firstMissingIndex = afterIndex + 2;
+    return Status::NotFound("entry has been purged");
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+// A scan that spans a leadership change summed the previous term's log
+// against the previous term's byte counter. Setting it would mix two
+// coordinate systems.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapDiscardsScanSpanningReelection) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  std::map<size_t, std::tuple<string, RaftPeerPB::MemberType>> members;
+  members[0] = {"a", RaftPeerPB::VOTER};
+  members[1] = {"b", RaftPeerPB::VOTER};
+  const RaftConfigPB config = buildQuorumIdRaftConfigPbForTests(members);
+  const int64_t nextTerm = queue_->getLastOpIdInLog().term() + 1;
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    queue_->setNonLeaderMode(config);
+    queue_->setLeaderMode(queue_->getCommittedIndex(), nextTerm, config);
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapDiscardsScanSpanningStepDown) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+// Turning measurement off and back on changes neither the term nor the role,
+// so only the generation check stops this scan. The counter skipped the bytes
+// appended while measurement was off, so a baseline from before the toggle
+// would understate exposure.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapDiscardsScanSpanningMeasurementToggle) {
+  gflags::FlagSaver flagSaver;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 1, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    FLAGS_enable_dataloss_bound_measurement = false;
+    appendWritesWithPayload(upToIndex + 1, 1, 128);
+    FLAGS_enable_dataloss_bound_measurement = true;
+    appendWritesWithPayload(upToIndex + 2, 1, 128);
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+// A truncation changes neither the term nor the role, so only the generation
+// check stops this scan: the entries it summed may no longer be in the log.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapDiscardsScanSpanningTruncation) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    queue_->truncateOpsAfter(upToIndex - 1);
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+// A watermark the ordinary path confirms while the scan runs is newer than the
+// reconstructed one, so it is kept.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapKeepsWatermarkConfirmedDuringScan) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  constexpr int64_t kTail = kSetupOps + 3;
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    establishWatermark("peer-1", MakeOpId(1, kTail));
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  const auto watermark = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(watermark.has_value());
+  EXPECT_EQ(watermark->opId.index(), kTail);
+}
+
+// A peer that moves ahead during the scan still gets the baseline at the
+// position it held when the scan started. That overstates its exposure until
+// the ordinary path catches up, which is the safe direction.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapUsesScanStartForPeerThatAdvanced) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    ackFrom("peer-1", MakeOpId(1, kSetupOps + 2));
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+  const auto watermark = confirmedWatermarkFor("peer-1");
+  ASSERT_TRUE(watermark.has_value());
+  EXPECT_EQ(watermark->opId.index(), kSetupOps);
+  EXPECT_EQ(watermark->bytes, 0);
+}
+
+// Every older candidate's range contains the newest one's, so history missing
+// from the newest range is missing from all of them.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapStopsAtMissingHistory) {
+  setupDcqQueue({makeDbVoter("peer-1", "b"), makeDbVoter("peer-2", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 2, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps + 1));
+  ackFrom("peer-2", MakeOpId(1, kSetupOps));
+
+  auto scans = 0;
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t /* upToIndex */,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    scans++;
+    *totalBytes = 0;
+    *entriesCounted = 0;
+    *firstMissingIndex = afterIndex + 1;
+    return Status::NotFound("entry has been purged");
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_EQ(scans, 1);
+}
+
+// Any other failure is specific to that scan, so older candidates still get
+// their own.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapTriesOlderCandidateAfterOtherError) {
+  setupDcqQueue({makeDbVoter("peer-1", "b"), makeDbVoter("peer-2", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 2, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps + 1));
+  ackFrom("peer-2", MakeOpId(1, kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    if (afterIndex == kSetupOps + 1) {
+      return Status::IOError("injected");
+    }
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+  EXPECT_TRUE(confirmedWatermarkFor("peer-2").has_value());
+}
+
+// A log-only LBU outside the local quorum can preserve the prefix and hand
+// leadership to a database voter, so it is reconstructed like one.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapReconstructsRemoteLbu) {
+  RaftPeerPB logOnly = makeDbVoter("peer-1", "b");
+  logOnly.mutable_attrs()->set_backing_db_present(false);
+  setupDcqQueue({logOnly});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+  EXPECT_TRUE(confirmedWatermarkFor("peer-1").has_value());
+}
+
 } // namespace consensus
 } // namespace kudu

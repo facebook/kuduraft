@@ -936,6 +936,19 @@ class StatefulMockLog : public kudu::log::Log {
     return Status::OK();
   }
 
+  using SumPayloadBytesFn = std::function<Status(
+      int64_t afterIndex,
+      int64_t upToIndex,
+      int64_t* totalBytes,
+      int64_t* entriesCounted,
+      int64_t* firstMissingIndex)>;
+
+  // Replaces sumPayloadBytesInRange, so a test can return a short or failed
+  // sum, or change queue state while a reconstruction scan is in flight.
+  void setSumPayloadBytesForTests(SumPayloadBytesFn fn) {
+    sumPayloadBytesForTests_ = std::move(fn);
+  }
+
   // Override asyncAppendReplicates to store operations in memory
   Status asyncAppendReplicates(
       const std::vector<ReplicateRefPtr>& replicates,
@@ -946,11 +959,46 @@ class StatefulMockLog : public kudu::log::Log {
         ops[opId.index()] = opId;
       }
     });
+    payloadBytes_.withWLock([&](auto& bytes) {
+      for (const auto& replicate : replicates) {
+        bytes[replicate->get()->id().index()] = static_cast<int64_t>(
+            replicate->get()->write_payload().payload().size());
+      }
+    });
 
     if (!callback.is_null()) {
       callback.Run(Status::OK());
     }
     return Status::OK();
+  }
+
+  Status sumPayloadBytesInRange(
+      int64_t afterIndex,
+      int64_t upToIndex,
+      int64_t* totalBytes,
+      int64_t* entriesCounted,
+      int64_t* firstMissingIndex) const override {
+    if (sumPayloadBytesForTests_) {
+      return sumPayloadBytesForTests_(
+          afterIndex, upToIndex, totalBytes, entriesCounted, firstMissingIndex);
+    }
+    *totalBytes = 0;
+    *entriesCounted = 0;
+    *firstMissingIndex = upToIndex + 1;
+
+    return payloadBytes_.withRLock([&](const auto& bytes) -> Status {
+      for (int64_t i = std::max<int64_t>(afterIndex + 1, 1); i <= upToIndex;
+           i++) {
+        auto it = bytes.find(i);
+        if (it == bytes.end()) {
+          *firstMissingIndex = i;
+          return Status::NotFound("no index entry");
+        }
+        *totalBytes += it->second;
+        (*entriesCounted)++;
+      }
+      return Status::OK();
+    });
   }
 
   // Override lookupOpId to retrieve stored operations
@@ -1026,6 +1074,8 @@ class StatefulMockLog : public kudu::log::Log {
 
  private:
   folly::Synchronized<std::map<int64_t, OpId>> ops_;
+  folly::Synchronized<std::map<int64_t, int64_t>> payloadBytes_;
+  SumPayloadBytesFn sumPayloadBytesForTests_;
 };
 
 } // namespace kudu::consensus

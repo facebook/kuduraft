@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -109,6 +110,54 @@ TEST_F(LogIndexTest, TestMultiSegmentWithGC) {
   verifyNotFound(1000000);
   verifyNotFound(1500000);
   verifyNotFound(2500000);
+}
+
+TEST_F(LogIndexTest, TestRangeReadUsesBoundedBatchesAcrossChunks) {
+  index_->setNumEntriesPerChunkForTest(4);
+  std::vector<LogIndexEntry> expected;
+  for (int64_t index = 1; index <= 6; index++) {
+    const LogIndexEntry entry{
+        .opId = MakeOpId(index, index),
+        .segmentSequenceNumber = index * 10,
+        .offsetInSegment = index * 100};
+    ASSERT_OK(addEntry(
+        entry.opId, entry.segmentSequenceNumber, entry.offsetInSegment));
+    expected.push_back(entry);
+  }
+
+  std::vector<LogIndexEntry> entries;
+  int64_t firstMissing = 0;
+  ASSERT_OK(index_->forEachInRange(
+      1,
+      6,
+      2,
+      [&entries](const LogIndexEntry& entry) { entries.push_back(entry); },
+      &firstMissing));
+
+  EXPECT_EQ(entries, expected);
+  EXPECT_EQ(firstMissing, 7);
+}
+
+TEST_F(LogIndexTest, TestRangeReadStopsAtFirstMissingEntry) {
+  ASSERT_OK(addEntry(MakeOpId(1, 1), 10, 100));
+  ASSERT_OK(addEntry(MakeOpId(2, 2), 20, 200));
+  ASSERT_OK(addEntry(MakeOpId(4, 4), 40, 400));
+
+  std::vector<int64_t> indexes;
+  int64_t firstMissing = 0;
+  const auto status = index_->forEachInRange(
+      1,
+      4,
+      4,
+      [&indexes](const LogIndexEntry& entry) {
+        indexes.push_back(entry.opId.index());
+      },
+      &firstMissing);
+
+  EXPECT_TRUE(status.IsNotFound()) << status.ToString();
+  const std::vector<int64_t> expectedIndexes{1, 2};
+  EXPECT_EQ(indexes, expectedIndexes);
+  EXPECT_EQ(firstMissing, 3);
 }
 
 TEST(LogIndexEntry, Comparison) {

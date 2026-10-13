@@ -151,7 +151,10 @@ class PeerMessageQueue {
  public:
   struct RemoteWatermark {
     OpId opId;
-    uint64_t bytes = 0;
+    // May be negative: a reconstructed watermark subtracts the peer's backlog
+    // from the counter, and that backlog can include entries this queue never
+    // counted. Only differences between readings on this queue are meaningful.
+    int64_t bytes = 0;
   };
 
   struct TrackedPeer {
@@ -779,6 +782,22 @@ class PeerMessageQueue {
   // Gets the Leader Lease timestamp
   MonoTime getLeaderLeaseUntil();
 
+  // Re-establish byte accounting for peers that acknowledged a position but
+  // have no watermark yet, by reconstructing the backlog from the log index.
+  //
+  // Needed after a leadership change. Each leader records watermarks against
+  // its own byte counter, so a newly elected leader has none, and the ordinary
+  // path -- snapshot a candidate, wait for the peer to reach it -- cannot
+  // report exposure until the peer has caught all the way up to the new
+  // leader's tail. On a peer that is far behind that is an arbitrarily long
+  // blind window, precisely when exposure is largest. Scanning (F, tail] gives
+  // the answer immediately instead.
+  //
+  // Returns the number of watermarks reconstructed. Peers whose range is no
+  // longer retained are skipped and left without a watermark, which reports as
+  // unknown rather than as zero exposure.
+  [[nodiscard]] int64_t reconstructMissingWatermarks();
+
   // Sets the Leader lease until timestamp
   void setLeaderLeaseUntil(MonoTime update) {
     leaderLeaseUntil_ = update;
@@ -914,6 +933,11 @@ class PeerMessageQueue {
   // not span intervals during which counting was disabled.
   void RefreshDatalossMeasurementStateUnlocked();
 
+  // A voter outside this leader's data commit quorum, other than the local
+  // peer. Caller must hold queueLock_.
+  [[nodiscard]] bool isDatalossBoundEligibleUnlocked(
+      const TrackedPeer& peer) const;
+
   // Uncompressed replicated payload bytes across 'msgWrappers'.
   //
   // Uses the same expression as LogCache's approxMsgSize -- the uncompressed
@@ -921,7 +945,7 @@ class PeerMessageQueue {
   // log index, and the bootstrap scan reconstructs this total from the index.
   // The two must measure the same quantity or a reconstructed baseline will not
   // be comparable with a live one.
-  [[nodiscard]] static uint64_t sumPayloadBytes(
+  [[nodiscard]] static int64_t sumPayloadBytes(
       const std::vector<ReplicateMsgWrapper>& msgWrappers);
 
   // Return true if it would be safe to evict the peer 'evictUuid' at this
@@ -1213,6 +1237,14 @@ class PeerMessageQueue {
   // that state.
   std::atomic<bool> datalossMeasurementEnabled_;
 
+  // Bumped by every event that invalidates a watermark reconstructed from an
+  // earlier snapshot of the log tail and byte counter: turning measurement on
+  // or off, and truncating the log. reconstructMissingWatermarks() records
+  // it with that snapshot, scans without queueLock_, and discards the result
+  // if it changed. A term change is checked separately. Written under
+  // queueLock_.
+  std::atomic<int64_t> datalossBoundGeneration_{0};
+
   // Running total of replicated payload bytes appended while measurement is
   // enabled. Subtracting the value captured when a peer's watermark was
   // recorded gives that peer's byte exposure without rescanning the log.
@@ -1227,7 +1259,7 @@ class PeerMessageQueue {
   // section as queueState_.last_appended, so readers holding queueLock_ see
   // the two agree. Atomic so readers can skip the queue's hottest lock; such a
   // reader can see the byte count and the tail one append batch apart.
-  std::atomic<uint64_t> cumulativePayloadBytes_{0};
+  std::atomic<int64_t> cumulativePayloadBytes_{0};
 
   // Wakes readers blocked in waitForQuorumConfirmation. Never signalled while
   // holding queueLock_ -- the woken thread would immediately contend on the

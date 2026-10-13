@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -75,6 +76,17 @@ class LogIndex {
   // Retrieve an existing entry from the index.
   // Returns NotFound() if the given log entry was never written.
   Status getEntry(int64_t index, LogIndexEntry* entry);
+
+  // Visit entries from beginIndex through endIndex, both inclusive. At most
+  // maxEntriesPerBatch entries are copied per lock acquisition. The callback
+  // runs without openChunksLock_ held. On error, entries before
+  // firstMissingIndex have already been visited.
+  [[nodiscard]] Status forEachInRange(
+      int64_t beginIndex,
+      int64_t endIndex,
+      int64_t maxEntriesPerBatch,
+      const std::function<void(const LogIndexEntry&)>& callback,
+      int64_t* firstMissingIndex);
 
   // Indicate that we no longer need to retain information about indexes lower
   // than the given index. Note that the implementation is conservative and
@@ -133,6 +145,10 @@ class LogIndex {
   // peer have its own slot for 'mmapping' an index chunk (but this strategy is
   // not implemented yet). Check 'kChunksToMmap' for more details
   Status mmapChunk(std::shared_ptr<IndexChunk>* chunk);
+
+  // Maps 'chunk' for a read if it is not mapped. The caller holds
+  // 'openChunksLock_', which keeps it mapped until released.
+  Status mmapChunkForRead(std::shared_ptr<IndexChunk>* chunk);
 
   // Return the index chunk which contains the given log index.
   // If 'create' is true, creates it on-demand. If 'create' is false, and
