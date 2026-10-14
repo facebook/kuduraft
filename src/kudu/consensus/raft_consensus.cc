@@ -2904,7 +2904,8 @@ Status RaftConsensus::bulkChangeConfig(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RaftConfigPB newConfig;
-    checkBulkConfigChangeAndGetNewConfigUnlocked(req, errorCode, &newConfig);
+    RETURN_NOT_OK(checkBulkConfigChangeAndGetNewConfigUnlocked(
+        req, errorCode, &newConfig));
     const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
     RETURN_NOT_OK(replicateConfigChangeUnlocked(

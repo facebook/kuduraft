@@ -1260,5 +1260,36 @@ TEST_F(RaftConsensusQuorumTest, TestModifyCannotMarkVoterStandby) {
   verifyLogs(kLeaderIdx, 0, 1);
 }
 
+// The ChangeConfig RPC path must stop at a validation failure instead of
+// replicating whatever config validation had built so far.
+TEST_F(RaftConsensusQuorumTest, TestChangeConfigStopsOnValidationFailure) {
+  const int kLeaderIdx = 2;
+  ASSERT_OK(buildAndStartConfig(3));
+
+  OpId lastOpId;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
+  NO_FATALS(replicateSequenceOfMessages(
+      1, kLeaderIdx, kWaitForAllReplicas, &lastOpId, &rounds));
+  waitForCommitIfNotAlreadyPresent(lastOpId.index(), 0, kLeaderIdx);
+  waitForCommitIfNotAlreadyPresent(lastOpId.index(), 1, kLeaderIdx);
+
+  shared_ptr<RaftConsensus> leader;
+  ASSERT_OK(peers_->getPeerByIdx(kLeaderIdx, &leader));
+  const int64_t opidIndexBefore = leader->committedConfig().opid_index();
+
+  // MODIFY_PEER of a peer that is not in the config.
+  ChangeConfigRequestPB req;
+  req.set_tablet_id(kTestTablet);
+  req.set_type(MODIFY_PEER);
+  req.mutable_server()->set_permanent_uuid("not-a-member");
+  req.mutable_server()->set_member_type(RaftPeerPB::NON_VOTER);
+  std::optional<ServerErrorPB::Code> errorCode;
+  const Status s = leader->changeConfig(req, [](const Status&) {}, &errorCode);
+  ASSERT_TRUE(s.IsNotFound()) << s.ToString();
+  ASSERT_EQ(leader->committedConfig().opid_index(), opidIndexBefore);
+
+  verifyLogs(kLeaderIdx, 0, 1);
+}
+
 } // namespace consensus
 } // namespace kudu

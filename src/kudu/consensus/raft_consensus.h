@@ -530,7 +530,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // This helper has been excised out of kudu
   // bulkChangeConfig function. It does several sanity checks
   // to adhere to one at a time change
-  Status checkBulkConfigChangeAndGetNewConfigUnlocked(
+  [[nodiscard]] Status checkBulkConfigChangeAndGetNewConfigUnlocked(
       const BulkChangeConfigRequestPB& req,
       std::optional<ServerErrorPB::Code>* errorCode,
       RaftConfigPB* newConfig);
