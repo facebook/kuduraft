@@ -933,6 +933,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       RaftConsensusQuorumTest,
       TestConsensusStopsIfAMajorityFallsBehind);
   FRIEND_TEST(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum);
+  FRIEND_TEST(RaftConsensusQuorumTest, TestConfigChangeWithProxyDisabled);
   FRIEND_TEST(
       RaftConsensusQuorumTest,
       TestReplicasEnforceTheLogMatchingProperty);

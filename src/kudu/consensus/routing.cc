@@ -818,6 +818,9 @@ Status RoutingTableContainer::updateRaftConfig(RaftConfigPB raftConfig) {
       return srt_->updateRaftConfig(std::move(raftConfig));
     case ProxyPolicy::RegionGroupRoutingPolicy:
       return grt_->updateRaftConfig(std::move(raftConfig));
+    case ProxyPolicy::DisableProxy:
+      // There is no routing table to update: ops go straight to each peer.
+      return Status::OK();
     default:
       break; // placate the compiler
   }

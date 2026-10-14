@@ -696,6 +696,20 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusContinuesIfAMinorityFallsBehind) {
   verifyLogs(2, 0, 1);
 }
 
+// With DisableProxy there is no routing table, so updating the routing tables
+// for a new configuration has nothing to do and must not fail.
+TEST_F(RaftConsensusQuorumTest, TestConfigChangeWithProxyDisabled) {
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+
+  RaftConsensus::LockGuard l(peer->lock_);
+  RaftConfigPB config = peer->cmeta_->committedConfig();
+  config.set_opid_index(config.opid_index() + 1);
+  ASSERT_OK(peer->setPendingConfigUnlocked(config));
+  ASSERT_OK(peer->setCommittedConfigUnlocked(config));
+}
+
 TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
   // Constants with the indexes of peers with certain roles,
   // since peers don't change roles in this test.
