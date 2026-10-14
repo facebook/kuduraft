@@ -27,10 +27,13 @@
 #include <optional>
 
 #include <fmt/format.h>
+#include <gflags/gflags.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
+
+DECLARE_bool(raft_reject_standby_voter);
 
 using std::pair;
 using std::string;
@@ -434,6 +437,24 @@ TEST(QuorumUtilTest, TestIsRaftConfigVoter) {
   RaftPeerPB* peerC;
   ASSERT_OK(getRaftConfigMember(&config, "C", &peerC));
   ASSERT_FALSE(replicaTypesEqual(*peerB, *peerC));
+}
+
+TEST(QuorumUtilTest, TestVerifyRaftConfigStandbyVoter) {
+  gflags::FlagSaver flagSaver;
+  FLAGS_raft_reject_standby_voter = true;
+  auto config = createConfig({{"A", V}, {"B", V}, {"C", N}});
+  config.set_opid_index(1);
+  config.mutable_peers(2)->mutable_attrs()->set_standby_start_timestamp(1);
+  ASSERT_OK(verifyRaftConfig(config));
+
+  config.mutable_peers(1)->mutable_attrs()->set_standby_start_timestamp(1);
+  Status s = verifyRaftConfig(config);
+  ASSERT_TRUE(s.IsIllegalState()) << s.ToString();
+  ASSERT_STR_CONTAINS(
+      s.ToString(), "Peer: B is both a VOTER and a standby member");
+
+  FLAGS_raft_reject_standby_voter = false;
+  ASSERT_OK(verifyRaftConfig(config));
 }
 
 // Tests paremeterized by the policy on the replica majority's health.

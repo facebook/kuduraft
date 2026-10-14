@@ -39,6 +39,14 @@ DEFINE_int32(
     3,
     "Default size of quorum when QuorumId is used");
 
+DEFINE_bool(
+    raft_reject_standby_voter,
+    false,
+    "Reject a Raft configuration with a VOTER that is also a standby member. "
+    "Enable only after confirming that no committed configuration has one: "
+    "the check also runs when consensus metadata is flushed, and a failed "
+    "flush crashes the server.");
+
 using google::protobuf::RepeatedPtrField;
 using kudu::pb_util::SecureDebugString;
 using kudu::pb_util::SecureShortDebugString;
@@ -340,6 +348,14 @@ Status verifyRaftConfig(const RaftConfigPB& config) {
       return Status::IllegalState(
           fmt::format(
               "Peer: {} has no member type set. RaftConfig: {}",
+              peer.permanent_uuid(),
+              SecureShortDebugString(config)));
+    }
+    if (FLAGS_raft_reject_standby_voter &&
+        peer.member_type() == RaftPeerPB::VOTER && isStandbyMember(peer)) {
+      return Status::IllegalState(
+          fmt::format(
+              "Peer: {} is both a VOTER and a standby member. RaftConfig: {}",
               peer.permanent_uuid(),
               SecureShortDebugString(config)));
     }
