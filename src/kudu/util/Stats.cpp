@@ -109,6 +109,56 @@ DEFINE_dynamic_quantile_stat(
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
+DEFINE_dynamic_timeseries(
+    datalossBoundTicks,
+    "{}.dataloss_bound_ticks.{}",
+    facebook::fb303::ExportType::SUM);
+
+DEFINE_dynamic_timeseries(
+    datalossBoundReasonTicks,
+    "{}.dataloss_bound_reason_ticks.{}",
+    facebook::fb303::ExportType::SUM);
+
+DEFINE_dynamic_quantile_stat(
+    datalossBoundQualifyingPeers,
+    "{}.dataloss_bound_qualifying_peers",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_quantile_stat(
+    datalossBoundOpsBehind,
+    "{}.dataloss_bound_ops_behind",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_quantile_stat(
+    datalossBoundBytesBehind,
+    "{}.dataloss_bound_bytes_behind",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_quantile_stat(
+    datalossBoundHeadroomPct,
+    "{}.dataloss_bound_headroom_pct",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_quantile_stat(
+    datalossBoundBootstrapMs,
+    "{}.dataloss_bound_bootstrap_ms",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_timeseries(
+    datalossBoundReconstructFailures,
+    "{}.dataloss_bound_reconstruct_failures",
+    facebook::fb303::ExportType::SUM);
+
 // ---- consensus_queue.cc: counters ----
 
 DEFINE_dynamic_timeseries(

@@ -1261,6 +1261,7 @@ Status RaftConsensus::becomeLeaderUnlocked() {
   RETURN_NOT_OK(refreshConsensusQueueAndPeersUnlocked());
 
   InitCheckQuorumDetectorUnlocked();
+  InitDatalossBoundDetectorUnlocked();
 
   if (disableNoop_) {
     return Status::OK();
@@ -1309,6 +1310,7 @@ Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   updateFailureDetectorState(std::move(fd_delta));
 
   StopCheckQuorumDetectorUnlocked();
+  StopDatalossBoundDetectorUnlocked();
 
   // Now that we're a replica, we can allow voting for other nodes.
   withholdVotesUntil_ = MonoTime::Min();
@@ -3571,6 +3573,7 @@ void RaftConsensus::stop() {
     }
     // Transition to kStopping state.
     setStateUnlocked(kStopping);
+    StopDatalossBoundDetectorUnlocked();
     LOG_WITH_PREFIX_UNLOCKED(INFO) << "Raft consensus shutting down.";
   }
 
@@ -5886,6 +5889,48 @@ void RaftConsensus::SnoozeCheckQuorumDetector(MonoDelta snooze_time) {
 void RaftConsensus::StopCheckQuorumDetectorUnlocked() {
   DCHECK(lock_.is_locked());
   checkQuorumTimer_.reset();
+}
+
+void RaftConsensus::InitDatalossBoundDetectorUnlocked() {
+  DCHECK(lock_.is_locked());
+  CHECK(peerProxyFactory_);
+
+  // Publishes the metrics and retries reconstruction of missing watermarks.
+  // Exposure is updated on every append and peer response, so this interval
+  // does not determine how fresh it is.
+  const MonoDelta interval = MonoDelta::FromMilliseconds(1000);
+  weak_ptr<RaftConsensus> w = shared_from_this();
+  datalossBoundTimer_ = PeriodicTimer::create(
+      peerProxyFactory_->messenger(),
+      [w]() {
+        if (!FLAGS_enable_dataloss_bound_measurement) {
+          return;
+        }
+        auto consensus = w.lock();
+        if (!consensus) {
+          return;
+        }
+        // The tick scans the log index, so it must not run on the timer
+        // thread.
+        Status status = consensus->raftPoolToken_->SubmitFunc([w]() {
+          if (auto c = w.lock()) {
+            c->queue_->datalossBoundPeriodicTick();
+          }
+        });
+        if (!status.ok()) {
+          KLOG_EVERY_N_SECS(WARNING, 60)
+              << "Unable to schedule data-loss bound tick: "
+              << status.ToString();
+        }
+      },
+      interval,
+      PeriodicTimer::Options());
+  datalossBoundTimer_->start(interval);
+}
+
+void RaftConsensus::StopDatalossBoundDetectorUnlocked() {
+  DCHECK(lock_.is_locked());
+  datalossBoundTimer_.reset();
 }
 
 int32_t RaftConsensus::getAvailableCommitPeers() {

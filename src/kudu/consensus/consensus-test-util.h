@@ -100,6 +100,13 @@ inline RaftPeerPB fakeRaftPeerPb(const std::string& uuid) {
   return peerPb;
 }
 
+// The OpId of the test-log entry at 'index'. Test logs start a new term every
+// 7 entries so that they span several terms. Acks must use this OpId: log
+// matching compares the term as well as the index.
+inline OpId opIdAt(int64_t index) {
+  return MakeOpId(index / 7, index);
+}
+
 // Appends 'count' messages to 'queue' with different terms and indexes.
 //
 // An operation will only be considered done (TestOperationStatus::IsDone()
@@ -112,10 +119,9 @@ inline void appendReplicateMessagesToQueue(
     int64_t count,
     int64_t payloadSize = 0) {
   for (int64_t i = first; i < first + count; i++) {
-    int64_t term = i / 7;
-    int64_t index = i;
+    const OpId id = opIdAt(i);
     CHECK_OK(queue->appendOperation(makeScopedRefptrReplicate(
-        createDummyReplicate(term, index, clock->now(), payloadSize),
+        createDummyReplicate(id.term(), id.index(), clock->now(), payloadSize),
         Source::Memory)));
   }
 }
@@ -1065,6 +1071,11 @@ class StatefulMockLog : public kudu::log::Log {
       }
       return result;
     });
+  }
+
+  void forgetOpIdsThroughForTests(int64_t index) {
+    ops_.withWLock(
+        [&](auto& ops) { ops.erase(ops.begin(), ops.upper_bound(index)); });
   }
 
   Status Close() override {

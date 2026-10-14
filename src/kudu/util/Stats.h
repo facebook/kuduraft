@@ -62,6 +62,21 @@ DECLARE_dynamic_quantile_stat(opsBehindLeader, 1);
 DECLARE_dynamic_quantile_stat(availableCommitPeers, 1);
 DECLARE_dynamic_quantile_stat(availableLeaderLeaseGrantors, 1);
 
+// --- consensus_queue.cc: data-loss bound ---
+// How far this leader has run ahead of the best eligible remote voter, i.e.
+// what a forced recovery from that voter would discard.
+// Status and reason are counted per state on each tick. A gauge of the state
+// ordinal would average into states that never occurred. The configured mode
+// is a callback counter, consensus_queue.dataloss_bound_mode.
+DECLARE_dynamic_timeseries(datalossBoundTicks, 2);
+DECLARE_dynamic_timeseries(datalossBoundReasonTicks, 2);
+DECLARE_dynamic_quantile_stat(datalossBoundQualifyingPeers, 1);
+DECLARE_dynamic_quantile_stat(datalossBoundOpsBehind, 1);
+DECLARE_dynamic_quantile_stat(datalossBoundBytesBehind, 1);
+DECLARE_dynamic_quantile_stat(datalossBoundHeadroomPct, 1);
+DECLARE_dynamic_quantile_stat(datalossBoundBootstrapMs, 1);
+// Reconstruction attempts that could not sum the peer's backlog.
+DECLARE_dynamic_timeseries(datalossBoundReconstructFailures, 1);
 // --- consensus_queue.cc: counters ---
 DECLARE_dynamic_timeseries(checkQuorumRuns, 1);
 DECLARE_dynamic_timeseries(checkQuorumFailures, 1);

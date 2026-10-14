@@ -22,6 +22,7 @@
 // ********************************************************************
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <ostream>
@@ -33,6 +34,9 @@
 #include <glog/logging.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <fb303/ServiceData.h>
+#include <fb303/ThreadCachedServiceData.h>
 
 #include "kudu/clock/clock.h"
 #include "kudu/clock/hybrid_clock.h"
@@ -64,7 +68,6 @@
 #include "kudu/util/threadpool-test-util.h" // @manual - duplicate header owner
 
 DECLARE_int32(consensus_max_batch_size_bytes);
-DECLARE_int32(follower_unavailable_considered_failed_sec);
 
 using kudu::consensus::HealthReportPB;
 using std::atomic;
@@ -1952,10 +1955,24 @@ TEST_F(ConsensusQueueConfirmationTest, TestConfirmationWaitWokenByClose) {
 // RaftConsensus::waitForQuorumConfirmation, above this layer.
 
 // Bounded data loss: the leader measures how far it has run ahead of a
-// position an eligible remote database replica is known to hold.
+// position an eligible remote voter is known to hold.
 class ConsensusQueueBoundedDatalossTest : public ConsensusQueueTest {
  protected:
   static constexpr int64_t kSetupOps = 10;
+
+  // These tests set the guard's gflags directly. Restore them on teardown so
+  // one test's limits cannot decide another test's verdict.
+  gflags::FlagSaver flagSaver_;
+
+  // fb303 counters are process-wide, so compare before and after. Quantile
+  // stats buffer their samples, so flush before reading.
+  static int64_t readCounter(const string& name) {
+    facebook::fb303::ThreadCachedServiceData::get()->publishStats();
+    facebook::fb303::ServiceData::get()->flushAllData();
+    const auto counters = facebook::fb303::ServiceData::get()->getCounters();
+    const auto it = counters.find(name);
+    return it == counters.end() ? 0 : it->second;
+  }
 
   // An eligible remote database voter with a resolvable quorum id.
   RaftPeerPB makeDbVoter(const string& uuid, const string& quorumId) {
@@ -2006,9 +2023,7 @@ class ConsensusQueueBoundedDatalossTest : public ConsensusQueueTest {
   appendWritesWithPayload(int64_t first, int64_t count, size_t payloadBytes) {
     for (int64_t i = first; i < first + count; i++) {
       auto msg = std::make_unique<ReplicateMsg>();
-      OpId* id = msg->mutable_id();
-      id->set_term(i / 7);
-      id->set_index(i);
+      *msg->mutable_id() = opIdAt(i);
       msg->set_op_type(WRITE_OP_EXT);
       msg->mutable_write_payload()->mutable_payload()->assign(
           payloadBytes, 'x');
@@ -2071,7 +2086,7 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestWatermarkTracksConfirmedPositionAndBytes) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto caughtUp = confirmedWatermarkFor("peer-1");
   ASSERT_TRUE(caughtUp.has_value());
@@ -2107,18 +2122,18 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestLegacyAppendPathCountsPayloadBytes) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
   constexpr size_t kPayload = 321;
   auto msg = std::make_unique<ReplicateMsg>();
-  *msg->mutable_id() = MakeOpId(1, kSetupOps + 1);
+  *msg->mutable_id() = opIdAt(kSetupOps + 1);
   msg->set_op_type(WRITE_OP_EXT);
   msg->mutable_write_payload()->mutable_payload()->assign(kPayload, 'x');
   msg->set_timestamp(clock_->now().toUint64());
   CHECK_OK(queue_->appendOperation(
       makeScopedRefptrReplicate(std::move(msg), Source::Memory)));
 
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps + 1));
+  establishWatermark("peer-1", opIdAt(kSetupOps + 1));
   const auto peer = queue_->getTrackedPeerForTests("peer-1");
   ASSERT_TRUE(peer.confirmedWatermark.has_value());
   EXPECT_EQ(peer.confirmedWatermark->bytes, kPayload);
@@ -2157,6 +2172,31 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestMeasurementGateChangesAtRuntime) {
   EXPECT_FALSE(disabledAgain.pendingWatermark.has_value());
 }
 
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestMeasurementGateControlsReportingAtRuntime) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")}, false);
+
+  auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Off);
+
+  FLAGS_enable_dataloss_bound_measurement = true;
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+  ackFrom("peer-1", queue_->getLastOpIdInLog());
+
+  health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_TRUE(health.hasWatermark);
+
+  FLAGS_enable_dataloss_bound_measurement = false;
+  health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Off);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::None);
+  EXPECT_FALSE(health.hasOperationExposure);
+  EXPECT_FALSE(health.hasWatermark);
+}
+
 // An LMP-mismatch response reports a position that is NOT known to be on this
 // leader's log. Treating it as a watermark would credit a divergent peer with
 // data it may not hold, understating exposure -- the unsafe direction.
@@ -2165,8 +2205,11 @@ TEST_F(
     TestLmpMismatchDoesNotEstablishWatermark) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
 
-  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), MakeOpId(1, kSetupOps));
-  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), MakeOpId(1, kSetupOps));
+  // Term 7 at this index is deliberately wrong -- the real term is
+  // opIdAt(kSetupOps).term() -- so IsOpInLog fails and the response takes the
+  // LMP path.
+  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), opIdAt(kSetupOps));
+  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), opIdAt(kSetupOps));
 
   EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
 
@@ -2178,9 +2221,9 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestMatchingRegressionRetractsConfirmedWatermark) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
-  ackFrom("peer-1", MakeOpId(1, kSetupOps - 2));
+  ackFrom("peer-1", opIdAt(kSetupOps - 2));
 
   const auto peer = queue_->getTrackedPeerForTests("peer-1");
   EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps - 2);
@@ -2193,9 +2236,9 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestLmpMismatchRegressionRetractsConfirmedWatermark) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
-  ackWithLmpMismatch("peer-1", MakeOpId(1, kSetupOps - 2), MinimumOpId());
+  ackWithLmpMismatch("peer-1", opIdAt(kSetupOps - 2), MinimumOpId());
 
   const auto peer = queue_->getTrackedPeerForTests("peer-1");
   EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps - 2);
@@ -2206,11 +2249,11 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestProgressBelowPendingWatermarkDoesNotRetract) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
   appendWritesWithPayload(kSetupOps + 1, 5, 8);
 
   ackFrom("peer-1", queue_->getLastOpIdInLog());
-  ackFrom("peer-1", MakeOpId((kSetupOps + 3) / 7, kSetupOps + 3));
+  ackFrom("peer-1", opIdAt(kSetupOps + 3));
 
   const auto peer = queue_->getTrackedPeerForTests("peer-1");
   ASSERT_TRUE(peer.confirmedWatermark.has_value());
@@ -2224,10 +2267,9 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestCurrentLeaderPositionDoesNotRetractWatermark) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
-  ackFromWithCurrentLeaderPosition(
-      "peer-1", MakeOpId(1, kSetupOps), MinimumOpId());
+  ackFromWithCurrentLeaderPosition("peer-1", opIdAt(kSetupOps), MinimumOpId());
 
   const auto peer = queue_->getTrackedPeerForTests("peer-1");
   ASSERT_TRUE(peer.confirmedWatermark.has_value());
@@ -2237,7 +2279,7 @@ TEST_F(
 
 TEST_F(ConsensusQueueBoundedDatalossTest, TestWrongServerUuidClearsWatermark) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
   queue_->UpdatePeerStatus(
       "peer-1",
@@ -2248,6 +2290,116 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestWrongServerUuidClearsWatermark) {
   EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), MinimumOpId().index());
   EXPECT_FALSE(peer.confirmedWatermark.has_value());
   EXPECT_FALSE(peer.pendingWatermark.has_value());
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestPositionAheadOfTailRetractsWatermark) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  ackFrom("peer-1", opIdAt(kSetupOps + 1));
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), MinimumOpId().index());
+  EXPECT_FALSE(queue_->getDatalossBoundHealth().hasWatermark);
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestMissingLocalIndexPreservesConfirmedWatermark) {
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->forgetOpIdsThroughForTests(kSetupOps);
+  appendWritesWithPayload(kSetupOps + 1, 1, 8);
+
+  ackFrom("peer-1", opIdAt(kSetupOps));
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  ASSERT_TRUE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.confirmedWatermark->opId.index(), kSetupOps);
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kSetupOps);
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestMissingLocalIndexDoesNotEstablishWatermark) {
+  const RaftPeerPB peer = makeDbVoter("peer-1", "b");
+  setupDcqQueue({peer});
+
+  // First advance cache eviction, then recreate the tracked peer without any
+  // confirmed position.
+  ackFrom("peer-1", opIdAt(kSetupOps));
+  queue_->untrackPeer("peer-1");
+  queue_->trackPeer(peer);
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->forgetOpIdsThroughForTests(kSetupOps);
+
+  ackFrom("peer-1", opIdAt(kSetupOps));
+
+  const auto tracked = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_FALSE(tracked.confirmedWatermark.has_value());
+  EXPECT_EQ(tracked.lastConfirmedPrefixOpId.index(), MinimumOpId().index());
+}
+
+// Only replicas outside the leader's data commit quorum bound the loss. One
+// inside it shares the leader's failure domain, so it proves nothing.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestPeerInsideDcqIsNotCounted) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "a"), makeDbVoter("peer-2", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+  establishWatermark("peer-2", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.qualifyingPeers, 1);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestRemoteLbuIsCounted) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  RaftPeerPB logOnly = makeDbVoter("peer-1", "b");
+  logOnly.mutable_attrs()->set_backing_db_present(false);
+
+  setupDcqQueue({logOnly});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.qualifyingPeers, 1);
+}
+
+// Config validation does not reject a VOTER that is also marked standby, so the
+// guard must exclude it itself.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestStandbyVoterIsNotCounted) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  RaftPeerPB standby = makeDbVoter("peer-1", "b");
+  standby.mutable_attrs()->set_standby_start_timestamp(1);
+
+  setupDcqQueue({standby});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::NoRemote);
+  EXPECT_EQ(health.qualifyingPeers, 0);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthReportsNotLeader) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::NotLeader);
 }
 
 // After a leadership change the byte counter restarts at zero, so the ordinary
@@ -2264,7 +2416,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapReconstructsBacklog) {
   // The peer holds the first kHeldOps writes and is kBacklogOps behind. One
   // exchange proves the position; it never reaches the current tail.
   constexpr int64_t kHeld = kSetupOps + kHeldOps;
-  ackFrom("peer-1", MakeOpId(kHeld / 7, kHeld));
+  ackFrom("peer-1", opIdAt(kHeld));
   ASSERT_FALSE(confirmedWatermarkFor("peer-1").has_value());
 
   EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
@@ -2277,15 +2429,49 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapReconstructsBacklog) {
   EXPECT_EQ(watermark->bytes, kHeldOps * static_cast<int64_t>(kPayload));
 }
 
+// In a healthy election, acks confirm a watermark before reconstruction runs.
+// That watermark must be timed too, and only the first one per leadership.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapTimedWhenAcksConfirm) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  const string kSamples =
+      "consensus_queue.dataloss_bound_bootstrap_ms.count.60";
+  const int64_t before = readCounter(kSamples);
+  setupDcqQueue({makeDbVoter("peer-1", "b"), makeDbVoter("peer-2", "c")});
+
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+  ASSERT_TRUE(confirmedWatermarkFor("peer-1").has_value());
+  EXPECT_EQ(readCounter(kSamples), before + 1);
+
+  establishWatermark("peer-2", opIdAt(kSetupOps));
+  ASSERT_TRUE(confirmedWatermarkFor("peer-2").has_value());
+  EXPECT_EQ(readCounter(kSamples), before + 1);
+}
+
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapTimedWhenReconstructionInstalls) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  const string kSamples =
+      "consensus_queue.dataloss_bound_bootstrap_ms.count.60";
+  const int64_t before = readCounter(kSamples);
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+  ASSERT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+  EXPECT_EQ(readCounter(kSamples), before + 1);
+}
+
 TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestRuntimeEnableReconstructsDisabledInterval) {
   gflags::FlagSaver flagSaver;
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
   FLAGS_enable_dataloss_bound_measurement = false;
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
   appendWritesWithPayload(kSetupOps + 1, 2, 200);
   EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
 
@@ -2297,6 +2483,46 @@ TEST_F(
   ASSERT_TRUE(watermark.has_value());
   EXPECT_EQ(watermark->opId.index(), kSetupOps);
   EXPECT_EQ(watermark->bytes, -400);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapStopsAtOperationLimit) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_max_ops = 5;
+  FLAGS_dataloss_bound_max_bytes = 1000000000;
+  FLAGS_dataloss_bound_margin_percent = 0;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 5, 128);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
+  EXPECT_FALSE(
+      queue_->getTrackedPeerForTests("peer-1").confirmedWatermark.has_value());
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_TRUE(health.hasOperationExposure);
+  EXPECT_EQ(health.bestOpsBehind, 5);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+}
+
+// Reconstruction seeds a baseline; ordinary accounting must continue from it
+// rather than restarting, or the backlog would be silently dropped.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestExposureAccumulatesAfterBootstrap) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+
+  constexpr int64_t kBacklogOps = 4;
+  constexpr size_t kPayload = 256;
+  appendWritesWithPayload(kSetupOps + 1, kBacklogOps, kPayload);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+  ASSERT_EQ(queue_->reconstructMissingWatermarks(), 1);
+
+  constexpr int64_t kMoreOps = 3;
+  appendWritesWithPayload(kSetupOps + kBacklogOps + 1, kMoreOps, kPayload);
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.bestOpsBehind, kBacklogOps + kMoreOps);
+  EXPECT_EQ(health.bestBytesBehind, (kBacklogOps + kMoreOps) * kPayload);
 }
 
 // A peer that never proved a position has nothing to reconstruct from.
@@ -2317,7 +2543,7 @@ TEST_F(
     ConsensusQueueBoundedDatalossTest,
     TestBootstrapLeavesExistingWatermark) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
-  establishWatermark("peer-1", MakeOpId(1, kSetupOps));
+  establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto before = confirmedWatermarkFor("peer-1");
   ASSERT_TRUE(before.has_value());
@@ -2333,8 +2559,8 @@ TEST_F(
 TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapSkipsIneligiblePeer) {
   setupDcqQueue({makeDbVoter("peer-1", "a"), makeDbVoter("peer-2", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
-  ackFrom("peer-2", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
+  ackFrom("peer-2", opIdAt(kSetupOps));
 
   EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
   EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
@@ -2346,7 +2572,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapSkipsIneligiblePeer) {
 TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapRejectsShortCount) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2370,7 +2596,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapRejectsShortCount) {
 TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapSkipsIncompleteHistory) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2397,7 +2623,7 @@ TEST_F(
     TestBootstrapDiscardsScanSpanningReelection) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   std::map<size_t, std::tuple<string, RaftPeerPB::MemberType>> members;
   members[0] = {"a", RaftPeerPB::VOTER};
@@ -2428,7 +2654,7 @@ TEST_F(
     TestBootstrapDiscardsScanSpanningStepDown) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2458,7 +2684,7 @@ TEST_F(
   gflags::FlagSaver flagSaver;
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 1, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2488,7 +2714,7 @@ TEST_F(
     TestBootstrapDiscardsScanSpanningTruncation) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2516,7 +2742,7 @@ TEST_F(
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   constexpr int64_t kTail = kSetupOps + 3;
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2546,7 +2772,7 @@ TEST_F(
     TestBootstrapUsesScanStartForPeerThatAdvanced) {
   setupDcqQueue({makeDbVoter("peer-1", "b")});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2555,7 +2781,7 @@ TEST_F(
                                       int64_t* totalBytes,
                                       int64_t* entriesCounted,
                                       int64_t* firstMissingIndex) {
-    ackFrom("peer-1", MakeOpId(1, kSetupOps + 2));
+    ackFrom("peer-1", opIdAt(kSetupOps + 2));
     *totalBytes = (upToIndex - afterIndex) * 128;
     *entriesCounted = upToIndex - afterIndex;
     *firstMissingIndex = upToIndex + 1;
@@ -2574,8 +2800,8 @@ TEST_F(
 TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapStopsAtMissingHistory) {
   setupDcqQueue({makeDbVoter("peer-1", "b"), makeDbVoter("peer-2", "b")});
   appendWritesWithPayload(kSetupOps + 1, 2, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps + 1));
-  ackFrom("peer-2", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps + 1));
+  ackFrom("peer-2", opIdAt(kSetupOps));
 
   auto scans = 0;
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
@@ -2591,9 +2817,13 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapStopsAtMissingHistory) {
     *firstMissingIndex = afterIndex + 1;
     return Status::NotFound("entry has been purged");
   });
+  const string kFailures =
+      "consensus_queue.dataloss_bound_reconstruct_failures.sum";
+  const int64_t before = readCounter(kFailures);
 
   EXPECT_EQ(queue_->reconstructMissingWatermarks(), 0);
   EXPECT_EQ(scans, 1);
+  EXPECT_EQ(readCounter(kFailures), before + 1);
 }
 
 // Any other failure is specific to that scan, so older candidates still get
@@ -2603,8 +2833,8 @@ TEST_F(
     TestBootstrapTriesOlderCandidateAfterOtherError) {
   setupDcqQueue({makeDbVoter("peer-1", "b"), makeDbVoter("peer-2", "b")});
   appendWritesWithPayload(kSetupOps + 1, 2, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps + 1));
-  ackFrom("peer-2", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps + 1));
+  ackFrom("peer-2", opIdAt(kSetupOps));
 
   const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
   ASSERT_NE(log, nullptr);
@@ -2634,9 +2864,405 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapReconstructsRemoteLbu) {
   logOnly.mutable_attrs()->set_backing_db_present(false);
   setupDcqQueue({logOnly});
   appendWritesWithPayload(kSetupOps + 1, 3, 128);
-  ackFrom("peer-1", MakeOpId(1, kSetupOps));
+  ackFrom("peer-1", opIdAt(kSetupOps));
 
   EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+  EXPECT_TRUE(confirmedWatermarkFor("peer-1").has_value());
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestModeFlagRejectsUnknownValues) {
+  EXPECT_TRUE(gflags::SetCommandLineOption("dataloss_bound_mode", "2").empty());
+  EXPECT_TRUE(
+      gflags::SetCommandLineOption("dataloss_bound_mode", "-1").empty());
+  EXPECT_FALSE(
+      gflags::SetCommandLineOption("dataloss_bound_mode", "1").empty());
+  EXPECT_EQ(FLAGS_dataloss_bound_mode, kDatalossBoundFailOpen);
+}
+
+// Every node reports the configured mode, including OFF.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestModeCounterReportsConfiguredMode) {
+  const string counter = "consensus_queue.dataloss_bound_mode";
+  ASSERT_TRUE(
+      facebook::fb303::ServiceData::get()
+          ->getCounterIfExists(counter)
+          .has_value());
+
+  FLAGS_enable_dataloss_bound_measurement = false;
+  FLAGS_dataloss_bound_mode = kDatalossBoundOff;
+  EXPECT_EQ(readCounter(counter), kDatalossBoundOff);
+
+  FLAGS_enable_dataloss_bound_measurement = true;
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  EXPECT_EQ(readCounter(counter), kDatalossBoundFailOpen);
+}
+
+// Configured OFF must not evaluate anything. A ring that has not opted in
+// should not be reporting a status that looks like a verdict.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthIsOffWhenDisabled) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundOff;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Off);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::None);
+}
+
+// A caught-up remote leaves the whole budget available.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthOkWithRoomToSpare) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_max_ops = 1000;
+  FLAGS_dataloss_bound_max_bytes = 1000000;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.qualifyingPeers, 1);
+  EXPECT_EQ(health.bestOpsBehind, 0);
+  EXPECT_TRUE(health.hasWatermark);
+  EXPECT_NEAR(health.headroomFraction, 1.0, 0.001);
+}
+
+// Running past the operation limit must be reported as such, and must name the
+// dimension that ran out so an operator knows which knob is binding.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthFailsOnOpLimit) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_max_ops = 4;
+  FLAGS_dataloss_bound_max_bytes = 1000000000;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  appendWritesWithPayload(kSetupOps + 1, 20, 8);
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+  EXPECT_EQ(health.qualifyingPeers, 0);
+  EXPECT_LT(health.headroomFraction, 0.0);
+}
+
+TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthFailsOnByteLimit) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_max_ops = 1000000;
+  FLAGS_dataloss_bound_max_bytes = 1000;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  appendWritesWithPayload(kSetupOps + 1, 5, 4096);
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::ByteLimit);
+}
+
+// A peer exactly at the usable limit is a violation; one entry or byte under
+// it qualifies.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestLimitsAreExclusive) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_margin_percent = 0;
+  FLAGS_dataloss_bound_max_ops = 3;
+  FLAGS_dataloss_bound_max_bytes = 1000000000;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  appendWritesWithPayload(kSetupOps + 1, 2, 100);
+  auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.qualifyingPeers, 1);
+
+  appendWritesWithPayload(kSetupOps + 3, 1, 100);
+  health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+
+  FLAGS_dataloss_bound_max_ops = 1000000;
+  FLAGS_dataloss_bound_max_bytes = 301;
+  health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+
+  FLAGS_dataloss_bound_max_bytes = 300;
+  health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::ByteLimit);
+}
+
+// The margin is held inside the advertised limit, so a peer sitting between
+// the usable budget and the headline number must not qualify. Otherwise the
+// margin buys nothing.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestMarginShrinksTheUsableBudget) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_margin_percent = 50;
+  FLAGS_dataloss_bound_max_ops = 20;
+  FLAGS_dataloss_bound_max_bytes = 1000000000;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  // 15 is under the advertised 20 but over the usable 10.
+  appendWritesWithPayload(kSetupOps + 1, 15, 8);
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+}
+
+// Both dimensions must describe the SAME replica. Reporting the best ops from
+// one peer and the best bytes from another would describe a replica that does
+// not exist, and could claim a bound no single copy satisfies. Live
+// watermarks cannot make the dimensions disagree, so the reconstructed
+// baselines below give the peer closer by operations the larger byte backlog.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthReportsOnePeerNotABlend) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_max_ops = 1000;
+  FLAGS_dataloss_bound_max_bytes = 1000000;
+  FLAGS_dataloss_bound_margin_percent = 0;
+  setupDcqQueue({makeDbVoter("peer-1", "b"), makeDbVoter("peer-2", "c")});
+  appendWritesWithPayload(kSetupOps + 1, 4, 8);
+  ackFrom("peer-1", opIdAt(kSetupOps + 2));
+  ackFrom("peer-2", opIdAt(kSetupOps));
+
+  constexpr int64_t kPeer1Backlog = 900000;
+  constexpr int64_t kPeer2Backlog = 100;
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    *totalBytes = afterIndex == kSetupOps + 2 ? kPeer1Backlog : kPeer2Backlog;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 2);
+
+  // peer-1: 2 operations and 900000 bytes behind. peer-2: 4 operations and
+  // 100 bytes behind, so it has more headroom. A blend would report peer-1's
+  // operations with peer-2's bytes.
+  const auto health = queue_->getDatalossBoundHealth();
+  ASSERT_TRUE(health.hasWatermark);
+  EXPECT_EQ(health.bestOpsBehind, 4);
+  EXPECT_EQ(health.bestBytesBehind, kPeer2Backlog);
+}
+
+// No eligible remote means no bound. Reporting Ok here would assert a
+// guarantee backed by nothing.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestHealthFailsWithNoQualifyingRemote) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "a")}); // inside the DCQ
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_FALSE(health.hasWatermark);
+  EXPECT_EQ(health.qualifyingPeers, 0);
+}
+
+// An LMP mismatch says the peer's log diverges from ours at the position we
+// last sent from -- which is the watermark. The earlier proof is contradicted,
+// not merely stale, so continuing to count it would credit the peer with data
+// it may have overwritten and understate exposure.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestDivergenceClearsWatermark) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+  ASSERT_TRUE(confirmedWatermarkFor("peer-1").has_value());
+
+  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), opIdAt(kSetupOps));
+
+  EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+}
+
+// A ring whose only remotes sit inside the DCQ has nothing to measure against
+// and never will. Reporting LEADER_BOOTSTRAP would imply it resolves on its
+// own and hide a topology problem behind a transient-looking reason.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestNoEligibleRemoteIsNotBootstrap) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "a")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::NoRemote);
+}
+
+// An eligible remote that has not proven a position yet is bootstrapping, and
+// that does resolve on its own.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestEligibleRemoteWithoutProofIsBootstrap) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(
+      health.reason, PeerMessageQueue::DatalossBoundReason::LeaderBootstrap);
+}
+
+// The sysvars accept up to LLONG_MAX. Computing the margin as limit * pct
+// overflows there and yields a nonsensical usable budget.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestMarginDoesNotOverflowAtMaxLimit) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  FLAGS_dataloss_bound_max_ops = std::numeric_limits<int64_t>::max();
+  FLAGS_dataloss_bound_max_bytes = std::numeric_limits<int64_t>::max();
+  FLAGS_dataloss_bound_margin_percent = 5;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+
+  const auto health = queue_->getDatalossBoundHealth();
+  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_GT(health.headroomFraction, 0.0);
+}
+
+// Hiding a contradicted watermark is not retracting it. After divergence the
+// peer answers cleanly again from a LOWER position; a merely-hidden watermark
+// would reappear claiming the higher one, crediting the peer with data it does
+// not hold and understating exposure.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestDivergenceThenRecoveryDoesNotResurrect) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  establishWatermark("peer-1", opIdAt(kSetupOps));
+  ASSERT_TRUE(confirmedWatermarkFor("peer-1").has_value());
+
+  // Diverge, then come back clean at a position well behind the old proof.
+  ackWithLmpMismatch("peer-1", MakeOpId(7, kSetupOps), opIdAt(kSetupOps));
+  ASSERT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+
+  constexpr int64_t kBackTo = 7;
+  ackFrom("peer-1", opIdAt(kBackTo));
+
+  // One clean exchange proves the lower position. Confirming a new watermark
+  // takes reaching the next target, so none can exist yet.
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+  EXPECT_EQ(peer.lastConfirmedPrefixOpId.index(), kBackTo);
+}
+
+// Under FAIL_OPEN the tail moves on nearly every scan. Requiring it to be
+// unchanged before installing would starve reconstruction on any busy leader,
+// which is every leader this feature is for.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestBootstrapReconstructsWhileTailAdvances) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+
+  constexpr size_t kPayload = 256;
+  appendWritesWithPayload(kSetupOps + 1, 4, kPayload);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+
+  // Tail advances between the peer proving its position and the install.
+  appendWritesWithPayload(kSetupOps + 5, 3, kPayload);
+
+  EXPECT_EQ(queue_->reconstructMissingWatermarks(), 1);
+
+  const auto health = queue_->getDatalossBoundHealth();
+  ASSERT_TRUE(health.hasWatermark);
+  // Measured from the peer's proven position to the current tail, so it must
+  // include the writes that landed during the scan.
+  EXPECT_EQ(health.bestOpsBehind, 7);
+  EXPECT_EQ(health.bestBytesBehind, 7 * kPayload);
+}
+
+// With the feature off, the tick must not walk the log index at all.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestNoReconstructionWhenOff) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundOff;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+
+  queue_->datalossBoundPeriodicTick();
+
+  const auto peer = queue_->getTrackedPeerForTests("peer-1");
+  EXPECT_FALSE(peer.confirmedWatermark.has_value());
+}
+
+// RaftConsensus::stop() closes the queue before it drains the Raft pool, so a
+// tick queued earlier can run on a closed queue. Its empty peer map is not a
+// ring without a remote.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestTickOnClosedQueueEmitsNothing) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  const string kNoRemote =
+      "consensus_queue.dataloss_bound_reason_ticks.no_remote.sum";
+  const int64_t before = readCounter(kNoRemote);
+
+  queue_->Close();
+  queue_->datalossBoundPeriodicTick();
+
+  EXPECT_EQ(readCounter(kNoRemote), before);
+}
+
+// A tick queued before step-down can run after it. A follower has no exposure
+// to report.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestTickAfterStepDownEmitsNoStatus) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  const string kNotLeader =
+      "consensus_queue.dataloss_bound_reason_ticks.not_leader.sum";
+  const int64_t before = readCounter(kNotLeader);
+
+  queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
+  queue_->datalossBoundPeriodicTick();
+
+  EXPECT_EQ(readCounter(kNotLeader), before);
+}
+
+// The enabled tick reconstructs a missing watermark and publishes the status
+// it then evaluates.
+TEST_F(
+    ConsensusQueueBoundedDatalossTest,
+    TestEnabledTickReconstructsAndReports) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+  ASSERT_FALSE(confirmedWatermarkFor("peer-1").has_value());
+  const string kOk = "consensus_queue.dataloss_bound_ticks.ok.sum";
+  const int64_t before = readCounter(kOk);
+
+  queue_->datalossBoundPeriodicTick();
+
+  EXPECT_TRUE(confirmedWatermarkFor("peer-1").has_value());
+  EXPECT_EQ(readCounter(kOk), before + 1);
+}
+
+// The tick fires faster than a long scan completes. One that finds a scan in
+// flight must return rather than start a second.
+TEST_F(ConsensusQueueBoundedDatalossTest, TestTickIsSingleFlight) {
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  setupDcqQueue({makeDbVoter("peer-1", "b")});
+  appendWritesWithPayload(kSetupOps + 1, 3, 128);
+  ackFrom("peer-1", opIdAt(kSetupOps));
+
+  const auto log = std::dynamic_pointer_cast<StatefulMockLog>(log_);
+  ASSERT_NE(log, nullptr);
+  int scans = 0;
+  log->setSumPayloadBytesForTests([&](int64_t afterIndex,
+                                      int64_t upToIndex,
+                                      int64_t* totalBytes,
+                                      int64_t* entriesCounted,
+                                      int64_t* firstMissingIndex) {
+    if (++scans == 1) {
+      queue_->datalossBoundPeriodicTick();
+    }
+    *totalBytes = (upToIndex - afterIndex) * 128;
+    *entriesCounted = upToIndex - afterIndex;
+    *firstMissingIndex = upToIndex + 1;
+    return Status::OK();
+  });
+
+  queue_->datalossBoundPeriodicTick();
+
+  EXPECT_EQ(scans, 1);
   EXPECT_TRUE(confirmedWatermarkFor("peer-1").has_value());
 }
 

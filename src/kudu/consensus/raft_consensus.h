@@ -1446,6 +1446,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   void StopCheckQuorumDetectorUnlocked();
 
+  // Periodic maintenance for the enabled data-loss bound: publish the metrics
+  // and retry reconstruction of missing watermarks. Exposure is updated on
+  // every append and peer response, so this interval does not determine how
+  // fresh it is. The timer remains armed for runtime enablement but submits no
+  // work while disabled.
+  void InitDatalossBoundDetectorUnlocked();
+  void StopDatalossBoundDetectorUnlocked();
+
   const ConsensusOptions options_;
 
   // Information about the local peer, including the local UUID.
@@ -1621,6 +1629,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   int32_t checkQuorumIntervalHeartbeats_;
   std::mutex checkQuorumRunning_;
   std::shared_ptr<kudu::rpc::PeriodicTimer> checkQuorumTimer_;
+  std::shared_ptr<kudu::rpc::PeriodicTimer> datalossBoundTimer_;
 
   std::shared_ptr<StateMachineMetricsInterface> stateMachineMetrics_;
 
