@@ -3305,9 +3305,8 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
           RETURN_NOT_OK(
               getRaftConfigMember(newConfig, serverUuid, &modifiedPeer));
           const RaftPeerPB origPeer(*modifiedPeer);
-          // Override 'member_type' and items within 'attrs' only if they are
-          // explicitly passed in the request. At least one field must be
-          // modified to be a valid request.
+          // Override 'member_type' only if the request sets it, and replace
+          // 'attrs' with the request's. At least one field must change.
           if (peer.has_member_type() &&
               peer.member_type() != modifiedPeer->member_type()) {
             if (modifiedPeer->member_type() == RaftPeerPB::VOTER ||
@@ -3329,6 +3328,14 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
             modifiedPeer->set_member_type(peer.member_type());
           }
           modifiedPeer->mutable_attrs()->CopyFrom(peer.attrs());
+          // Check the merged peer too: a request that omits 'member_type' keeps
+          // the existing role.
+          if (modifiedPeer->member_type() == RaftPeerPB::VOTER &&
+              isStandbyMember(*modifiedPeer)) {
+            return Status::InvalidArgument(
+                "Peer can not be a VOTER and a standby member at the same time",
+                SecureShortDebugString(req));
+          }
           // Ensure that MODIFY_PEER actually modified something.
           if (MessageDifferencer::Equals(origPeer, *modifiedPeer)) {
             return Status::InvalidArgument(

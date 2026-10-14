@@ -1203,5 +1203,62 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
             << SecureShortDebugString(res);
 }
 
+// A MODIFY_PEER that sets only the standby marker on a voter, leaving out
+// 'member_type', keeps the VOTER role. The merged peer must still be rejected,
+// as a request that names both is. Uses the validation entry point that MySQL
+// config changes go through.
+TEST_F(RaftConsensusQuorumTest, TestModifyCannotMarkVoterStandby) {
+  const int kFollowerIdx = 0;
+  const int kLeaderIdx = 2;
+  ASSERT_OK(buildAndStartConfig(3));
+
+  // A leader accepts config changes only after committing in its own term.
+  OpId lastOpId;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
+  NO_FATALS(replicateSequenceOfMessages(
+      1, kLeaderIdx, kWaitForAllReplicas, &lastOpId, &rounds));
+  waitForCommitIfNotAlreadyPresent(lastOpId.index(), kFollowerIdx, kLeaderIdx);
+  waitForCommitIfNotAlreadyPresent(lastOpId.index(), 1, kLeaderIdx);
+
+  shared_ptr<RaftConsensus> leader;
+  ASSERT_OK(peers_->getPeerByIdx(kLeaderIdx, &leader));
+  shared_ptr<RaftConsensus> follower;
+  ASSERT_OK(peers_->getPeerByIdx(kFollowerIdx, &follower));
+
+  RaftConfigPB config = leader->committedConfig();
+  RaftPeerPB* voter = nullptr;
+  ASSERT_OK(getRaftConfigMember(&config, follower->peer_uuid(), &voter));
+  ASSERT_EQ(voter->member_type(), RaftPeerPB::VOTER);
+
+  auto modify = [&](const RaftPeerPB& server) {
+    ChangeConfigRequestPB req;
+    req.set_tablet_id(kTestTablet);
+    req.set_type(MODIFY_PEER);
+    *req.mutable_server() = server;
+    std::optional<ServerErrorPB::Code> errorCode;
+    ReplicateMsg msg;
+    return leader->checkAndPopulateChangeConfigMessage(req, &errorCode, &msg);
+  };
+
+  RaftPeerPB attrsOnly;
+  attrsOnly.set_permanent_uuid(voter->permanent_uuid());
+  *attrsOnly.mutable_attrs() = voter->attrs();
+  attrsOnly.mutable_attrs()->set_region("other-region");
+  ASSERT_OK(modify(attrsOnly));
+
+  attrsOnly.mutable_attrs()->set_standby_start_timestamp(1);
+  Status s = modify(attrsOnly);
+  ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
+  ASSERT_STR_CONTAINS(s.ToString(), "VOTER and a standby member");
+
+  RaftPeerPB fullRecord = attrsOnly;
+  fullRecord.set_member_type(RaftPeerPB::VOTER);
+  s = modify(fullRecord);
+  ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
+  ASSERT_STR_CONTAINS(s.ToString(), "VOTER and a standby member");
+
+  verifyLogs(kLeaderIdx, 0, 1);
+}
+
 } // namespace consensus
 } // namespace kudu
