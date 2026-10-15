@@ -625,6 +625,24 @@ message ConsensusRequestPB {
   optional int32 requested_lease_duration = 18;
 }
 
+// Describes a condition that projects future unavailability of the responding
+// server but does not reject the consensus request.
+message ServerWarningPB {
+  enum Code {
+    UNKNOWN = 0;
+
+    // The server received a power-loss signal and is projected to become
+    // unavailable soon, even if it can still process the current request.
+    PLS_RECEIVED = 1;
+  }
+
+  // This field must be specified, but is left as optional due to being an enum.
+  optional Code code = 1;
+
+  // Unix time in seconds when this warning's current episode began.
+  optional int64 start_time = 2;
+}
+
 message ConsensusResponsePB {
   // The uuid of the peer making the response.
   optional bytes responder_uuid = 1;
@@ -649,6 +667,12 @@ message ConsensusResponsePB {
   optional int64 server_process_time_us = 6 [ default = 0 ];
 
   optional StateMachineMetricsPB state_machine_metrics = 7;
+
+  // Complete snapshot of active warnings from responder_uuid when it is
+  // nonempty and matches the request's ultimate dest_uuid. An authoritative
+  // empty snapshot clears prior warnings; otherwise callers preserve them.
+  // Warnings do not reject the consensus request.
+  repeated ServerWarningPB warnings = 8;
 
   // A generic error message (such as tablet not found), per operation
   // error messages are sent along with the consensus status.

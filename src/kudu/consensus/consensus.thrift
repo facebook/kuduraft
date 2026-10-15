@@ -447,6 +447,23 @@ struct ConsensusRequest {
   18: optional i32 requested_lease_duration;
 }
 
+// Identifies a condition that projects future unavailability of the responding
+// server without rejecting the current consensus request.
+enum ServerWarningCode {
+  UNKNOWN = 0,
+
+  // The server received a power-loss signal and is projected to become
+  // unavailable soon, even if it can still process the current request.
+  PLS_RECEIVED = 1,
+}
+
+// Describes a projected unavailability condition on the responding server.
+struct ServerWarning {
+  1: ServerWarningCode code;
+  // Unix time in seconds when this warning's current episode began.
+  2: optional i64 start_time;
+}
+
 struct ConsensusResponse {
   // The uuid of the peer making the response.
   1: optional string responder_uuid;
@@ -472,6 +489,12 @@ struct ConsensusResponse {
 
   // A generic error message (such as tablet not found).
   8: optional ServerError error;
+
+  // Complete snapshot of active warnings from responder_uuid when it is
+  // nonempty and matches the request's ultimate dest_uuid. An authoritative
+  // empty snapshot clears prior warnings; otherwise callers preserve them.
+  // Warnings do not reject the consensus request.
+  9: list<ServerWarning> warnings;
 }
 
 struct GetNodeInstanceRequest {}
