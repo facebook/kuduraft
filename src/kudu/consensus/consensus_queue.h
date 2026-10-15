@@ -38,6 +38,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
 
+#include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/flags_layering.h"
 #include "kudu/consensus/log_cache.h"
 #include "kudu/consensus/metadata.pb.h"
@@ -145,6 +146,9 @@ enum class PeerStatus {
 };
 
 const char* peerStatusToString(PeerStatus p);
+
+using ServerWarningPBs = google::protobuf::RepeatedPtrField<ServerWarningPB>;
+using ServerWarnings = std::vector<ServerWarningPB>;
 
 // Tracks the state of the peers and which transactions they have replicated.
 // Owns the LogCache which actually holds the replicate messages which are
@@ -295,6 +299,9 @@ class PeerMessageQueue {
 
     // Server metrics for this peer
     StateMachineMetricsPB stateMachineMetrics;
+
+    // Active warnings from the peer's latest valid response.
+    ServerWarnings lastServerWarnings;
 
    private:
     // The last term we saw from a given peer.
@@ -564,10 +571,13 @@ class PeerMessageQueue {
   // 'ps' indicates an interpretation of the status, while 'status'
   // may contain a more specific error message in the case of one of
   // the error statuses.
+  // A null warning list preserves the snapshot; a non-null list replaces it,
+  // including when the list is empty.
   void UpdatePeerStatus(
       const std::string& peer_uuid,
       PeerStatus ps,
-      const Status& status);
+      const Status& status,
+      const ServerWarningPBs* warningPbs = nullptr);
 
   // Updates the request queue with the latest response from a request to a
   // consensus peer.

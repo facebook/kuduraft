@@ -2455,7 +2455,8 @@ void PeerMessageQueue::updateLastIndexAppendedToLeader(
 void PeerMessageQueue::UpdatePeerStatus(
     const string& peer_uuid,
     PeerStatus ps,
-    const Status& status) {
+    const Status& status,
+    const ServerWarningPBs* warningPbs) {
   std::unique_lock<simple_mutexlock> l(queueLock_);
   auto it = peersMap_.find(peer_uuid);
   // Validate peer exists and has non-null value.
@@ -2467,6 +2468,9 @@ void PeerMessageQueue::UpdatePeerStatus(
     return;
   }
   TrackedPeer* peer = it->second;
+  if (warningPbs != nullptr) {
+    peer->lastServerWarnings.assign(warningPbs->begin(), warningPbs->end());
+  }
   peer->lastExchangeStatus = ps;
 
   if (ps != PeerStatus::RpcLayerError) {
@@ -2913,6 +2917,12 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // TODO(mpercy): Include uuid in error messages as well.
     DCHECK(response.has_responder_uuid() && !response.responder_uuid().empty())
         << "Got response from peer with empty UUID";
+
+    // Warning snapshots are authoritative only for their destination peer.
+    if (response.responder_uuid() == peer_uuid) {
+      peer->lastServerWarnings.assign(
+          response.warnings().begin(), response.warnings().end());
+    }
 
     DCHECK(response.has_status()); // Responses should always have a status.
     // The status must always have a last received op id and a last committed

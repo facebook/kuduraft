@@ -298,6 +298,98 @@ class ConsensusQueueTest : public KuduTest {
   std::shared_ptr<clock::Clock> clock_;
 };
 
+TEST_F(ConsensusQueueTest, TracksAndClearsTimestampedWarnings) {
+  queue_->setLeaderMode(
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
+  queue_->trackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
+
+  ConsensusResponsePB response;
+  response.set_responder_uuid(kPeerUuid);
+  setLastReceivedAndLastCommitted(&response, MinimumOpId());
+  auto* plsWarning = response.add_warnings();
+  plsWarning->set_code(ServerWarningPB::PLS_RECEIVED);
+  plsWarning->set_start_time(1234);
+  response.add_warnings()->set_code(ServerWarningPB::UNKNOWN);
+  queue_->ResponseFromPeer(response.responder_uuid(), response);
+
+  auto warnings = queue_->getTrackedPeerForTests(kPeerUuid).lastServerWarnings;
+  ASSERT_EQ(warnings.size(), 2);
+  EXPECT_EQ(warnings[0].code(), ServerWarningPB::PLS_RECEIVED);
+  ASSERT_TRUE(warnings[0].has_start_time());
+  EXPECT_EQ(warnings[0].start_time(), 1234);
+  EXPECT_EQ(warnings[1].code(), ServerWarningPB::UNKNOWN);
+  EXPECT_FALSE(warnings[1].has_start_time());
+
+  response.clear_warnings();
+  plsWarning = response.add_warnings();
+  plsWarning->set_code(ServerWarningPB::PLS_RECEIVED);
+  plsWarning->set_start_time(5678);
+  queue_->ResponseFromPeer(response.responder_uuid(), response);
+
+  warnings = queue_->getTrackedPeerForTests(kPeerUuid).lastServerWarnings;
+  ASSERT_EQ(warnings.size(), 1);
+  EXPECT_EQ(warnings[0].code(), ServerWarningPB::PLS_RECEIVED);
+  ASSERT_TRUE(warnings[0].has_start_time());
+  EXPECT_EQ(warnings[0].start_time(), 5678);
+
+  response.clear_warnings();
+  queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(
+      queue_->getTrackedPeerForTests(kPeerUuid).lastServerWarnings.empty());
+}
+
+TEST_F(ConsensusQueueTest, ControllerErrorsPreserveTimestampedWarnings) {
+  queue_->setLeaderMode(
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
+  queue_->trackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
+
+  ConsensusResponsePB response;
+  response.set_responder_uuid(kPeerUuid);
+  setLastReceivedAndLastCommitted(&response, MinimumOpId());
+  auto* plsWarning = response.add_warnings();
+  plsWarning->set_code(ServerWarningPB::PLS_RECEIVED);
+  plsWarning->set_start_time(1234);
+  response.add_warnings()->set_code(ServerWarningPB::UNKNOWN);
+  queue_->ResponseFromPeer(response.responder_uuid(), response);
+
+  queue_->UpdatePeerStatus(
+      kPeerUuid, PeerStatus::RpcLayerError, Status::TimedOut("rpc timed out"));
+
+  const auto warnings =
+      queue_->getTrackedPeerForTests(kPeerUuid).lastServerWarnings;
+  ASSERT_EQ(warnings.size(), 2);
+  EXPECT_EQ(warnings[0].code(), ServerWarningPB::PLS_RECEIVED);
+  ASSERT_TRUE(warnings[0].has_start_time());
+  EXPECT_EQ(warnings[0].start_time(), 1234);
+  EXPECT_EQ(warnings[1].code(), ServerWarningPB::UNKNOWN);
+  EXPECT_FALSE(warnings[1].has_start_time());
+}
+
+TEST_F(ConsensusQueueTest, MismatchedResponderDoesNotReplaceWarnings) {
+  queue_->setLeaderMode(
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
+  queue_->trackPeer(makePeer(kPeerUuid, RaftPeerPB::VOTER));
+
+  ConsensusResponsePB response;
+  response.set_responder_uuid(kPeerUuid);
+  setLastReceivedAndLastCommitted(&response, MinimumOpId());
+  auto* warning = response.add_warnings();
+  warning->set_code(ServerWarningPB::PLS_RECEIVED);
+  warning->set_start_time(1234);
+  queue_->ResponseFromPeer(response.responder_uuid(), response);
+
+  response.set_responder_uuid("peer-2");
+  response.mutable_warnings(0)->set_start_time(5678);
+  queue_->ResponseFromPeer(kPeerUuid, response);
+
+  const auto warnings =
+      queue_->getTrackedPeerForTests(kPeerUuid).lastServerWarnings;
+  ASSERT_EQ(warnings.size(), 1);
+  EXPECT_EQ(warnings[0].code(), ServerWarningPB::PLS_RECEIVED);
+  ASSERT_TRUE(warnings[0].has_start_time());
+  EXPECT_EQ(warnings[0].start_time(), 1234);
+}
+
 // Tests that the queue is able to track a peer when it starts tracking a peer
 // after the initial message in the queue. In particular this creates a queue
 // with several messages and then starts to track a peer whose watermark

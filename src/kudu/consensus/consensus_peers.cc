@@ -460,8 +460,16 @@ void Peer::processResponse() {
       response_.status().error().code() ==
           consensus::ConsensusErrorPB::CANNOT_PREPARE) {
     Status responseStatus = statusFromPb(response_.status().error().status());
+    const ServerWarningPBs* warningPbs = nullptr;
+    if (response_.has_responder_uuid() &&
+        response_.responder_uuid() == peerPb_.permanent_uuid()) {
+      warningPbs = &response_.warnings();
+    }
     queue_->UpdatePeerStatus(
-        peerPb_.permanent_uuid(), PeerStatus::CannotPrepare, responseStatus);
+        peerPb_.permanent_uuid(),
+        PeerStatus::CannotPrepare,
+        responseStatus,
+        warningPbs);
     processResponseError(responseStatus);
     return;
   }
@@ -470,15 +478,24 @@ void Peer::processResponse() {
   if (response_.has_error()) {
     Status responseStatus = statusFromPb(response_.error().status());
     PeerStatus ps = PeerStatus::RemoteError;
+    const ServerWarningPBs* warningPbs = nullptr;
     switch (response_.error().code()) {
       case ServerErrorPB::WRONG_SERVER_UUID:
         ps = PeerStatus::WrongServerUuid;
+        break;
+      case ServerErrorPB::UNKNOWN_ERROR:
+      case ServerErrorPB::PROXY_MISSING_LOG_ENTRIES:
+        if (response_.has_responder_uuid() &&
+            response_.responder_uuid() == peerPb_.permanent_uuid()) {
+          warningPbs = &response_.warnings();
+        }
         break;
       default:
         // Unknown kind of error.
         ps = PeerStatus::RemoteError;
     }
-    queue_->UpdatePeerStatus(peerPb_.permanent_uuid(), ps, responseStatus);
+    queue_->UpdatePeerStatus(
+        peerPb_.permanent_uuid(), ps, responseStatus, warningPbs);
     processResponseError(responseStatus);
     return;
   }

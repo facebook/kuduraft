@@ -22,10 +22,13 @@
 // ********************************************************************
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <glog/logging.h>
 #include <gmock/gmock.h>
@@ -185,6 +188,140 @@ class ConsensusPeersTest : public KuduTest {
         [&]() { ASSERT_GE(messageQueue_->getCommittedIndex(), index); });
   }
 
+  void newMockedRemotePeer(
+      const ConsensusResponsePB& response,
+      shared_ptr<Peer>* peer) {
+    auto proxy = make_shared<MockedPeerProxy>(raftPool_.get());
+    // The peer starts heartbeats during creation, so every request must see
+    // this test's response.
+    proxy->setUpdateResponse(response);
+    peerProxyPool_.put(kFollowerUuid, proxy);
+    CHECK_OK(
+        Peer::newRemotePeer(
+            fakeRaftPeerPb(kFollowerUuid),
+            kTabletId,
+            kLeaderUuid,
+            messageQueue_.get(),
+            &peerProxyPool_,
+            raftPoolToken_.get(),
+            proxy,
+            messenger_,
+            peer));
+  }
+
+  ServerWarningPB makeWarning(
+      ServerWarningPB::Code code,
+      std::optional<int64_t> startTime) {
+    ServerWarningPB warning;
+    warning.set_code(code);
+    if (startTime) {
+      warning.set_start_time(*startTime);
+    }
+    return warning;
+  }
+
+  void expectServerWarnings(const std::vector<ServerWarningPB>& expected) {
+    ASSERT_EVENTUALLY([&]() {
+      const auto warnings = messageQueue_->getTrackedPeerForTests(kFollowerUuid)
+                                .lastServerWarnings;
+      ASSERT_EQ(warnings.size(), expected.size());
+      for (size_t i = 0; i < expected.size(); ++i) {
+        ASSERT_EQ(warnings[i].code(), expected[i].code());
+        ASSERT_EQ(warnings[i].has_start_time(), expected[i].has_start_time());
+        if (expected[i].has_start_time()) {
+          ASSERT_EQ(warnings[i].start_time(), expected[i].start_time());
+        }
+      }
+    });
+  }
+
+  void sendErrorResponseAndWait(const shared_ptr<Peer>& peer) {
+    const auto failureCount =
+        messageQueue_->getTrackedPeerForTests(kFollowerUuid)
+            .consecutiveFailures();
+    ASSERT_OK(peer->signalRequest(true));
+    ASSERT_EVENTUALLY([&]() {
+      ASSERT_GT(
+          messageQueue_->getTrackedPeerForTests(kFollowerUuid)
+              .consecutiveFailures(),
+          failureCount);
+    });
+  }
+
+  void testWarningSnapshot(
+      const ConsensusResponsePB& response,
+      const std::vector<ServerWarningPB>& seededWarnings,
+      const std::vector<ServerWarningPB>& expectedWarnings) {
+    messageQueue_->setLeaderMode(
+        kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
+    shared_ptr<Peer> peer;
+    newMockedRemotePeer(response, &peer);
+
+    ConsensusResponsePB seedResponse;
+    seedResponse.set_responder_uuid(kFollowerUuid);
+    seedResponse.mutable_status()->mutable_last_received()->CopyFrom(
+        MinimumOpId());
+    seedResponse.mutable_status()
+        ->mutable_last_received_current_leader()
+        ->CopyFrom(MinimumOpId());
+    seedResponse.mutable_status()->set_last_committed_idx(kMinimumOpIdIndex);
+    for (const auto& warning : seededWarnings) {
+      *seedResponse.add_warnings() = warning;
+    }
+    messageQueue_->ResponseFromPeer(kFollowerUuid, seedResponse);
+
+    sendErrorResponseAndWait(peer);
+    expectServerWarnings(expectedWarnings);
+    peer->close();
+  }
+
+  void testServerErrorWarningSnapshot(
+      ServerErrorPB::Code code,
+      bool hasResponderUuid,
+      const string& responderUuid,
+      const std::vector<ServerWarningPB>& responseWarnings,
+      const std::vector<ServerWarningPB>& expectedWarnings) {
+    ConsensusResponsePB response;
+    if (hasResponderUuid) {
+      response.set_responder_uuid(responderUuid);
+    }
+    for (const auto& warning : responseWarnings) {
+      *response.add_warnings() = warning;
+    }
+    response.mutable_error()->set_code(code);
+    statusToPb(
+        Status::NotFound("server error"),
+        response.mutable_error()->mutable_status());
+    testWarningSnapshot(
+        response,
+        {makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+         makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)},
+        expectedWarnings);
+  }
+
+  void testCannotPrepareWarningSnapshot(
+      bool hasResponderUuid,
+      const string& responderUuid,
+      const std::vector<ServerWarningPB>& responseWarnings,
+      const std::vector<ServerWarningPB>& seededWarnings,
+      const std::vector<ServerWarningPB>& expectedWarnings) {
+    ConsensusResponsePB response;
+    if (hasResponderUuid) {
+      response.set_responder_uuid(responderUuid);
+    }
+    response.mutable_status()->mutable_last_received()->CopyFrom(MinimumOpId());
+    response.mutable_status()->mutable_last_received_current_leader()->CopyFrom(
+        MinimumOpId());
+    response.mutable_status()->set_last_committed_idx(kMinimumOpIdIndex);
+    for (const auto& warning : responseWarnings) {
+      *response.add_warnings() = warning;
+    }
+    auto* error = response.mutable_status()->mutable_error();
+    error->set_code(ConsensusErrorPB::CANNOT_PREPARE);
+    statusToPb(Status::IllegalState("cannot prepare"), error->mutable_status());
+    testWarningSnapshot(response, seededWarnings, expectedWarnings);
+  }
+
  protected:
   MetricRegistry metricRegistry_;
   std::shared_ptr<MetricEntity> metricEntity_;
@@ -290,6 +427,106 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   // We should now be able to wait for it to replicate, since two peers (a
   // majority) have replicated the message.
   waitForCommitIndex(2);
+}
+
+TEST_F(ConsensusPeersTest, CannotPrepareUpdatesOnlyMatchingResponderWarnings) {
+  const auto plsWarning = makeWarning(ServerWarningPB::PLS_RECEIVED, 1234);
+  const auto unknownWarning =
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt);
+  testCannotPrepareWarningSnapshot(
+      true,
+      kFollowerUuid,
+      {plsWarning, unknownWarning},
+      {makeWarning(ServerWarningPB::PLS_RECEIVED, 1111)},
+      {plsWarning, unknownWarning});
+}
+
+TEST_F(
+    ConsensusPeersTest,
+    CannotPrepareFromMismatchedResponderPreservesWarnings) {
+  const std::vector<ServerWarningPB> seededWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testCannotPrepareWarningSnapshot(
+      true,
+      "peer-2",
+      {makeWarning(ServerWarningPB::PLS_RECEIVED, 5678)},
+      seededWarnings,
+      seededWarnings);
+}
+
+TEST_F(ConsensusPeersTest, CannotPrepareWithoutResponderPreservesWarnings) {
+  const std::vector<ServerWarningPB> seededWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testCannotPrepareWarningSnapshot(
+      false,
+      "",
+      {makeWarning(ServerWarningPB::PLS_RECEIVED, 9012)},
+      seededWarnings,
+      seededWarnings);
+}
+
+TEST_F(ConsensusPeersTest, CannotPrepareWithEmptyWarningsClearsSnapshot) {
+  const std::vector<ServerWarningPB> seededWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testCannotPrepareWarningSnapshot(true, kFollowerUuid, {}, seededWarnings, {});
+}
+
+TEST_F(ConsensusPeersTest, UnknownErrorReplacesTimestampedWarnings) {
+  const std::vector<ServerWarningPB> replacementWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 5678),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testServerErrorWarningSnapshot(
+      ServerErrorPB::UNKNOWN_ERROR,
+      true,
+      kFollowerUuid,
+      replacementWarnings,
+      replacementWarnings);
+}
+
+TEST_F(ConsensusPeersTest, UnknownErrorWithoutResponderPreservesWarnings) {
+  const std::vector<ServerWarningPB> seededWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testServerErrorWarningSnapshot(
+      ServerErrorPB::UNKNOWN_ERROR,
+      false,
+      "",
+      {makeWarning(ServerWarningPB::PLS_RECEIVED, 5678)},
+      seededWarnings);
+}
+
+TEST_F(
+    ConsensusPeersTest,
+    UnknownErrorFromMismatchedResponderPreservesWarnings) {
+  const std::vector<ServerWarningPB> seededWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testServerErrorWarningSnapshot(
+      ServerErrorPB::UNKNOWN_ERROR,
+      true,
+      "peer-2",
+      {makeWarning(ServerWarningPB::PLS_RECEIVED, 5678)},
+      seededWarnings);
+}
+
+TEST_F(ConsensusPeersTest, ProxyMissingLogEntriesClearsWarnings) {
+  testServerErrorWarningSnapshot(
+      ServerErrorPB::PROXY_MISSING_LOG_ENTRIES, true, kFollowerUuid, {}, {});
+}
+
+TEST_F(ConsensusPeersTest, OtherServerErrorPreservesWarnings) {
+  const std::vector<ServerWarningPB> seededWarnings = {
+      makeWarning(ServerWarningPB::PLS_RECEIVED, 1234),
+      makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)};
+  testServerErrorWarningSnapshot(
+      ServerErrorPB::WRONG_SERVER_UUID,
+      true,
+      kFollowerUuid,
+      {makeWarning(ServerWarningPB::UNKNOWN, std::nullopt)},
+      seededWarnings);
 }
 
 // Regression test for KUDU-699: even if a peer isn't making progress,
