@@ -571,7 +571,7 @@ Status RaftConsensus::start(
 
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     CHECK_EQ(kInitialized, state_)
         << logPrefixUnlocked()
         << "Illegal state for Start(): " << stateName(state_);
@@ -658,7 +658,7 @@ Status RaftConsensus::start(
 
 bool RaftConsensus::isRunning() const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return state_ == kRunning;
 }
 
@@ -672,7 +672,7 @@ Status RaftConsensus::emulateElection() {
       options_.tablet_id);
 
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   RETURN_NOT_OK(checkRunningUnlocked());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Emulating election...";
@@ -734,7 +734,7 @@ Status RaftConsensus::startElection(
   std::shared_ptr<LeaderElection> election;
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     RETURN_NOT_OK(checkRunningUnlocked());
 
     if (!persistentVars_->isStartElectionAllowed()) {
@@ -949,7 +949,7 @@ Status RaftConsensus::waitUntilLeaderForTests(const MonoDelta& timeout) {
 Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
   TRACE_EVENT0("consensus", "RaftConsensus::stepDown");
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   DCHECK(
       (queue_->isInLeaderMode() &&
        cmeta_->activeRole() == RaftPeerPB::LEADER) ||
@@ -1023,7 +1023,7 @@ Status RaftConsensus::transferLeadership(
     LeaderStepDownResponsePB* resp) {
   TRACE_EVENT0("consensus", "RaftConsensus::transferLeadership");
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Received request to transfer leadership"
       << (new_leader_uuid ? fmt::format(" to TS {}", *new_leader_uuid) : "");
@@ -1051,7 +1051,7 @@ Status RaftConsensus::mockTransferLeadership(
   ThreadRestrictions::assertWaitAllowed();
 
   {
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Received request to mock transfer leadership to "
         << new_leader_uuid;
@@ -1109,7 +1109,7 @@ Status RaftConsensus::mockTransferLeadership(
 Status RaftConsensus::cancelTransferLeadership() {
   TRACE_EVENT0("consensus", "RaftConsensus::cancelTransferLeadership");
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   endLeaderTransferPeriod();
 
   if (queue_->WatchForSuccessorPeerNotified()) {
@@ -1158,7 +1158,7 @@ Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
     const std::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     const ElectionContext& election_ctx) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   if (leaderTransferInProgress_.compareAndSwap(false, true)) {
     return Status::ServiceUnavailable(
         fmt::format(
@@ -1236,7 +1236,7 @@ void RaftConsensus::reportFailureDetected() {
 }
 
 Status RaftConsensus::becomeLeaderUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   TRACE_EVENT2(
       "consensus",
@@ -1299,7 +1299,7 @@ Status RaftConsensus::becomeLeaderUnlocked() {
 }
 
 Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Becoming Follower/Learner. State: " << ToStringUnlocked();
@@ -1328,7 +1328,7 @@ Status RaftConsensus::replicate(const std::shared_ptr<ConsensusRound>& round) {
   std::lock_guard<simple_mutexlock> lock(updateLock_);
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     RETURN_NOT_OK(checkSafeToReplicateUnlocked(*round->replicate_msg()));
     RETURN_NOT_OK(round->CheckBoundTerm(currentTermUnlocked()));
     RETURN_NOT_OK(appendNewRoundToQueueUnlocked(round));
@@ -1342,7 +1342,7 @@ Status RaftConsensus::replicate(const std::shared_ptr<ConsensusRound>& round) {
 Status RaftConsensus::truncateCallbackWithRaftLock(
     int64_t* index_if_truncated) {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   RETURN_NOT_OK(checkRunningUnlocked());
 
   // We pass -1 to TruncateOpsAfter in the log abstraction
@@ -1360,7 +1360,7 @@ Status RaftConsensus::truncateCallbackWithRaftLock(
 Status RaftConsensus::checkLeadershipAndBindTerm(
     const std::shared_ptr<ConsensusRound>& round) {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   RETURN_NOT_OK(checkSafeToReplicateUnlocked(*round->replicate_msg()));
   round->BindToTerm(currentTermUnlocked());
   return Status::OK();
@@ -1368,7 +1368,7 @@ Status RaftConsensus::checkLeadershipAndBindTerm(
 
 Status RaftConsensus::appendNewRoundToQueueUnlocked(
     const std::shared_ptr<ConsensusRound>& round) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   // If index was set in the ReplicateMsgg Round before starting
   // ::Replicate() we need to check that the ground has not shifted
@@ -1406,7 +1406,7 @@ Status RaftConsensus::appendNewRoundToQueueUnlocked(
 
 Status RaftConsensus::addPendingOperationUnlocked(
     const std::shared_ptr<ConsensusRound>& round) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   DCHECK(pending_);
 
   // If we are adding a pending config change, we need to propagate it to the
@@ -1472,7 +1472,7 @@ void RaftConsensus::notifyCommitIndex(int64_t commitIndex, bool needLock) {
 
   ThreadRestrictions::assertWaitAllowed();
   if (needLock) {
-    lock_.lock();
+    consensusStateLock_.lock();
   }
   // We will process commit notifications while shutting down because a replica
   // which has initiated a Prepare() / Replicate() may eventually commit even if
@@ -1491,7 +1491,7 @@ void RaftConsensus::notifyCommitIndex(int64_t commitIndex, bool needLock) {
   }
 
   if (needLock) {
-    lock_.unlock();
+    consensusStateLock_.unlock();
   }
 }
 
@@ -1505,7 +1505,7 @@ void RaftConsensus::notifyTermChange(int64_t term) {
       term);
 
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   Status s = checkRunningUnlocked();
   if (PREDICT_FALSE(!s.ok())) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
@@ -1534,7 +1534,7 @@ void RaftConsensus::notifyFailedFollower(
   RaftConfigPB committedConfig;
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     int64_t currentTermVal = currentTermUnlocked();
     if (currentTermVal != term) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -1601,7 +1601,7 @@ void RaftConsensus::notifyPeerHealthChange() {
 }
 
 void RaftConsensus::handleNewTermAppendedUnlocked(int64_t new_term) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   CHECK_OK(cmeta_->syncLastKnownLeader(new_term));
 }
 
@@ -1627,7 +1627,7 @@ void RaftConsensus::tryPromoteNonVoterTask(const std::string& peerUuid) {
   int64_t currentCommittedConfigIndex;
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
 
     if (cmeta_->hasPendingConfig()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -1686,7 +1686,7 @@ void RaftConsensus::tryStartElectionOnPeerTask(
     std::optional<OpId> mockElectionSnapshotOpId) {
   ThreadRestrictions::assertWaitAllowed();
   {
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     // Double-check that the peer is a voter in the active config.
     if (!isRaftConfigVoter(peerUuid, cmeta_->activeConfig())) {
       std::string msg = fmt::format(
@@ -1793,7 +1793,7 @@ Status RaftConsensus::startFollowerTransactionUnlocked(
 
 Status RaftConsensus::startFollowerTransactionUnlocked(
     const ReplicateRefPtr& msg) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   // Validate crc32 checksum
   uint32_t payload_crc32 = msg->get()->write_payload().crc32();
@@ -1827,7 +1827,7 @@ Status RaftConsensus::startFollowerTransactionUnlocked(
 
 bool RaftConsensus::isSingleVoterConfig() const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return cmeta_->countVotersInConfig(kCommittedConfig) == 1 &&
       cmeta_->isVoterInConfig(peer_uuid(), kCommittedConfig);
 }
@@ -1853,7 +1853,7 @@ std::string RaftConsensus::LeaderRequest::opsRangeString() const {
 void RaftConsensus::deduplicateLeaderRequestUnlocked(
     ConsensusRequestPB* rpcReq,
     LeaderRequest* deduplicatedReq) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   // TODO(todd): use queue committed index?
   int64_t lastCommittedIndex = pending_->getCommittedIndex();
@@ -1938,7 +1938,7 @@ void RaftConsensus::deduplicateLeaderRequestUnlocked(
 Status RaftConsensus::handleLeaderRequestTermUnlocked(
     const ConsensusRequestPB* request,
     ConsensusResponsePB* response) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   // Do term checks first:
   if (PREDICT_FALSE(request->caller_term() != currentTermUnlocked())) {
     // If less, reject.
@@ -1963,7 +1963,7 @@ Status RaftConsensus::handleLeaderRequestTermUnlocked(
 Status RaftConsensus::enforceLogMatchingPropertyMatchesUnlocked(
     const LeaderRequest& req,
     ConsensusResponsePB* response) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   bool termMismatch;
   if (pending_->isOpCommittedOrPending(req.precedingOpId, &termMismatch)) {
@@ -2021,7 +2021,7 @@ Status RaftConsensus::enforceLogMatchingPropertyMatchesUnlocked(
 
 void RaftConsensus::truncateAndAbortOpsAfterUnlocked(
     int64_t truncateAfterIndex) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   pending_->abortOpsAfter(truncateAfterIndex);
   queue_->truncateOpsAfter(truncateAfterIndex);
 }
@@ -2030,7 +2030,7 @@ Status RaftConsensus::checkLeaderRequestUnlocked(
     const ConsensusRequestPB* request,
     ConsensusResponsePB* response,
     LeaderRequest* dedupedReq) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   if (request->has_deprecated_committed_index() ||
       !request->has_all_replicated_index()) {
@@ -2237,7 +2237,7 @@ Status RaftConsensus::updateReplica(
 
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     RETURN_NOT_OK(checkRunningUnlocked());
     if (!cmeta_->isMemberInConfig(peer_uuid(), kActiveConfig)) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -2565,7 +2565,7 @@ Status RaftConsensus::updateReplica(
 
 void RaftConsensus::fillConsensusResponseOkUnlocked(
     ConsensusResponsePB* response) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   TRACE("Filling consensus response to leader.");
   response->set_responder_term(currentTermUnlocked());
 
@@ -2607,7 +2607,7 @@ Status RaftConsensus::requestVote(
 
   // We must acquire the update lock in order to ensure that this vote action
   // takes place between requests.
-  // Lock ordering: updateLock_ must be acquired before lock_.
+  // Lock ordering: updateLock_ must be acquired before consensusStateLock_.
   std::unique_lock<simple_mutexlock> updateGuard(updateLock_, std::defer_lock);
   if (FLAGS_enable_leader_failure_detection &&
       request->mode() != ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE &&
@@ -2627,13 +2627,13 @@ Status RaftConsensus::requestVote(
     // We still need to take the state lock in order to respond with term info,
     // etc.
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     return requestVoteRespondIsBusy(request, response);
   }
 
   // Acquire the replica state lock so we can read / modify the consensus state.
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
 
   // Ensure our lifecycle state is compatible with voting.
   // If RaftConsensus is running, we use the latest OpId from the WAL to vote.
@@ -2904,7 +2904,7 @@ Status RaftConsensus::bulkChangeConfig(
       options_.tablet_id);
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     RaftConfigPB newConfig;
     RETURN_NOT_OK(checkBulkConfigChangeAndGetNewConfigUnlocked(
         req, errorCode, &newConfig));
@@ -2932,7 +2932,7 @@ Status RaftConsensus::checkAndPopulateChangeConfigMessage(
   BulkChangeConfigRequestPB bulkReq;
   getBulkConfigChangeRequest(req, &bulkReq);
 
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   RaftConfigPB newConfig;
   RETURN_NOT_OK(checkBulkConfigChangeAndGetNewConfigUnlocked(
       bulkReq, errorCode, &newConfig));
@@ -2956,7 +2956,7 @@ Status RaftConsensus::checkAndPopulateChangeConfigMessage(
   // Create ReplicateMsg containing the transitional config for
   // joint-consensus phase.
   if (jcStage == JointConsensusPhase::START_JOINT_CONSENSUS) {
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
 
     // Get the current committed config
     const RaftConfigPB committedConfig = cmeta_->committedConfig();
@@ -2972,7 +2972,7 @@ Status RaftConsensus::checkAndPopulateChangeConfigMessage(
         committedConfig, std::move(transitionalConfig), replicateMsg));
 
   } else if (jcStage == JointConsensusPhase::FINISH_JOINT_CONSENSUS) {
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
 
     // Phase-2 of joint-consenus (FINISH_JOINT_CONSENSUS) is valid only when
     // the currently committed config is C_old_new. Here, we validate that the
@@ -3048,7 +3048,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
     std::optional<ServerErrorPB::Code>* errorCode,
     RaftConfigPB* newConfig) {
   {
-    DCHECK(lock_.is_locked());
+    DCHECK(consensusStateLock_.is_locked());
     RETURN_NOT_OK(checkRunningUnlocked());
     RETURN_NOT_OK(checkActiveLeaderUnlocked());
     RETURN_NOT_OK(checkNoConfigChangePendingUnlocked());
@@ -3405,7 +3405,7 @@ Status RaftConsensus::unsafeChangeConfig(
     // Take the snapshot of the replica state and queue state so that
     // we can stick them in the consensus update request later.
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     currentTerm = currentTermUnlocked();
     committedConfig = cmeta_->committedConfig();
     if (cmeta_->hasPendingConfig()) {
@@ -3533,26 +3533,26 @@ Status RaftConsensus::unsafeChangeConfig(
 
 Status RaftConsensus::changeProxyTopology(
     const ProxyTopologyPB& proxy_topology) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return routingTableContainer_->updateProxyTopology(
       proxy_topology, cmeta_->activeConfig(), cmeta_->leaderUuid());
 }
 
 Status RaftConsensus::updateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return routingTableContainer_->updateProxyRegionGroup(
       region_groups, cmeta_->activeConfig(), cmeta_->leaderUuid());
 }
 
 std::vector<std::unordered_set<std::string>>
 RaftConsensus::getProxyRegionGroup() {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return routingTableContainer_->getProxyRegionGroup();
 }
 
 ProxyTopologyPB RaftConsensus::getProxyTopology() const {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return routingTableContainer_->getProxyTopology();
 }
 
@@ -3567,7 +3567,7 @@ void RaftConsensus::stop() {
 
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     if (state_ == kStopping || state_ == kStopped || state_ == kShutdown) {
       return;
     }
@@ -3589,7 +3589,7 @@ void RaftConsensus::stop() {
 
   {
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     if (pending_)
       CHECK_OK(pending_->cancelPendingTransactions());
     setStateUnlocked(kStopped);
@@ -3629,7 +3629,7 @@ void RaftConsensus::shutdown() {
 
   stop();
   {
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     setStateUnlocked(kShutdown);
   }
   shutdown_.store(true, kMemOrderRelease);
@@ -3637,7 +3637,7 @@ void RaftConsensus::shutdown() {
 
 Status RaftConsensus::startConsensusOnlyRoundUnlocked(
     const ReplicateRefPtr& msg) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   OperationType op_type = msg->get()->op_type();
   CHECK(IsConsensusOnlyOperation(op_type))
       << "Expected a consensus-only op type, got "
@@ -3676,14 +3676,14 @@ Status RaftConsensus::startConsensusOnlyRoundUnlocked(
 
 Status RaftConsensus::advanceTermForTests(int64_t new_term) {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   CHECK_OK(checkRunningUnlocked());
   return handleTermAdvanceUnlocked(new_term);
 }
 
 std::string RaftConsensus::getRequestVoteLogPrefixUnlocked(
     const VoteRequestPB& request) const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   return fmt::format(
       "{}Leader {} vote request",
       logPrefixUnlocked(),
@@ -3886,7 +3886,7 @@ Status RaftConsensus::requestVoteRespondVoteGranted(
     const VoteRequestPB* request,
     const std::string& hostnamePort,
     VoteResponsePB* response) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   // We know our vote will be "yes", so avoid triggering an election while we
   // persist our vote to disk. We use an exponential backoff to avoid too much
   // split-vote contention when nodes display high latencies.
@@ -3953,25 +3953,25 @@ RaftPeerPB::Role RaftConsensus::role(bool lock) const {
   ThreadRestrictions::assertWaitAllowed();
   std::optional<UniqueLock> opt_lock;
   if (lock) {
-    opt_lock.emplace(lock_);
+    opt_lock.emplace(consensusStateLock_);
   } else {
-    DCHECK(lock_.is_locked());
+    DCHECK(consensusStateLock_.is_locked());
   }
   return cmeta_->activeRole();
 }
 
 int64_t RaftConsensus::currentTerm() const {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return currentTermUnlocked();
 }
 
 string RaftConsensus::getLeaderUuid() const {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return getLeaderUuidUnlocked();
 }
 
 std::pair<string, unsigned int> RaftConsensus::getLeaderHostPort() const {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return cmeta_->leaderHostport();
 }
 
@@ -4021,7 +4021,7 @@ const char* RaftConsensus::stateName(State state) {
 }
 
 Status RaftConsensus::setLeaderUuidUnlocked(const string& uuid) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   failedElectionsSinceStableLeader_ = 0;
   failedElectionsCandidateNotInConfig_ = 0;
   STATS_failedElectionsSinceStableLeader.addValue(
@@ -4038,7 +4038,7 @@ Status RaftConsensus::replicateConfigChangeUnlocked(
     RaftConfigPB old_config,
     RaftConfigPB new_config,
     StdStatusCallback clientCb) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   auto cc_replicate = std::make_unique<ReplicateMsg>();
   RETURN_NOT_OK(createReplicateMsgFromConfigsUnlocked(
       std::move(old_config), std::move(new_config), cc_replicate.get()));
@@ -4062,7 +4062,7 @@ Status RaftConsensus::createReplicateMsgFromConfigsUnlocked(
     RaftConfigPB old_config,
     RaftConfigPB new_config,
     ReplicateMsg* cc_replicate) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   cc_replicate->set_op_type(CHANGE_CONFIG_OP);
   ChangeConfigRecordPB* cc_req = cc_replicate->mutable_change_config_record();
   cc_req->set_tablet_id(options_.tablet_id);
@@ -4073,7 +4073,7 @@ Status RaftConsensus::createReplicateMsgFromConfigsUnlocked(
 }
 
 Status RaftConsensus::refreshConsensusQueueAndPeersUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   DCHECK_EQ(RaftPeerPB::LEADER, cmeta_->activeRole());
   const RaftConfigPB& active_config = cmeta_->activeConfig();
 
@@ -4106,11 +4106,11 @@ std::string RaftConsensus::peer_region() const {
 }
 
 std::string RaftConsensus::peer_quorum_id(bool need_lock) const {
-  UniqueLock l(lock_, std::defer_lock);
+  UniqueLock l(consensusStateLock_, std::defer_lock);
   if (need_lock) {
     l.lock();
   } else {
-    DCHECK(lock_.is_locked());
+    DCHECK(consensusStateLock_.is_locked());
   }
   return cmeta_->activeConfig().has_commit_rule()
       ? getQuorumId(localPeerPb_, cmeta_->activeConfig().commit_rule())
@@ -4148,9 +4148,9 @@ Status RaftConsensus::consensusState(
   ThreadRestrictions::assertWaitAllowed();
   std::optional<UniqueLock> opt_lock;
   if (lock) {
-    opt_lock.emplace(lock_);
+    opt_lock.emplace(consensusStateLock_);
   } else {
-    DCHECK(lock_.is_locked());
+    DCHECK(consensusStateLock_.is_locked());
   }
 
   if (state_ == kShutdown) {
@@ -4187,13 +4187,13 @@ Status RaftConsensus::consensusState(
 
 RaftConfigPB RaftConsensus::committedConfig() const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return cmeta_->committedConfig();
 }
 
 Status RaftConsensus::pendingConfig(RaftConfigPB* pendingConfigOut) const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   if (cmeta_->hasPendingConfig()) {
     *pendingConfigOut = cmeta_->pendingConfig();
     return Status::OK();
@@ -4240,7 +4240,7 @@ void RaftConsensus::doElectionCallback(
 
   // The vote was granted, become leader.
   ThreadRestrictions::assertWaitAllowed();
-  UniqueLock lock(lock_);
+  UniqueLock lock(consensusStateLock_);
   Status s = checkRunningUnlocked();
   if (PREDICT_FALSE(!s.ok())) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -4375,7 +4375,7 @@ void RaftConsensus::nestedElectionDecisionCallback(
 }
 
 std::optional<OpId> RaftConsensus::getNextOpId() const {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   if (!queue_) {
     return {};
   }
@@ -4384,7 +4384,7 @@ std::optional<OpId> RaftConsensus::getNextOpId() const {
 
 std::optional<OpId> RaftConsensus::getLastOpId(OpIdType type) {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return getLastOpIdUnlocked(type);
 }
 
@@ -4440,9 +4440,9 @@ void RaftConsensus::nonTxRoundReplicationFinished(
     ConsensusRound* round,
     const StdStatusCallback& clientCb,
     const Status& status) {
-  // NOTE: lock_ is held here because this is triggered by
+  // NOTE: consensusStateLock_ is held here because this is triggered by
   // PendingRounds::abortOpsAfter() and advanceCommittedIndex().
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   OperationType op_type = round->replicate_msg()->op_type();
   const string& op_type_str = OperationType_Name(op_type);
   CHECK(IsConsensusOnlyOperation(op_type))
@@ -4453,8 +4453,8 @@ void RaftConsensus::nonTxRoundReplicationFinished(
     // Fall through to the generic handling.
   }
 
-  // TODO(mpercy): May need some refactoring to unlock 'lock_' before invoking
-  // the client callback.
+  // TODO(mpercy): May need some refactoring to unlock 'consensusStateLock_'
+  // before invoking the client callback.
 
   if (!status.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -4487,7 +4487,7 @@ void RaftConsensus::nonTxRoundReplicationFinished(
 void RaftConsensus::completeConfigChangeRoundUnlocked(
     ConsensusRound* round,
     const Status& status) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   const OpId& opId = round->replicate_msg()->id();
 
   if (!status.ok()) {
@@ -4577,7 +4577,7 @@ bool RaftConsensus::isStartElectionAllowed() const {
 }
 
 Status RaftConsensus::setRaftRpcToken(std::optional<std::string> token) {
-  LockGuard guard(lock_);
+  LockGuard guard(consensusStateLock_);
 
   if (shouldEnforceRaftRpcToken()) {
     return Status::IllegalState(
@@ -4622,13 +4622,13 @@ void RaftConsensus::setRejectAppendEntriesForTests(bool reject_append_entries) {
 }
 
 void RaftConsensus::setAdjustVoterDistribution(bool val) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   queue_->setAdjustVoterDistribution(val);
   adjustVoterDistribution_ = val;
 }
 
 void RaftConsensus::updateFailureDetectorState(std::optional<MonoDelta> delta) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   const auto& uuid = peer_uuid();
   if (uuid != cmeta_->leaderUuid() &&
       cmeta_->isVoterInConfig(uuid, kActiveConfig)) {
@@ -4732,7 +4732,7 @@ MonoDelta RaftConsensus::minimumElectionTimeoutWithBan() {
 // Value of 5 here will cap backoff at around 1 hour
 constexpr int64_t kMaxBackOffExponent = 5;
 MonoDelta RaftConsensus::leaderElectionExpBackoffNotInConfig() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stablie leader with a 'not-in-config' indicator
   // This is aggressive backoff starting with 5 seconds, 25 seconds, 125
@@ -4744,7 +4744,7 @@ MonoDelta RaftConsensus::leaderElectionExpBackoffNotInConfig() {
 }
 
 MonoDelta RaftConsensus::leaderElectionExpBackoffDeltaUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stable leader was last seen.
   double backoff_factor = pow(1.5, failedElectionsSinceStableLeader_ + 1);
@@ -4773,7 +4773,7 @@ MonoDelta RaftConsensus::timeoutBackoffHelper(double backoff_factor) {
 Status RaftConsensus::handleTermAdvanceUnlocked(
     ConsensusTerm new_term,
     FlushToDisk flush) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   if (new_term <= currentTermUnlocked()) {
     return Status::IllegalState(
         fmt::format(
@@ -4796,13 +4796,13 @@ Status RaftConsensus::handleTermAdvanceUnlocked(
 
 Status RaftConsensus::checkSafeToReplicateUnlocked(
     const ReplicateMsg& /* msg */) const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   RETURN_NOT_OK(checkRunningUnlocked());
   return checkActiveLeaderUnlocked();
 }
 
 Status RaftConsensus::checkRunningUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   if (PREDICT_FALSE(state_ != kRunning)) {
     return Status::IllegalState(
         "RaftConsensus is not running",
@@ -4812,7 +4812,7 @@ Status RaftConsensus::checkRunningUnlocked() const {
 }
 
 Status RaftConsensus::checkActiveLeaderUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   RaftPeerPB::Role role = cmeta_->activeRole();
   switch (role) {
     case RaftPeerPB::LEADER:
@@ -4839,7 +4839,7 @@ Status RaftConsensus::checkActiveLeaderUnlocked() const {
 }
 
 Status RaftConsensus::checkNoConfigChangePendingUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   if (cmeta_->hasPendingConfig()) {
     return Status::IllegalState(
         fmt::format(
@@ -4852,7 +4852,7 @@ Status RaftConsensus::checkNoConfigChangePendingUnlocked() const {
 }
 
 Status RaftConsensus::setPendingConfigUnlocked(const RaftConfigPB& new_config) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   RETURN_NOT_OK_PREPEND(
       verifyRaftConfig(new_config), "Invalid config to set as pending");
   if (adjustVoterDistribution_ && !new_config.unsafe_config_change()) {
@@ -4891,7 +4891,7 @@ Status RaftConsensus::changeVoterDistribution(
       "tablet",
       options_.tablet_id);
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
 
   // When force is true we're most likely running an unsafe config change
   // operation to regain availability so we have to live with pending config
@@ -4927,13 +4927,13 @@ Status RaftConsensus::changeVoterDistribution(
 Status RaftConsensus::getVoterDistribution(
     std::map<std::string, int32_t>* vd) const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return cmeta_->voterDistribution(vd);
 }
 
 QuorumType RaftConsensus::getQuorumType() const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return cmeta_->activeConfig().has_commit_rule() &&
           cmeta_->activeConfig().commit_rule().has_quorum_type()
       ? cmeta_->activeConfig().commit_rule().quorum_type()
@@ -4943,7 +4943,7 @@ QuorumType RaftConsensus::getQuorumType() const {
 Status RaftConsensus::setCommittedConfigUnlocked(
     const RaftConfigPB& config_to_commit) {
   TRACE_EVENT0("consensus", "RaftConsensus::setCommittedConfigUnlocked");
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   DCHECK(config_to_commit.IsInitialized());
   RETURN_NOT_OK_PREPEND(
       verifyRaftConfig(config_to_commit), "Invalid config to set as committed");
@@ -4999,7 +4999,7 @@ void RaftConsensus::doTermAdvancmentCallback(int64_t new_term) {
 }
 
 void RaftConsensus::scheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
 
   RaftPeerPB current_leader;
   Status s_ok =
@@ -5035,7 +5035,7 @@ void RaftConsensus::doNoOpReceivedCallback(
 }
 
 void RaftConsensus::scheduleLeaderDetectedCallback(int64_t term) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   RaftPeerPB current_leader;
   Status s_ok =
       cmeta_->getConfigMemberCopy(cmeta_->leaderUuid(), &current_leader);
@@ -5070,7 +5070,7 @@ void RaftConsensus::doLeaderDetectedCallback(
 }
 
 Status RaftConsensus::setCurrentTermBootstrap(int64_t new_term) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   if (PREDICT_FALSE(new_term <= currentTermUnlocked())) {
     return Status::IllegalState(
         fmt::format(
@@ -5092,7 +5092,7 @@ Status RaftConsensus::SetCurrentTermUnlocked(
     FlushToDisk flush) {
   TRACE_EVENT1(
       "consensus", "RaftConsensus::SetCurrentTermUnlocked", "term", new_term);
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   if (PREDICT_FALSE(new_term <= currentTermUnlocked())) {
     return Status::IllegalState(
         fmt::format(
@@ -5119,27 +5119,27 @@ Status RaftConsensus::SetCurrentTermUnlocked(
 }
 
 const int64_t RaftConsensus::currentTermUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   return cmeta_->currentTerm();
 }
 
 string RaftConsensus::getLeaderUuidUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   return cmeta_->leaderUuid();
 }
 
 bool RaftConsensus::hasLeaderUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   return !getLeaderUuidUnlocked().empty();
 }
 
 void RaftConsensus::clearLeaderUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   cmeta_->setLeaderUuid("");
 }
 
 const bool RaftConsensus::hasVotedCurrentTermUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   return cmeta_->hasVotedFor();
 }
 
@@ -5149,14 +5149,14 @@ Status RaftConsensus::setVotedForCurrentTermUnlocked(const std::string& uuid) {
       "RaftConsensus::setVotedForCurrentTermUnlocked",
       "uuid",
       uuid);
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   cmeta_->setVotedFor(uuid);
   CHECK_OK(cmeta_->flush());
   return Status::OK();
 }
 
 const std::string& RaftConsensus::getVotedForCurrentTermUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   DCHECK(cmeta_->hasVotedFor());
   return cmeta_->votedFor();
 }
@@ -5167,12 +5167,12 @@ const ConsensusOptions& RaftConsensus::GetOptions() const {
 
 string RaftConsensus::logPrefix() const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return logPrefixUnlocked();
 }
 
 string RaftConsensus::logPrefixUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   // 'cmeta_' may not be set if initialization failed.
   string cmeta_info;
   if (cmeta_) {
@@ -5191,12 +5191,12 @@ string RaftConsensus::LogPrefixThreadSafe() const {
 
 string RaftConsensus::ToString() const {
   ThreadRestrictions::assertWaitAllowed();
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return ToStringUnlocked();
 }
 
 string RaftConsensus::ToStringUnlocked() const {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   return fmt::format(
       "Replica: {}, State: {}, Role: {}",
       peer_uuid(),
@@ -5291,7 +5291,7 @@ void RaftConsensus::handleProxyRequest(
     // Snapshot the active Raft config so we know how to route proxied
     // messages.
     ThreadRestrictions::assertWaitAllowed();
-    LockGuard l(lock_);
+    LockGuard l(consensusStateLock_);
     RET_RESPOND_ERROR_NOT_OK(checkRunningUnlocked());
     active_config = cmeta_->activeConfig();
   }
@@ -5621,17 +5621,17 @@ void RaftConsensus::handleProxyRequest(
 }
 
 Status RaftConsensus::setCompressionCodec(const std::string& codec) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return CompressionCodecManager::setCurrentCodec(codec);
 }
 
 Status RaftConsensus::setCompressionLevel(int level) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return CompressionCodecManager::setCurrentCompressionLevel(level);
 }
 
 Status RaftConsensus::setEnableCompressionOnCacheMiss(bool enable) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return queue_->log_cache()->setEnableCompressionOnCacheMiss(enable);
 }
 
@@ -5671,7 +5671,7 @@ Status RaftConsensus::loadCompressionDict(const std::string& filename) {
     return Status::InvalidArgument("Could not read compression dict file");
   }
 
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   RETURN_NOT_OK(queue_->SetCompressionDictionary(dict_buffer));
   persistentVars_->setCompressionDictionary(dict_buffer);
   RETURN_NOT_OK(persistentVars_->flush());
@@ -5679,13 +5679,13 @@ Status RaftConsensus::loadCompressionDict(const std::string& filename) {
 }
 
 std::string RaftConsensus::getCompressionStats() const {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   auto codec = CompressionCodecManager::getCurrentCodec();
   return codec ? codec->stats() : "";
 }
 
 Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   proxyPolicy_ = proxy_policy;
   return routingTableContainer_->setProxyPolicy(
       proxyPolicy_, cmeta_->leaderUuid(), cmeta_->activeConfig());
@@ -5713,40 +5713,40 @@ const char* proxyPolicyToString(ProxyPolicy policy) {
 } // namespace
 
 void RaftConsensus::getProxyPolicy(std::string* proxy_policy) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   *proxy_policy = proxyPolicyToString(proxyPolicy_);
 }
 
 void RaftConsensus::setProxyFailureThreshold(
     int32_t proxy_failure_threshold_ms) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   queue_->SetProxyFailureThreshold(proxy_failure_threshold_ms);
 }
 
 void RaftConsensus::setProxyFailureThresholdLag(
     int64_t proxy_failure_threshold_lag) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   queue_->SetProxyFailureThresholdLag(proxy_failure_threshold_lag);
 }
 
 void RaftConsensus::clearRemovedPeersList() {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   cmeta_->clearRemovedPeersList();
 }
 
 void RaftConsensus::deleteFromRemovedPeersList(
     const std::vector<std::string>& peer_uuids) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   cmeta_->deleteFromRemovedPeersList(peer_uuids);
 }
 
 std::vector<std::string> RaftConsensus::removedPeersList() {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return cmeta_->removedPeersList();
 }
 
 void RaftConsensus::UpdateLocalPeerUnlocked(RaftConfigPB& active_config) {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   RaftPeerPB* new_local_peer_pb;
   Status s =
       getRaftConfigMember(&active_config, peer_uuid(), &new_local_peer_pb);
@@ -5808,14 +5808,14 @@ Status ConsensusRound::CheckBoundTerm(int64_t current_term) const {
 
 void RaftConsensus::setCheckQuorumFailureCallback(
     CheckQuorumFailureCallback failure_callback) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   checkQuorumFailureCallback_ = std::move(failure_callback);
   InitCheckQuorumDetectorUnlocked();
 }
 
 void RaftConsensus::setCheckQuorumFailureIntervalHeartbeats(
     int32_t heartbeats) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   checkQuorumIntervalHeartbeats_ = heartbeats;
   InitCheckQuorumDetectorUnlocked();
 }
@@ -5828,7 +5828,7 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
   }
 
   CHECK(peerProxyFactory_);
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   PeriodicTimer::Options opts;
   MonoDelta check_interval = MonoDelta::FromMilliseconds(
       static_cast<int64_t>(
@@ -5880,19 +5880,19 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
 }
 
 void RaftConsensus::SnoozeCheckQuorumDetector(MonoDelta snooze_time) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   if (checkQuorumTimer_) {
     checkQuorumTimer_->snooze(snooze_time);
   }
 }
 
 void RaftConsensus::StopCheckQuorumDetectorUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   checkQuorumTimer_.reset();
 }
 
 void RaftConsensus::InitDatalossBoundDetectorUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   CHECK(peerProxyFactory_);
 
   // Publishes the metrics and retries reconstruction of missing watermarks.
@@ -5929,17 +5929,17 @@ void RaftConsensus::InitDatalossBoundDetectorUnlocked() {
 }
 
 void RaftConsensus::StopDatalossBoundDetectorUnlocked() {
-  DCHECK(lock_.is_locked());
+  DCHECK(consensusStateLock_.is_locked());
   datalossBoundTimer_.reset();
 }
 
 int32_t RaftConsensus::getAvailableCommitPeers() {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return queue_->GetAvailableCommitPeers();
 }
 
 Status RaftConsensus::getQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return queue_->GetQuorumHealth(health);
 }
 
@@ -5952,7 +5952,7 @@ void RaftConsensus::getStatusSnapshot(StatusSnapshot* snapshot) const {
   ThreadRestrictions::assertWaitAllowed();
   DCHECK(snapshot);
 
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
 
   // Deliberately no state_ == kShutdown guard. None of the individual accessors
   // this replaces checked state_, and shutdown() leaves cmeta_ and queue_
@@ -5999,21 +5999,21 @@ void RaftConsensus::getStatusSnapshot(StatusSnapshot* snapshot) const {
 
 Status RaftConsensus::getAllStateMachineMetrics(
     PeerMessageQueue::AllStateMachineMetrics* metrics) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return queue_->getAllStateMachineMetrics(metrics);
 }
 
 bool RaftConsensus::isStateMachineHealthyForElection(
     const std::string& candidate_uuid,
     std::optional<int> seconds_behind_master_threshold) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return queue_->IsStateMachineHealthyForElection(
       candidate_uuid, seconds_behind_master_threshold);
 }
 
 bool RaftConsensus::isHealthyStateMachineForElectionPresent(
     std::optional<int> seconds_behind_master_threshold) {
-  LockGuard l(lock_);
+  LockGuard l(consensusStateLock_);
   return queue_->isHealthyStateMachineForElectionPresent(
       seconds_behind_master_threshold);
 }

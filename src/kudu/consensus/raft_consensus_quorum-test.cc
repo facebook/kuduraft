@@ -674,7 +674,7 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusContinuesIfAMinorityFallsBehind) {
     shared_ptr<RaftConsensus> follower0;
     CHECK_OK(peers_->getPeerByIdx(kFollower0Idx, &follower0));
 
-    RaftConsensus::LockGuard l(follower0->lock_);
+    RaftConsensus::LockGuard l(follower0->consensusStateLock_);
 
     // If the locked replica would stop consensus we would hang here
     // as we wait for operations to be replicated to a majority.
@@ -703,7 +703,7 @@ TEST_F(RaftConsensusQuorumTest, TestConfigChangeWithProxyDisabled) {
   shared_ptr<RaftConsensus> peer;
   ASSERT_OK(peers_->getPeerByIdx(0, &peer));
 
-  RaftConsensus::LockGuard l(peer->lock_);
+  RaftConsensus::LockGuard l(peer->consensusStateLock_);
   RaftConfigPB config = peer->cmeta_->committedConfig();
   config.set_opid_index(config.opid_index() + 1);
   ASSERT_OK(peer->setPendingConfigUnlocked(config));
@@ -727,11 +727,11 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
     // and never letting them go.
     shared_ptr<RaftConsensus> follower0;
     CHECK_OK(peers_->getPeerByIdx(kFollower0Idx, &follower0));
-    RaftConsensus::LockGuard l0(follower0->lock_);
+    RaftConsensus::LockGuard l0(follower0->consensusStateLock_);
 
     shared_ptr<RaftConsensus> follower1;
     CHECK_OK(peers_->getPeerByIdx(kFollower1Idx, &follower1));
-    RaftConsensus::LockGuard l1(follower1->lock_);
+    RaftConsensus::LockGuard l1(follower1->consensusStateLock_);
 
     // Append a single message to the queue
     ASSERT_OK(appendDummyMessage(kLeaderIdx, &round));
@@ -1144,7 +1144,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // leader, so make the voter forget the term-1 leader it last heard from.
   // That leader's heartbeats now fail the term check and cannot re-arm this.
   {
-    RaftConsensus::LockGuard l(peer->lock_);
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
     peer->withholdVotesUntil_ = MonoTime::Min();
   }
   flushCountBefore = flushCount();

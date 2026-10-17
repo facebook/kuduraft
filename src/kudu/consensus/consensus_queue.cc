@@ -873,8 +873,8 @@ void PeerMessageQueue::LocalPeerAppendFinished(
         local_id,
         true)));
   } else {
-    // NOTE: no need to lock RaftConsensus::lock_ because we're executing in
-    // sync mode
+    // NOTE: no need to lock RaftConsensus::consensusStateLock_ because we're
+    // executing in sync mode
     DoLocalPeerAppendFinished(local_id, /* need_lock */ false);
   }
 

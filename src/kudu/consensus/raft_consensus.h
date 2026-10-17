@@ -751,7 +751,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // type of message it is.
   // The 'clientCb' will be invoked at the end of this execution.
   //
-  // NOTE: Must be called while holding 'lock_'.
+  // NOTE: Must be called while holding 'consensusStateLock_'.
   void nonTxRoundReplicationFinished(
       ConsensusRound* round,
       const StdStatusCallback& clientCb,
@@ -783,10 +783,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Blocks until a majority of this leader's commit quorum is proven to have
   // recognized it strictly after 'anchor' in 'term'.
   //
-  // Must not be called while holding lock_. Every event that ends this wait --
-  // a peer response, setLeaderMode, setNonLeaderMode -- is raised from under
-  // lock_, so a caller that parks here holding it deadlocks itself for the full
-  // timeout and stalls every other Raft operation meanwhile.
+  // Must not be called while holding consensusStateLock_. Every event that ends
+  // this wait -- a peer response, setLeaderMode, setNonLeaderMode -- is raised
+  // from under consensusStateLock_, so a caller that parks here holding it
+  // deadlocks itself for the full timeout and stalls every other Raft operation
+  // meanwhile.
   PeerMessageQueue::ConfirmationResult
   waitForQuorumConfirmation(int64_t term, MonoTime anchor, MonoDelta timeout);
 
@@ -834,14 +835,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       PeerMessageQueue::AllStateMachineMetrics* metrics);
 
   // Everything the status-variable layer needs, gathered under a single
-  // acquisition of lock_.
+  // acquisition of consensusStateLock_.
   //
   // The status variables exposed by the mysql_raft plugin used to call
   // ~17 individual accessors here (role(), currentTerm(), getLeaderUuid(),
-  // committedConfig(), pendingConfig(), ...), each taking lock_ on its own.
-  // Materializing performance_schema.global_status therefore took lock_ around
-  // 20-25 times in a row, serialized against the replication hot path. This
-  // collapses that to one acquisition.
+  // committedConfig(), pendingConfig(), ...), each taking consensusStateLock_
+  // on its own. Materializing performance_schema.global_status therefore took
+  // consensusStateLock_ around 20-25 times in a row, serialized against the
+  // replication hot path. This collapses that to one acquisition.
   //
   // It also removes a real consistency hole: committedConfig() and
   // pendingConfig() were separate acquisitions, so the two could be observed
@@ -874,7 +875,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
     bool allStateMachineMetricsValid{false};
   };
 
-  // Fills 'snapshot' under a single lock_ acquisition.
+  // Fills 'snapshot' under a single consensusStateLock_ acquisition.
   //
   // Note there is intentionally no state_ == kShutdown guard: none of the
   // individual accessors this batches checked state_, and shutdown() leaves
@@ -1046,13 +1047,13 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Returns OK once the change config transaction that has this peer as
   // leader has been enqueued, the transaction will complete asynchronously.
   //
-  // 'lock_' must be held for configuration change before calling.
+  // 'consensusStateLock_' must be held for configuration change before calling.
   Status becomeLeaderUnlocked();
 
   // Makes the peer become a replica, i.e. a FOLLOWER or a LEARNER.
   // See EnableFailureDetector() for description of the 'fd_delta' parameter.
   //
-  // 'lock_' must be held for configuration change before calling.
+  // 'consensusStateLock_' must be held for configuration change before calling.
   Status becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta = {});
 
   // Updates the state in a replica by storing the received operations in the
@@ -1120,7 +1121,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Returns true if this node is the only voter in the Raft configuration.
   bool isSingleVoterConfig() const;
 
-  // Return header string for RequestVote log messages. 'lock_' must be held.
+  // Return header string for RequestVote log messages. 'consensusStateLock_'
+  // must be held.
   std::string getRequestVoteLogPrefixUnlocked(
       const VoteRequestPB& request) const;
 
@@ -1470,12 +1472,26 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // TODO(dralves) hack to serialize updates due to repeated/out-of-order
   // messages should probably be refactored out.
   //
-  // Lock ordering note: If both 'updateLock_' and 'lock_' are to be taken,
-  // 'updateLock_' lock must be taken first.
+  // Lock ordering note: If both 'updateLock_' and 'consensusStateLock_' are
+  // to be taken, 'updateLock_' lock must be taken first.
   mutable simple_mutexlock updateLock_;
 
-  // Coarse-grained lock that protects all mutable data members.
-  mutable simple_mutexlock lock_;
+  // Coarse-grained lock over this replica's consensus state: notably state_,
+  // cmeta_ (current term, vote, leader, active/committed/pending config),
+  // pending_ (rounds not yet committed), lastReceivedCurLeader_,
+  // withholdVotesUntil_, the election failure counters,
+  // designatedSuccessorUuid_, proxyPolicy_ and the test-only reject/withhold
+  // flags. *Unlocked() methods expect it held. Members that are atomic or have
+  // their own lock (leaderLeaseState_, failureDetectorTimeLeft_, and the
+  // queue's queueLock_) are not covered by it.
+  //
+  // It is held while consensus calls into the state machine: replication-done
+  // callbacks (including the follower log rotate) and follower log appends.
+  // Code reached from those callbacks must not block on a state machine lock
+  // that can be held across a long wait, such as a replication channel lock
+  // held while the applier stops: that stalls consensus (heartbeats, votes,
+  // status reads) for the whole wait and can deadlock.
+  mutable simple_mutexlock consensusStateLock_;
 
   State state_;
 
@@ -1514,7 +1530,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   std::unique_ptr<PeerMessageQueue> queue_;
 
   // The currently pending rounds that have not yet been committed by
-  // consensus. Protected by 'lock_'.
+  // consensus. Protected by 'consensusStateLock_'.
   // TODO(todd) these locks will become more fine-grained.
   std::unique_ptr<PendingRounds> pending_;
 
