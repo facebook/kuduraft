@@ -1556,7 +1556,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // TODO(todd) these locks will become more fine-grained.
   std::unique_ptr<PendingRounds> pending_;
 
-  Random rng_;
+  // Election timeout jitter. Thread safe: updateReplica() computes a timeout
+  // after it releases consensusStateLock_.
+  ThreadSafeRandom rng_;
 
   std::shared_ptr<rpc::PeriodicTimer> failureDetector_;
   std::atomic<std::chrono::system_clock::time_point>

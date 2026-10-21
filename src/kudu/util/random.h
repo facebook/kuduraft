@@ -174,6 +174,11 @@ class ThreadSafeRandom {
     return random_.normal(mean, stdDev);
   }
 
+  double nextDoubleFraction() {
+    std::lock_guard<SimpleSpinlock> l(lock_);
+    return random_.nextDoubleFraction();
+  }
+
  private:
   SimpleSpinlock lock_;
   Random random_;
