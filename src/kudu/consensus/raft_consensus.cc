@@ -3560,12 +3560,15 @@ Status RaftConsensus::updateProxyRegionGroup(
 
 std::vector<std::unordered_set<std::string>>
 RaftConsensus::getProxyRegionGroup() {
-  LockGuard l(consensusStateLock_);
+  // No consensusStateLock_: status variables read this, and the region group
+  // table guards its own state. routingTableContainer_ is set once in Init().
   return routingTableContainer_->getProxyRegionGroup();
 }
 
 ProxyTopologyPB RaftConsensus::getProxyTopology() const {
-  LockGuard l(consensusStateLock_);
+  // No consensusStateLock_: status variables read this, and the routing
+  // tables guard their own state. routingTableContainer_ is set once in
+  // Init().
   return routingTableContainer_->getProxyTopology();
 }
 
@@ -5967,13 +5970,19 @@ void RaftConsensus::StopDatalossBoundDetectorUnlocked() {
 }
 
 int32_t RaftConsensus::getAvailableCommitPeers() {
-  LockGuard l(consensusStateLock_);
-  return queue_->GetAvailableCommitPeers();
+  // No consensusStateLock_, as in getAllStateMachineMetrics().
+  PeerMessageQueue* queue = statusQueue_.load(std::memory_order_acquire);
+  return queue ? queue->GetAvailableCommitPeers() : 0;
 }
 
 Status RaftConsensus::getQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
-  LockGuard l(consensusStateLock_);
-  return queue_->GetQuorumHealth(health);
+  // No consensusStateLock_: Rpl_raft_quorum_health is a status variable, and
+  // the queue method takes the queue's own lock.
+  PeerMessageQueue* queue = statusQueue_.load(std::memory_order_acquire);
+  if (queue == nullptr) {
+    return Status::IllegalState("Consensus queue not started");
+  }
+  return queue->GetQuorumHealth(health);
 }
 
 void RaftConsensus::setStateMachineMetrics(
@@ -6045,8 +6054,13 @@ void RaftConsensus::getStatusSnapshot(StatusSnapshot* snapshot) const {
 
 Status RaftConsensus::getAllStateMachineMetrics(
     PeerMessageQueue::AllStateMachineMetrics* metrics) {
-  LockGuard l(consensusStateLock_);
-  return queue_->getAllStateMachineMetrics(metrics);
+  // No consensusStateLock_: status variables read this, and the queue method
+  // takes the queue's own lock.
+  PeerMessageQueue* queue = statusQueue_.load(std::memory_order_acquire);
+  if (queue == nullptr) {
+    return Status::IllegalState("Consensus queue not started");
+  }
+  return queue->getAllStateMachineMetrics(metrics);
 }
 
 bool RaftConsensus::isStateMachineHealthyForElection(
