@@ -60,6 +60,7 @@ void ConsensusMetadata::setCurrentTerm(int64_t term) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   DCHECK_GE(term, kMinimumTerm);
   pb_.set_current_term(term);
+  notifyStateChanged();
 }
 
 bool ConsensusMetadata::hasVotedFor() const {
@@ -190,12 +191,17 @@ void ConsensusMetadata::setCommittedConfig(const RaftConfigPB& config) {
   *pb_.mutable_committed_config() = config;
   if (!hasPendingConfig_) {
     updateActiveRole();
+  } else {
+    // The pending config masks the committed one, so the active role is
+    // unchanged, but the committed config itself is observable.
+    notifyStateChanged();
   }
 }
 
 void ConsensusMetadata::setCommittedConfigRaw(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   *pb_.mutable_committed_config() = config;
+  notifyStateChanged();
 }
 
 kudu::Status ConsensusMetadata::voterDistribution(
@@ -349,6 +355,7 @@ ConsensusStatePB ConsensusMetadata::toConsensusStatePB() const {
 void ConsensusMetadata::mergeCommittedConsensusStatePB(
     const ConsensusStatePB& cstate) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  DeferStateChangeNotifications deferNotifications(*this);
   if (cstate.current_term() > currentTerm()) {
     setCurrentTerm(cstate.current_term());
     clearVotedFor();
@@ -492,6 +499,49 @@ void ConsensusMetadata::updateActiveRole() {
                       << RaftPeerPB::Role_Name(activeRole_)
                       << ". Consensus state: "
                       << pb_util::SecureShortDebugString(toConsensusStatePB());
+  notifyStateChanged();
+}
+
+void ConsensusMetadata::setStateChangeObserver(std::function<void()> observer) {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  stateChangeObserver_ = std::move(observer);
+}
+
+void ConsensusMetadata::notifyStateChanged() {
+  // The observer runs inside the externally synchronized region, like every
+  // mutator and getter (it reads this object back).
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  if (deferNotificationsDepth_ > 0) {
+    notificationDeferred_ = true;
+    return;
+  }
+  if (stateChangeObserver_) {
+    stateChangeObserver_();
+  }
+}
+
+void ConsensusMetadata::beginDeferringNotifications() {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  ++deferNotificationsDepth_;
+}
+
+void ConsensusMetadata::endDeferringNotifications() {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  if (--deferNotificationsDepth_ == 0 && notificationDeferred_) {
+    notificationDeferred_ = false;
+    notifyStateChanged();
+  }
+}
+
+ConsensusMetadata::DeferStateChangeNotifications::DeferStateChangeNotifications(
+    ConsensusMetadata& cmeta)
+    : cmeta_(cmeta) {
+  cmeta_.beginDeferringNotifications();
+}
+
+ConsensusMetadata::DeferStateChangeNotifications::
+    ~DeferStateChangeNotifications() {
+  cmeta_.endDeferringNotifications();
 }
 
 Status ConsensusMetadata::updateOnDiskSize() {

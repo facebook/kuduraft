@@ -26,6 +26,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <iosfwd>
 #include <memory>
 #include <mutex>
@@ -33,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+#include <folly/concurrency/AtomicSharedPtr.h>
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
 #include <optional>
@@ -284,6 +286,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //
   // If the failure detector is already disabled, has no effect.
   void disableFailureDetector();
+
+  // Runs 'fn' while holding consensusStateLock_.
+  void runWithConsensusStateLockForTests(const std::function<void()>& fn);
 
   // Pauses outgoing votes from this server during elections, if set to true.
   void setWithholdVotesForTests(bool withhold_votes);
@@ -834,19 +839,22 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status getAllStateMachineMetrics(
       PeerMessageQueue::AllStateMachineMetrics* metrics);
 
-  // Everything the status-variable layer needs, gathered under a single
-  // acquisition of consensusStateLock_.
+  // Everything the status-variable layer needs, read without
+  // consensusStateLock_.
   //
-  // The status variables exposed by the mysql_raft plugin used to call
-  // ~17 individual accessors here (role(), currentTerm(), getLeaderUuid(),
-  // committedConfig(), pendingConfig(), ...), each taking consensusStateLock_
-  // on its own. Materializing performance_schema.global_status therefore took
-  // consensusStateLock_ around 20-25 times in a row, serialized against the
-  // replication hot path. This collapses that to one acquisition.
+  // Status reads must never wait on consensusStateLock_. It is held while
+  // consensus calls into the state machine, and mysqld materializes
+  // performance_schema.global_status while holding LOCK_status, which
+  // exiting threads need. A status read stuck behind consensusStateLock_
+  // therefore stalls every connection exit, and can deadlock with a state
+  // machine callback that is itself waiting on such a thread.
   //
-  // It also removes a real consistency hole: committedConfig() and
-  // pendingConfig() were separate acquisitions, so the two could be observed
-  // from different configuration epochs.
+  // So the consensus fields come from a snapshot republished, under
+  // consensusStateLock_, whenever they change (see publishStatusUnlocked()).
+  // The queue fields are read under the queue's own lock, and
+  // compressionStats from the global codec. The consensus fields are mutually
+  // consistent: committedConfig and pendingConfig are always from the same
+  // configuration epoch.
   //
   // Fields whose underlying accessor returned a non-OK Status are left at
   // their default-constructed value and the matching *Valid flag is false.
@@ -875,12 +883,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
     bool allStateMachineMetricsValid{false};
   };
 
-  // Fills 'snapshot' under a single consensusStateLock_ acquisition.
+  // Fills 'snapshot' without taking consensusStateLock_.
   //
-  // Note there is intentionally no state_ == kShutdown guard: none of the
-  // individual accessors this batches checked state_, and shutdown() leaves
-  // cmeta_ and queue_ intact, so callers keep observing the last known values
-  // after a shutdown exactly as they did before.
+  // Note there is intentionally no state_ == kShutdown guard: shutdown()
+  // leaves the published snapshot and queue_ intact, so callers keep observing
+  // the last known values after a shutdown.
   void getStatusSnapshot(StatusSnapshot* snapshot) const;
 
   void setStateMachineMetrics(
@@ -1440,6 +1447,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   void UpdateLocalPeerUnlocked(RaftConfigPB& active_config);
 
+  // Rebuilds the consensus fields of StatusSnapshot and publishes them for
+  // getStatusSnapshot(). Called whenever one of them changes: from cmeta_'s
+  // state-change observer (term, leader, configs), and after proxyPolicy_ or
+  // localPeerPb_ (which determines peerQuorumId) change.
+  void publishStatusUnlocked();
+
   // Initializes timer that periodically checks whether leader can satisfy
   // commit quorum.
   void InitCheckQuorumDetectorUnlocked();
@@ -1492,6 +1505,15 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // held while the applier stops: that stalls consensus (heartbeats, votes,
   // status reads) for the whole wait and can deadlock.
   mutable simple_mutexlock consensusStateLock_;
+
+  // The consensus fields of StatusSnapshot (the queue fields are left unset),
+  // republished by publishStatusUnlocked() so getStatusSnapshot() can read
+  // them without consensusStateLock_.
+  folly::atomic_shared_ptr<const StatusSnapshot> publishedStatus_;
+
+  // queue_, for getStatusSnapshot(), which does not take consensusStateLock_.
+  // Set once in Start(); null before that.
+  std::atomic<PeerMessageQueue*> statusQueue_{nullptr};
 
   State state_;
 
