@@ -4,8 +4,6 @@
 
 #include "kudu/gutil/ref_counted_memory.h"
 
-#include <glog/logging.h>
-
 namespace kudu {
 
 RefCountedMemory::RefCountedMemory() {}

@@ -8,8 +8,6 @@
 #include <cstdlib>
 #include <iterator>
 
-#include "kudu/gutil/strings/util.h"
-
 using std::string;
 using std::vector;
 
