@@ -1763,7 +1763,7 @@ Status RaftConsensus::update(
 
   if (PREDICT_FALSE(
           FLAGS_follower_reject_update_consensus_requests ||
-          rejectAppendEntries_)) {
+          rejectAppendEntries_.load(std::memory_order_relaxed))) {
     return Status::IllegalState(
         "Rejected: --follower_reject_update_consensus_requests "
         "is set to true.");
@@ -4645,7 +4645,7 @@ void RaftConsensus::setWithholdVotesForTests(bool withhold_votes) {
 }
 
 void RaftConsensus::setRejectAppendEntriesForTests(bool reject_append_entries) {
-  rejectAppendEntries_ = reject_append_entries;
+  rejectAppendEntries_.store(reject_append_entries, std::memory_order_relaxed);
 }
 
 void RaftConsensus::setAdjustVoterDistribution(bool val) {

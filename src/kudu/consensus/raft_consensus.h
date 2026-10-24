@@ -1594,7 +1594,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   int64_t leaderLeaseTerm_;
 
   // This is used in tests to reject AppendEntries RPC requests.
-  bool rejectAppendEntries_;
+  std::atomic<bool> rejectAppendEntries_;
 
   // Should we adjust voter distribution based on current config?
   bool adjustVoterDistribution_;
