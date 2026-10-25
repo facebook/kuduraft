@@ -3654,7 +3654,6 @@ PeerMessageQueue::LogMatchResult PeerMessageQueue::MatchOpInLog(
   }
   LOG_WITH_PREFIX_UNLOCKED(FATAL)
       << "Error while reading the log: " << s.ToString();
-  return LogMatchResult::Unavailable; // Unreachable.
 }
 
 void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
