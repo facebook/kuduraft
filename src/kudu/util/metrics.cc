@@ -114,7 +114,9 @@ const char* MetricUnit::name(Type unit) {
       return "tablets";
     default:
       DCHECK(false) << "Unknown unit with type = " << unit;
+#ifdef NDEBUG
       return "UNKNOWN UNIT";
+#endif
   }
 }
 

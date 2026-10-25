@@ -270,7 +270,6 @@ class RaftConsensusQuorumTest : public KuduTest {
       }
     }
     CHECK(false) << "Proxy not found";
-    return nullptr;
   }
 
   Status appendDummyMessage(

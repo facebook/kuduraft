@@ -451,7 +451,9 @@ ThreadPool* Messenger::negotiation_pool(ConnectionDirection dir) {
       return serverNegotiationPool_.get();
   }
   DCHECK(false) << "Unknown ConnectionDirection value: " << dir;
+#ifdef NDEBUG
   return nullptr;
+#endif
 }
 
 } // namespace rpc

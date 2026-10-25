@@ -46,7 +46,4 @@ inline size_t hashStringThoroughly(const char* s, size_t len) {
     return hash64StringWithSeed(
         s, static_cast<uint32_t>(len), hash_internal::kMix64);
   }
-
-  return static_cast<size_t>(hash32StringWithSeed(
-      s, static_cast<uint32_t>(len), hash_internal::kMix32));
 }

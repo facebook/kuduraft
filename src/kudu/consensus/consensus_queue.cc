@@ -363,7 +363,9 @@ const char* peerStatusToString(PeerStatus p) {
       return "NEW";
   }
   DCHECK(false);
+#ifdef NDEBUG
   return "<unknown>";
+#endif
 }
 
 PeerMessageQueue::TrackedPeer::TrackedPeer(

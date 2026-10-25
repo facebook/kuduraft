@@ -790,7 +790,9 @@ bool shouldEvictReplica(
           // TODO(KUDU-2335): We have seen this assertion in rare circumstances
           // in pre-commit builds, so until we fix this lifecycle issue we
           // simply do not evict any nodes when the leader is not HEALTHY.
+#ifdef NDEBUG
           return false;
+#endif
         }
 
         ++num_voters_total;
