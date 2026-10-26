@@ -80,6 +80,7 @@ METRIC_DECLARE_counter(timeout_connection_kill);
 DECLARE_bool(rpc_reopen_outbound_connections);
 DECLARE_int32(rpc_negotiation_inject_delay_ms);
 DECLARE_int32(rpc_post_negotiation_inject_delay_ms);
+DECLARE_int32(rpc_inbound_call_inject_delay_ms);
 DECLARE_bool(authenticate_via_CN);
 DECLARE_string(trusted_CNs);
 DECLARE_int32(client_max_timeouts_before_connection_kill);
@@ -410,6 +411,40 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
       rpcPrivateKeyPasswordCmd);
   ASSERT_TRUE(s.IsRuntimeError());
   ASSERT_STR_CONTAINS(s.ToString(), "failed to load private key file");
+}
+
+// Unregistering the service while a reactor thread is handing it an inbound
+// call leaves the reactor thread holding the last reference to the service.
+// The service must already be shut down then: dropping it must not join its
+// worker threads on the reactor thread, where waiting is not allowed.
+TEST_P(TestRpc, TestUnregisterServiceDuringInboundCall) {
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
+  // The messenger now holds the only reference to the service.
+  servicePool_.reset();
+
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
+  Proxy p(
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
+      GenericCalculatorService::staticServiceName());
+
+  // The call reaches the service lookup well within the first second and
+  // then waits there; if it arrived later, it would find no service and the
+  // test would pass without exercising the race.
+  FLAGS_rpc_inbound_call_inject_delay_ms = 3000;
+  Status callStatus;
+  std::thread caller([&] {
+    callStatus = doTestSyncCall(p, GenericCalculatorService::kAddMethodName);
+  });
+  SleepFor(MonoDelta::FromMilliseconds(1000));
+  serverMessenger_->UnregisterAllServices();
+  caller.join();
+
+  ASSERT_TRUE(callStatus.IsRemoteError()) << callStatus.ToString();
 }
 
 // Test that connecting to an invalid server properly throws an error.

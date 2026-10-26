@@ -23,6 +23,7 @@
 #include <string>
 #include <utility>
 
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include <fmt/format.h>
@@ -40,6 +41,7 @@
 #include "kudu/security/openssl_util.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/security/token_verifier.h"
+#include "kudu/util/flag_tags.h"
 #include "kudu/util/flags.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
@@ -58,6 +60,15 @@ namespace boost {
 template <typename Signature>
 class function;
 }
+
+DEFINE_int32(
+    rpc_inbound_call_inject_delay_ms,
+    0,
+    "If enabled, injects the given number of milliseconds delay on the "
+    "reactor thread between looking up the RPC service for an inbound call "
+    "and handing the call to it");
+TAG_FLAG(rpc_inbound_call_inject_delay_ms, unsafe);
+TAG_FLAG(rpc_inbound_call_inject_delay_ms, hidden);
 
 namespace kudu {
 namespace rpc {
@@ -257,15 +268,13 @@ void Messenger::shutdownInternal(ShutdownMode mode) {
   // joining threads.
   ThreadRestrictions::ScopedAllowWait allow_wait;
 
-  std::shared_ptr<RpcService> serviceToRelease;
-
   bool closed = closing_.exchange(true);
   if (closed) {
     return;
   }
   VLOG(1) << "shutting down messenger " << name_;
 
-  rpcService_.store(nullptr);
+  shutdownService();
 
   // Need to shut down negotiation pool before the reactors, since the
   // reactors close the Connection sockets, and may race against the negotiation
@@ -292,8 +301,13 @@ Status Messenger::RegisterService(
 }
 
 void Messenger::UnregisterAllServices() {
-  std::shared_ptr<RpcService> toRelease;
-  rpcService_.store(nullptr);
+  shutdownService();
+}
+
+void Messenger::shutdownService() {
+  if (auto service = rpcService_.exchange(nullptr)) {
+    service->shutdown();
+  }
 }
 
 void Messenger::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
@@ -303,6 +317,11 @@ void Messenger::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
 
 void Messenger::queueInboundCall(unique_ptr<InboundCall> call) {
   auto rpcService = rpcService_.load();
+  if (PREDICT_FALSE(FLAGS_rpc_inbound_call_inject_delay_ms > 0)) {
+    ThreadRestrictions::ScopedAllowWait allowWait;
+    SleepFor(
+        MonoDelta::FromMilliseconds(FLAGS_rpc_inbound_call_inject_delay_ms));
+  }
   if (PREDICT_FALSE(rpcService == nullptr)) {
     Status s = Status::ServiceUnavailable(
         fmt::format(

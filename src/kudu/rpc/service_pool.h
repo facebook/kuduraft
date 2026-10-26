@@ -73,7 +73,7 @@ class ServicePool : public RpcService {
   virtual Status init(int numThreads);
 
   // Shut down the queue and the thread pool.
-  virtual void shutdown();
+  void shutdown() override;
 
   RpcMethodInfo* lookupMethod(const RemoteMethod& method) override;
 

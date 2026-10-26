@@ -53,6 +53,12 @@ class RpcService {
   virtual void notifyLongCallLoading(const RemoteMethod& method) = 0;
 
   virtual void notifyLongCallLoaded(const RemoteMethod& method) = 0;
+
+  // Stops accepting calls and releases the resources serving them. Must be
+  // idempotent. The Messenger calls it when it drops the service, on a thread
+  // that may block, so that a reference a reactor thread still holds can be
+  // the last one without its destructor having to block.
+  virtual void shutdown() {}
 };
 
 } // namespace rpc

@@ -337,6 +337,11 @@ class Messenger {
 
   explicit Messenger(const MessengerBuilder& bld);
 
+  // Drops the RPC service and shuts it down on the calling thread. A reactor
+  // thread queuing an inbound call may still hold a reference, and can drop
+  // the last one only once the service no longer has threads to join.
+  void shutdownService();
+
   Reactor* remoteToReactor(const Sockaddr& remote);
   Status Init();
   void runTimeoutThread();
