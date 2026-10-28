@@ -30,7 +30,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <gflags/gflags_declare.h>
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -304,6 +304,10 @@ class RaftConsensusQuorumTest : public KuduTest {
     auto it = syncs_.find(round);
     CHECK(it != syncs_.end()) << "Map key not found: " << round;
     return it->second->waitFor(delta);
+  }
+
+  static DatalossBoundHealth datalossBoundHealth(RaftConsensus& peer) {
+    return peer.queue_->getDatalossBoundHealth();
   }
 
   void waitForReplicateIfNotAlreadyPresent(const OpId& toWaitFor, int peerIdx) {
@@ -1288,6 +1292,65 @@ TEST_F(RaftConsensusQuorumTest, TestChangeConfigStopsOnValidationFailure) {
   ASSERT_EQ(leader->committedConfig().opid_index(), opidIndexBefore);
 
   verifyLogs(kLeaderIdx, 0, 1);
+}
+
+// Before start() publishes the queue there is no admission state, so
+// FAIL_CLOSED refuses and the other modes admit without a reservation.
+TEST_F(RaftConsensusQuorumTest, TestAdmissionBeforeStart) {
+  gflags::FlagSaver flagSaver;
+  ASSERT_OK(buildConfig(1));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+
+  FLAGS_dataloss_bound_mode = kDatalossBoundOff;
+  auto decision = peer->admitProtectedWrite(1, 1);
+  EXPECT_TRUE(decision.admitted);
+  EXPECT_EQ(decision.reason, DatalossBoundReason::None);
+
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  decision = peer->admitProtectedWrite(1, 1);
+  EXPECT_TRUE(decision.admitted);
+  EXPECT_FALSE(decision.reserved);
+  EXPECT_EQ(decision.reason, DatalossBoundReason::InternalError);
+
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailClosed;
+  decision = peer->admitProtectedWrite(1, 1);
+  EXPECT_FALSE(decision.admitted);
+  EXPECT_EQ(decision.reason, DatalossBoundReason::InternalError);
+  peer->releaseProtectedWriteReservation(decision);
+}
+
+// After start() both calls reach the leader's queue: an admitted write holds
+// its reservation until it is released. A single-node ring has no eligible
+// remote, so FAIL_OPEN admits with a reservation and FAIL_CLOSED refuses.
+TEST_F(RaftConsensusQuorumTest, TestAdmissionReservesUntilReleased) {
+  gflags::FlagSaver flagSaver;
+  ASSERT_OK(buildAndStartConfig(1));
+  shared_ptr<RaftConsensus> leader;
+  ASSERT_OK(peers_->getPeerByIdx(0, &leader));
+
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailOpen;
+  const auto admitted = leader->admitProtectedWrite(1, 100);
+  EXPECT_TRUE(admitted.admitted);
+  EXPECT_TRUE(admitted.reserved);
+  EXPECT_EQ(admitted.reason, DatalossBoundReason::NoRemote);
+  EXPECT_EQ(admitted.reservedOps, 1);
+  EXPECT_EQ(admitted.reservedBytes, 100);
+  auto health = datalossBoundHealth(*leader);
+  EXPECT_EQ(health.reservedOps, 1);
+  EXPECT_EQ(health.reservedBytes, 100);
+
+  leader->releaseProtectedWriteReservation(admitted);
+  health = datalossBoundHealth(*leader);
+  EXPECT_EQ(health.reservedOps, 0);
+  EXPECT_EQ(health.reservedBytes, 0);
+
+  FLAGS_dataloss_bound_mode = kDatalossBoundFailClosed;
+  const auto refused = leader->admitProtectedWrite(1, 100);
+  EXPECT_FALSE(refused.admitted);
+  EXPECT_FALSE(refused.reserved);
+  EXPECT_EQ(refused.reason, DatalossBoundReason::NoRemote);
+  EXPECT_EQ(datalossBoundHealth(*leader).reservedOps, 0);
 }
 
 } // namespace consensus

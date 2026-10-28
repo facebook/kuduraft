@@ -92,11 +92,16 @@ class ReplicateMsgWrapper;
 enum DatalossBoundMode : int32_t {
   kDatalossBoundOff = 0,
   kDatalossBoundFailOpen = 1,
+  kDatalossBoundFailClosed = 2,
 };
 
 // Every mode but OFF measures: byte accounting, watermarks and status.
 [[nodiscard]] inline bool datalossBoundMeasurementRequested() {
   return FLAGS_dataloss_bound_mode != kDatalossBoundOff;
+}
+
+[[nodiscard]] inline bool datalossBoundFailsClosed() {
+  return FLAGS_dataloss_bound_mode == kDatalossBoundFailClosed;
 }
 
 // The id for the server-wide consensus queue MemTracker.
@@ -197,19 +202,6 @@ class PeerMessageQueue {
     // The last operation that we've sent to this peer and that
     // it acked. Used for watermark movement.
     OpId lastReceived;
-
-    // An acknowledged OpId confirmed to be on this leader's log prefix.
-    // Unlike lastReceived, it is not replaced by unverified catch-up hints.
-    // It can move backward when a matching reply shows that the peer lost a
-    // suffix it previously acknowledged.
-    OpId lastConfirmedPrefixOpId;
-
-    // A watermark records a log position and the cumulative payload bytes
-    // through that position. Keep a pending watermark fixed until the peer
-    // confirms it; using the byte count at confirmation time would understate
-    // exposure. The confirmed watermark remains usable meanwhile.
-    std::optional<RemoteWatermark> confirmedWatermark;
-    std::optional<RemoteWatermark> pendingWatermark;
 
     // The last committed index this peer knows about.
     int64_t lastKnownCommittedIndex;
@@ -678,6 +670,12 @@ class PeerMessageQueue {
   // being tracked.
   TrackedPeer* getTrackedPeerRefForTests(const std::string& uuid);
 
+  // What the bounded-data-loss guard knows about remote 'uuid', if anything.
+  [[nodiscard]] std::optional<DatalossBoundGuard::PeerEvidence>
+  datalossBoundEvidenceForTests(const std::string& uuid) const {
+    return datalossBoundGuard_.peerEvidenceForTests(uuid);
+  }
+
   std::optional<bool> IsPeerInLocalRegion(const std::string& uuid);
 
   std::string ToString() const;
@@ -798,13 +796,34 @@ class PeerMessageQueue {
   // Gets the Leader Lease timestamp
   MonoTime getLeaderLeaseUntil();
 
-  // Evaluate the configured limits against current exposure.
+  // Evaluate the configured limits against the current lag.
   //
   // In FAIL_OPEN this only reports; nothing consults it to admit or reject.
   [[nodiscard]] DatalossBoundHealth getDatalossBoundHealth();
 
-  // One maintenance tick: reconstruct any missing watermarks, publish the
-  // metrics, and log a state transition if there was one.
+  // Decide whether a proposed protected write of 'ops' Raft entries and
+  // 'bytes' of replicated payload may enter Raft, reserving that capacity if
+  // admitted.
+  //
+  // Must be called before the proposal reaches the earliest step after which a
+  // refusal could partially fail a group commit. A reserved decision must be
+  // released after the write reaches the Raft log or definitively aborts.
+  //
+  // Admits unconditionally when configured OFF, and when this peer does not
+  // lead: a follower originates no protected writes, and blocking one would
+  // stall the apply path this guard is not about.
+  //
+  // Configured FAIL_OPEN evaluates but always admits and reserves capacity, so
+  // it measures the decision FAIL_CLOSED would have made under concurrency.
+  [[nodiscard]] AdmissionDecision admitProtectedWrite(
+      int64_t ops,
+      int64_t bytes);
+  // Releases exactly what admitProtectedWrite reserved for 'reservation'; a
+  // no-op unless reservation.reserved.
+  void releaseProtectedWriteReservation(const AdmissionDecision& reservation);
+
+  // One maintenance tick: reconstruct a missing watermark if one could lower
+  // the lag, publish the metrics, and log a state transition if there was one.
   void datalossBoundPeriodicTick();
 
   // Re-establish byte accounting for peers that acknowledged a position but
@@ -812,16 +831,18 @@ class PeerMessageQueue {
   //
   // Needed after a leadership change. Each leader records watermarks against
   // its own byte counter, so a newly elected leader has none, and the ordinary
-  // path -- snapshot a candidate, wait for the peer to reach it -- cannot
-  // report exposure until the peer has caught all the way up to the new
+  // path -- record a candidate, wait for the peer to reach it -- cannot
+  // report bytes lag until the peer has caught all the way up to the new
   // leader's tail. On a peer that is far behind that is an arbitrarily long
-  // blind window, precisely when exposure is largest. Scanning (F, tail] gives
-  // the answer immediately instead.
+  // blind window, precisely when the lag is largest. Scanning the log index
+  // from the peer's confirmed position to the tail gives the answer at once.
   //
-  // Returns the number of watermarks reconstructed. Peers whose range is no
-  // longer retained are skipped and left without a watermark, which reports as
-  // unknown rather than as zero exposure.
-  [[nodiscard]] int64_t reconstructMissingWatermarks();
+  // Scans for the one remote whose watermark could lower the lag (see
+  // DatalossBoundGuard::reconstructionCandidate), at most once per call.
+  // Returns whether a watermark was installed. A remote whose range is no
+  // longer retained is left without a watermark, which reports as unknown
+  // rather than as zero lag; a failed scan is retried on the next tick.
+  [[nodiscard]] bool reconstructMissingWatermark();
 
   // Sets the Leader lease until timestamp
   void setLeaderLeaseUntil(MonoTime update) {
@@ -848,6 +869,9 @@ class PeerMessageQueue {
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);
   FRIEND_TEST(ConsensusQueueTest, TestQueueMovesWatermarksBackward);
   FRIEND_TEST(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics);
+  FRIEND_TEST(
+      ConsensusQueueBoundedDatalossTest,
+      TestWatermarkSurvivesPeerRefresh);
   FRIEND_TEST(ConsensusQueueUnitTest, PeerHealthStatus);
   FRIEND_TEST(
       RaftConsensusQuorumTest,
@@ -895,7 +919,9 @@ class PeerMessageQueue {
     // soft metric for follower lag.
     int64_t last_idx_appended_to_leader;
 
-    // The opid of the last operation appended to the queue.
+    // The opid of the last operation appended to the queue. Every writer
+    // also reports the new tail to datalossBoundGuard_ in the same critical
+    // section, so admission's lock-free view of the tail cannot drift.
     OpId last_appended;
 
     // The queue's owner current_term.
@@ -931,50 +957,32 @@ class PeerMessageQueue {
     std::vector<TrackedPeer*> quorum_peers;
   };
 
-  // Where an OpId stands relative to this leader's log.
-  enum class LogMatchResult {
-    // The local log has the same OpId at that index.
-    Match,
-    // The local log has a different term at that index, or the index is past
-    // its end, so the OpId cannot be on this leader's prefix.
-    Mismatch,
-    // The index is no longer retained locally, so there is no evidence either
-    // way.
-    Unavailable,
-  };
-
+  // Where 'desired_op' stands relative to this node's log (see
+  // LogMatchResult). Crashes on a log read error other than the index
+  // being unwritten or no longer retained.
   [[nodiscard]] LogMatchResult MatchOpInLog(const OpId& desired_op) const;
 
-  // Forget this peer's confirmed position and byte-accounting state. Caller
-  // must hold queueLock_.
-  void ClearRemoteWatermarkUnlocked(TrackedPeer* peer);
+  // Apply a runtime change to the measurement gate. Every append applies it
+  // before counting bytes, so a toggle drops watermarks before bytes start or
+  // stop being counted. Caller must hold queueLock_.
+  void refreshDatalossBoundMeasurementUnlocked();
 
-  // Confirm this peer's pending watermark if it has been reached, then record
-  // the next target. Caller must hold queueLock_.
-  void AdvanceRemoteWatermarkUnlocked(TrackedPeer* peer);
+  // Tells the guard which remotes the active configuration makes eligible:
+  // non-standby voters in a region other than this leader's. Log-only voters
+  // count: one can preserve the prefix and hand leadership to a database voter
+  // after that voter catches up. A configuration governs admission from the
+  // moment it is installed, before its record is appended: any write admitted
+  // afterwards gets a later OpId than the record. Caller holds queueLock_.
+  void setDatalossBoundEligibleRemotesUnlocked();
 
-  // Record the bootstrap latency when the first eligible remote watermark of
-  // this leadership is installed, whether by an ack or by reconstruction.
-  // Caller must hold queueLock_.
-  void recordDatalossBoundBootstrapUnlocked(const TrackedPeer& peer);
-
-  // Apply a runtime change to the measurement gate. Caller must hold
-  // queueLock_. Confirmed log positions remain valid, but byte watermarks do
-  // not span intervals during which counting was disabled.
-  void RefreshDatalossBoundMeasurementStateUnlocked();
-
-  // A non-standby voter outside this leader's data commit quorum, other than
-  // the local peer. Caller must hold queueLock_.
-  [[nodiscard]] bool isDatalossBoundEligibleUnlocked(
-      const TrackedPeer& peer) const;
-
-  // Caller must hold queueLock_.
-  [[nodiscard]] DatalossBoundHealth getDatalossBoundHealthUnlocked() const;
-
-  // Bootstrap timing and logged-transition state for the current leader term
-  // or measurement period. Protected by queueLock_: a tick that evaluated its
-  // state before a period started must not record it after.
+  // The bounded-data-loss state: each remote's confirmed position and
+  // watermarks, the eligible remotes, reservations, and evaluation. The queue
+  // reports the tail, role, configuration and peer replies to it under
+  // queueLock_.
   DatalossBoundGuard datalossBoundGuard_;
+
+  // The configured bound, read from flags once per decision or report.
+  [[nodiscard]] DatalossBoundGuard::Config datalossBoundConfig() const;
 
   // True while a tick is running. The timer submits a tick every second to a
   // concurrent thread pool, and one reconstruction scan can take longer than
@@ -986,8 +994,8 @@ class PeerMessageQueue {
   // Uses the same expression as LogCache's approxMsgSize -- the uncompressed
   // write_payload -- because that is also what BinlogWrapperBase records in the
   // log index, and the bootstrap scan reconstructs this total from the index.
-  // The two must measure the same quantity or a reconstructed baseline will not
-  // be comparable with a live one.
+  // The two must measure the same quantity or a reconstructed watermark will
+  // not be comparable with a live one.
   [[nodiscard]] static int64_t sumPayloadBytes(
       const std::vector<ReplicateMsgWrapper>& msgWrappers);
 
@@ -1238,6 +1246,7 @@ class PeerMessageQueue {
 
   // The currently tracked peers.
   PeersMap peersMap_;
+
   mutable simple_mutexlock queueLock_; // TODO(todd): rename
 
   bool successorWatchInProgress_;
@@ -1274,34 +1283,6 @@ class PeerMessageQueue {
 
   // Leader Leases to support strong reads on primary
   std::atomic<MonoTime> leaderLeaseUntil_;
-
-  // The applied value of datalossBoundMeasurementRequested(). This atomic
-  // does not publish watermark state; queueLock_ protects that state.
-  std::atomic<bool> datalossBoundMeasurementEnabled_;
-
-  // Bumped by every event that invalidates a watermark reconstructed from an
-  // earlier snapshot of the log tail and byte counter: gaining or losing
-  // leadership, turning measurement on or off, and truncating the log.
-  // reconstructMissingWatermarks() records it with that snapshot, scans
-  // without queueLock_, and discards the result if it changed. Written under
-  // queueLock_.
-  std::atomic<int64_t> datalossBoundGeneration_{0};
-
-  // Running total of replicated payload bytes appended while measurement is
-  // enabled. Subtracting the value captured when a peer's watermark was
-  // recorded gives that peer's byte exposure without rescanning the log.
-  //
-  // Counts the write payload of every appended entry, not only client
-  // transactions: the bootstrap scan reconstructs this from the log index,
-  // which carries payload length but not op type, and the two must measure the
-  // same quantity. Other entries therefore count whatever payload they carry,
-  // which is the conservative direction.
-  //
-  // Written only under queueLock_ in appendOperations, in the same critical
-  // section as queueState_.last_appended, so readers holding queueLock_ see
-  // the two agree. Atomic so readers can skip the queue's hottest lock; such a
-  // reader can see the byte count and the tail one append batch apart.
-  std::atomic<int64_t> cumulativePayloadBytes_{0};
 
   // Wakes readers blocked in waitForQuorumConfirmation. Never signalled while
   // holding queueLock_ -- the woken thread would immediately contend on the

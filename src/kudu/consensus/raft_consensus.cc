@@ -1142,6 +1142,32 @@ PeerMessageQueue::LeaderReadSnapshot RaftConsensus::getLeaderReadSnapshot()
   return queue_->getLeaderReadSnapshot();
 }
 
+AdmissionDecision RaftConsensus::admitProtectedWrite(
+    int64_t ops,
+    int64_t bytes) {
+  // This path intentionally does not take lock_; the queue's
+  // DatalossBoundGuard protects admission state with its own lock.
+  PeerMessageQueue* queue = statusQueue_.load(std::memory_order_acquire);
+  if (queue == nullptr) {
+    // Before Start() there is no admission state to consult.
+    AdmissionDecision decision;
+    if (datalossBoundMeasurementRequested()) {
+      decision.admitted = !datalossBoundFailsClosed();
+      decision.reason = DatalossBoundReason::InternalError;
+    }
+    return decision;
+  }
+  return queue->admitProtectedWrite(ops, bytes);
+}
+
+void RaftConsensus::releaseProtectedWriteReservation(
+    const AdmissionDecision& reservation) {
+  // A reservation can only come from a started queue.
+  if (PeerMessageQueue* queue = statusQueue_.load(std::memory_order_acquire)) {
+    queue->releaseProtectedWriteReservation(reservation);
+  }
+}
+
 PeerMessageQueue::ConfirmationResult RaftConsensus::waitForQuorumConfirmation(
     int64_t term,
     MonoTime anchor,
@@ -5932,8 +5958,8 @@ void RaftConsensus::InitDatalossBoundDetectorUnlocked() {
   CHECK(peerProxyFactory_);
 
   // Publishes the metrics and retries reconstruction of missing watermarks.
-  // Exposure is updated on every append and peer response, so this interval
-  // does not determine how fresh it is.
+  // Lag is updated on every append and peer response, so this interval does
+  // not determine how fresh it is.
   const MonoDelta interval = MonoDelta::FromMilliseconds(1000);
   weak_ptr<RaftConsensus> w = shared_from_this();
   datalossBoundTimer_ = PeriodicTimer::create(

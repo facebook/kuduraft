@@ -120,13 +120,6 @@ DEFINE_dynamic_timeseries(
     facebook::fb303::ExportType::SUM);
 
 DEFINE_dynamic_quantile_stat(
-    datalossBoundQualifyingPeers,
-    "{}.dataloss_bound_qualifying_peers",
-    facebook::fb303::ExportTypeConsts::kCountAvg,
-    kRaftQuantiles,
-    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
-
-DEFINE_dynamic_quantile_stat(
     datalossBoundOpsBehind,
     "{}.dataloss_bound_ops_behind",
     facebook::fb303::ExportTypeConsts::kCountAvg,
@@ -157,6 +150,18 @@ DEFINE_dynamic_quantile_stat(
 DEFINE_dynamic_timeseries(
     datalossBoundReconstructFailures,
     "{}.dataloss_bound_reconstruct_failures",
+    facebook::fb303::ExportType::SUM);
+
+DEFINE_dynamic_quantile_stat(
+    datalossBoundQualifyingPeers,
+    "{}.dataloss_bound_qualifying_peers",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_timeseries(
+    datalossBoundDecisions,
+    "{}.dataloss_bound_decisions.{}.{}",
     facebook::fb303::ExportType::SUM);
 
 // ---- consensus_queue.cc: counters ----

@@ -21,6 +21,7 @@
 // out of Kudu into a fork known as kuduraft.
 // ********************************************************************
 
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
@@ -984,6 +985,7 @@ class StatefulMockLog : public kudu::log::Log {
       int64_t* totalBytes,
       int64_t* entriesCounted,
       int64_t* firstMissingIndex) const override {
+    payloadRangeSumCalls_.fetch_add(1, std::memory_order_relaxed);
     if (sumPayloadBytesForTests_) {
       return sumPayloadBytesForTests_(
           afterIndex, upToIndex, totalBytes, entriesCounted, firstMissingIndex);
@@ -1078,6 +1080,10 @@ class StatefulMockLog : public kudu::log::Log {
         [&](auto& ops) { ops.erase(ops.begin(), ops.upper_bound(index)); });
   }
 
+  int64_t payloadRangeSumCalls() const {
+    return payloadRangeSumCalls_.load(std::memory_order_relaxed);
+  }
+
   Status Close() override {
     ops_.wlock()->clear();
     return Status::OK();
@@ -1087,6 +1093,7 @@ class StatefulMockLog : public kudu::log::Log {
   folly::Synchronized<std::map<int64_t, OpId>> ops_;
   folly::Synchronized<std::map<int64_t, int64_t>> payloadBytes_;
   SumPayloadBytesFn sumPayloadBytesForTests_;
+  mutable std::atomic<int64_t> payloadRangeSumCalls_{0};
 };
 
 } // namespace kudu::consensus

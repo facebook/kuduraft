@@ -70,13 +70,22 @@ DECLARE_dynamic_quantile_stat(availableLeaderLeaseGrantors, 1);
 // is a callback counter, consensus_queue.dataloss_bound_mode.
 DECLARE_dynamic_timeseries(datalossBoundTicks, 2);
 DECLARE_dynamic_timeseries(datalossBoundReasonTicks, 2);
-DECLARE_dynamic_quantile_stat(datalossBoundQualifyingPeers, 1);
 DECLARE_dynamic_quantile_stat(datalossBoundOpsBehind, 1);
 DECLARE_dynamic_quantile_stat(datalossBoundBytesBehind, 1);
 DECLARE_dynamic_quantile_stat(datalossBoundHeadroomPct, 1);
 DECLARE_dynamic_quantile_stat(datalossBoundBootstrapMs, 1);
 // Reconstruction attempts that could not sum the peer's backlog.
 DECLARE_dynamic_timeseries(datalossBoundReconstructFailures, 1);
+DECLARE_dynamic_quantile_stat(datalossBoundQualifyingPeers, 1);
+// One per admission decision. The outcome tag is admitted, would_reject,
+// rejected, or release_mismatch; the second tag gives the reason.
+// would_reject is a configured FAIL_OPEN ring reporting what a FAIL_CLOSED one
+// would have refused, which is how the limits get sized before they bind.
+// release_mismatch / internal_error means an old queue's reservation was
+// released to its replacement after an in-process Raft restart. It is
+// diagnostic, not an admission decision.
+DECLARE_dynamic_timeseries(datalossBoundDecisions, 3);
+
 // --- consensus_queue.cc: counters ---
 DECLARE_dynamic_timeseries(checkQuorumRuns, 1);
 DECLARE_dynamic_timeseries(checkQuorumFailures, 1);

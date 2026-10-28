@@ -791,6 +791,15 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // together. See PeerMessageQueue::LeaderReadSnapshot.
   PeerMessageQueue::LeaderReadSnapshot getLeaderReadSnapshot() const;
 
+  // Data-loss bound. See
+  // PeerMessageQueue::admitProtectedWrite. Does not take lock_: the guard
+  // keeps its own admission state precisely so the commit path need not
+  // contend with consensus for either this lock or the queue's.
+  [[nodiscard]] AdmissionDecision admitProtectedWrite(
+      int64_t ops,
+      int64_t bytes);
+  void releaseProtectedWriteReservation(const AdmissionDecision& reservation);
+
   // Blocks until a majority of this leader's commit quorum is proven to have
   // recognized it strictly after 'anchor' in 'term'.
   //
@@ -1468,9 +1477,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   void StopCheckQuorumDetectorUnlocked();
 
   // Periodic maintenance for the enabled data-loss bound: publish the metrics
-  // and retry reconstruction of missing watermarks. Exposure is updated on
-  // every append and peer response, so this interval does not determine how
-  // fresh it is. The timer remains armed for runtime enablement but submits no
+  // and retry reconstruction of missing watermarks. Lag is updated on every
+  // append and peer response, so this interval does not determine how fresh
+  // it is. The timer remains armed for runtime enablement but submits no
   // work while disabled.
   void InitDatalossBoundDetectorUnlocked();
   void StopDatalossBoundDetectorUnlocked();

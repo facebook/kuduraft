@@ -183,14 +183,16 @@ DEFINE_int32(proxy_disable_secs, 600, "Number of seconds to disable proxying.");
 DEFINE_int32(
     dataloss_bound_mode,
     kudu::consensus::kDatalossBoundOff,
-    "Data-loss bound: 0 = OFF, 1 = FAIL_OPEN. FAIL_OPEN "
-    "evaluates the operation and byte limits and reports the result, but never "
-    "rejects a write and never advertises bounded-loss protection. FAIL_CLOSED "
-    "is not implemented yet and is deliberately not a legal value.");
+    "Data-loss bound: 0 = OFF, 1 = FAIL_OPEN, 2 = FAIL_CLOSED. "
+    "FAIL_OPEN evaluates the operation and byte limits and reports the result, "
+    "but never rejects a write. FAIL_CLOSED rejects protected writes while the limits are not met. The "
+    "caller decides which writes are protected; the rest are measured but "
+    "never rejected.");
 TAG_FLAG(dataloss_bound_mode, experimental);
 static bool validateDatalossBoundMode(const char* /*flagname*/, int32_t value) {
   return value == kudu::consensus::kDatalossBoundOff ||
-      value == kudu::consensus::kDatalossBoundFailOpen;
+      value == kudu::consensus::kDatalossBoundFailOpen ||
+      value == kudu::consensus::kDatalossBoundFailClosed;
 }
 DEFINE_validator(dataloss_bound_mode, &validateDatalossBoundMode);
 
@@ -214,9 +216,10 @@ DEFINE_int32(
     dataloss_bound_margin_percent,
     5,
     "Percentage of each limit held back as a safety margin, covering "
-    "overlapping admission decisions and residual byte-estimation error. The "
-    "margin is inside the advertised limit, so the usable budget is smaller "
-    "than the number quoted to an incident commander.");
+    "entries that do not pass through admission, byte-estimation error, and "
+    "byte undercount after rebuilding a watermark. The margin is inside the "
+    "advertised limit, so the usable budget is smaller than the number quoted "
+    "to an IMOC.");
 TAG_FLAG(dataloss_bound_margin_percent, experimental);
 
 DEFINE_int32(
@@ -363,7 +366,6 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
     : peerPb(std::move(peer_pb)),
       nextIndex(kInvalidOpIdIndex),
       lastReceived(MinimumOpId()),
-      lastConfirmedPrefixOpId(MinimumOpId()),
       lastKnownCommittedIndex(MinimumOpId().index()),
       lastExchangeStatus(PeerStatus::New),
       leaseGranted(MinimumOpId()),
@@ -520,13 +522,14 @@ PeerMessageQueue::PeerMessageQueue(
       metrics_(metric_entity),
       timeManager_(std::move(time_manager)),
       leaderLeaseUntil_(MonoTime::Min()),
-      datalossBoundMeasurementEnabled_(datalossBoundMeasurementRequested()),
       timeProvider_(TimeProvider::getInstance()) {
   DCHECK(localPeerPb_.has_permanent_uuid());
   DCHECK(localPeerPb_.has_last_known_addr());
   DCHECK(last_locally_replicated.IsInitialized());
   DCHECK(last_locally_committed.IsInitialized());
   registerDatalossBoundModeCounter();
+  datalossBoundGuard_.setMeasuring(
+      datalossBoundMeasurementRequested(), MonoTime::Now());
   queueState_.current_term = 0;
   queueState_.first_index_in_current_term = {};
   queueState_.committed_index = 0;
@@ -537,6 +540,8 @@ PeerMessageQueue::PeerMessageQueue(
   queueState_.mode = NON_LEADER;
   queueState_.majority_size_ = -1;
   queueState_.last_appended = std::move(last_locally_replicated);
+  datalossBoundGuard_.onAppend(
+      queueState_.last_appended.index(), /*payloadBytes=*/0);
   queueState_.committed_index = last_locally_committed.index();
   queueState_.state = kQueueOpen;
   // TODO(mpercy): Merge LogCache::init() with its constructor.
@@ -606,6 +611,8 @@ void PeerMessageQueue::setLeaderMode(
     const RaftConfigPB& active_config) {
   {
     std::lock_guard<simple_mutexlock> lock(queueLock_);
+    const bool startsNewLeadership =
+        queueState_.mode != LEADER || current_term != queueState_.current_term;
     if (current_term != queueState_.current_term) {
       CHECK_GT(current_term, queueState_.current_term)
           << "Terms should only increase";
@@ -619,16 +626,15 @@ void PeerMessageQueue::setLeaderMode(
     queueState_.majority_size_ =
         majoritySize(countVoters(*queueState_.active_config));
     queueState_.mode = LEADER;
-    // Also reached on every configuration change while leader. Those rebuild
-    // every TrackedPeer -- PeerManager::close() untracks them all -- so the
-    // watermarks are gone and the leader is bootstrapping again either way.
-    datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
-    datalossBoundGuard_.startPeriod(MonoTime::Now());
+    if (startsNewLeadership) {
+      datalossBoundGuard_.becomeLeader(MonoTime::Now());
+    }
 
     ResetQuorumConfirmationUnlocked();
 
     trackLocalPeerUnlocked();
     CheckPeersInActiveConfigIfLeaderUnlocked();
+    setDatalossBoundEligibleRemotesUnlocked();
 
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Queue going to LEADER mode. State: " << queueState_.ToString();
@@ -644,7 +650,7 @@ void PeerMessageQueue::setLeaderMode(
 void PeerMessageQueue::setNonLeaderMode(const RaftConfigPB& active_config) {
   {
     std::lock_guard<simple_mutexlock> lock(queueLock_);
-    datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
+    datalossBoundGuard_.becomeFollower();
     queueState_.active_config.reset(new RaftConfigPB(active_config));
     queueState_.mode = NON_LEADER;
     queueState_.majority_size_ = -1;
@@ -686,6 +692,7 @@ void PeerMessageQueue::trackPeerUnlocked(
   // identically) to standard map.find() + nullptr checks.
   DCHECK(tracked_peer != nullptr)
       << "Attempting to insert nullptr into peersMap_";
+
   // We don't know the last operation received by the peer so, following the
   // Raft protocol, we set nextIndex to one past the end of our own log. This
   // way, if calling this method is the result of a successful leader election
@@ -926,20 +933,20 @@ Status PeerMessageQueue::appendOperations(
           last_id,
           log_append_callback)));
   lock.lock();
-  RefreshDatalossBoundMeasurementStateUnlocked();
+  refreshDatalossBoundMeasurementUnlocked();
   DCHECK(last_id.IsInitialized());
   queueState_.last_appended = last_id;
-  if (datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed)) {
+  int64_t appendedPayloadBytes = 0;
+  if (datalossBoundGuard_.isMeasuring()) {
     // These are bare messages, not ReplicateMsgWrappers, so there is no
     // separate compressed copy: this write_payload is what the log stores and
     // indexes, the same quantity sumPayloadBytes() counts for wrappers.
-    uint64_t appendedPayloadBytes = 0;
     for (const auto& msg : msgs) {
-      appendedPayloadBytes += msg->get()->write_payload().payload().size();
+      appendedPayloadBytes +=
+          static_cast<int64_t>(msg->get()->write_payload().payload().size());
     }
-    cumulativePayloadBytes_.fetch_add(
-        appendedPayloadBytes, std::memory_order_relaxed);
   }
+  datalossBoundGuard_.onAppend(last_id.index(), appendedPayloadBytes);
   UpdateMetricsUnlocked();
 
   return Status::OK();
@@ -954,88 +961,10 @@ Status PeerMessageQueue::appendOperation(
           "Enqueued replicate operation failed to write to WAL"));
 }
 
-void PeerMessageQueue::RefreshDatalossBoundMeasurementStateUnlocked() {
+void PeerMessageQueue::refreshDatalossBoundMeasurementUnlocked() {
   DCHECK(queueLock_.is_locked());
-  const bool requested = datalossBoundMeasurementRequested();
-  const bool active =
-      datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed);
-  if (requested == active) {
-    return;
-  }
-
-  datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
-
-  // Byte watermarks cannot span an interval in which counting was disabled.
-  // Mark measurement inactive before clearing them, and active only afterward.
-  if (!requested) {
-    datalossBoundMeasurementEnabled_.store(false, std::memory_order_relaxed);
-  }
-  for (const auto& [uuid, peer] : peersMap_) {
-    if (peer != nullptr && uuid != localPeerPb_.permanent_uuid()) {
-      peer->confirmedWatermark.reset();
-      peer->pendingWatermark.reset();
-    }
-  }
-  if (requested) {
-    // The cumulative counter is only a coordinate. A new watermark captures
-    // the current counter with its log position, so bytes from a disabled
-    // interval are not exposure after that position.
-    datalossBoundGuard_.startPeriod(MonoTime::Now());
-    datalossBoundMeasurementEnabled_.store(true, std::memory_order_relaxed);
-  }
-}
-
-void PeerMessageQueue::ClearRemoteWatermarkUnlocked(TrackedPeer* peer) {
-  DCHECK(queueLock_.is_locked());
-  DCHECK(peer);
-  // Forget all bounded-loss state for this peer. The caller can no longer rely
-  // on it, so the peer must confirm a new position before it can reduce the
-  // reported exposure.
-  peer->lastConfirmedPrefixOpId = MinimumOpId();
-  peer->confirmedWatermark.reset();
-  peer->pendingWatermark.reset();
-}
-
-void PeerMessageQueue::recordDatalossBoundBootstrapUnlocked(
-    const TrackedPeer& peer) {
-  DCHECK(queueLock_.is_locked());
-  if (FLAGS_dataloss_bound_mode == kDatalossBoundOff ||
-      queueState_.mode != LEADER || !isDatalossBoundEligibleUnlocked(peer)) {
-    return;
-  }
-  datalossBoundGuard_.recordBootstrapEnd(MonoTime::Now());
-}
-
-void PeerMessageQueue::AdvanceRemoteWatermarkUnlocked(TrackedPeer* peer) {
-  DCHECK(queueLock_.is_locked());
-  DCHECK(peer);
-
-  // Not remote.
-  if (peer->uuid() == localPeerPb_.permanent_uuid()) {
-    return;
-  }
-
-  // Once the peer has confirmed the saved position, use it as the new
-  // baseline.
-  if (peer->pendingWatermark.has_value() &&
-      peer->lastConfirmedPrefixOpId.index() >=
-          peer->pendingWatermark->opId.index()) {
-    peer->confirmedWatermark = peer->pendingWatermark;
-    peer->pendingWatermark.reset();
-    recordDatalossBoundBootstrapUnlocked(*peer);
-  }
-
-  // Keep one target fixed until it is confirmed. queueLock_ ensures its log
-  // position and byte count describe the same point in the log.
-  const auto confirmedIndex = peer->confirmedWatermark.has_value()
-      ? peer->confirmedWatermark->opId.index()
-      : MinimumOpId().index();
-  if (!peer->pendingWatermark.has_value() &&
-      queueState_.last_appended.index() > confirmedIndex) {
-    peer->pendingWatermark = RemoteWatermark{
-        .opId = queueState_.last_appended,
-        .bytes = cumulativePayloadBytes_.load(std::memory_order_relaxed)};
-  }
+  datalossBoundGuard_.setMeasuring(
+      datalossBoundMeasurementRequested(), MonoTime::Now());
 }
 
 int64_t PeerMessageQueue::sumPayloadBytes(
@@ -1100,16 +1029,15 @@ Status PeerMessageQueue::appendOperations(
           last_id,
           log_append_callback)));
   lock.lock();
-  RefreshDatalossBoundMeasurementStateUnlocked();
+  refreshDatalossBoundMeasurementUnlocked();
   DCHECK(last_id.IsInitialized());
   queueState_.last_appended = last_id;
   // Past the RETURN_NOT_OK, so a failed append never advances the total, and
   // in last_appended's critical section, so readers holding queueLock_ see the
-  // two agree. See cumulativePayloadBytes_ for readers that skip the lock.
-  if (datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed)) {
-    cumulativePayloadBytes_.fetch_add(
-        sumPayloadBytes(msg_wrappers), std::memory_order_relaxed);
-  }
+  // two agree.
+  datalossBoundGuard_.onAppend(
+      last_id.index(),
+      datalossBoundGuard_.isMeasuring() ? sumPayloadBytes(msg_wrappers) : 0);
   UpdateMetricsUnlocked();
 
   return Status::OK();
@@ -1128,10 +1056,7 @@ void PeerMessageQueue::truncateOpsAfter(int64_t index) {
     std::unique_lock<simple_mutexlock> lock(queueLock_);
     DCHECK(op.IsInitialized());
     queueState_.last_appended = op;
-    // Bumped in the same critical section that moves the tail back. A
-    // reconstruction that recorded the old tail fails the generation check;
-    // one that records the new tail never reads the discarded entries.
-    datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
+    datalossBoundGuard_.onTruncate(op.index());
   }
   log_cache_->truncateOpsAfter(op.index());
 }
@@ -1157,9 +1082,7 @@ MonoTime PeerMessageQueue::getLeaderLeaseUntil() {
 }
 
 DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealth() {
-  std::lock_guard<simple_mutexlock> lock(queueLock_);
-  RefreshDatalossBoundMeasurementStateUnlocked();
-  return getDatalossBoundHealthUnlocked();
+  return datalossBoundGuard_.health(datalossBoundConfig());
 }
 
 void PeerMessageQueue::datalossBoundPeriodicTick() {
@@ -1172,14 +1095,13 @@ void PeerMessageQueue::datalossBoundPeriodicTick() {
     if (queueState_.state != kQueueOpen) {
       return;
     }
-    RefreshDatalossBoundMeasurementStateUnlocked();
-    measurementEnabled =
-        datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed);
+    refreshDatalossBoundMeasurementUnlocked();
+    measurementEnabled = datalossBoundGuard_.isMeasuring();
   }
 
   // OFF is the production kill switch. Prefix positions remain cheap to track
-  // on response paths, but this callback must not scan, publish a snapshot, or
-  // emit bounded-data-loss metrics.
+  // on response paths, but this callback must not scan or emit
+  // bounded-data-loss metrics.
   if (!measurementEnabled || FLAGS_dataloss_bound_mode == kDatalossBoundOff) {
     return;
   }
@@ -1193,7 +1115,7 @@ void PeerMessageQueue::datalossBoundPeriodicTick() {
     datalossBoundTickRunning_.store(false, std::memory_order_release);
   };
   // Reconstruction reads the log index and must not run under queueLock_.
-  std::ignore = reconstructMissingWatermarks();
+  std::ignore = reconstructMissingWatermark();
 
   DatalossBoundStatus status = DatalossBoundStatus::Off;
   DatalossBoundReason reason = DatalossBoundReason::None;
@@ -1204,7 +1126,8 @@ void PeerMessageQueue::datalossBoundPeriodicTick() {
     if (queueState_.state != kQueueOpen) {
       return;
     }
-    const DatalossBoundHealth health = getDatalossBoundHealthUnlocked();
+    const DatalossBoundHealth health =
+        datalossBoundGuard_.health(datalossBoundConfig());
     if (queueState_.mode == LEADER) {
       DatalossBoundGuard::emitStats(health);
     }
@@ -1223,192 +1146,133 @@ void PeerMessageQueue::datalossBoundPeriodicTick() {
   }
 }
 
-bool PeerMessageQueue::isDatalossBoundEligibleUnlocked(
-    const TrackedPeer& peer) const {
+void PeerMessageQueue::setDatalossBoundEligibleRemotesUnlocked() {
   DCHECK(queueLock_.is_locked());
-  if (peer.uuid() == localPeerPb_.permanent_uuid()) {
-    return false;
-  }
-  // Any remote voter can preserve the Raft prefix for recovery, including a
-  // log-only LBU that later hands leadership to a database voter. Standby
-  // members are provisional and never count, even if a configuration also
-  // marks them VOTER.
-  if (isStandbyMember(peer.peerPb) ||
-      peer.peerPb.member_type() != RaftPeerPB::VOTER) {
-    return false;
-  }
-  // Cached at TrackedPeer construction, and the peer is reconstructed on every
-  // configuration change, so it cannot go stale while tracked. Unset means the
-  // quorum id was not resolvable; exclude rather than assume the peer is
-  // outside the DCQ.
-  return peer.isPeerInLocalQuorum.has_value() &&
-      !peer.isPeerInLocalQuorum.value();
-}
-
-DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealthUnlocked() const {
-  DCHECK(queueLock_.is_locked());
-  DatalossBoundGuard::Input input{
-      .isMeasuring = datalossBoundMeasurementRequested() &&
-          datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed),
-      .isLeader = queueState_.mode == LEADER,
-      .maxOps = FLAGS_dataloss_bound_max_ops,
-      .maxBytes = FLAGS_dataloss_bound_max_bytes,
-      .marginPercent = FLAGS_dataloss_bound_margin_percent,
-      .tailIndex = queueState_.last_appended.index(),
-      .tailBytes = cumulativePayloadBytes_.load(std::memory_order_relaxed),
-  };
-  if (input.isMeasuring && input.isLeader) {
-    for (const PeersMap::value_type& entry : peersMap_) {
-      const TrackedPeer* peer = entry.second;
-      if (peer != nullptr && isDatalossBoundEligibleUnlocked(*peer)) {
-        input.remotes.push_back(
-            {.confirmedPrefixIndex = peer->lastConfirmedPrefixOpId.index(),
-             .watermark = peer->confirmedWatermark});
-      }
+  DCHECK_EQ(queueState_.mode, LEADER);
+  // trackLocalPeerUnlocked() copied the leader's entry from the active config
+  // into localPeerPb_.
+  std::vector<string> members;
+  std::unordered_set<string> voters;
+  for (const RaftPeerPB& peer : queueState_.active_config->peers()) {
+    members.push_back(peer.permanent_uuid());
+    if (peer.member_type() == RaftPeerPB::VOTER && !isStandbyMember(peer)) {
+      voters.insert(peer.permanent_uuid());
     }
   }
-  return DatalossBoundGuard::evaluate(input);
+  const auto eligible = getUuidsOutsideRegion(
+      *queueState_.active_config, voters, localPeerPb_.attrs().region());
+  datalossBoundGuard_.setEligibleRemotes(
+      std::vector<string>(eligible.begin(), eligible.end()), members);
 }
 
-int64_t PeerMessageQueue::reconstructMissingWatermarks() {
+DatalossBoundGuard::Config PeerMessageQueue::datalossBoundConfig() const {
+  const int32_t mode = FLAGS_dataloss_bound_mode;
+  return DatalossBoundGuard::Config{
+      .isMeasuring = mode != kDatalossBoundOff,
+      .failClosed = mode == kDatalossBoundFailClosed,
+      .maxOps = FLAGS_dataloss_bound_max_ops,
+      .maxBytes = FLAGS_dataloss_bound_max_bytes,
+      .marginPercent = FLAGS_dataloss_bound_margin_percent};
+}
+
+AdmissionDecision PeerMessageQueue::admitProtectedWrite(
+    int64_t ops,
+    int64_t bytes) {
+  const auto config = datalossBoundConfig();
+  if (!config.isMeasuring) {
+    return AdmissionDecision{};
+  }
+  return datalossBoundGuard_.admit(config, ops, bytes);
+}
+
+void PeerMessageQueue::releaseProtectedWriteReservation(
+    const AdmissionDecision& reservation) {
+  datalossBoundGuard_.release(reservation);
+}
+
+bool PeerMessageQueue::reconstructMissingWatermark() {
   if (!datalossBoundMeasurementRequested() ||
-      !datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed)) {
-    return 0;
+      !datalossBoundGuard_.isMeasuring()) {
+    return false;
   }
 
-  const int64_t usableOps = DatalossBoundGuard::limitAfterMargin(
-      FLAGS_dataloss_bound_max_ops, FLAGS_dataloss_bound_margin_percent);
-  if (usableOps <= 0) {
-    return 0;
+  const auto config = datalossBoundConfig();
+  const auto budget = DatalossBoundGuard::usableBudget(config);
+  if (!budget.has_value()) {
+    return false;
   }
+  const int64_t maxScanBudgetMultiplier = config.failClosed ? 1 : 10;
+  const int64_t maxReconstructionOps = budget->ops >
+          std::numeric_limits<int64_t>::max() / maxScanBudgetMultiplier
+      ? std::numeric_limits<int64_t>::max()
+      : budget->ops * maxScanBudgetMultiplier;
+
   // Collect the work under the lock, scan without it: the scan walks the log
   // index and takes that index's own spinlock, which the append path also
   // uses. Holding queueLock_ across it would couple the two.
-  struct Candidate {
-    string uuid;
-    OpId at;
-  };
-  vector<Candidate> candidates;
-  OpId tail;
+  std::optional<DatalossBoundGuard::ReconstructionCandidate> candidate;
+  int64_t tailIndex = 0;
   int64_t tailBytes = 0;
   int64_t generation = 0;
-
   {
     std::lock_guard<simple_mutexlock> lock(queueLock_);
     if (queueState_.mode != LEADER) {
-      return 0;
+      return false;
     }
-    tail = queueState_.last_appended;
-    tailBytes = cumulativePayloadBytes_.load(std::memory_order_relaxed);
-    generation = datalossBoundGeneration_.load(std::memory_order_relaxed);
-
-    for (const PeersMap::value_type& entry : peersMap_) {
-      TrackedPeer* peer = entry.second;
-      if (peer == nullptr || peer->confirmedWatermark.has_value()) {
-        continue;
-      }
-      // Filter eligibility here rather than after scanning: reconstructing a
-      // backlog for a peer that can never bound the loss is pure cost.
-      if (!isDatalossBoundEligibleUnlocked(*peer)) {
-        continue;
-      }
-      if (peer->lastConfirmedPrefixOpId.index() <= 0 ||
-          peer->lastConfirmedPrefixOpId.index() > tail.index()) {
-        continue;
-      }
-      // A peer this far behind can't qualify under the op limit with or
-      // without a watermark, and its scan would be the longest. Its op
-      // exposure is already known from its position, so skip the byte scan
-      // until it catches up.
-      const auto backlogOps =
-          tail.index() - peer->lastConfirmedPrefixOpId.index();
-      if (backlogOps >= usableOps) {
-        continue;
-      }
-      candidates.push_back({peer->uuid(), peer->lastConfirmedPrefixOpId});
-    }
+    tailIndex = queueState_.last_appended.index();
+    tailBytes = datalossBoundGuard_.cumulativePayloadBytes();
+    generation = datalossBoundGuard_.generation();
+    candidate = datalossBoundGuard_.reconstructionCandidate(tailIndex);
+  }
+  if (!candidate.has_value()) {
+    return false;
   }
 
-  // Latest position first: it has the shortest backlog, so it is the cheapest
-  // to scan and the most likely to still be retained. The NotFound break below
-  // relies on this order.
-  std::sort(
-      candidates.begin(),
-      candidates.end(),
-      [](const Candidate& lhs, const Candidate& rhs) {
-        return lhs.at.index() > rhs.at.index();
-      });
-
-  int64_t reconstructed = 0;
-  for (const auto& candidate : candidates) {
-    int64_t backlogBytes = 0;
-    int64_t entriesCounted = 0;
-    int64_t firstMissingIndex = 0;
-    Status s = log_cache_->sumPayloadBytesInRange(
-        candidate.at.index(),
-        tail.index(),
-        &backlogBytes,
-        &entriesCounted,
-        &firstMissingIndex);
-    const int64_t expectedEntries = tail.index() - candidate.at.index();
-    if (s.ok() && entriesCounted != expectedEntries) {
-      s = Status::IllegalState(
-          fmt::format(
-              "summed {} entries, expected {}",
-              entriesCounted,
-              expectedEntries));
-    }
-    if (!s.ok()) {
-      // A short or unavailable range cannot produce a bound. Leaving the peer
-      // without a watermark reports unknown, which is correct; setting one from
-      // the partial sum would report less exposure than there is.
-      STATS_datalossBoundReconstructFailures.add(1, KUDU_STATS_TAG);
-      KLOG_EVERY_N_SECS(WARNING, 60)
-          << "Cannot reconstruct bounded-dataloss backlog for peer "
-          << candidate.uuid << " over (" << candidate.at.index() << ", "
-          << tail.index() << "]: " << s.ToString() << " (first missing index "
-          << firstMissingIndex << ")";
-      // Candidates are ordered newest first. If this range crosses a missing
-      // index, every remaining candidate's range contains it too.
-      if (s.IsNotFound()) {
-        break;
-      }
-      continue;
-    }
-
-    std::lock_guard<simple_mutexlock> lock(queueLock_);
-    // Discard the scan if the generation changed while it ran: a leadership
-    // change, demotion, truncation or measurement toggle means the backlog it
-    // summed may not be this log's. Appends during the scan are fine, because
-    // they add the same bytes to the counter and to the exposure.
-    if (!datalossBoundMeasurementRequested() ||
-        !datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed) ||
-        queueState_.mode != LEADER ||
-        datalossBoundGeneration_.load(std::memory_order_relaxed) !=
-            generation) {
-      return reconstructed;
-    }
-    auto it = peersMap_.find(candidate.uuid);
-    if (it == peersMap_.end() || it->second == nullptr) {
-      continue;
-    }
-    TrackedPeer* peer = it->second;
-    if (!isDatalossBoundEligibleUnlocked(*peer) ||
-        peer->confirmedWatermark.has_value() ||
-        peer->lastConfirmedPrefixOpId.index() < candidate.at.index()) {
-      continue;
-    }
-
-    // The captured byte total and backlog refer to the same tail. If appends
-    // race the scan, subtracting this baseline from the live total includes
-    // them automatically. A peer that advances during the scan only makes the
-    // older baseline conservative.
-    peer->confirmedWatermark = RemoteWatermark{
-        .opId = candidate.at, .bytes = tailBytes - backlogBytes};
-    recordDatalossBoundBootstrapUnlocked(*peer);
-    reconstructed++;
+  const int64_t opsLag = tailIndex - candidate->index;
+  if (opsLag > maxReconstructionOps) {
+    // Ops lag remains exact without a scan. Avoid monopolizing a Raft worker
+    // to calculate bytes for a peer already far beyond the bound.
+    KLOG_EVERY_N_SECS(WARNING, 60)
+        << "Skipping bounded-dataloss byte reconstruction for peer "
+        << candidate->uuid << ": " << opsLag << " operations behind is "
+        << "over the scan cap of " << maxReconstructionOps;
+    return false;
   }
-  return reconstructed;
+
+  int64_t backlogBytes = 0;
+  int64_t entriesCounted = 0;
+  int64_t firstMissingIndex = 0;
+  Status s = log_cache_->sumPayloadBytesInRange(
+      candidate->index,
+      tailIndex,
+      &backlogBytes,
+      &entriesCounted,
+      &firstMissingIndex);
+  if (s.ok() && entriesCounted != opsLag) {
+    s = Status::IllegalState(
+        fmt::format("summed {} entries, expected {}", entriesCounted, opsLag));
+  }
+  if (!s.ok()) {
+    // A short or unavailable range cannot produce a bound. Leaving the peer
+    // without a watermark reports unknown, which is correct; setting one from
+    // the partial sum would report less lag than there is.
+    STATS_datalossBoundReconstructFailures.add(1, KUDU_STATS_TAG);
+    KLOG_EVERY_N_SECS(WARNING, 60)
+        << "Cannot reconstruct bounded-dataloss backlog for peer "
+        << candidate->uuid << " over (" << candidate->index << ", " << tailIndex
+        << "]: " << s.ToString() << " (first missing index "
+        << firstMissingIndex << ")";
+    return false;
+  }
+
+  // Appends during the scan are fine: they add the same bytes to the counter
+  // and to the lag, so subtracting this watermark's bytes from the live total
+  // includes them. The install rechecks the generation under the guard's lock.
+  return datalossBoundGuard_.installReconstructedWatermark(
+      candidate->uuid,
+      RemoteWatermark{
+          .index = candidate->index, .bytes = tailBytes - backlogBytes},
+      generation);
 }
 
 bool PeerMessageQueue::SafeToEvictUnlocked(const string& evictUuid) const {
@@ -2328,21 +2192,21 @@ void PeerMessageQueue::UpdatePeerStatus(
 
     case PeerStatus::TabletNotFound:
       peer->incrConsecutiveFailures();
-      ClearRemoteWatermarkUnlocked(peer);
+      datalossBoundGuard_.forgetPeer(peer->uuid());
       VLOG_WITH_PREFIX_UNLOCKED(1)
           << "Peer needs tablet copy: " << peer->ToString();
       break;
 
     case PeerStatus::TabletFailed: {
       peer->incrConsecutiveFailures();
-      ClearRemoteWatermarkUnlocked(peer);
+      datalossBoundGuard_.forgetPeer(peer->uuid());
       UpdatePeerHealthUnlocked(peer);
       return;
     }
 
     case PeerStatus::WrongServerUuid:
       peer->incrConsecutiveFailures();
-      ClearRemoteWatermarkUnlocked(peer);
+      datalossBoundGuard_.forgetPeer(peer->uuid());
       UpdatePeerAppendFailure(peer, status);
       break;
 
@@ -2805,51 +2669,18 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // is guaranteed by the Raft protocol to be a valid op.
 
     const LogMatchResult logMatch = MatchOpInLog(status.last_received());
-    if (logMatch == LogMatchResult::Mismatch) {
-      ClearRemoteWatermarkUnlocked(peer);
-    } else if (
-        logMatch == LogMatchResult::Unavailable &&
-        status.last_received().index() <
-            peer->lastConfirmedPrefixOpId.index()) {
-      // The leader no longer retains this index, so the reply cannot establish
-      // a new prefix. It can still show that the peer no longer reaches a
-      // position it had previously confirmed.
-      if (peer->confirmedWatermark.has_value() &&
-          peer->confirmedWatermark->opId.index() <=
-              status.last_received().index()) {
-        peer->lastConfirmedPrefixOpId = peer->confirmedWatermark->opId;
-      } else {
-        ClearRemoteWatermarkUnlocked(peer);
-      }
+    if (peer_uuid != localPeerPb_.permanent_uuid()) {
+      datalossBoundGuard_.onPeerResponse(
+          peer_uuid,
+          logMatch,
+          status.last_received().index(),
+          peer->lastExchangeStatus == PeerStatus::Ok);
     }
 
     if (logMatch == LogMatchResult::Match) {
       // If the latest thing in their log is in our log, we are in sync.
       peer->lastReceived = status.last_received();
       peer->nextIndex = peer->lastReceived.index() + 1;
-
-      // A matching response reports the peer's actual last entry even when it
-      // rejects the preceding entry in this request. Lower the confirmed
-      // prefix immediately if the peer has lost a suffix. Only a successful
-      // response may move the prefix forward.
-      if (status.last_received().index() <
-          peer->lastConfirmedPrefixOpId.index()) {
-        if (peer->confirmedWatermark.has_value() &&
-            status.last_received().index() <
-                peer->confirmedWatermark->opId.index()) {
-          peer->confirmedWatermark.reset();
-        }
-        peer->lastConfirmedPrefixOpId = status.last_received();
-      }
-      if (peer->lastExchangeStatus == PeerStatus::Ok) {
-        peer->lastConfirmedPrefixOpId = status.last_received();
-      }
-
-      RefreshDatalossBoundMeasurementStateUnlocked();
-      if (datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed) &&
-          peer->lastExchangeStatus == PeerStatus::Ok) {
-        AdvanceRemoteWatermarkUnlocked(peer);
-      }
 
       // Check if the peer is a NON_VOTER candidate ready for promotion.
       PromoteIfNeeded(peer, prev_last_received, status);
@@ -3466,8 +3297,7 @@ Status PeerMessageQueue::UnRegisterObserver(
   return Status::OK();
 }
 
-PeerMessageQueue::LogMatchResult PeerMessageQueue::MatchOpInLog(
-    const OpId& desired_op) const {
+LogMatchResult PeerMessageQueue::MatchOpInLog(const OpId& desired_op) const {
   OpId log_op;
   Status s = log_cache_->lookupOpId(desired_op.index(), &log_op);
   if (PREDICT_TRUE(s.ok())) {
