@@ -2168,8 +2168,7 @@ class ConsensusQueueBoundedDatalossTest : public ConsensusQueueTest {
     ackFrom(uuid, at);
   }
 
-  std::optional<PeerMessageQueue::RemoteWatermark> confirmedWatermarkFor(
-      const string& uuid) {
+  std::optional<RemoteWatermark> confirmedWatermarkFor(const string& uuid) {
     return queue_->getTrackedPeerForTests(uuid).confirmedWatermark;
   }
 };
@@ -2271,20 +2270,20 @@ TEST_F(
   setupDcqQueue({makeDbVoter("peer-1", "b")}, false);
 
   auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Off);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Off);
 
   FLAGS_enable_dataloss_bound_measurement = true;
   ackFrom("peer-1", queue_->getLastOpIdInLog());
   ackFrom("peer-1", queue_->getLastOpIdInLog());
 
   health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
   EXPECT_TRUE(health.hasWatermark);
 
   FLAGS_enable_dataloss_bound_measurement = false;
   health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Off);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::None);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Off);
+  EXPECT_EQ(health.reason, DatalossBoundReason::None);
   EXPECT_FALSE(health.hasOperationExposure);
   EXPECT_FALSE(health.hasWatermark);
 }
@@ -2449,7 +2448,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestPeerInsideDcqIsNotCounted) {
   establishWatermark("peer-2", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
   EXPECT_EQ(health.qualifyingPeers, 1);
 }
 
@@ -2462,7 +2461,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestRemoteLbuIsCounted) {
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
   EXPECT_EQ(health.qualifyingPeers, 1);
 }
 
@@ -2477,8 +2476,8 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestStandbyVoterIsNotCounted) {
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::NoRemote);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::NoRemote);
   EXPECT_EQ(health.qualifyingPeers, 0);
 }
 
@@ -2490,8 +2489,8 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthReportsNotLeader) {
   queue_->setNonLeaderMode(buildRaftConfigPbForTests(3));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::NotLeader);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::NotLeader);
 }
 
 // After a leadership change the byte counter restarts at zero, so the ordinary
@@ -2592,7 +2591,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestBootstrapStopsAtOperationLimit) {
   const auto health = queue_->getDatalossBoundHealth();
   EXPECT_TRUE(health.hasOperationExposure);
   EXPECT_EQ(health.bestOpsBehind, 5);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+  EXPECT_EQ(health.reason, DatalossBoundReason::OpLimit);
 }
 
 // Reconstruction seeds a baseline; ordinary accounting must continue from it
@@ -2998,8 +2997,8 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthIsOffWhenDisabled) {
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Off);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::None);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Off);
+  EXPECT_EQ(health.reason, DatalossBoundReason::None);
 }
 
 // A caught-up remote leaves the whole budget available.
@@ -3011,7 +3010,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthOkWithRoomToSpare) {
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
   EXPECT_EQ(health.qualifyingPeers, 1);
   EXPECT_EQ(health.bestOpsBehind, 0);
   EXPECT_TRUE(health.hasWatermark);
@@ -3030,8 +3029,8 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthFailsOnOpLimit) {
   appendWritesWithPayload(kSetupOps + 1, 20, 8);
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::OpLimit);
   EXPECT_EQ(health.qualifyingPeers, 0);
   EXPECT_LT(health.headroomFraction, 0.0);
 }
@@ -3046,8 +3045,8 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestHealthFailsOnByteLimit) {
   appendWritesWithPayload(kSetupOps + 1, 5, 4096);
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::ByteLimit);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::ByteLimit);
 }
 
 // A peer exactly at the usable limit is a violation; one entry or byte under
@@ -3062,23 +3061,23 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestLimitsAreExclusive) {
 
   appendWritesWithPayload(kSetupOps + 1, 2, 100);
   auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
   EXPECT_EQ(health.qualifyingPeers, 1);
 
   appendWritesWithPayload(kSetupOps + 3, 1, 100);
   health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::OpLimit);
 
   FLAGS_dataloss_bound_max_ops = 1000000;
   FLAGS_dataloss_bound_max_bytes = 301;
   health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
 
   FLAGS_dataloss_bound_max_bytes = 300;
   health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::ByteLimit);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::ByteLimit);
 }
 
 // The margin is held inside the advertised limit, so a peer sitting between
@@ -3096,8 +3095,8 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestMarginShrinksTheUsableBudget) {
   appendWritesWithPayload(kSetupOps + 1, 15, 8);
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::OpLimit);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.reason, DatalossBoundReason::OpLimit);
 }
 
 // Both dimensions must describe the SAME replica. Reporting the best ops from
@@ -3150,7 +3149,7 @@ TEST_F(
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
   EXPECT_FALSE(health.hasWatermark);
   EXPECT_EQ(health.qualifyingPeers, 0);
 }
@@ -3169,7 +3168,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestDivergenceClearsWatermark) {
 
   EXPECT_FALSE(confirmedWatermarkFor("peer-1").has_value());
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Violation);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Violation);
 }
 
 // A ring whose only remotes sit inside the DCQ has nothing to measure against
@@ -3181,7 +3180,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestNoEligibleRemoteIsNotBootstrap) {
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.reason, PeerMessageQueue::DatalossBoundReason::NoRemote);
+  EXPECT_EQ(health.reason, DatalossBoundReason::NoRemote);
 }
 
 // An eligible remote that has not proven a position yet is bootstrapping, and
@@ -3193,8 +3192,7 @@ TEST_F(
   setupDcqQueue({makeDbVoter("peer-1", "b")});
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(
-      health.reason, PeerMessageQueue::DatalossBoundReason::LeaderBootstrap);
+  EXPECT_EQ(health.reason, DatalossBoundReason::LeaderBootstrap);
 }
 
 // The sysvars accept up to LLONG_MAX. Computing the margin as limit * pct
@@ -3208,7 +3206,7 @@ TEST_F(ConsensusQueueBoundedDatalossTest, TestMarginDoesNotOverflowAtMaxLimit) {
   establishWatermark("peer-1", opIdAt(kSetupOps));
 
   const auto health = queue_->getDatalossBoundHealth();
-  EXPECT_EQ(health.status, PeerMessageQueue::DatalossBoundStatus::Ok);
+  EXPECT_EQ(health.status, DatalossBoundStatus::Ok);
   EXPECT_GT(health.headroomFraction, 0.0);
 }
 

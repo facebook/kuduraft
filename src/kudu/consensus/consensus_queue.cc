@@ -25,7 +25,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -634,9 +633,7 @@ void PeerMessageQueue::setLeaderMode(
     // every TrackedPeer -- PeerManager::close() untracks them all -- so the
     // watermarks are gone and the leader is bootstrapping again either way.
     datalossBoundGeneration_.fetch_add(1, std::memory_order_relaxed);
-    datalossBoundLeaderSince_ = MonoTime::Now();
-    datalossBoundBootstrapReported_ = false;
-    lastLoggedDatalossBoundState_.reset();
+    datalossBoundGuard_.startPeriod(MonoTime::Now());
 
     ResetQuorumConfirmationUnlocked();
 
@@ -993,9 +990,7 @@ void PeerMessageQueue::RefreshDatalossMeasurementStateUnlocked() {
     // The cumulative counter is only a coordinate. A new watermark captures
     // the current counter with its log position, so bytes from a disabled
     // interval are not exposure after that position.
-    datalossBoundLeaderSince_ = MonoTime::Now();
-    datalossBoundBootstrapReported_ = false;
-    lastLoggedDatalossBoundState_.reset();
+    datalossBoundGuard_.startPeriod(MonoTime::Now());
     datalossMeasurementEnabled_.store(true, std::memory_order_relaxed);
   }
 }
@@ -1015,14 +1010,10 @@ void PeerMessageQueue::recordDatalossBoundBootstrapUnlocked(
     const TrackedPeer& peer) {
   DCHECK(queueLock_.is_locked());
   if (FLAGS_dataloss_bound_mode == kDatalossBoundOff ||
-      datalossBoundBootstrapReported_ || queueState_.mode != LEADER ||
-      !isDatalossBoundEligibleUnlocked(peer)) {
+      queueState_.mode != LEADER || !isDatalossBoundEligibleUnlocked(peer)) {
     return;
   }
-  datalossBoundBootstrapReported_ = true;
-  STATS_datalossBoundBootstrapMs.addValue(
-      (MonoTime::Now() - datalossBoundLeaderSince_).ToMilliseconds(),
-      KUDU_STATS_TAG);
+  datalossBoundGuard_.recordBootstrapEnd(MonoTime::Now());
 }
 
 void PeerMessageQueue::AdvanceRemoteWatermarkUnlocked(TrackedPeer* peer) {
@@ -1175,8 +1166,7 @@ MonoTime PeerMessageQueue::getLeaderLeaseUntil() {
   return leaderLeaseUntil_;
 }
 
-PeerMessageQueue::DatalossBoundHealth
-PeerMessageQueue::getDatalossBoundHealth() {
+DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealth() {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
   RefreshDatalossMeasurementStateUnlocked();
   return getDatalossBoundHealthUnlocked();
@@ -1225,15 +1215,15 @@ void PeerMessageQueue::datalossBoundPeriodicTick() {
       return;
     }
     const DatalossBoundHealth health = getDatalossBoundHealthUnlocked();
-    EmitDatalossBoundStatsUnlocked(health);
+    if (queueState_.mode == LEADER) {
+      DatalossBoundGuard::emitStats(health);
+    }
     status = health.status;
     reason = health.reason;
     logPrefix = logPrefixUnlocked();
     // Log transitions only. Publishing the state every tick would bury the
     // moment it changed, which is the only part an operator needs to see.
-    const auto state = std::make_pair(status, reason);
-    transitioned = lastLoggedDatalossBoundState_ != state;
-    lastLoggedDatalossBoundState_ = state;
+    transitioned = datalossBoundGuard_.recordState(health);
   }
 
   if (transitioned) {
@@ -1265,181 +1255,30 @@ bool PeerMessageQueue::isDatalossBoundEligibleUnlocked(
       !peer.isPeerInLocalQuorum.value();
 }
 
-const char* PeerMessageQueue::datalossBoundStatusName(DatalossBoundStatus s) {
-  switch (s) {
-    case PeerMessageQueue::DatalossBoundStatus::Off:
-      return "off";
-    case PeerMessageQueue::DatalossBoundStatus::Ok:
-      return "ok";
-    case PeerMessageQueue::DatalossBoundStatus::Violation:
-      return "violation";
-  }
-  return "unknown";
-}
-
-const char* PeerMessageQueue::datalossBoundReasonName(DatalossBoundReason r) {
-  switch (r) {
-    case PeerMessageQueue::DatalossBoundReason::None:
-      return "none";
-    case PeerMessageQueue::DatalossBoundReason::NoRemote:
-      return "no_remote";
-    case PeerMessageQueue::DatalossBoundReason::OpLimit:
-      return "op_limit";
-    case PeerMessageQueue::DatalossBoundReason::ByteLimit:
-      return "byte_limit";
-    case PeerMessageQueue::DatalossBoundReason::LeaderBootstrap:
-      return "leader_bootstrap";
-    case PeerMessageQueue::DatalossBoundReason::NotLeader:
-      return "not_leader";
-    case PeerMessageQueue::DatalossBoundReason::InternalError:
-      return "internal_error";
-  }
-  return "unknown";
-}
-
-namespace {
-int64_t datalossBoundLimitAfterMargin(int64_t limit) {
-  const int64_t marginPct =
-      std::clamp<int64_t>(FLAGS_dataloss_bound_margin_percent, 0, 99);
-  // Multiplying first preserves precision for small limits; divide first only
-  // where multiplication could overflow.
-  const int64_t margin = limit <= std::numeric_limits<int64_t>::max() / 100
-      ? limit * marginPct / 100
-      : limit / 100 * marginPct;
-  return limit - margin;
-}
-} // namespace
-
-void PeerMessageQueue::EmitDatalossBoundStatsUnlocked(
-    const DatalossBoundHealth& health) const {
+DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealthUnlocked() const {
   DCHECK(queueLock_.is_locked());
-  if (queueState_.mode != LEADER) {
-    return;
-  }
-  STATS_datalossBoundTicks.add(
-      1, KUDU_STATS_TAG, datalossBoundStatusName(health.status));
-  STATS_datalossBoundReasonTicks.add(
-      1, KUDU_STATS_TAG, datalossBoundReasonName(health.reason));
-  STATS_datalossBoundQualifyingPeers.addValue(
-      health.qualifyingPeers, KUDU_STATS_TAG);
-
-  // Only meaningful when some peer supplied them. Publishing zeros otherwise
-  // would read as "fully caught up" -- the opposite of "we cannot tell".
-  if (health.hasOperationExposure) {
-    STATS_datalossBoundOpsBehind.addValue(health.bestOpsBehind, KUDU_STATS_TAG);
-  }
-  if (health.hasWatermark) {
-    STATS_datalossBoundBytesBehind.addValue(
-        health.bestBytesBehind, KUDU_STATS_TAG);
-    STATS_datalossBoundHeadroomPct.addValue(
-        static_cast<int64_t>(std::floor(health.headroomFraction * 100.0)),
-        KUDU_STATS_TAG);
-  }
-}
-
-PeerMessageQueue::DatalossBoundHealth
-PeerMessageQueue::getDatalossBoundHealthUnlocked() const {
-  DCHECK(queueLock_.is_locked());
-  DatalossBoundHealth health;
-
-  if (!FLAGS_enable_dataloss_bound_measurement ||
-      !datalossMeasurementEnabled_.load(std::memory_order_relaxed) ||
-      FLAGS_dataloss_bound_mode == kDatalossBoundOff) {
-    return health; // Off / None.
-  }
-  if (queueState_.mode != LEADER) {
-    health.status = DatalossBoundStatus::Violation;
-    health.reason = DatalossBoundReason::NotLeader;
-    return health;
-  }
-
-  // Margins are held inside the advertised limits, so the budget a peer may
-  // actually consume is smaller than the number quoted externally.
-  const int64_t usableOps =
-      datalossBoundLimitAfterMargin(FLAGS_dataloss_bound_max_ops);
-  const int64_t usableBytes =
-      datalossBoundLimitAfterMargin(FLAGS_dataloss_bound_max_bytes);
-  if (usableOps <= 0 || usableBytes <= 0) {
-    health.status = DatalossBoundStatus::Violation;
-    health.reason = DatalossBoundReason::InternalError;
-    return health;
-  }
-
-  int32_t eligibleRemotes = 0;
-  int64_t bestKnownPosition = 0;
-  const int64_t tailIndex = queueState_.last_appended.index();
-  const int64_t tailBytes =
-      cumulativePayloadBytes_.load(std::memory_order_relaxed);
-
-  for (const PeersMap::value_type& entry : peersMap_) {
-    const TrackedPeer* peer = entry.second;
-    if (peer == nullptr) {
-      continue;
-    }
-
-    if (!isDatalossBoundEligibleUnlocked(*peer)) {
-      continue;
-    }
-
-    eligibleRemotes++;
-    bestKnownPosition =
-        std::max(bestKnownPosition, peer->lastConfirmedPrefixOpId.index());
-    if (!peer->confirmedWatermark.has_value()) {
-      continue;
-    }
-
-    const auto& watermark = *peer->confirmedWatermark;
-    const int64_t opsBehind =
-        std::max<int64_t>(0, tailIndex - watermark.opId.index());
-    const int64_t bytesBehind =
-        std::max<int64_t>(0, tailBytes - watermark.bytes);
-    const double opsHeadroom = static_cast<double>(usableOps - opsBehind) /
-        static_cast<double>(usableOps);
-    const double byteHeadroom = static_cast<double>(usableBytes - bytesBehind) /
-        static_cast<double>(usableBytes);
-    const double headroom = std::min(opsHeadroom, byteHeadroom);
-
-    if (!health.hasWatermark || headroom > health.headroomFraction) {
-      health.hasWatermark = true;
-      health.hasOperationExposure = true;
-      health.bestOpsBehind = opsBehind;
-      health.bestBytesBehind = bytesBehind;
-      health.headroomFraction = headroom;
-    }
-    if (opsBehind < usableOps && bytesBehind < usableBytes) {
-      health.qualifyingPeers++;
+  DatalossBoundGuard::Input input{
+      .isMeasuring = FLAGS_enable_dataloss_bound_measurement &&
+          datalossMeasurementEnabled_.load(std::memory_order_relaxed) &&
+          FLAGS_dataloss_bound_mode != kDatalossBoundOff,
+      .isLeader = queueState_.mode == LEADER,
+      .maxOps = FLAGS_dataloss_bound_max_ops,
+      .maxBytes = FLAGS_dataloss_bound_max_bytes,
+      .marginPercent = FLAGS_dataloss_bound_margin_percent,
+      .tailIndex = queueState_.last_appended.index(),
+      .tailBytes = cumulativePayloadBytes_.load(std::memory_order_relaxed),
+  };
+  if (input.isMeasuring && input.isLeader) {
+    for (const PeersMap::value_type& entry : peersMap_) {
+      const TrackedPeer* peer = entry.second;
+      if (peer != nullptr && isDatalossBoundEligibleUnlocked(*peer)) {
+        input.remotes.push_back(
+            {.confirmedPrefixIndex = peer->lastConfirmedPrefixOpId.index(),
+             .watermark = peer->confirmedWatermark});
+      }
     }
   }
-
-  if (!health.hasWatermark) {
-    health.status = DatalossBoundStatus::Violation;
-    if (bestKnownPosition > 0) {
-      health.hasOperationExposure = true;
-      health.bestOpsBehind =
-          std::max<int64_t>(0, tailIndex - bestKnownPosition);
-    }
-    if (health.hasOperationExposure && health.bestOpsBehind >= usableOps) {
-      health.reason = DatalossBoundReason::OpLimit;
-    } else {
-      health.reason = eligibleRemotes > 0 ? DatalossBoundReason::LeaderBootstrap
-                                          : DatalossBoundReason::NoRemote;
-    }
-    return health;
-  }
-
-  if (health.qualifyingPeers > 0) {
-    health.status = DatalossBoundStatus::Ok;
-    health.reason = DatalossBoundReason::None;
-    return health;
-  }
-
-  health.status = DatalossBoundStatus::Violation;
-  // Report whichever dimension the best peer ran out of first. When both are
-  // exhausted, bytes is the more actionable number to show an operator.
-  health.reason = health.bestBytesBehind >= usableBytes
-      ? DatalossBoundReason::ByteLimit
-      : DatalossBoundReason::OpLimit;
-  return health;
+  return DatalossBoundGuard::evaluate(input);
 }
 
 int64_t PeerMessageQueue::reconstructMissingWatermarks() {
@@ -1448,8 +1287,8 @@ int64_t PeerMessageQueue::reconstructMissingWatermarks() {
     return 0;
   }
 
-  const int64_t usableOps =
-      datalossBoundLimitAfterMargin(FLAGS_dataloss_bound_max_ops);
+  const int64_t usableOps = DatalossBoundGuard::limitAfterMargin(
+      FLAGS_dataloss_bound_max_ops, FLAGS_dataloss_bound_margin_percent);
   if (usableOps <= 0) {
     return 0;
   }

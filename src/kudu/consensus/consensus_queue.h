@@ -39,6 +39,7 @@
 #include <gtest/gtest_prod.h>
 
 #include "kudu/consensus/consensus.pb.h"
+#include "kudu/consensus/dataloss_bound_guard.h"
 #include "kudu/consensus/flags_layering.h"
 #include "kudu/consensus/log_cache.h"
 #include "kudu/consensus/metadata.pb.h"
@@ -162,14 +163,6 @@ using ServerWarnings = std::vector<ServerWarningPB>;
 // modify it.
 class PeerMessageQueue {
  public:
-  struct RemoteWatermark {
-    OpId opId;
-    // May be negative: a reconstructed watermark subtracts the peer's backlog
-    // from the counter, and that backlog can include entries this queue never
-    // counted. Only differences between readings on this queue are meaningful.
-    int64_t bytes = 0;
-  };
-
   struct TrackedPeer {
     explicit TrackedPeer(RaftPeerPB peer_pb, const PeerMessageQueue* queue);
 
@@ -318,63 +311,6 @@ class PeerMessageQueue {
     std::shared_ptr<TimeProvider> timeProvider_;
 
     const PeerMessageQueue* queue = nullptr;
-  };
-
-  // Off when the bound is configured OFF. Ok when an eligible remote is within
-  // both limits. Violation otherwise; the reason says why.
-  enum class DatalossBoundStatus : uint8_t {
-    Off,
-    Ok,
-    Violation,
-  };
-
-  // Why an evaluation failed. Low cardinality on purpose -- this is a metric
-  // dimension, not a message.
-  enum class DatalossBoundReason : uint8_t {
-    None,
-    // No eligible remote voter exists.
-    NoRemote,
-    // The best eligible remote is past the operation or byte limit.
-    OpLimit,
-    ByteLimit,
-    // Watermarks are being re-established: a new leader term, a configuration
-    // change, or measurement was just enabled.
-    LeaderBootstrap,
-    NotLeader,
-    InternalError,
-  };
-
-  // Stable lowercase names shared by logs, metrics, and SHOW STATUS.
-  [[nodiscard]] static const char* datalossBoundStatusName(
-      DatalossBoundStatus status);
-  [[nodiscard]] static const char* datalossBoundReasonName(
-      DatalossBoundReason reason);
-
-  struct DatalossBoundHealth {
-    DatalossBoundStatus status = DatalossBoundStatus::Off;
-    DatalossBoundReason reason = DatalossBoundReason::None;
-
-    // Eligible remote voters with a watermark and room left in both
-    // dimensions.
-    int32_t qualifyingPeers = 0;
-
-    // The best eligible peer's exposure, and the fraction of the usable budget
-    // still available to it. Both dimensions come from that one peer: mixing
-    // the best ops from one peer with the best bytes from another would
-    // describe a replica that does not exist.
-    int64_t bestOpsBehind = 0;
-    int64_t bestBytesBehind = 0;
-
-    // min(remaining ops, remaining bytes) as a fraction of the usable budget.
-    // Zero or negative when no peer is within the limits: how far past them
-    // the best peer is.
-    double headroomFraction = 0.0;
-
-    // Operation exposure can be known before byte reconstruction completes.
-    bool hasOperationExposure = false;
-    // Some eligible peer has a confirmed watermark, so both exposures are known
-    // for the best one.
-    bool hasWatermark = false;
   };
 
   struct TransferContext {
@@ -1031,27 +967,15 @@ class PeerMessageQueue {
   // Caller must hold queueLock_.
   [[nodiscard]] DatalossBoundHealth getDatalossBoundHealthUnlocked() const;
 
-  // Publish the guard's fb303 counters and quantile stats. Caller must hold
-  // queueLock_.
-  void EmitDatalossBoundStatsUnlocked(const DatalossBoundHealth& health) const;
-
-  // Last (status, reason) written to the log, so only transitions are logged.
-  // Cleared when a leader term or measurement period starts, so each one
-  // logs its first state. Protected by queueLock_: a tick that evaluated its
-  // state before a clear must not record it after.
-  std::optional<std::pair<DatalossBoundStatus, DatalossBoundReason>>
-      lastLoggedDatalossBoundState_;
+  // Bootstrap timing and logged-transition state for the current leader term
+  // or measurement period. Protected by queueLock_: a tick that evaluated its
+  // state before a period started must not record it after.
+  DatalossBoundGuard datalossBoundGuard_;
 
   // True while a tick is running. The timer submits a tick every second to a
   // concurrent thread pool, and one reconstruction scan can take longer than
   // that, so a tick that finds this set returns at once.
   std::atomic<bool> datalossBoundTickRunning_{false};
-
-  // When this leader started, and whether the first watermark has been timed.
-  // Bootstrap latency is measured from here, not from a scan attempt. Both
-  // fields are protected by queueLock_.
-  MonoTime datalossBoundLeaderSince_{MonoTime::Min()};
-  bool datalossBoundBootstrapReported_{false};
 
   // Uncompressed replicated payload bytes across 'msgWrappers'.
   //
