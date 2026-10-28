@@ -290,6 +290,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Runs 'fn' while holding consensusStateLock_.
   void runWithConsensusStateLockForTests(const std::function<void()>& fn);
 
+  // Whether any thread holds consensusStateLock_. Only meaningful in an
+  // assertion by a caller that expects to hold it.
+  bool isConsensusStateLockHeld() const {
+    return consensusStateLock_.is_locked();
+  }
+
   // Pauses outgoing votes from this server during elections, if set to true.
   void setWithholdVotesForTests(bool withhold_votes);
 
