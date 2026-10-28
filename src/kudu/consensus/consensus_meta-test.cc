@@ -161,6 +161,42 @@ TEST_F(ConsensusMetadataTest, TestFailedLoad) {
   LOG(INFO) << "Expected failure: " << s.ToString();
 }
 
+// Every change to a field of toConsensusStatePB() advances the generation;
+// votes don't.
+TEST_F(ConsensusMetadataTest, TestConsensusStateGeneration) {
+  ASSERT_OK(
+      ConsensusMetadata::create(
+          &fsManager_, kTabletId, fsManager_.uuid(), config_, kInitialTerm));
+  std::shared_ptr<ConsensusMetadata> cmeta;
+  ASSERT_OK(
+      ConsensusMetadata::load(
+          &fsManager_, kTabletId, fsManager_.uuid(), &cmeta));
+  int64_t generation = cmeta->consensusStateGeneration();
+  auto expectAdvanced = [&](const char* what) {
+    EXPECT_GT(cmeta->consensusStateGeneration(), generation) << what;
+    generation = cmeta->consensusStateGeneration();
+  };
+
+  cmeta->setCurrentTerm(kInitialTerm + 1);
+  expectAdvanced("setCurrentTerm");
+  cmeta->setLeaderUuid(fsManager_.uuid());
+  expectAdvanced("setLeaderUuid");
+  RaftConfigPB next = config_;
+  next.set_opid_index(config_.opid_index() + 1);
+  cmeta->setPendingConfig(next);
+  expectAdvanced("setPendingConfig");
+  cmeta->clearPendingConfig();
+  expectAdvanced("clearPendingConfig");
+  cmeta->setCommittedConfig(next);
+  expectAdvanced("setCommittedConfig");
+  cmeta->setCommittedConfigRaw(next);
+  expectAdvanced("setCommittedConfigRaw");
+
+  cmeta->setVotedFor(fsManager_.uuid());
+  cmeta->clearVotedFor();
+  EXPECT_EQ(generation, cmeta->consensusStateGeneration());
+}
+
 // Check that changes are not written to disk until flush() is called.
 TEST_F(ConsensusMetadataTest, TestFlush) {
   const int64_t kNewTerm = 4;
@@ -399,94 +435,6 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   cmeta->setPendingConfig(pendingConfig);
   cmeta->mergeCommittedConsensusStatePB(remoteState);
   NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 2, ""));
-}
-
-// The state-change observer must fire for every change to the term, the leader
-// or the committed/pending configuration, since RaftConsensus republishes its
-// lock-free status snapshot from it.
-TEST_F(ConsensusMetadataTest, StateChangeObserverFiresOnEveryPublishedChange) {
-  std::shared_ptr<ConsensusMetadata> cmeta;
-  ASSERT_OK(
-      ConsensusMetadata::create(
-          &fsManager_,
-          kTabletId,
-          fsManager_.uuid(),
-          config_,
-          kInitialTerm,
-          ConsensusMetadataCreateMode::FlushOnCreate,
-          &cmeta));
-  int notifications = 0;
-  cmeta->setStateChangeObserver([&] { ++notifications; });
-
-  auto expectNotified = [&](const char* change) {
-    EXPECT_GT(notifications, 0) << change;
-    notifications = 0;
-  };
-
-  cmeta->setCurrentTerm(kInitialTerm + 1);
-  expectNotified("setCurrentTerm");
-  cmeta->setLeaderUuid(fsManager_.uuid());
-  expectNotified("setLeaderUuid");
-  cmeta->setCommittedConfig(config_);
-  expectNotified("setCommittedConfig");
-  cmeta->setCommittedConfigRaw(config_);
-  expectNotified("setCommittedConfigRaw");
-  cmeta->setPendingConfig(config_);
-  expectNotified("setPendingConfig");
-  // The pending config masks the committed one, so the active role does not
-  // change here, but the committed config is still observable.
-  cmeta->setCommittedConfig(config_);
-  expectNotified("setCommittedConfig with a pending config");
-  cmeta->clearPendingConfig();
-  expectNotified("clearPendingConfig");
-  cmeta->setActiveConfig(config_);
-  expectNotified("setActiveConfig");
-  ConsensusStatePB remoteState;
-  remoteState.set_current_term(kInitialTerm + 2);
-  *remoteState.mutable_committed_config() = config_;
-  cmeta->mergeCommittedConsensusStatePB(remoteState);
-  expectNotified("mergeCommittedConsensusStatePB");
-
-  cmeta->setStateChangeObserver(nullptr);
-  cmeta->setCurrentTerm(kInitialTerm + 3);
-  EXPECT_EQ(0, notifications) << "observer cleared";
-}
-
-TEST_F(ConsensusMetadataTest, DeferredStateChangeIsObservedOnceAsAWhole) {
-  std::shared_ptr<ConsensusMetadata> cmeta;
-  ASSERT_OK(
-      ConsensusMetadata::create(
-          &fsManager_,
-          kTabletId,
-          fsManager_.uuid(),
-          config_,
-          kInitialTerm,
-          ConsensusMetadataCreateMode::FlushOnCreate,
-          &cmeta));
-  cmeta->setLeaderUuid(fsManager_.uuid());
-  std::vector<std::pair<int64_t, std::string>> observed;
-  cmeta->setStateChangeObserver([&] {
-    observed.emplace_back(cmeta->currentTerm(), cmeta->leaderUuid());
-  });
-
-  {
-    ConsensusMetadata::DeferStateChangeNotifications defer(*cmeta);
-    cmeta->setCurrentTerm(kInitialTerm + 1);
-    cmeta->setLeaderUuid("");
-    EXPECT_TRUE(observed.empty()) << "observed a partial change";
-  }
-  const std::vector<std::pair<int64_t, std::string>> expected{
-      {kInitialTerm + 1, ""}};
-  EXPECT_EQ(expected, observed);
-
-  observed.clear();
-  ConsensusStatePB remoteState;
-  remoteState.set_current_term(kInitialTerm + 2);
-  *remoteState.mutable_committed_config() = config_;
-  cmeta->mergeCommittedConsensusStatePB(remoteState);
-  const std::vector<std::pair<int64_t, std::string>> expectedMerge{
-      {kInitialTerm + 2, ""}};
-  EXPECT_EQ(expectedMerge, observed);
 }
 
 } // namespace consensus

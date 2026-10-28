@@ -58,9 +58,9 @@ int64_t ConsensusMetadata::currentTerm() const {
 
 void ConsensusMetadata::setCurrentTerm(int64_t term) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  markStateChanged();
   DCHECK_GE(term, kMinimumTerm);
   pb_.set_current_term(term);
-  notifyStateChanged();
 }
 
 bool ConsensusMetadata::hasVotedFor() const {
@@ -188,20 +188,17 @@ const RaftConfigPB& ConsensusMetadata::getConfig(RaftConfigState type) const {
 
 void ConsensusMetadata::setCommittedConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  markStateChanged();
   *pb_.mutable_committed_config() = config;
   if (!hasPendingConfig_) {
     updateActiveRole();
-  } else {
-    // The pending config masks the committed one, so the active role is
-    // unchanged, but the committed config itself is observable.
-    notifyStateChanged();
   }
 }
 
 void ConsensusMetadata::setCommittedConfigRaw(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  markStateChanged();
   *pb_.mutable_committed_config() = config;
-  notifyStateChanged();
 }
 
 kudu::Status ConsensusMetadata::voterDistribution(
@@ -230,6 +227,7 @@ const RaftConfigPB& ConsensusMetadata::pendingConfig() const {
 
 void ConsensusMetadata::clearPendingConfig() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  markStateChanged();
   hasPendingConfig_ = false;
   pendingConfig_.Clear();
   updateActiveRole();
@@ -237,6 +235,7 @@ void ConsensusMetadata::clearPendingConfig() {
 
 void ConsensusMetadata::setPendingConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  markStateChanged();
   hasPendingConfig_ = true;
   pendingConfig_ = config;
   updateActiveRole();
@@ -282,6 +281,7 @@ int64_t ConsensusMetadata::lastPrunedTerm() const {
 
 void ConsensusMetadata::setLeaderUuid(string uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
+  markStateChanged();
   leaderUuid_ = std::move(uuid);
   updateActiveRole();
   // cmeta not persisted untill we sync to LKL
@@ -355,7 +355,6 @@ ConsensusStatePB ConsensusMetadata::toConsensusStatePB() const {
 void ConsensusMetadata::mergeCommittedConsensusStatePB(
     const ConsensusStatePB& cstate) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  DeferStateChangeNotifications deferNotifications(*this);
   if (cstate.current_term() > currentTerm()) {
     setCurrentTerm(cstate.current_term());
     clearVotedFor();
@@ -499,49 +498,6 @@ void ConsensusMetadata::updateActiveRole() {
                       << RaftPeerPB::Role_Name(activeRole_)
                       << ". Consensus state: "
                       << pb_util::SecureShortDebugString(toConsensusStatePB());
-  notifyStateChanged();
-}
-
-void ConsensusMetadata::setStateChangeObserver(std::function<void()> observer) {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  stateChangeObserver_ = std::move(observer);
-}
-
-void ConsensusMetadata::notifyStateChanged() {
-  // The observer runs inside the externally synchronized region, like every
-  // mutator and getter (it reads this object back).
-  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  if (deferNotificationsDepth_ > 0) {
-    notificationDeferred_ = true;
-    return;
-  }
-  if (stateChangeObserver_) {
-    stateChangeObserver_();
-  }
-}
-
-void ConsensusMetadata::beginDeferringNotifications() {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  ++deferNotificationsDepth_;
-}
-
-void ConsensusMetadata::endDeferringNotifications() {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  if (--deferNotificationsDepth_ == 0 && notificationDeferred_) {
-    notificationDeferred_ = false;
-    notifyStateChanged();
-  }
-}
-
-ConsensusMetadata::DeferStateChangeNotifications::DeferStateChangeNotifications(
-    ConsensusMetadata& cmeta)
-    : cmeta_(cmeta) {
-  cmeta_.beginDeferringNotifications();
-}
-
-ConsensusMetadata::DeferStateChangeNotifications::
-    ~DeferStateChangeNotifications() {
-  cmeta_.endDeferringNotifications();
 }
 
 Status ConsensusMetadata::updateOnDiskSize() {

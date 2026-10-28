@@ -427,22 +427,20 @@ Status RaftConsensus::Init() {
       std::move(drt),
       proxyRegionGroups_);
 
-  {
-    LockGuard l(consensusStateLock_);
-    cmeta_->setStateChangeObserver([this] { publishStatusUnlocked(); });
-    publishStatusUnlocked();
-  }
-
+  // The first snapshot is published before Create() returns, so status
+  // reads never see an empty one while raft is on. After that,
+  // consensusStateLock_'s unlock hook publishes every change at the end of
+  // the critical section that made it.
+  LockGuard l(consensusStateLock_);
+  publishStatusIfChangedUnlocked();
+  consensusStateLock_.setUnlockHook(
+      [this] { publishStatusIfChangedUnlocked(); });
   setStateUnlocked(kInitialized);
   return Status::OK();
 }
 
 RaftConsensus::~RaftConsensus() {
   shutdown();
-  if (cmeta_) {
-    LockGuard l(consensusStateLock_);
-    cmeta_->setStateChangeObserver(nullptr);
-  }
 }
 
 Status RaftConsensus::Create(
@@ -690,8 +688,6 @@ Status RaftConsensus::emulateElection() {
 
   // Assume leadership of new term.
   RETURN_NOT_OK(handleTermAdvanceUnlocked(currentTermUnlocked() + 1));
-  // Readers see LEADER only once the queue is in leader mode.
-  ConsensusMetadata::DeferStateChangeNotifications deferNotifications(*cmeta_);
   RETURN_NOT_OK(setLeaderUuidUnlocked(peer_uuid()));
   return becomeLeaderUnlocked();
 }
@@ -3673,6 +3669,8 @@ void RaftConsensus::shutdown() {
   {
     LockGuard l(consensusStateLock_);
     setStateUnlocked(kShutdown);
+    // Removes the hook, which captures 'this', before anything is torn down.
+    consensusStateLock_.setUnlockHook(nullptr);
   }
   shutdown_.store(true, kMemOrderRelease);
 }
@@ -4397,9 +4395,6 @@ void RaftConsensus::doElectionCallback(
         "Couldn't start leader election after successful pre-election");
   } else {
     // We won a real election. Convert role to LEADER.
-    // Readers see LEADER only once the queue is in leader mode.
-    ConsensusMetadata::DeferStateChangeNotifications deferNotifications(
-        *cmeta_);
     CHECK_OK(setLeaderUuidUnlocked(peer_uuid()));
 
     // TODO(todd): becomeLeaderUnlocked() can fail due to state checks during
@@ -4542,8 +4537,6 @@ void RaftConsensus::completeConfigChangeRoundUnlocked(
         cmeta_->getConfigOpIdIndex(kPendingConfig) == opId.index()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO) << "Aborting config change with OpId "
                                      << opId << ": " << status.ToString();
-      ConsensusMetadata::DeferStateChangeNotifications deferNotifications(
-          *cmeta_);
       cmeta_->clearPendingConfig();
       // We should not forget to "abort" the config change in the routing
       // table as well.
@@ -4923,8 +4916,6 @@ Status RaftConsensus::setPendingConfigUnlocked(const RaftConfigPB& new_config) {
         << SecureShortDebugString(cmeta_->pendingConfig()) << "; "
         << "New pending config: " << SecureShortDebugString(new_config);
   }
-  // Readers see the new config only together with the local peer's new role.
-  ConsensusMetadata::DeferStateChangeNotifications deferNotifications(*cmeta_);
   cmeta_->setPendingConfig(new_config);
   RaftConfigPB active_config = cmeta_->activeConfig();
   RETURN_NOT_OK(routingTableContainer_->updateRaftConfig(active_config));
@@ -5027,9 +5018,6 @@ Status RaftConsensus::setCommittedConfigUnlocked(
           SecureShortDebugString(config_to_commit));
     }
   }
-  // Readers see the committed config only once the pending one is cleared and
-  // the local peer updated, not across the flush in between.
-  ConsensusMetadata::DeferStateChangeNotifications deferNotifications(*cmeta_);
   cmeta_->setCommittedConfig(config_to_commit);
   cmeta_->clearPendingConfig();
   CHECK_OK(cmeta_->flush());
@@ -5159,8 +5147,6 @@ Status RaftConsensus::SetCurrentTermUnlocked(
             currentTermUnlocked(),
             new_term));
   }
-  // Readers see the new term only together with the cleared leader.
-  ConsensusMetadata::DeferStateChangeNotifications deferNotifications(*cmeta_);
   cmeta_->setCurrentTerm(new_term);
   cmeta_->clearVotedFor();
   if (flush == kFlushToDisk) {
@@ -5746,8 +5732,10 @@ std::string RaftConsensus::getCompressionStats() const {
 
 Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
   LockGuard l(consensusStateLock_);
+  markLocalStatusChangedUnlocked();
+  // proxyPolicy_ changes even if the routing tables fail to follow, and the
+  // published status shows it, as a reader holding the lock would see it.
   proxyPolicy_ = proxy_policy;
-  publishStatusUnlocked();
   return routingTableContainer_->setProxyPolicy(
       proxyPolicy_, cmeta_->leaderUuid(), cmeta_->activeConfig());
 }
@@ -5817,12 +5805,12 @@ void RaftConsensus::UpdateLocalPeerUnlocked(RaftConfigPB& active_config) {
     return;
   }
 
+  markLocalStatusChangedUnlocked();
   localPeerPb_.set_member_type(new_local_peer_pb->member_type());
 
   if (new_local_peer_pb->has_attrs()) {
     localPeerPb_.mutable_attrs()->CopyFrom(new_local_peer_pb->attrs());
   }
-  publishStatusUnlocked();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -6016,7 +6004,8 @@ void RaftConsensus::setStateMachineMetrics(
   stateMachineMetrics_ = std::move(s);
 }
 
-void RaftConsensus::publishStatusUnlocked() {
+std::shared_ptr<RaftConsensus::StatusSnapshot>
+RaftConsensus::buildStatusSnapshotUnlocked() {
   DCHECK(consensusStateLock_.is_locked());
   auto snapshot = std::make_shared<StatusSnapshot>();
 
@@ -6046,15 +6035,34 @@ void RaftConsensus::publishStatusUnlocked() {
 
   snapshot->proxyPolicy = proxyPolicyToString(proxyPolicy_);
 
-  // getStatusSnapshot() reads the queue fields (quorum health, available
-  // commit peers) from the queue, so a published LEADER must find the queue in
-  // leader mode: become leader under a DeferStateChangeNotifications that
-  // outlives becomeLeaderUnlocked().
+  // getStatusSnapshot() reads the queue fields from queue_, so a published
+  // LEADER must find the queue in leader mode. Becoming leader is a single
+  // critical section, published only at its end. isInLeaderMode() takes
+  // queueLock_, which is ordered after consensusStateLock_.
   DCHECK(
       snapshot->role != RaftPeerPB::LEADER ||
       (queue_ && queue_->isInLeaderMode()));
 
-  publishedStatus_.store(std::move(snapshot));
+  return snapshot;
+}
+
+RaftConsensus::StatusGenerations RaftConsensus::statusGenerationsUnlocked()
+    const {
+  return {
+      .cmeta = cmeta_->consensusStateGeneration(),
+      .local = localStatusGeneration_};
+}
+
+void RaftConsensus::publishStatusIfChangedUnlocked() {
+  DCHECK(consensusStateLock_.is_locked());
+  // Runs at every release of consensusStateLock_, so the common case (nothing
+  // changed) must stay a comparison.
+  const StatusGenerations generations = statusGenerationsUnlocked();
+  if (publishedStatusGenerations_ == generations) {
+    return;
+  }
+  publishedStatus_.store(buildStatusSnapshotUnlocked());
+  publishedStatusGenerations_ = generations;
 }
 
 void RaftConsensus::getStatusSnapshot(StatusSnapshot* snapshot) const {

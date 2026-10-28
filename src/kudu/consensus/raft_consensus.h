@@ -872,11 +872,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // machine callback that is itself waiting on such a thread.
   //
   // So the consensus fields come from a snapshot republished, under
-  // consensusStateLock_, whenever they change (see publishStatusUnlocked()).
+  // consensusStateLock_, at the end of each critical section that changed
+  // them (see publishStatusIfChangedUnlocked()).
   // The queue fields are read under the queue's own lock, and
   // compressionStats from the global codec. The consensus fields are mutually
-  // consistent: committedConfig and pendingConfig are always from the same
-  // configuration epoch.
+  // consistent: all of them are a state that a holder of consensusStateLock_
+  // could have seen at some release of it.
   //
   // Fields whose underlying accessor returned a non-OK Status are left at
   // their default-constructed value and the matching *Valid flag is false.
@@ -964,6 +965,23 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       TestConsensusStopsIfAMajorityFallsBehind);
   FRIEND_TEST(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum);
   FRIEND_TEST(RaftConsensusQuorumTest, TestConfigChangeWithProxyDisabled);
+  FRIEND_TEST(RaftConsensusQuorumTest, TestPublishedStatusTracksTransitions);
+  FRIEND_TEST(RaftConsensusQuorumTest, TestCleanReleasePublishesNothing);
+  FRIEND_TEST(
+      RaftConsensusQuorumTest,
+      TestPublishedStatusHidesChangesUntilRelease);
+  FRIEND_TEST(RaftConsensusQuorumTest, TestPublishedStatusTracksConfigChanges);
+  FRIEND_TEST(RaftConsensusQuorumTest, TestDestroyAfterShutdownOnNoWaitThread);
+  FRIEND_TEST(
+      RaftConsensusQuorumTest,
+      TestPublishedStatusTracksVoterDistribution);
+  FRIEND_TEST(
+      RaftConsensusQuorumTest,
+      TestProxyPolicyRoutingFailurePublishesPolicy);
+  FRIEND_TEST(RaftConsensusQuorumTest, TestNoPublicationAfterShutdown);
+  FRIEND_TEST(
+      RaftConsensusQuorumTest,
+      TestPublishedStatusFollowsReplicatedConfigChange);
   FRIEND_TEST(
       RaftConsensusQuorumTest,
       TestReplicasEnforceTheLogMatchingProperty);
@@ -1469,11 +1487,34 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   void UpdateLocalPeerUnlocked(RaftConfigPB& active_config);
 
-  // Rebuilds the consensus fields of StatusSnapshot and publishes them for
-  // getStatusSnapshot(). Called whenever one of them changes: from cmeta_'s
-  // state-change observer (term, leader, configs), and after proxyPolicy_ or
-  // localPeerPb_ (which determines peerQuorumId) change.
-  void publishStatusUnlocked();
+  // Every write to proxyPolicy_ or localPeerPb_ calls this first.
+  void markLocalStatusChangedUnlocked() {
+    DCHECK(consensusStateLock_.is_locked());
+    localStatusGeneration_++;
+  }
+
+  // Builds the consensus fields of StatusSnapshot from the current state.
+  // Everything it reads from cmeta_ must be covered by
+  // cmeta_->consensusStateGeneration(), or a change to it goes unpublished.
+  std::shared_ptr<StatusSnapshot> buildStatusSnapshotUnlocked();
+
+  // The two generation counters that cover the published fields: cmeta_'s
+  // (term, leader, configs) and localStatusGeneration_ (proxyPolicy_, and
+  // localPeerPb_, which determines peerQuorumId). Each is bumped by every call
+  // that may change a field it covers, before the field is written, through
+  // ConsensusMetadata::markStateChanged() and markLocalStatusChangedUnlocked().
+  struct StatusGenerations {
+    int64_t cmeta{0};
+    int64_t local{0};
+    bool operator==(const StatusGenerations&) const = default;
+  };
+  StatusGenerations statusGenerationsUnlocked() const;
+
+  // consensusStateLock_'s unlock hook: publishes a new snapshot if a generation
+  // changed since the last publication. So the published fields are always a
+  // state that a holder of consensusStateLock_ could have seen at some release
+  // of it, never one from the middle of a critical section.
+  void publishStatusIfChangedUnlocked();
 
   // Initializes timer that periodically checks whether leader can satisfy
   // commit quorum.
@@ -1529,9 +1570,18 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   mutable ConsensusMutex consensusStateLock_;
 
   // The consensus fields of StatusSnapshot (the queue fields are left unset),
-  // republished by publishStatusUnlocked() so getStatusSnapshot() can read
-  // them without consensusStateLock_.
+  // republished by publishStatusIfChangedUnlocked() so getStatusSnapshot() can
+  // read them without consensusStateLock_.
   folly::atomic_shared_ptr<const StatusSnapshot> publishedStatus_;
+
+  // Status publication state. Protected by consensusStateLock_.
+  // Bumped before proxyPolicy_ or localPeerPb_ is written: the counterpart of
+  // cmeta_->consensusStateGeneration() for the published fields cmeta_ doesn't
+  // hold.
+  int64_t localStatusGeneration_{0};
+  // The generations publishedStatus_ was built from. Empty until the first
+  // publication, so Init() publishes even though both generations start at 0.
+  std::optional<StatusGenerations> publishedStatusGenerations_;
 
   // queue_, for getStatusSnapshot(), which does not take consensusStateLock_.
   // Set once in Start(); null before that.

@@ -23,9 +23,11 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <future>
 #include <memory>
 #include <ostream>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -74,6 +76,7 @@
 #include "kudu/util/status_callback.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
+#include "kudu/util/thread_restrictions.h"
 
 DECLARE_int32(raft_heartbeat_interval_ms);
 DECLARE_bool(enable_leader_failure_detection);
@@ -610,6 +613,54 @@ class RaftConsensusQuorumTest : public KuduTest {
   MetricRegistry metricRegistry_;
   std::shared_ptr<MetricEntity> metricEntity_;
   std::unordered_map<ConsensusRound*, Synchronizer*> syncs_;
+
+  // Under consensusStateLock_ nothing can change, and the last release of it
+  // published every completed change, so the published snapshot must equal
+  // one built now.
+  static void expectPublishedStatusMatchesLocked(RaftConsensus* peer) {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    const auto expected = peer->buildStatusSnapshotUnlocked();
+    const auto published = peer->publishedStatus_.load();
+    ASSERT_NE(nullptr, published);
+    EXPECT_TRUE(
+        peer->publishedStatusGenerations_ == peer->statusGenerationsUnlocked());
+    EXPECT_EQ(expected->role, published->role);
+    EXPECT_EQ(expected->currentTerm, published->currentTerm);
+    EXPECT_EQ(expected->leaderUuid, published->leaderUuid);
+    EXPECT_EQ(expected->leaderHostPort, published->leaderHostPort);
+    EXPECT_EQ(expected->peerQuorumId, published->peerQuorumId);
+    EXPECT_EQ(expected->proxyPolicy, published->proxyPolicy);
+    EXPECT_EQ(expected->quorumType, published->quorumType);
+    EXPECT_EQ(
+        expected->committedConfig.SerializeAsString(),
+        published->committedConfig.SerializeAsString());
+    EXPECT_EQ(expected->hasPendingConfig, published->hasPendingConfig);
+    EXPECT_EQ(
+        expected->pendingConfig.SerializeAsString(),
+        published->pendingConfig.SerializeAsString());
+    EXPECT_EQ(expected->voterDistribution, published->voterDistribution);
+    EXPECT_EQ(
+        expected->voterDistributionValid, published->voterDistributionValid);
+  }
+
+  // Replicates one message through the leader and waits, with deadlines, until
+  // every peer has committed it. The round goes in 'rounds', which must outlive
+  // the fixture's use of its address as a key.
+  void replicateAndCommitOnAllPeers(
+      int leaderIdx,
+      int numPeers,
+      vector<std::shared_ptr<ConsensusRound>>* rounds) {
+    std::shared_ptr<ConsensusRound> round;
+    ASSERT_OK(appendDummyMessage(leaderIdx, &round));
+    rounds->push_back(round);
+    ASSERT_OK(timedWaitForReplicate(round.get(), MonoDelta::FromSeconds(15)));
+    for (int i = 0; i < numPeers; i++) {
+      if (i != leaderIdx) {
+        NO_FATALS(waitForCommitIfNotAlreadyPresent(
+            round->id().index(), i, leaderIdx));
+      }
+    }
+  }
 };
 
 // Tests Replicate/Commit a single message through the leader.
@@ -711,6 +762,310 @@ TEST_F(RaftConsensusQuorumTest, TestConfigChangeWithProxyDisabled) {
   config.set_opid_index(config.opid_index() + 1);
   ASSERT_OK(peer->setPendingConfigUnlocked(config));
   ASSERT_OK(peer->setCommittedConfigUnlocked(config));
+}
+
+// The published status follows elections and proxy policy changes, and
+// readers never wait for consensusStateLock_.
+TEST_F(RaftConsensusQuorumTest, TestPublishedStatusTracksTransitions) {
+  const int kNumPeers = 3;
+  const int kLeaderIdx = kNumPeers - 1;
+  ASSERT_OK(buildAndStartConfig(kNumPeers));
+  // The fixture's leader is emulated, without votes. Commit a write on every
+  // peer first, so they all know its term before another election starts.
+  vector<std::shared_ptr<ConsensusRound>> rounds;
+  NO_FATALS(replicateAndCommitOnAllPeers(kLeaderIdx, kNumPeers, &rounds));
+  for (int i = 0; i < kNumPeers; i++) {
+    shared_ptr<RaftConsensus> peer;
+    ASSERT_OK(peers_->getPeerByIdx(i, &peer));
+    NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+  }
+
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+  {
+    RaftConsensus::UniqueLock l(peer->consensusStateLock_);
+    auto read = std::async(std::launch::async, [&peer] {
+      RaftConsensus::StatusSnapshot snapshot;
+      peer->getStatusSnapshot(&snapshot);
+    });
+    const auto status = read.wait_for(std::chrono::seconds(10));
+    l.unlock();
+    read.get();
+    ASSERT_EQ(std::future_status::ready, status);
+  }
+
+  // A new term and leader, published from the election paths.
+  ASSERT_OK(peer->startElection(
+      ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
+      {ElectionReason::kExternalRequest, std::chrono::system_clock::now()}));
+  ASSERT_OK(waitUntilLeaderForTests(peer.get()));
+  EXPECT_EQ(RaftPeerPB::LEADER, peer->publishedStatus_.load()->role);
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+
+  // The other peers, including the old leader, which steps down on seeing the
+  // higher term, publish the new term together with the new leader.
+  const int64_t newTerm = peer->publishedStatus_.load()->currentTerm;
+  for (int i = 1; i < kNumPeers; i++) {
+    shared_ptr<RaftConsensus> other;
+    ASSERT_OK(peers_->getPeerByIdx(i, &other));
+    const MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(15);
+    while (other->publishedStatus_.load()->leaderUuid != peer->peer_uuid() &&
+           MonoTime::Now() < deadline) {
+      SleepFor(MonoDelta::FromMilliseconds(10));
+    }
+    const auto published = other->publishedStatus_.load();
+    EXPECT_EQ(peer->peer_uuid(), published->leaderUuid) << "peer " << i;
+    EXPECT_EQ(newTerm, published->currentTerm) << "peer " << i;
+    EXPECT_NE(RaftPeerPB::LEADER, published->role) << "peer " << i;
+    NO_FATALS(expectPublishedStatusMatchesLocked(other.get()));
+  }
+
+  // Proxy policy is tracked by RaftConsensus, not ConsensusMetadata.
+  const std::string policyBefore = peer->publishedStatus_.load()->proxyPolicy;
+  ASSERT_OK(peer->setProxyPolicy(ProxyPolicy::SimpleRegionRoutingPolicy));
+  EXPECT_NE(policyBefore, peer->publishedStatus_.load()->proxyPolicy);
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+}
+
+// A release of consensusStateLock_ that changed nothing publishes nothing.
+TEST_F(RaftConsensusQuorumTest, TestCleanReleasePublishesNothing) {
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+
+  const auto before = peer->publishedStatus_.load();
+  for (int i = 0; i < 3; i++) {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+  }
+  EXPECT_EQ(before.get(), peer->publishedStatus_.load().get());
+}
+
+// Changes made inside one critical section stay invisible until it ends, and
+// are published together at its release.
+TEST_F(RaftConsensusQuorumTest, TestPublishedStatusHidesChangesUntilRelease) {
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+  ASSERT_OK(peer->setProxyPolicy(ProxyPolicy::SimpleRegionRoutingPolicy));
+
+  const auto before = peer->publishedStatus_.load();
+  RaftConfigPB config;
+  {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    config = peer->cmeta_->committedConfig();
+    config.set_opid_index(config.opid_index() + 1);
+    ASSERT_OK(peer->setPendingConfigUnlocked(config));
+    // Mid-section: still the previous snapshot.
+    EXPECT_EQ(before.get(), peer->publishedStatus_.load().get());
+    ASSERT_OK(peer->setCommittedConfigUnlocked(config));
+    EXPECT_EQ(before.get(), peer->publishedStatus_.load().get());
+  }
+  const auto after = peer->publishedStatus_.load();
+  EXPECT_FALSE(after->hasPendingConfig);
+  EXPECT_EQ(config.opid_index(), after->committedConfig.opid_index());
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+}
+
+// The published status follows a pending config through set, commit and abort.
+TEST_F(RaftConsensusQuorumTest, TestPublishedStatusTracksConfigChanges) {
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+  // Config changes need a routing table to update.
+  ASSERT_OK(peer->setProxyPolicy(ProxyPolicy::SimpleRegionRoutingPolicy));
+
+  RaftConfigPB config;
+  {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    config = peer->cmeta_->committedConfig();
+    config.set_opid_index(config.opid_index() + 1);
+    ASSERT_OK(peer->setPendingConfigUnlocked(config));
+  }
+  EXPECT_TRUE(peer->publishedStatus_.load()->hasPendingConfig);
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+
+  {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    ASSERT_OK(peer->setCommittedConfigUnlocked(config));
+  }
+  EXPECT_FALSE(peer->publishedStatus_.load()->hasPendingConfig);
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+
+  // An aborted pending config.
+  {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    config.set_opid_index(config.opid_index() + 1);
+    ASSERT_OK(peer->setPendingConfigUnlocked(config));
+    peer->cmeta_->clearPendingConfig();
+  }
+  EXPECT_FALSE(peer->publishedStatus_.load()->hasPendingConfig);
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+}
+
+// shutdown() removes the hook, so later releases publish nothing, even after a
+// generation changed.
+TEST_F(RaftConsensusQuorumTest, TestNoPublicationAfterShutdown) {
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+
+  peer->shutdown();
+  const auto afterShutdown = peer->publishedStatus_.load();
+  {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    peer->markLocalStatusChangedUnlocked();
+  }
+  EXPECT_EQ(afterShutdown.get(), peer->publishedStatus_.load().get());
+}
+
+// After shutdown(), the last reference can be dropped on a thread that must
+// not wait (a reactor thread running an election callback), so nothing on the
+// destruction path may assert that waiting is allowed.
+TEST_F(RaftConsensusQuorumTest, TestDestroyAfterShutdownOnNoWaitThread) {
+  ASSERT_OK(buildAndStartConfig(3));
+  // Shutting every peer down drains the callbacks that could hold a reference.
+  for (const auto& entry : peers_->getPeerMapCopy()) {
+    entry.second->shutdown();
+  }
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+  peers_->removePeer(peer->peer_uuid());
+  // ThreadRestrictions doesn't see consensusStateLock_, so a spy in the hook
+  // shutdown() cleared counts any release of it during destruction.
+  std::atomic<int> releases{0};
+  {
+    RaftConsensus::LockGuard l(peer->consensusStateLock_);
+    peer->consensusStateLock_.setUnlockHook([&releases] { releases++; });
+  }
+  // The guard's release above ran the spy once.
+  releases = 0;
+  const std::weak_ptr<RaftConsensus> weak = peer;
+  bool destroyedOnThread = false;
+  std::thread t([peer = std::move(peer), &weak, &destroyedOnThread]() mutable {
+    ThreadRestrictions::setWaitAllowed(false);
+    peer.reset();
+    destroyedOnThread = weak.expired();
+    ThreadRestrictions::setWaitAllowed(true);
+  });
+  t.join();
+  EXPECT_TRUE(destroyedOnThread);
+  EXPECT_EQ(0, releases);
+}
+
+// A voter distribution change keeps the config's opid index; the published
+// status follows it anyway, once the queue refresh in the same critical
+// section is done.
+TEST_F(RaftConsensusQuorumTest, TestPublishedStatusTracksVoterDistribution) {
+  const int kLeaderIdx = 2;
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> leader;
+  ASSERT_OK(peers_->getPeerByIdx(kLeaderIdx, &leader));
+
+  const int64_t opidIndexBefore =
+      leader->publishedStatus_.load()->committedConfig.opid_index();
+  TopologyConfigPB topology;
+  (*topology.mutable_voter_distribution())["test-region"] = 3;
+  ASSERT_OK(leader->changeVoterDistribution(topology));
+
+  const auto published = leader->publishedStatus_.load();
+  EXPECT_EQ(opidIndexBefore, published->committedConfig.opid_index());
+  EXPECT_TRUE(published->voterDistributionValid);
+  EXPECT_EQ(1, published->voterDistribution.count("test-region"));
+  NO_FATALS(expectPublishedStatusMatchesLocked(leader.get()));
+}
+
+// If the routing container fails to take a proxy policy change, the call
+// returns the error, proxyPolicy_ keeps the new policy, and the published
+// status shows what a reader holding the lock sees. The container fails where
+// a failed table update would: the tables were refreshed with the current
+// leader and active config, and only the container's policy is stale. The
+// next successful call stores it.
+TEST_F(RaftConsensusQuorumTest, TestProxyPolicyRoutingFailurePublishesPolicy) {
+  gflags::FlagSaver flagSaver;
+  ASSERT_OK(buildAndStartConfig(3));
+  shared_ptr<RaftConsensus> peer;
+  ASSERT_OK(peers_->getPeerByIdx(0, &peer));
+  auto& container = *peer->routingTableContainer_;
+  ASSERT_NE(ProxyPolicy::SimpleRegionRoutingPolicy, container.getProxyPolicy());
+
+  const ProxyPolicy containerPolicyBefore = container.getProxyPolicy();
+  const std::string publishedBefore =
+      peer->publishedStatus_.load()->proxyPolicy;
+  FLAGS_inject_routing_table_update_failure = 1.0;
+  const Status s = peer->setProxyPolicy(ProxyPolicy::SimpleRegionRoutingPolicy);
+  FLAGS_inject_routing_table_update_failure = 0;
+  EXPECT_TRUE(s.IsIllegalState()) << s.ToString();
+  EXPECT_EQ(containerPolicyBefore, container.getProxyPolicy());
+  EXPECT_NE(publishedBefore, peer->publishedStatus_.load()->proxyPolicy);
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+
+  ASSERT_OK(peer->setProxyPolicy(ProxyPolicy::SimpleRegionRoutingPolicy));
+  EXPECT_EQ(ProxyPolicy::SimpleRegionRoutingPolicy, container.getProxyPolicy());
+  NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+}
+
+// A config change replicated through consensus: every peer publishes the
+// commit, which arrives through notifyCommitIndex() (on the leader with the
+// lock taken there, on followers inside the caller's critical section), and
+// leaves no pending config behind.
+TEST_F(
+    RaftConsensusQuorumTest,
+    TestPublishedStatusFollowsReplicatedConfigChange) {
+  const int kFollowerIdx = 0;
+  const int kLeaderIdx = 2;
+  const int kNumPeers = 3;
+  ASSERT_OK(buildAndStartConfig(kNumPeers));
+
+  // A leader accepts config changes only after committing in its own term.
+  vector<std::shared_ptr<ConsensusRound>> rounds;
+  NO_FATALS(replicateAndCommitOnAllPeers(kLeaderIdx, kNumPeers, &rounds));
+
+  shared_ptr<RaftConsensus> leader;
+  ASSERT_OK(peers_->getPeerByIdx(kLeaderIdx, &leader));
+  shared_ptr<RaftConsensus> follower;
+  ASSERT_OK(peers_->getPeerByIdx(kFollowerIdx, &follower));
+  const int64_t opidIndexBefore = leader->committedConfig().opid_index();
+  int64_t followerLocalGenerationBefore = 0;
+  {
+    RaftConsensus::LockGuard l(follower->consensusStateLock_);
+    followerLocalGenerationBefore = follower->localStatusGeneration_;
+  }
+
+  ChangeConfigRequestPB req;
+  req.set_tablet_id(kTestTablet);
+  req.set_type(MODIFY_PEER);
+  req.mutable_server()->set_permanent_uuid(follower->peer_uuid());
+  req.mutable_server()->set_member_type(RaftPeerPB::NON_VOTER);
+  std::optional<ServerErrorPB::Code> errorCode;
+  ASSERT_OK(leader->changeConfig(req, [](const Status&) {}, &errorCode));
+
+  for (int i = 0; i < kNumPeers; i++) {
+    shared_ptr<RaftConsensus> peer;
+    ASSERT_OK(peers_->getPeerByIdx(i, &peer));
+    const MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(15);
+    while (peer->publishedStatus_.load()->committedConfig.opid_index() <=
+               opidIndexBefore &&
+           MonoTime::Now() < deadline) {
+      SleepFor(MonoDelta::FromMilliseconds(10));
+    }
+    const auto published = peer->publishedStatus_.load();
+    ASSERT_GT(published->committedConfig.opid_index(), opidIndexBefore)
+        << "peer " << i;
+    EXPECT_FALSE(published->hasPendingConfig) << "peer " << i;
+    NO_FATALS(expectPublishedStatusMatchesLocked(peer.get()));
+  }
+  // The follower's own member type changed, which goes through
+  // UpdateLocalPeerUnlocked() and its generation.
+  {
+    RaftConsensus::LockGuard l(follower->consensusStateLock_);
+    EXPECT_GT(follower->localStatusGeneration_, followerLocalGenerationBefore);
+  }
+  // The config change makes each queue notify its observers, the peers, on a
+  // pool thread. shutdown() drains those notifications, so it has to run
+  // before the fixture destroys the peers.
+  for (const auto& entry : peers_->getPeerMapCopy()) {
+    entry.second->shutdown();
+  }
 }
 
 TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {

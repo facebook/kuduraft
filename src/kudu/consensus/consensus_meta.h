@@ -19,7 +19,6 @@
 #include <atomic>
 #include <cstdint>
 #include <deque>
-#include <functional>
 #include <string>
 
 #include <gtest/gtest_prod.h>
@@ -153,6 +152,14 @@ class ConsensusMetadata {
   // Returns the currently active role of the current node.
   RaftPeerPB::Role activeRole() const;
 
+  // Increases whenever a field of toConsensusStatePB() (term, leader,
+  // committed or pending config), and so the active role, may have changed.
+  // Loading doesn't count: RaftConsensus publishes its first status snapshot
+  // after loading.
+  int64_t consensusStateGeneration() const {
+    return consensusStateGeneration_.load(std::memory_order_relaxed);
+  }
+
   Status getConfigMemberCopy(const std::string& uuid, RaftPeerPB* member);
 
   // Copy the stored state into a ConsensusStatePB object.
@@ -212,46 +219,18 @@ class ConsensusMetadata {
   // Returns a copy of 'removedPeers_' list
   std::vector<std::string> removedPeersList();
 
-  // Registers 'observer' to be called after every change to the current term,
-  // the leader, or the committed/pending configuration (and so the active
-  // role). It runs on the thread making the change, under the same external
-  // synchronization. Pass nullptr to unregister.
-  void setStateChangeObserver(std::function<void()> observer);
-
-  // While alive, holds back the state change observer and calls it once on
-  // destruction if anything changed, so a multi-step change (new term, then
-  // flush, then clear the leader) is observed only as a whole.
-  class [[nodiscard]] DeferStateChangeNotifications {
-   public:
-    explicit DeferStateChangeNotifications(ConsensusMetadata& cmeta);
-    ~DeferStateChangeNotifications();
-    DeferStateChangeNotifications(const DeferStateChangeNotifications&) =
-        delete;
-    DeferStateChangeNotifications& operator=(
-        const DeferStateChangeNotifications&) = delete;
-    DeferStateChangeNotifications(DeferStateChangeNotifications&&) = delete;
-    DeferStateChangeNotifications& operator=(DeferStateChangeNotifications&&) =
-        delete;
-
-   private:
-    ConsensusMetadata& cmeta_;
-  };
-
  private:
   friend class ConsensusMetadataManager;
 
   FRIEND_TEST(ConsensusMetadataTest, TestCreateLoad);
-  FRIEND_TEST(ConsensusMetadataTest, DeferredStateChangeIsObservedOnceAsAWhole);
   FRIEND_TEST(ConsensusMetadataTest, TestDeferredCreateLoad);
   FRIEND_TEST(ConsensusMetadataTest, TestCreateNoOverwrite);
   FRIEND_TEST(ConsensusMetadataTest, TestFailedLoad);
   FRIEND_TEST(ConsensusMetadataTest, TestFlush);
+  FRIEND_TEST(ConsensusMetadataTest, TestConsensusStateGeneration);
   FRIEND_TEST(ConsensusMetadataTest, TestActiveRole);
   FRIEND_TEST(ConsensusMetadataTest, TestToConsensusStatePB);
   FRIEND_TEST(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB);
-  FRIEND_TEST(
-      ConsensusMetadataTest,
-      StateChangeObserverFiresOnEveryPublishedChange);
 
   static const int32_t kVoteHistoryMaxSize = 100;
 
@@ -301,15 +280,13 @@ class ConsensusMetadata {
   // Updates the cached active role.
   void updateActiveRole();
 
-  void notifyStateChanged();
-
-  // Back DeferStateChangeNotifications; the last end() delivers a held-back
-  // notification.
-  void beginDeferringNotifications();
-  void endDeferringNotifications();
-
   // Updates the cached on-disk size of the consensus metadata.
   Status updateOnDiskSize();
+
+  // Every setter of a toConsensusStatePB() field calls this before it writes.
+  void markStateChanged() {
+    consensusStateGeneration_.fetch_add(1, std::memory_order_relaxed);
+  }
 
   FsManager* const fsManager_;
   const std::string tabletId_;
@@ -330,12 +307,7 @@ class ConsensusMetadata {
 
   // Cached role of the peerUuid_ within the active configuration.
   RaftPeerPB::Role activeRole_;
-
-  std::function<void()> stateChangeObserver_;
-  // Live DeferStateChangeNotifications scopes, and whether a change was held
-  // back by them.
-  int deferNotificationsDepth_ = 0;
-  bool notificationDeferred_ = false;
+  std::atomic<int64_t> consensusStateGeneration_{0};
 
   // The number of times the metadata has been flushed to disk.
   int64_t flushCountForTests_;

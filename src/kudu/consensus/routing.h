@@ -24,10 +24,13 @@
 #include <optional>
 
 #include <folly/SharedMutex.h>
+#include <gflags/gflags_declare.h>
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/proxy_policy.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/util/rwc_lock.h"
+
+DECLARE_double(inject_routing_table_update_failure);
 
 namespace kudu {
 

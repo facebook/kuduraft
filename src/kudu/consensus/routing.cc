@@ -19,6 +19,7 @@
 
 #include <unordered_set>
 
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <google/protobuf/util/message_differencer.h>
 
@@ -29,6 +30,8 @@
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
+#include "kudu/util/fault_injection.h"
+#include "kudu/util/flag_tags.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/pb_util.h"
@@ -41,6 +44,14 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
+
+DEFINE_double(
+    inject_routing_table_update_failure,
+    0.0,
+    "Fraction of the time RoutingTableContainer::setProxyPolicy() fails after "
+    "updating the routing tables and before storing the policy. (For testing "
+    "only!)");
+TAG_FLAG(inject_routing_table_update_failure, unsafe);
 
 namespace kudu::consensus {
 
@@ -875,6 +886,9 @@ Status RoutingTableContainer::setProxyPolicy(
   RETURN_NOT_OK(srt_->updateRaftConfig(raftConfig));
 
   RETURN_NOT_OK(grt_->updateRaftConfigAndLeader(raftConfig, leaderUuid));
+  MAYBE_RETURN_FAILURE(
+      FLAGS_inject_routing_table_update_failure,
+      Status::IllegalState("injected routing table update failure"));
 
   proxyPolicy_ = proxyPolicy;
 
