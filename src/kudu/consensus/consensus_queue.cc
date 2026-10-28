@@ -3722,7 +3722,7 @@ int32_t PeerMessageQueue::GetAvailableCommitPeers() {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
 
   // If we are not leader, we are not concerned about commit peers, hence, we
-  // simply return 0.
+  // simply return -1.
   if (queueState_.mode != LEADER) {
     return -1;
   }
