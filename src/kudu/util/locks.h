@@ -21,7 +21,9 @@
 
 #include <algorithm> // IWYU pragma: keep
 #include <atomic>
+#include <functional>
 #include <mutex>
+#include <utility>
 
 #include <glog/logging.h>
 
@@ -148,7 +150,11 @@ class simple_mutexlock {
   }
 
   bool try_lock() {
-    return m_.try_lock();
+    if (!m_.try_lock()) {
+      return false;
+    }
+    is_locked_ = true;
+    return true;
   }
 
   // Return whether the lock is currently held.
@@ -168,6 +174,46 @@ class simple_mutexlock {
   std::atomic<bool> is_locked_{false};
 
   DISALLOW_COPY_AND_ASSIGN(simple_mutexlock);
+};
+
+// A Mutex that can also run a hook just before every unlock, while the mutex is
+// still held. Mutex must not be recursive, so every unlock ends an outermost
+// critical section: the hook sees the state that the section leaves behind.
+//
+// The hook runs with the mutex held, so its work must be bounded: it must not
+// take the mutex again or wait on anything that can depend on the mutex. It
+// runs at every release, so anything it logs must be rate-limited. It may
+// allocate. It must not throw: unlock() is noexcept and runs from lock guard
+// destructors, so an exception from the hook terminates the process.
+//
+// It inherits privately, so it can't be passed or locked as a plain Mutex: a
+// Mutex& or std::lock_guard<Mutex> would unlock without running the hook.
+template <typename Mutex>
+class UnlockHookMutex : private Mutex {
+ public:
+  using Hook = std::function<void()>;
+
+  using Mutex::is_locked;
+  using Mutex::lock;
+  using Mutex::try_lock;
+
+  void unlock() noexcept {
+    if (hook_) {
+      hook_();
+    }
+    Mutex::unlock();
+  }
+
+  // Installs or clears the hook. Requires the mutex to be held, so that no
+  // unlock runs concurrently.
+  void setUnlockHook(Hook hook) {
+    DCHECK(this->is_locked());
+    hook_ = std::move(hook);
+  }
+
+ private:
+  // Read and written only while the mutex is held.
+  Hook hook_;
 };
 
 } // namespace kudu

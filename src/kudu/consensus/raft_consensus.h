@@ -110,6 +110,13 @@ class PendingRounds;
 struct ConsensusBootstrapInfo;
 class StateMachineMetricsInterface;
 
+// The mutex behind RaftConsensus::consensusStateLock_. A hook installed on it
+// must not log through LOG_WITH_PREFIX or VLOG_WITH_PREFIX, which take the lock
+// again through logPrefix(). UnlockHookMutex inherits privately, so a
+// simple_mutexlock& or std::lock_guard<simple_mutexlock> can't bind to it and
+// unlock it without running the hook.
+using ConsensusMutex = UnlockHookMutex<simple_mutexlock>;
+
 struct ConsensusOptions {
   std::string tablet_id;
   // Callers that configure routing set this explicitly; anything else gets
@@ -1018,8 +1025,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
     std::string opsRangeString() const;
   };
 
-  using LockGuard = std::lock_guard<simple_mutexlock>;
-  using UniqueLock = std::unique_lock<simple_mutexlock>;
+  using LockGuard = std::lock_guard<ConsensusMutex>;
+  using UniqueLock = std::unique_lock<ConsensusMutex>;
 
   // Initializes the RaftConsensus object, including loading the consensus
   // metadata.
@@ -1519,7 +1526,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // that can be held across a long wait, such as a replication channel lock
   // held while the applier stops: that stalls consensus (heartbeats, votes,
   // status reads) for the whole wait and can deadlock.
-  mutable simple_mutexlock consensusStateLock_;
+  mutable ConsensusMutex consensusStateLock_;
 
   // The consensus fields of StatusSnapshot (the queue fields are left unset),
   // republished by publishStatusUnlocked() so getStatusSnapshot() can read
