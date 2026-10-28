@@ -84,13 +84,6 @@ DEFINE_int32(
     "The maximum per-tablet RPC batch size when updating peers.");
 TAG_FLAG(consensus_max_batch_size_bytes, advanced);
 
-DEFINE_bool(
-    enable_dataloss_bound_measurement,
-    false,
-    "Enable bounded-data-loss measurement.");
-TAG_FLAG(enable_dataloss_bound_measurement, experimental);
-TAG_FLAG(enable_dataloss_bound_measurement, runtime);
-
 DEFINE_int32(
     follower_unavailable_considered_failed_sec,
     300,
@@ -270,11 +263,8 @@ void registerDatalossBoundModeCounter() {
   static folly::once_flag once;
   folly::call_once(once, [] {
     facebook::fb303::fbData->getDynamicCounters()->registerCallback(
-        fmt::format("{}.dataloss_bound_mode", KUDU_STATS_TAG), []() -> int64_t {
-          return FLAGS_enable_dataloss_bound_measurement
-              ? FLAGS_dataloss_bound_mode
-              : kDatalossBoundOff;
-        });
+        fmt::format("{}.dataloss_bound_mode", KUDU_STATS_TAG),
+        []() -> int64_t { return FLAGS_dataloss_bound_mode; });
   });
 }
 } // namespace
@@ -530,7 +520,7 @@ PeerMessageQueue::PeerMessageQueue(
       metrics_(metric_entity),
       timeManager_(std::move(time_manager)),
       leaderLeaseUntil_(MonoTime::Min()),
-      datalossMeasurementEnabled_(FLAGS_enable_dataloss_bound_measurement),
+      datalossBoundMeasurementEnabled_(datalossBoundMeasurementRequested()),
       timeProvider_(TimeProvider::getInstance()) {
   DCHECK(localPeerPb_.has_permanent_uuid());
   DCHECK(localPeerPb_.has_last_known_addr());
@@ -936,10 +926,10 @@ Status PeerMessageQueue::appendOperations(
           last_id,
           log_append_callback)));
   lock.lock();
-  RefreshDatalossMeasurementStateUnlocked();
+  RefreshDatalossBoundMeasurementStateUnlocked();
   DCHECK(last_id.IsInitialized());
   queueState_.last_appended = last_id;
-  if (datalossMeasurementEnabled_.load(std::memory_order_relaxed)) {
+  if (datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed)) {
     // These are bare messages, not ReplicateMsgWrappers, so there is no
     // separate compressed copy: this write_payload is what the log stores and
     // indexes, the same quantity sumPayloadBytes() counts for wrappers.
@@ -964,11 +954,11 @@ Status PeerMessageQueue::appendOperation(
           "Enqueued replicate operation failed to write to WAL"));
 }
 
-void PeerMessageQueue::RefreshDatalossMeasurementStateUnlocked() {
+void PeerMessageQueue::RefreshDatalossBoundMeasurementStateUnlocked() {
   DCHECK(queueLock_.is_locked());
-  const bool requested = FLAGS_enable_dataloss_bound_measurement;
+  const bool requested = datalossBoundMeasurementRequested();
   const bool active =
-      datalossMeasurementEnabled_.load(std::memory_order_relaxed);
+      datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed);
   if (requested == active) {
     return;
   }
@@ -978,7 +968,7 @@ void PeerMessageQueue::RefreshDatalossMeasurementStateUnlocked() {
   // Byte watermarks cannot span an interval in which counting was disabled.
   // Mark measurement inactive before clearing them, and active only afterward.
   if (!requested) {
-    datalossMeasurementEnabled_.store(false, std::memory_order_relaxed);
+    datalossBoundMeasurementEnabled_.store(false, std::memory_order_relaxed);
   }
   for (const auto& [uuid, peer] : peersMap_) {
     if (peer != nullptr && uuid != localPeerPb_.permanent_uuid()) {
@@ -991,7 +981,7 @@ void PeerMessageQueue::RefreshDatalossMeasurementStateUnlocked() {
     // the current counter with its log position, so bytes from a disabled
     // interval are not exposure after that position.
     datalossBoundGuard_.startPeriod(MonoTime::Now());
-    datalossMeasurementEnabled_.store(true, std::memory_order_relaxed);
+    datalossBoundMeasurementEnabled_.store(true, std::memory_order_relaxed);
   }
 }
 
@@ -1110,13 +1100,13 @@ Status PeerMessageQueue::appendOperations(
           last_id,
           log_append_callback)));
   lock.lock();
-  RefreshDatalossMeasurementStateUnlocked();
+  RefreshDatalossBoundMeasurementStateUnlocked();
   DCHECK(last_id.IsInitialized());
   queueState_.last_appended = last_id;
   // Past the RETURN_NOT_OK, so a failed append never advances the total, and
   // in last_appended's critical section, so readers holding queueLock_ see the
   // two agree. See cumulativePayloadBytes_ for readers that skip the lock.
-  if (datalossMeasurementEnabled_.load(std::memory_order_relaxed)) {
+  if (datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed)) {
     cumulativePayloadBytes_.fetch_add(
         sumPayloadBytes(msg_wrappers), std::memory_order_relaxed);
   }
@@ -1168,7 +1158,7 @@ MonoTime PeerMessageQueue::getLeaderLeaseUntil() {
 
 DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealth() {
   std::lock_guard<simple_mutexlock> lock(queueLock_);
-  RefreshDatalossMeasurementStateUnlocked();
+  RefreshDatalossBoundMeasurementStateUnlocked();
   return getDatalossBoundHealthUnlocked();
 }
 
@@ -1182,9 +1172,9 @@ void PeerMessageQueue::datalossBoundPeriodicTick() {
     if (queueState_.state != kQueueOpen) {
       return;
     }
-    RefreshDatalossMeasurementStateUnlocked();
+    RefreshDatalossBoundMeasurementStateUnlocked();
     measurementEnabled =
-        datalossMeasurementEnabled_.load(std::memory_order_relaxed);
+        datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed);
   }
 
   // OFF is the production kill switch. Prefix positions remain cheap to track
@@ -1258,9 +1248,8 @@ bool PeerMessageQueue::isDatalossBoundEligibleUnlocked(
 DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealthUnlocked() const {
   DCHECK(queueLock_.is_locked());
   DatalossBoundGuard::Input input{
-      .isMeasuring = FLAGS_enable_dataloss_bound_measurement &&
-          datalossMeasurementEnabled_.load(std::memory_order_relaxed) &&
-          FLAGS_dataloss_bound_mode != kDatalossBoundOff,
+      .isMeasuring = datalossBoundMeasurementRequested() &&
+          datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed),
       .isLeader = queueState_.mode == LEADER,
       .maxOps = FLAGS_dataloss_bound_max_ops,
       .maxBytes = FLAGS_dataloss_bound_max_bytes,
@@ -1282,8 +1271,8 @@ DatalossBoundHealth PeerMessageQueue::getDatalossBoundHealthUnlocked() const {
 }
 
 int64_t PeerMessageQueue::reconstructMissingWatermarks() {
-  if (!FLAGS_enable_dataloss_bound_measurement ||
-      !datalossMeasurementEnabled_.load(std::memory_order_relaxed)) {
+  if (!datalossBoundMeasurementRequested() ||
+      !datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed)) {
     return 0;
   }
 
@@ -1392,8 +1381,8 @@ int64_t PeerMessageQueue::reconstructMissingWatermarks() {
     // change, demotion, truncation or measurement toggle means the backlog it
     // summed may not be this log's. Appends during the scan are fine, because
     // they add the same bytes to the counter and to the exposure.
-    if (!FLAGS_enable_dataloss_bound_measurement ||
-        !datalossMeasurementEnabled_.load(std::memory_order_relaxed) ||
+    if (!datalossBoundMeasurementRequested() ||
+        !datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed) ||
         queueState_.mode != LEADER ||
         datalossBoundGeneration_.load(std::memory_order_relaxed) !=
             generation) {
@@ -2856,8 +2845,8 @@ bool PeerMessageQueue::DoResponseFromPeer(
         peer->lastConfirmedPrefixOpId = status.last_received();
       }
 
-      RefreshDatalossMeasurementStateUnlocked();
-      if (datalossMeasurementEnabled_.load(std::memory_order_relaxed) &&
+      RefreshDatalossBoundMeasurementStateUnlocked();
+      if (datalossBoundMeasurementEnabled_.load(std::memory_order_relaxed) &&
           peer->lastExchangeStatus == PeerStatus::Ok) {
         AdvanceRemoteWatermarkUnlocked(peer);
       }

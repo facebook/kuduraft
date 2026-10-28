@@ -58,7 +58,6 @@
 #include "kudu/util/status_callback.h"
 
 DECLARE_int32(consensus_rpc_timeout_ms);
-DECLARE_bool(enable_dataloss_bound_measurement);
 DECLARE_bool(enable_flexi_raft);
 DECLARE_int32(follower_unavailable_considered_failed_sec);
 DECLARE_int32(dataloss_bound_mode);
@@ -94,6 +93,11 @@ enum DatalossBoundMode : int32_t {
   kDatalossBoundOff = 0,
   kDatalossBoundFailOpen = 1,
 };
+
+// Every mode but OFF measures: byte accounting, watermarks and status.
+[[nodiscard]] inline bool datalossBoundMeasurementRequested() {
+  return FLAGS_dataloss_bound_mode != kDatalossBoundOff;
+}
 
 // The id for the server-wide consensus queue MemTracker.
 extern const char kConsensusQueueParentTrackerId[];
@@ -957,7 +961,7 @@ class PeerMessageQueue {
   // Apply a runtime change to the measurement gate. Caller must hold
   // queueLock_. Confirmed log positions remain valid, but byte watermarks do
   // not span intervals during which counting was disabled.
-  void RefreshDatalossMeasurementStateUnlocked();
+  void RefreshDatalossBoundMeasurementStateUnlocked();
 
   // A non-standby voter outside this leader's data commit quorum, other than
   // the local peer. Caller must hold queueLock_.
@@ -1271,10 +1275,9 @@ class PeerMessageQueue {
   // Leader Leases to support strong reads on primary
   std::atomic<MonoTime> leaderLeaseUntil_;
 
-  // The applied value of FLAGS_enable_dataloss_bound_measurement. This atomic
-  // does not publish watermark state; queueLock_ and admissionLock_ protect
-  // that state.
-  std::atomic<bool> datalossMeasurementEnabled_;
+  // The applied value of datalossBoundMeasurementRequested(). This atomic
+  // does not publish watermark state; queueLock_ protects that state.
+  std::atomic<bool> datalossBoundMeasurementEnabled_;
 
   // Bumped by every event that invalidates a watermark reconstructed from an
   // earlier snapshot of the log tail and byte counter: gaining or losing

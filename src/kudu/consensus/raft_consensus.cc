@@ -5939,7 +5939,7 @@ void RaftConsensus::InitDatalossBoundDetectorUnlocked() {
   datalossBoundTimer_ = PeriodicTimer::create(
       peerProxyFactory_->messenger(),
       [w]() {
-        if (!FLAGS_enable_dataloss_bound_measurement) {
+        if (!datalossBoundMeasurementRequested()) {
           return;
         }
         auto consensus = w.lock();
