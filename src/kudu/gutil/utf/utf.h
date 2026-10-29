@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+// libphonenumber and other libraries carry their own copies of these Plan 9
+// routines under the same names.
+#define charntorune kudu_charntorune
+#define runetochar kudu_runetochar
+
 typedef signed int Rune; /* Code-point values in Unicode 4.0 are 21 bits wide.*/
 
 enum {
