@@ -85,6 +85,16 @@ DECLARE_dynamic_quantile_stat(datalossBoundQualifyingPeers, 1);
 // released to its replacement after an in-process Raft restart. It is
 // diagnostic, not an admission decision.
 DECLARE_dynamic_timeseries(datalossBoundDecisions, 3);
+// ODS prefix of the three counters below, which mysql_raft records.
+inline constexpr std::string_view kDatalossBoundWriteStatsTag =
+    "bounded_dataloss";
+// TEMPORARY (FAIL_OPEN bake): their ratio validates the configured byte
+// margin. Remove after T291650913.
+DECLARE_dynamic_timeseries(datalossBoundEstimatedPayloadBytes, 1);
+DECLARE_dynamic_timeseries(datalossBoundActualPayloadBytes, 1);
+// Bypassed writes, rollback-unsafe ones and shardbeats, are outside the
+// enforced contract, so this remains after the bake to make that observable.
+DECLARE_dynamic_timeseries(datalossBoundBypassWrites, 2);
 
 // --- consensus_queue.cc: counters ---
 DECLARE_dynamic_timeseries(checkQuorumRuns, 1);

@@ -1164,6 +1164,22 @@ void RaftConsensus::releaseProtectedWriteReservation(
   }
 }
 
+DatalossBoundHealth RaftConsensus::getDatalossBoundHealth() {
+  // No consensusStateLock_: status variables read this, and the queue takes
+  // its own locks.
+  PeerMessageQueue* queue = statusQueue_.load(std::memory_order_acquire);
+  if (queue == nullptr) {
+    // Before Start() this node leads nothing.
+    DatalossBoundHealth health;
+    if (datalossBoundMeasurementRequested()) {
+      health.status = DatalossBoundStatus::Violation;
+      health.reason = DatalossBoundReason::NotLeader;
+    }
+    return health;
+  }
+  return queue->getDatalossBoundHealth();
+}
+
 PeerMessageQueue::ConfirmationResult RaftConsensus::waitForQuorumConfirmation(
     int64_t term,
     MonoTime anchor,

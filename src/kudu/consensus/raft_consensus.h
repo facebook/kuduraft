@@ -807,6 +807,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       int64_t bytes);
   void releaseProtectedWriteReservation(const AdmissionDecision& reservation);
 
+  [[nodiscard]] DatalossBoundHealth getDatalossBoundHealth();
+
   // Blocks until a majority of this leader's commit quorum is proven to have
   // recognized it strictly after 'anchor' in 'term'.
   //

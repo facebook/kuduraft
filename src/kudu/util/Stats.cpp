@@ -164,6 +164,21 @@ DEFINE_dynamic_timeseries(
     "{}.dataloss_bound_decisions.{}.{}",
     facebook::fb303::ExportType::SUM);
 
+DEFINE_dynamic_timeseries(
+    datalossBoundEstimatedPayloadBytes,
+    "{}.dataloss_bound_estimated_payload_bytes",
+    facebook::fb303::ExportType::SUM);
+
+DEFINE_dynamic_timeseries(
+    datalossBoundActualPayloadBytes,
+    "{}.dataloss_bound_actual_payload_bytes",
+    facebook::fb303::ExportType::SUM);
+
+DEFINE_dynamic_timeseries(
+    datalossBoundBypassWrites,
+    "{}.dataloss_bound_bypass_writes.{}",
+    facebook::fb303::ExportType::SUM);
+
 // ---- consensus_queue.cc: counters ----
 
 DEFINE_dynamic_timeseries(
