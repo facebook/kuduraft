@@ -1672,7 +1672,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   bool adjustVoterDistribution_;
 
   // This is used in tests to reject RequestVote RPC requests.
-  bool withholdVotes_;
+  std::atomic<bool> withholdVotes_;
 
   // The last OpId received from the current leader. This is updated whenever
   // the follower accepts operations from a leader, and passed back so that

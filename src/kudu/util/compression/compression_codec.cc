@@ -64,28 +64,28 @@ std::string CompressionCodec::stats() const {
     jw.Int(compressionLevel_);
 
     jw.String("total_bytes_before_compression");
-    jw.Int64(totalBytesBeforeCompression_);
+    jw.Int64(totalBytesBeforeCompression_.load(std::memory_order_relaxed));
 
     jw.String("total_bytes_after_compression");
-    jw.Int64(totalBytesAfterCompression_);
+    jw.Int64(totalBytesAfterCompression_.load(std::memory_order_relaxed));
 
     jw.String("total_compressions");
-    jw.Int64(totalCompressions_);
+    jw.Int64(totalCompressions_.load(std::memory_order_relaxed));
 
     jw.String("total_bytes_before_decompression");
-    jw.Int64(totalBytesBeforeDecompression_);
+    jw.Int64(totalBytesBeforeDecompression_.load(std::memory_order_relaxed));
 
     jw.String("total_bytes_after_decompression");
-    jw.Int64(totalBytesAfterDecompression_);
+    jw.Int64(totalBytesAfterDecompression_.load(std::memory_order_relaxed));
 
     jw.String("total_decompressions");
-    jw.Int64(totalDecompressions_);
+    jw.Int64(totalDecompressions_.load(std::memory_order_relaxed));
 
     jw.String("total_compression_errors");
-    jw.Int64(totalCompressionErrors_);
+    jw.Int64(totalCompressionErrors_.load(std::memory_order_relaxed));
 
     jw.String("total_decompression_errors");
-    jw.Int64(totalDecompressionErrors_);
+    jw.Int64(totalDecompressionErrors_.load(std::memory_order_relaxed));
 
     jw.endObject();
     return s.str();

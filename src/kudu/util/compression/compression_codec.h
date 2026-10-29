@@ -17,6 +17,7 @@
 #ifndef KUDU_CFILE_COMPRESSION_CODEC_H
 #define KUDU_CFILE_COMPRESSION_CODEC_H
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -44,12 +45,14 @@ class CompressionCodec {
       uint8_t* compressed,
       size_t* compressedLength) {
     Status ret = compress(input, compressed, compressedLength);
-    ++totalCompressions_;
+    totalCompressions_.fetch_add(1, std::memory_order_relaxed);
     if (ret.ok()) {
-      totalBytesBeforeCompression_ += input.size();
-      totalBytesAfterCompression_ += *compressedLength;
+      totalBytesBeforeCompression_.fetch_add(
+          input.size(), std::memory_order_relaxed);
+      totalBytesAfterCompression_.fetch_add(
+          *compressedLength, std::memory_order_relaxed);
     } else {
-      ++totalCompressionErrors_;
+      totalCompressionErrors_.fetch_add(1, std::memory_order_relaxed);
     }
     return ret;
   }
@@ -71,12 +74,14 @@ class CompressionCodec {
       uint8_t* uncompressed,
       size_t uncompressedLength) {
     Status ret = uncompress(compressed, uncompressed, uncompressedLength);
-    ++totalDecompressions_;
+    totalDecompressions_.fetch_add(1, std::memory_order_relaxed);
     if (ret.ok()) {
-      totalBytesBeforeDecompression_ += compressed.size();
-      totalBytesAfterDecompression_ += uncompressedLength;
+      totalBytesBeforeDecompression_.fetch_add(
+          compressed.size(), std::memory_order_relaxed);
+      totalBytesAfterDecompression_.fetch_add(
+          uncompressedLength, std::memory_order_relaxed);
     } else {
-      ++totalDecompressionErrors_;
+      totalDecompressionErrors_.fetch_add(1, std::memory_order_relaxed);
     }
     return ret;
   }
@@ -129,15 +134,17 @@ class CompressionCodec {
   int compressionLevel_ = 0;
 
  private:
-  // Stats
-  uint64_t totalBytesBeforeCompression_ = 0;
-  uint64_t totalBytesAfterCompression_ = 0;
-  uint64_t totalCompressions_ = 0;
-  uint64_t totalBytesBeforeDecompression_ = 0;
-  uint64_t totalBytesAfterDecompression_ = 0;
-  uint64_t totalDecompressions_ = 0;
-  uint64_t totalCompressionErrors_ = 0;
-  uint64_t totalDecompressionErrors_ = 0;
+  // Stats. Atomic because one codec instance is shared by every thread that
+  // compresses or decompresses with its type. They are independent counters,
+  // so relaxed ordering is enough.
+  std::atomic<uint64_t> totalBytesBeforeCompression_ = 0;
+  std::atomic<uint64_t> totalBytesAfterCompression_ = 0;
+  std::atomic<uint64_t> totalCompressions_ = 0;
+  std::atomic<uint64_t> totalBytesBeforeDecompression_ = 0;
+  std::atomic<uint64_t> totalBytesAfterDecompression_ = 0;
+  std::atomic<uint64_t> totalDecompressions_ = 0;
+  std::atomic<uint64_t> totalCompressionErrors_ = 0;
+  std::atomic<uint64_t> totalDecompressionErrors_ = 0;
 
   DISALLOW_COPY_AND_ASSIGN(CompressionCodec);
   CompressionCodec(CompressionCodec&&) = delete;

@@ -41,6 +41,7 @@
 
 #include <cstdint>
 
+#include <folly/synchronization/CallOnce.h>
 #include <glog/logging.h>
 
 #include "kudu/gutil/dynamic_annotations.h" // for runningOnValgrind
@@ -211,20 +212,13 @@ int parseMaxCpuIndex(const char* str) {
   return maxIdx;
 }
 
-// WARNING: logging calls back to initializeSystemInfo() so it must
-// not invoke any logging code.  Also, initializeSystemInfo() can be
-// called before main() -- in fact it *must* be since alreadyCalled
-// isn't protected -- before malloc hooks are properly set up, so
-// we make an effort not to call any routines which might allocate
-// memory.
+// WARNING: computeSystemInfo() runs under folly::call_once, so nothing it
+// calls may call back into initializeSystemInfo(); that would deadlock.
+// Also, initializeSystemInfo() can be called before main(), before malloc
+// hooks are properly set up, so we make an effort not to call any routines
+// which might allocate memory.
 
-static void initializeSystemInfo() {
-  static bool alreadyCalled = false; // safe if we run before threads
-  if (alreadyCalled) {
-    return;
-  }
-  alreadyCalled = true;
-
+static void computeSystemInfo() {
   bool sawMhz = false;
 
   if (runningOnValgrind()) {
@@ -362,6 +356,12 @@ static void initializeSystemInfo() {
   if (localNumCpus > 0) {
     cpuinfoNumCpus = localNumCpus;
   }
+}
+
+// Concurrent first callers wait until the values are computed.
+static void initializeSystemInfo() {
+  static folly::once_flag once;
+  folly::call_once(once, computeSystemInfo);
 }
 
 double cyclesPerSecond(void) {

@@ -2770,7 +2770,7 @@ Status RaftConsensus::requestVote(
   // See also https://ramcloud.stanford.edu/~ongaro/thesis.pdf
   // section 4.2.3.
 
-  if (withholdVotes_) {
+  if (withholdVotes_.load(std::memory_order_relaxed)) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting vote request from peer " << request->candidate_uuid()
         << " " << hostnamePort << " for testing.";
@@ -4660,7 +4660,7 @@ void RaftConsensus::runWithConsensusStateLockForTests(
 }
 
 void RaftConsensus::setWithholdVotesForTests(bool withhold_votes) {
-  withholdVotes_ = withhold_votes;
+  withholdVotes_.store(withhold_votes, std::memory_order_relaxed);
 }
 
 void RaftConsensus::setRejectAppendEntriesForTests(bool reject_append_entries) {
