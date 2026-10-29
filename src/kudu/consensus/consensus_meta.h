@@ -283,7 +283,7 @@ class ConsensusMetadata {
   // Updates the cached on-disk size of the consensus metadata.
   Status updateOnDiskSize();
 
-  // Every setter of a toConsensusStatePB() field calls this before it writes.
+  // Every setter of a toConsensusStatePB() field calls this after it writes.
   void markStateChanged() {
     consensusStateGeneration_.fetch_add(1, std::memory_order_relaxed);
   }

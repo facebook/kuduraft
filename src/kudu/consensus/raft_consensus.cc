@@ -5732,10 +5732,10 @@ std::string RaftConsensus::getCompressionStats() const {
 
 Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
   LockGuard l(consensusStateLock_);
-  markLocalStatusChangedUnlocked();
   // proxyPolicy_ changes even if the routing tables fail to follow, and the
   // published status shows it, as a reader holding the lock would see it.
   proxyPolicy_ = proxy_policy;
+  markLocalStatusChangedUnlocked();
   return routingTableContainer_->setProxyPolicy(
       proxyPolicy_, cmeta_->leaderUuid(), cmeta_->activeConfig());
 }
@@ -5805,12 +5805,12 @@ void RaftConsensus::UpdateLocalPeerUnlocked(RaftConfigPB& active_config) {
     return;
   }
 
-  markLocalStatusChangedUnlocked();
   localPeerPb_.set_member_type(new_local_peer_pb->member_type());
 
   if (new_local_peer_pb->has_attrs()) {
     localPeerPb_.mutable_attrs()->CopyFrom(new_local_peer_pb->attrs());
   }
+  markLocalStatusChangedUnlocked();
 }
 
 ////////////////////////////////////////////////////////////////////////

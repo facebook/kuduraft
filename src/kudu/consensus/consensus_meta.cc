@@ -58,9 +58,9 @@ int64_t ConsensusMetadata::currentTerm() const {
 
 void ConsensusMetadata::setCurrentTerm(int64_t term) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  markStateChanged();
   DCHECK_GE(term, kMinimumTerm);
   pb_.set_current_term(term);
+  markStateChanged();
 }
 
 bool ConsensusMetadata::hasVotedFor() const {
@@ -188,8 +188,8 @@ const RaftConfigPB& ConsensusMetadata::getConfig(RaftConfigState type) const {
 
 void ConsensusMetadata::setCommittedConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  markStateChanged();
   *pb_.mutable_committed_config() = config;
+  markStateChanged();
   if (!hasPendingConfig_) {
     updateActiveRole();
   }
@@ -197,8 +197,8 @@ void ConsensusMetadata::setCommittedConfig(const RaftConfigPB& config) {
 
 void ConsensusMetadata::setCommittedConfigRaw(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  markStateChanged();
   *pb_.mutable_committed_config() = config;
+  markStateChanged();
 }
 
 kudu::Status ConsensusMetadata::voterDistribution(
@@ -227,17 +227,17 @@ const RaftConfigPB& ConsensusMetadata::pendingConfig() const {
 
 void ConsensusMetadata::clearPendingConfig() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  markStateChanged();
   hasPendingConfig_ = false;
   pendingConfig_.Clear();
+  markStateChanged();
   updateActiveRole();
 }
 
 void ConsensusMetadata::setPendingConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  markStateChanged();
   hasPendingConfig_ = true;
   pendingConfig_ = config;
+  markStateChanged();
   updateActiveRole();
 }
 
@@ -281,8 +281,8 @@ int64_t ConsensusMetadata::lastPrunedTerm() const {
 
 void ConsensusMetadata::setLeaderUuid(string uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
-  markStateChanged();
   leaderUuid_ = std::move(uuid);
+  markStateChanged();
   updateActiveRole();
   // cmeta not persisted untill we sync to LKL
 }

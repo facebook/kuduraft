@@ -1487,7 +1487,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   void UpdateLocalPeerUnlocked(RaftConfigPB& active_config);
 
-  // Every write to proxyPolicy_ or localPeerPb_ calls this first.
+  // Every writer of proxyPolicy_ or localPeerPb_ calls this after it writes.
   void markLocalStatusChangedUnlocked() {
     DCHECK(consensusStateLock_.is_locked());
     localStatusGeneration_++;
@@ -1501,7 +1501,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // The two generation counters that cover the published fields: cmeta_'s
   // (term, leader, configs) and localStatusGeneration_ (proxyPolicy_, and
   // localPeerPb_, which determines peerQuorumId). Each is bumped by every call
-  // that may change a field it covers, before the field is written, through
+  // that may change a field it covers, after the field is written, through
   // ConsensusMetadata::markStateChanged() and markLocalStatusChangedUnlocked().
   struct StatusGenerations {
     int64_t cmeta{0};
@@ -1575,7 +1575,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   folly::atomic_shared_ptr<const StatusSnapshot> publishedStatus_;
 
   // Status publication state. Protected by consensusStateLock_.
-  // Bumped before proxyPolicy_ or localPeerPb_ is written: the counterpart of
+  // Bumped after proxyPolicy_ or localPeerPb_ is written: the counterpart of
   // cmeta_->consensusStateGeneration() for the published fields cmeta_ doesn't
   // hold.
   int64_t localStatusGeneration_{0};
