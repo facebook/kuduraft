@@ -36,7 +36,9 @@ DEFINE_string(
     "valid values are 'always' or 'never'.");
 TAG_FLAG(color, stable);
 
-static bool validateColorFlag(const char* flagName, const std::string& value) {
+static bool validateColorFlag(
+    const char* /* flagName */,
+    const std::string& value) {
   if (value == "always" || value == "auto" || value == "never") {
     return true;
   }
