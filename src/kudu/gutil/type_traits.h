@@ -36,8 +36,6 @@
 // Define a small subset of tr1 type traits. The traits we define are:
 //   EnableIf
 //   IsArray
-//   IsReference
-//   RemoveReference
 // We can add more type traits as required.
 
 // THESE #defines collide with spareshash
@@ -51,10 +49,6 @@ template <bool cond, class T>
 struct EnableIf;
 template <class T>
 struct IsArray;
-template <class T>
-struct IsReference;
-template <class T>
-struct RemoveReference;
 
 // EnableIf, equivalent semantics to c++11 std::enable_if, specifically:
 //   "If B is true, the member typedef type shall equal T; otherwise, there
@@ -74,22 +68,6 @@ struct IsArray<T[n]> : public true_type {};
 template <class T>
 struct IsArray<T[]> : public true_type {};
 
-// IsReference is false except for reference types.
-template <typename T>
-struct IsReference : false_type {};
-template <typename T>
-struct IsReference<T&> : true_type {};
-
-// Specified by TR1 [4.7.2] Reference modifications.
-template <typename T>
-struct RemoveReference {
-  using type = T;
-};
-template <typename T>
-struct RemoveReference<T&> {
-  using type = T;
-};
-
 } // namespace base
 
 // Right now these macros are no-ops, and mostly just document the fact
@@ -98,5 +76,3 @@ struct RemoveReference<T&> {
 // these macros.
 #define KDECLARE_POD(TypeName) \
   typedef int DummyTypeForDeclarePod ATTRIBUTE_UNUSED
-#define KENFORCE_POD(TypeName) \
-  typedef int DummyTypeForEnforcePod ATTRIBUTE_UNUSED
