@@ -1074,12 +1074,12 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
   }
 
   // We have converged to the most pessimistic quorum which hasn't
-  // been satisfied yet.
+  // been satisfied yet. Once every voter has voted, it never will be.
   VLOG_WITH_PREFIX(3)
       << "Converged to the most pessimistic quorum. Could not reach "
       << "a result using vote histories. Election term: " << electionTerm_;
   return {
-      ElectionDecision::UNDECIDED,
+      areAllVotesIn() ? ElectionDecision::LOST : ElectionDecision::UNDECIDED,
       ElectionDecisionMethod::VOTER_HISTORY,
       std::move(next_leader_regions)};
 }
